@@ -12,13 +12,23 @@ Claude Code skill 集，为 Java 后端开发者设计。
 
 ## 安装
 
-### macOS / Linux / Git Bash
+完整工作流需要安装两个 skill 包：
+
+### 第一步：安装 superpowers-zh（提供 brainstorming、code-review 等通用 skill）
+
+```bash
+npx superpowers-zh
+```
+
+### 第二步：安装 dev-workflow-skills（提供 dev-doc、code-reading）
+
+**macOS / Linux / Git Bash**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
 ```
 
-### Windows PowerShell
+**Windows PowerShell**
 
 ```powershell
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex

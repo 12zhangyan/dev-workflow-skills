@@ -13,17 +13,39 @@
 
 ---
 
-## 二、所需 Skills
+## 二、安装 Skills
 
-| Skill | 用途 | 调用方式 |
-|-------|------|---------|
-| `/dev-doc` | 生成开发文档（工作流第一步） | 显式调用 |
-| `/brainstorming` | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
-| `/code-reading` | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
-| `/requesting-code-review` | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
-| `/chinese-code-review` | 整理中文 PR 评论话术 | 显式调用 |
-| `/receiving-code-review` | 处理 review 反馈，判断是否接受 | 按需调用 |
-| `/compact` | 上下文超 50% 时压缩，防止对话失焦 | 按需调用 |
+工作流依赖两个 skill 包，需要分别安装：
+
+### 1. superpowers-zh（提供 brainstorming、code-review 等通用 skill）
+
+```bash
+npx superpowers-zh
+```
+
+### 2. dev-workflow-skills（提供 dev-doc、code-reading）
+
+```bash
+# macOS / Linux / Git Bash
+curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
+
+# Windows PowerShell
+irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
+```
+
+安装完成后重启 Claude Code 生效。
+
+### 所需 Skills 一览
+
+| Skill | 来源 | 用途 | 调用方式 |
+|-------|------|------|---------|
+| `/dev-doc` | dev-workflow-skills | 生成开发文档（工作流第一步） | 显式调用 |
+| `/code-reading` | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
+| `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
+| `/requesting-code-review` | superpowers-zh | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
+| `/chinese-code-review` | superpowers-zh | 整理中文 PR 评论话术 | 显式调用 |
+| `/receiving-code-review` | superpowers-zh | 处理 review 反馈，判断是否接受 | 按需调用 |
+| `/compact` | superpowers-zh | 上下文超 50% 时压缩，防止对话失焦 | 按需调用 |
 
 ---
 
