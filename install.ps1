@@ -15,14 +15,14 @@ Write-Host "Installing dev-workflow-skills to $skillsDir..."
 Write-Host ""
 
 foreach ($file in $files) {
-    $dir = Join-Path $skillsDir (Split-Path $file)
+    $dir = Join-Path $skillsDir (Split-Path $file -Parent)
     New-Item -ItemType Directory -Force $dir | Out-Null
     $dest = Join-Path $skillsDir $file
     try {
-        Invoke-WebRequest -Uri "$repo/skills/$file" -OutFile $dest -UseBasicParsing
+        Invoke-WebRequest -Uri "$repo/skills/$file" -OutFile $dest -UseBasicParsing -TimeoutSec 30
         Write-Host "  OK $file"
     } catch {
-        Write-Error "  Failed to download $file`: $_"
+        Write-Error "  Failed to download ${file}: $_"
         exit 1
     }
 }
