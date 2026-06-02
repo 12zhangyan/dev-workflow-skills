@@ -1,6 +1,6 @@
 ---
 name: dev-doc
-description: 开发工作流的第一步——根据需求生成开发文档。包含需求分析、技术方案、API/数据库/缓存设计、Mermaid 流程图、测试要点和上线 Todo。按日期保存到 docs/YYYY-MM-DD/ 目录。仅在用户显式 /dev-doc 时调用
+description: 当开始编码前需要把需求落成可执行文档时使用——需求还是口头想法、AI 可能走错方向、或任务范围不清晰时。仅在用户显式 /dev-doc 时调用
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true
@@ -119,7 +119,6 @@ print(d)
 
 ## 规则
 
-- **不主动调用**：`disable-model-invocation: true`，仅在用户显式 `/dev-doc` 时执行
 - **不污染主对话**：Step 1 的 git 检查结果不展示，仅作为内部上下文
 - **不编造内容**：未确认的章节统一标 `待补充`
 - **开闭原则优先**：方案设计偏向扩展新代码，而非修改现有
@@ -140,5 +139,14 @@ print(d)
 
 - 完整文档模板与问题集：[reference.md](reference.md)
 - 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
-- 中文文档规范：参考 `chinese-documentation` Skill 的命名和格式约定
-- 后续步骤：`/code-review`（自查）、`/chinese-code-review`（PR 评论话术）
+- 中文文档规范：**必需背景：** `chinese-documentation` skill
+- 后续步骤：`/requesting-code-review`（AI 代码审查）、`/code-reading`（生成代码地图）、`/chinese-code-review`（PR 评论话术）
+
+## 常见错误
+
+| 错误 | 原因 | 修复 |
+|------|------|------|
+| 文档生成后 AI 执行走偏 | 「六、代码变更清单」写得不够具体 | 每个条目加上「为何不能用扩展替代」说明 |
+| 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
+| 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
+| Step 1 git 命令报错 | 项目无 VCS | 正常，自动降级到无 VCS 模式 |

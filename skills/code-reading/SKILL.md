@@ -1,6 +1,6 @@
 ---
 name: code-reading
-description: Review 前的代码地图——生成调用链流程图、状态机、主要代码位置索引。支持三种入口：功能描述 / dev-doc文档路径 / 入口类或方法名。仅在显式 /code-reading 时调用
+description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。仅在用户显式 /code-reading 时调用
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
@@ -115,7 +115,6 @@ Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 
 ## 规则
 
-- **不主动调用**：`disable-model-invocation: true`，仅在用户显式 `/code-reading` 时执行
 - **静默分析**：Step 1-2 的 bash/find 命令结果不展示给用户，仅作内部上下文
 - **不编造**：只记录代码里实际存在的调用/状态/注释
 - **不越界**：不提修改建议，不标记问题，那是 `/requesting-code-review` 的职责
@@ -123,6 +122,15 @@ Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 ## 相关资源
 
 - 完整文档模板：[reference.md](reference.md)
-- dev-doc 文档格式：`.claude/skills/dev-doc/reference.md`
-- AI 代码审查：`/requesting-code-review`
-- 后续工作流：`best-practice/java-svn-dev-workflow.md`
+- **必需背景：** `dev-doc` skill（了解 dev-doc 模式入口的文档结构）
+- AI 代码审查：`/requesting-code-review`（code-reading 之后运行）
+- 完整工作流参考：`best-practice/java-svn-dev-workflow.md`
+
+## 常见错误
+
+| 错误 | 原因 | 修复 |
+|------|------|------|
+| 功能描述模式找不到相关文件 | 关键词太泛（如"登录"） | 改用类名模式：`AuthController#login` |
+| dev-doc 模式无「六、代码变更清单」 | dev-doc 文档格式不同 | 切换到入口代码模式 |
+| 流程图节点太多看不清 | 追踪层级过深 | 只追踪 3 层以内，更深的用「...」省略 |
+| 状态机图没有生成 | 代码里没有找到明确状态跳转 | 正常，只有发现 setStatus/枚举赋值时才生成 |
