@@ -1,0 +1,144 @@
+---
+name: dev-doc
+description: 开发工作流的第一步——根据需求生成开发文档。包含需求分析、技术方案、API/数据库/缓存设计、Mermaid 流程图、测试要点和上线 Todo。按日期保存到 docs/YYYY-MM-DD/ 目录。仅在用户显式 /dev-doc 时调用
+argument-hint: [任务名称]
+arguments: task
+disable-model-invocation: true
+allowed-tools: Write, Read, Edit, Bash, Glob
+shell: bash
+model: sonnet
+effort: high
+---
+
+# 开发文档生成（开发工作流 - Step 1）
+
+## 任务定位
+
+本 Skill 是开发工作流的第一步：把需求落成文档，驱动后续编码、自测、Code Review、上线。
+文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
+
+## 执行流程
+
+### Step 0：参数检查
+
+- `$task` 为空 → 询问用户："这次要做什么任务？用一句话描述（如 '用户登录优化'）"
+- 任务名规范化：
+  - 英文：转小写 + 空格转 `-`（`user login` → `user-login`）
+  - 中文：保留原样（`用户登录优化`）
+  - 文件名清洗：`/ \ : * ? " < > |` 及多余空格统一替换为 `-`（`用户 Login/优化` → `用户-Login-优化`）
+
+### Step 1：静默收集环境上下文（不打扰用户）
+
+执行以下命令，结果**用作引导提问和 Step 6 输出填充**，不展示给用户：
+
+```bash
+# VCS 类型检测（记住结果：git / svn / none，用于 Step 6 填入代码审查命令）
+if git rev-parse --git-dir 2>/dev/null; then
+  git branch --show-current 2>/dev/null
+  git log --oneline -3 2>/dev/null
+else
+  svn info 2>/dev/null | grep -E "^(Relative URL|Revision):"
+  svn log -l 3 2>/dev/null
+fi
+# 项目类型检测（记住结果，用于 Step 6 填入验证命令）
+python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle','package.json'] if pathlib.Path(f).exists()))"
+```
+
+### Step 2：确认任务类型和复杂度（逐一提问）
+
+先问类型，等用户回答后再问复杂度：
+
+> 任务类型是？（新功能 / Bug 修复 / 重构 / 性能优化 / API 联调 / 配置变更）
+
+收到回答后再问：
+
+> 复杂度？（简单：≤50 行 / 中等：50–500 行 / 复杂：>500 行或跨模块）
+
+若用户选"复杂"，追加提示："建议执行阶段输入 `/model opus` 切换更强的模型。"
+
+### Step 3：按类型收集需求（逐一提问）
+
+**规则：每次只问一个问题，等回答后再问下一个。**
+
+具体问题集见 [reference.md](reference.md#step-3-问题集)：
+- 简单任务：2 个问题
+- 新功能 / Bug / 重构 / 性能：各 5 个针对性问题
+
+提问引导：利用 Step 1 拿到的 git 上下文做引导式提问。
+用户答"不知道"/"待定" → 记为 `待补充`，继续下一题。
+全部完成后告知用户："信息收集完毕，开始生成文档。"
+
+### Step 4：路径处理（跨平台）
+
+用 Python 一条命令完成日期获取和目录创建：
+
+```bash
+python3 -c "
+from datetime import date
+import pathlib
+d = date.today().isoformat()
+pathlib.Path('docs/' + d).mkdir(parents=True, exist_ok=True)
+print(d)
+"
+```
+
+若 `python3` 不可用回退到 `python`。命令输出即为日期字符串（如 `2026-05-31`），拼接为最终路径 `docs/<日期>/<任务名>.md`。
+
+**冲突处理**：用 Read 工具尝试读取目标文件：
+- 读取成功 → 询问：
+  - `A` 覆盖（整个文件重写）
+  - `B` 加时间戳后缀（`<任务名>-1530.md`）
+  - `C` 加版本号后缀（`<任务名>-v2.md`）
+  - `D` 取消
+  - `E` 追加更新（保留现有内容，在文档末尾追加「变更记录」段落）
+- 读取失败 → 直接生成
+
+### Step 5：生成文档
+
+加载完整模板：[reference.md](reference.md#文档模板)
+参考已填示例：[examples.md](examples.md)
+
+**核心规则**：
+- 只使用用户提供的信息，未确认的标 `待补充`，不编造
+- **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
+- **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
+
+### Step 6：输出 Next Steps
+
+模板见 [reference.md](reference.md#完成后输出格式)。
+
+核心要素：
+1. 文件路径（可直接打开）
+2. 关键决策 3 句话摘要
+3. Claude/Cursor 执行提示（可直接粘贴给 AI）
+4. 验证命令：用 Step 1 检测到的项目类型自动填入（`pom.xml` → `mvn test`，`build.gradle` → `./gradlew test`，`package.json` → `npm test`，未检测到则保留占位符）
+5. 验证通过后 Todo：代码审查命令根据 Step 1 检测到的 VCS 类型填入：
+   - Git → `/requesting-code-review`
+   - SVN → `svn diff > /tmp/changes.patch`，然后让 Claude 读取该文件审查
+   - 无 VCS → 保留占位符
+
+## 规则
+
+- **不主动调用**：`disable-model-invocation: true`，仅在用户显式 `/dev-doc` 时执行
+- **不污染主对话**：Step 1 的 git 检查结果不展示，仅作为内部上下文
+- **不编造内容**：未确认的章节统一标 `待补充`
+- **开闭原则优先**：方案设计偏向扩展新代码，而非修改现有
+- **可执行导向**：文档不是终点，是驱动后续工作的起点
+
+## 检查清单（生成文档前确认）
+
+- [ ] $task 已确认（不为空）
+- [ ] 任务类型和复杂度已确认
+- [ ] 按类型问完了对应数量的问题
+- [ ] 文件路径冲突已处理
+- [ ] 不相关章节已删除（避免大量"待补充"）
+- [ ] 最小影响分析已包含
+- [ ] 代码评审关注点已填写
+- [ ] Claude/Cursor 执行提示已生成
+
+## 相关资源
+
+- 完整文档模板与问题集：[reference.md](reference.md)
+- 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
+- 中文文档规范：参考 `chinese-documentation` Skill 的命名和格式约定
+- 后续步骤：`/code-review`（自查）、`/chinese-code-review`（PR 评论话术）
