@@ -18,8 +18,12 @@ echo ""
 for file in "${FILES[@]}"; do
   dir="${SKILLS_DIR}/$(dirname "$file")"
   mkdir -p "$dir"
-  curl -fsSL "${REPO}/skills/${file}" -o "${SKILLS_DIR}/${file}"
-  echo "  ✓ ${file}"
+  if curl -fsSL "${REPO}/skills/${file}" -o "${SKILLS_DIR}/${file}"; then
+    echo "  ✓ ${file}"
+  else
+    echo "  ✗ Failed to download ${file}" >&2
+    exit 1
+  fi
 done
 
 echo ""
