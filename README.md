@@ -7,8 +7,29 @@ Claude Code skill 集，为 Java 后端开发者设计。
 
 | Skill | 用途 |
 |-------|------|
-| `/dev-doc` | 问答式生成开发文档（需求→技术方案→变更清单） |
+| `/dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
 | `/code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引） |
+
+## /dev-doc 能做什么
+
+运行一次 `/dev-doc`，自动完成两件事：
+
+**① 生成 md 开发文档**，包含：
+
+- 需求说明（背景 / 目标 / 范围）
+- API 设计与接口列表
+- 技术方案（方案概述 / 核心设计 / 最小影响分析）
+- 流程图（Mermaid 语法）
+- 代码变更清单
+- 关键实现说明
+- 实现 Todo / 代码评审关注点
+- **Apifox 接口规范**（OpenAPI 3.0 YAML，可直接导入 Apifox）
+
+**② 自动追加到 `project-html/index.html`**（飞书知识库风格展示页）：
+
+- 左侧：按服务/模块分组的文档树
+- 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更）
+- 底部：HTML 变更日志时间轴（Mermaid 图表支持）
 
 ## 安装
 
@@ -39,10 +60,17 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 ## 工作流
 
 ```
-写文档 → AI 执行 → 跑测试 → AI review → /code-reading → 人工 review → 提交
+/dev-doc → AI 执行 → 跑测试 → AI review → /code-reading → 人工 review → 提交
 ```
 
 详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)
+
+## HTML 展示页
+
+每次运行 `/dev-doc` 后，AI 会自动将本次文档追加到项目根目录的 `project-html/index.html`。
+直接用浏览器打开该文件即可查阅所有历史开发文档，无需服务器。
+
+示例：[project-html/index.html](project-html/index.html)
 
 ## 适用场景
 

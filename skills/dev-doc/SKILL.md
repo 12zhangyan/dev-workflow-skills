@@ -102,6 +102,76 @@ print(d)
 - 只使用用户提供的信息，未确认的标 `待补充`，不编造
 - **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
+- **Apifox 章节**：Step 3 问答中提到新增或修改 API 时，生成「十三、Apifox 接口规范」章节，内容为可直接导入 Apifox 的 OpenAPI 3.0 YAML；根据用户提供的接口信息填入 `paths`，未确认字段用 `# 待补充` 注释标记；未涉及接口变更则删除该章节
+
+### Step 5.5：同步更新 HTML 展示页
+
+**先询问用户（一个问题）：**
+> 这属于哪个服务/模块？（如：用户服务、订单服务；单模块项目填项目名；不确定填 `通用`）
+
+收到回答后，**Read 刚生成的 md 文件**，从中提取以下字段（提取时跳过模板占位符 `[...]`，遇到则填空字符串或空数组）：
+
+| JS 字段 | 从 md 文档提取位置 |
+|---------|------------------|
+| `module` | 用户刚才的回答 |
+| `title` | `$task`（任务名） |
+| `date` | Step 4 获取的日期 |
+| `type` | Step 2 确认的任务类型 |
+| `complexity` | Step 2 确认的复杂度 |
+| `status` | 固定值 `草稿` |
+| `branch` | Step 1 检测到的 Git branch 名 |
+| `background` | `### 背景` 下第一段文字（最多 120 字） |
+| `goals` | `### 目标` 下 `- [ ]` 条目 → string[] |
+| `scopeIn` | `✅ 包含：` 后文字，按 `/` 或换行拆分 → string[] |
+| `scopeOut` | `❌ 不包含：` 后文字，按 `/` 或换行拆分 → string[] |
+| `solution` | `### 方案概述` 下第一段文字 |
+| `coreDesign` | `### 核心设计` 下第一段文字 |
+| `flowchart` | `## 七、流程图` 下 mermaid 代码块内容（不含 ` ``` ` 标记） |
+| `changeList` | `## 六、代码变更清单` 表格各行 → `{file, action, desc}[]` |
+| `todos` | `## 十一、实现 Todo` 下 `- [ ]` 条目 → string[] |
+| `apis` | `## 三、API 设计` 表格各行 → `{method, url, desc}[]`；无该节则填 `[]` |
+
+**判断文件是否存在**（用 Read 工具尝试读取 `project-html/index.html`）：
+
+- **不存在** → 用 Write 工具创建完整 HTML 文件，模板见 [reference.md](reference.md#html-展示页模板)，将提取的字段写为首条记录
+- **已存在** → 两次 Edit：
+
+  **① 追加文档条目**（定位文档标记行）：
+  - `old_string`：`    // ─── 在此行上方追加新记录 ───`
+  - `new_string`：将所有提取到的字段组成对象插入，末尾加逗号，保留标记行。
+    非空字段才写入，空数组可省略。最小格式示例：
+    ```
+        {
+          module: "<module>",
+          title: "<title>",
+          date: "<date>",
+          type: "<type>",
+          complexity: "<complexity>",
+          status: "草稿",
+          branch: "<branch>",
+          background: "<background>",
+          goals: [<goals>],
+          scopeIn: [<scopeIn>],
+          scopeOut: [<scopeOut>],
+          apis: [],
+          solution: "<solution>",
+          coreDesign: "<coreDesign>",
+          flowchart: `<flowchart>`,
+          changeList: [<changeList>],
+          todos: [<todos>]
+        },
+        // ─── 在此行上方追加新记录 ───
+    ```
+
+  **② 追加 HTML 变更日志**（定位日志标记行）：
+  - `old_string`：`    // ─── 在此行上方追加变更日志 ───`
+  - `new_string`：
+    ```
+        { date: "<date>", desc: "新增文档：<title>" },
+        // ─── 在此行上方追加变更日志 ───
+    ```
+
+输出一行提示：`📄 HTML 展示页已更新：project-html/index.html`
 
 ### Step 6：输出 Next Steps
 
