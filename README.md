@@ -28,8 +28,9 @@ Claude Code skill 集，为 Java 后端开发者设计。
 
 **② 自动追加到 `project-html/index.html`**（飞书知识库风格展示页）：
 
-- 左侧：按服务/模块分组的文档树
+- 左侧：按服务/模块分组的文档树，顶部支持**搜索** + **文档/Bug 类型筛选** + **仅看未完成**
 - 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更）
+- **状态可点击切换**：点详情页状态标签即可推进（草稿→进行中→已完成 / Bug：未修复→修复中→已修复→已验证），保存在浏览器本地，无需重跑 skill
 - 底部：HTML 变更日志时间轴（Mermaid 图表支持）
 
 ## 安装
@@ -68,8 +69,9 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 
 ## HTML 展示页
 
-每次运行 `/dev-doc` 后，AI 会自动将本次文档追加到项目根目录的 `project-html/index.html`。
-直接用浏览器打开该文件即可查阅所有历史开发文档，无需服务器。
+每次运行 `/dev-doc` 或 `/bug-fix` 后，AI 会自动将本次记录追加到项目根目录的 `project-html/index.html`。
+直接用浏览器打开该文件即可查阅所有历史文档与 Bug，搜索、筛选、点击切换状态，无需服务器。
+状态变更保存在浏览器 localStorage（按当前浏览器 + 文件路径隔离）。
 
 示例：[project-html/index.html](project-html/index.html)
 

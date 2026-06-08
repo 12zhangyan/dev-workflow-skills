@@ -21,13 +21,21 @@
       display: flex; flex-direction: column;
     }
     .sidebar-header {
-      padding: 16px 16px 12px; border-bottom: 1px solid #e5e6eb; flex-shrink: 0;
+      padding: 16px 14px 12px; border-bottom: 1px solid #e5e6eb; flex-shrink: 0;
     }
     .sidebar-title { font-size: 15px; font-weight: 600; color: #1f2329; display: flex; align-items: center; gap: 8px; }
     .sidebar-sub { font-size: 12px; color: #8f959e; margin-top: 3px; padding-left: 24px; }
+    .search { width: 100%; margin-top: 11px; padding: 6px 10px; border: 1px solid #e5e6eb; border-radius: 6px; font-size: 13px; background: #fff; color: #1f2329; outline: none; }
+    .search:focus { border-color: #2b5ef6; }
+    .filters { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .fpill { font-size: 12px; padding: 2px 9px; border-radius: 12px; background: #ebedf0; color: #646a73; cursor: pointer; user-select: none; }
+    .fpill:hover { background: #e1e3e6; }
+    .fpill.active { background: #2b5ef6; color: #fff; }
+    .fpill.toggle.active { background: #d97706; color: #fff; }
     .sidebar-body { flex: 1; overflow-y: auto; padding: 6px 0 8px; }
     .sidebar-body::-webkit-scrollbar { width: 4px; }
     .sidebar-body::-webkit-scrollbar-thumb { background: #d0d3d8; border-radius: 2px; }
+    .sb-empty { text-align: center; color: #8f959e; font-size: 12px; padding: 28px 12px; }
     .sidebar-footer { flex-shrink: 0; border-top: 1px solid #e5e6eb; padding: 8px; }
 
     /* ── Module / Doc items ──────────────────────────────── */
@@ -54,7 +62,8 @@
     .doc-item.active { background: #e1eaff; color: #2b5ef6; font-weight: 500; }
     .doc-ico { font-size: 12px; flex-shrink: 0; color: #8f959e; }
     .doc-item.active .doc-ico { color: #2b5ef6; }
-    .doc-lbl { overflow: hidden; text-overflow: ellipsis; }
+    .doc-lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .sdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
     .log-btn {
       display: flex; align-items: center; gap: 7px;
@@ -82,6 +91,8 @@
 
     .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
     .tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .tag.clickable { cursor: pointer; }
+    .tag.clickable:hover { filter: brightness(0.96); }
     .t-新功能   { background: #e8f0ff; color: #2b5ef6; }
     .t-Bug修复  { background: #fff0f0; color: #d83931; }
     .t-重构     { background: #edfaef; color: #2da641; }
@@ -187,6 +198,13 @@
   <div class="sidebar-header">
     <div class="sidebar-title">📚 AI 变更记录</div>
     <div class="sidebar-sub" id="sub"></div>
+    <input class="search" id="q" placeholder="🔍 搜索标题 / 模块 / 内容" oninput="onSearch(this.value)">
+    <div class="filters">
+      <span class="fpill" data-k="all" onclick="setKind('all')">全部</span>
+      <span class="fpill" data-k="doc" onclick="setKind('doc')">📄 文档</span>
+      <span class="fpill" data-k="bug" onclick="setKind('bug')">🐛 Bug</span>
+      <span class="fpill toggle" id="openPill" onclick="toggleOpen()">仅未完成</span>
+    </div>
   </div>
   <div class="sidebar-body" id="sb"></div>
   <div class="sidebar-footer">
@@ -209,6 +227,8 @@
     { date: "2026-06-08", desc: "初始化 HTML 展示页（卡片布局）" },
     { date: "2026-06-08", desc: "重设计为飞书知识库风格，左侧模块树 + 右侧文档详情" },
     { date: "2026-06-08", desc: "新增接口文档、流程图（Mermaid）、关键实现、代码变更章节，增加 HTML 变更日志" },
+    { date: "2026-06-08", desc: "新增 Bug 看板（🐛 记录、严重度、根因分析），与开发文档共用展示页" },
+    { date: "2026-06-08", desc: "新增搜索 / 类型筛选 / 仅未完成过滤；状态标签可点击切换并本地保存；侧边栏状态色点 + 日期倒序" },
     // ─── 在此行上方追加变更日志 ───
   ];
 
@@ -219,7 +239,7 @@
   //   date        日期 YYYY-MM-DD
   //   type        新功能 / Bug修复 / 重构 / 性能优化 / 设计 / 配置变更
   //   complexity  简单 / 中等 / 复杂
-  //   status      草稿 / 进行中 / 已完成
+  //   status      草稿 / 进行中 / 已完成（详情页点击状态标签可切换，保存在浏览器本地）
   //   branch      Git 分支名
   //   background  需求背景（一段话）
   //   goals       目标列表 string[]
@@ -236,6 +256,7 @@
   // Bug 记录（kind:"bug"）额外字段：
   //   kind        "bug"（文档条目可省略此字段）
   //   severity    P0-致命 / P1-严重 / P2-一般 / P3-轻微
+  //   status      未修复 / 修复中 / 已修复 / 已验证
   //   symptom     现象描述（一段话）
   //   stackTrace  异常堆栈（原始文本，多行）
   //   reproSteps  复现步骤 string[]
@@ -263,15 +284,15 @@
         "数据内联在 HTML 中，每次执行 dev-doc 后自动追加"
       ],
       scopeIn: ["project-html/index.html", "接口文档/流程图/代码变更等章节展示"],
-      scopeOut: ["后端服务", "自动读取 md 文件", "全文搜索"],
+      scopeOut: ["后端服务", "自动读取 md 文件"],
       apis: [],
       solution: "单文件静态 HTML，数据以 JS 数组内联，Mermaid.js CDN 渲染流程图，浏览器直接打开，零服务器依赖。",
-      coreDesign: "左侧 256px 固定侧边栏展示按模块分组的文档树；右侧渲染各章节（需求/接口/方案/流程图/关键实现/代码变更）。数据追加通过 Edit 工具定位标记行实现。",
+      coreDesign: "左侧 256px 固定侧边栏展示按模块分组的文档树，顶部搜索与筛选；右侧渲染各章节（需求/接口/方案/流程图/关键实现/代码变更）。数据追加通过 Edit 工具定位标记行实现。",
       flowchart: "flowchart TD\n  A([dev-doc 生成文档]) --> B[Step 5.5 提取字段]\n  B --> C{index.html 已存在?}\n  C -->|否| D[Write 创建新文件]\n  C -->|是| E[Edit 追加新记录]\n  E --> F[追加 htmlChangelog]\n  D --> G([完成])\n  F --> G",
       keyImpl: [
         { title: "追加标记行", desc: "通过 `// ─── 在此行上方追加新记录 ───` 定位插入点，Edit 工具替换该行，保持 JS 数组语法合法（每条末尾带逗号）。" },
         { title: "Mermaid 流程图", desc: "通过 CDN 加载 mermaid@10，flowchart 字段存储纯 DSL 代码。pick() 函数渲染后调用 mermaid.run() 异步渲染，失败时降级显示 <pre> 代码块。" },
-        { title: "数据结构扩展", desc: "所有字段可选，渲染函数检查字段是否存在再决定是否显示对应章节，向后兼容旧格式条目。" }
+        { title: "状态本地切换", desc: "详情页状态标签可点击切换，覆盖值存 localStorage，effStatus() 读取覆盖优先，避免每次改状态都要重跑 skill。" }
       ],
       changeList: [
         { file: "project-html/index.html", action: "新增", desc: "单文件 HTML，含内联 CSS + JS + 静态数据数组，支持 Mermaid 流程图渲染" }
@@ -283,26 +304,47 @@
         "验证 Edit 追加逻辑正确"
       ]
     },
-    {
-      module: "dev-workflow-skills",
-      title: "测试自动追加HTML",
-      date: "2026-06-08",
-      type: "新功能",
-      complexity: "简单",
-      status: "草稿",
-      branch: "main",
-      background: "测试 dev-doc skill 的自动追加 HTML 功能是否正常工作，验证知识点。",
-      goals: ["验证 Step 5.5 能正确将新记录追加到 project-html/index.html"],
-      changeList: [
-        { file: "project-html/index.html", action: "修改", desc: "Step 5.5 自动追加新条目（由 skill 执行）" }
-      ],
-      todos: [
-        "确认 project-html/index.html 新条目已正确追加",
-        "浏览器打开验证显示正确"
-      ]
-    },
     // ─── 在此行上方追加新记录 ───
   ];
+
+  // ─── 状态（可点击切换，保存在浏览器 localStorage）─────────────────────────────
+  const DOC_CYCLE = ['草稿', '进行中', '已完成'];
+  const BUG_CYCLE = ['未修复', '修复中', '已修复', '已验证'];
+  const DONE = new Set(['已完成', '已验证']);
+  const SK = 'dwf-status';
+  const SC = { '草稿': '#c8c9cc', '进行中': '#d97706', '已完成': '#2da641', '未修复': '#d83931', '修复中': '#d97706', '已修复': '#2da641', '已验证': '#2b5ef6' };
+  let overrides = {};
+  try { overrides = JSON.parse(localStorage.getItem(SK) || '{}'); } catch (e) {}
+  function keyOf(d) { return `${d.module || '通用'}::${d.date}::${d.title}`; }
+  function effStatus(d) { return overrides[keyOf(d)] ?? d.status; }
+  function statusColor(s) { return SC[s] || '#c8c9cc'; }
+  function cycleStatus(ev) {
+    if (ev) ev.stopPropagation();
+    if (typeof sel !== 'number' || sel < 0) return;
+    const d = changes[sel];
+    const cyc = d.kind === 'bug' ? BUG_CYCLE : DOC_CYCLE;
+    let idx = cyc.indexOf(effStatus(d));
+    overrides[keyOf(d)] = cyc[(idx + 1) % cyc.length];
+    try { localStorage.setItem(SK, JSON.stringify(overrides)); } catch (e) {}
+    pick(sel);
+  }
+
+  // ─── 过滤 ────────────────────────────────────────────────────────────────────
+  let q = '', kindF = 'all', openOnly = false;
+  function matchF(c) {
+    const isBug = c.kind === 'bug';
+    if (kindF === 'doc' && isBug) return false;
+    if (kindF === 'bug' && !isBug) return false;
+    if (openOnly && DONE.has(effStatus(c))) return false;
+    if (q) {
+      const hay = [c.title, c.module, c.type, c.background, c.symptom, c.rootCause].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+  function onSearch(v) { q = v.trim().toLowerCase(); renderSidebar(); }
+  function setKind(k) { kindF = k; renderSidebar(); }
+  function toggleOpen() { openOnly = !openOnly; renderSidebar(); }
 
   // ─── State ──────────────────────────────────────────────────────────────────
   let sel = null; // null=empty, -1=log, 0+=doc index
@@ -311,11 +353,8 @@
   // ─── Sidebar ─────────────────────────────────────────────────────────────────
   function grp() {
     const m = {};
-    changes.forEach((c, i) => {
-      const k = c.module || "通用";
-      if (!m[k]) m[k] = [];
-      m[k].push(i);
-    });
+    changes.forEach((c, i) => { if (!matchF(c)) return; const k = c.module || "通用"; (m[k] ||= []).push(i); });
+    Object.values(m).forEach(ids => ids.sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || '')));
     return m;
   }
 
@@ -324,26 +363,36 @@
     const docCnt = changes.filter(c => c.kind !== 'bug').length;
     const bugCnt = changes.filter(c => c.kind === 'bug').length;
     document.getElementById("sub").textContent = bugCnt ? `${docCnt} 篇文档 · ${bugCnt} 个 Bug` : `共 ${docCnt} 篇文档`;
-    document.getElementById("sb").innerHTML = Object.entries(g).map(([mod, ids]) => {
-      const open = exp.has(mod);
-      return `<div>
-        <div class="mod-hd" onclick="tog('${esc(mod)}')">
-          <span class="chev ${open ? 'open' : ''}">▶</span>
-          <span class="mod-ico">📁</span>
-          <span class="mod-nm">${esc(mod)}</span>
-          <span class="mod-badge">${ids.length}</span>
-        </div>
-        <div style="display:${open ? 'block' : 'none'}">
-          ${ids.map(i => {
-            const isBug = changes[i].kind === 'bug';
-            return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})">
-              <span class="doc-ico">${isBug ? '🐛' : '📄'}</span>
-              <span class="doc-lbl">${esc(changes[i].title)}</span>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-    }).join('');
+    document.querySelectorAll('.fpill[data-k]').forEach(el => el.classList.toggle('active', el.dataset.k === kindF));
+    document.getElementById('openPill').classList.toggle('active', openOnly);
+
+    const forceOpen = !!q || kindF !== 'all' || openOnly;
+    const entries = Object.entries(g);
+    if (!entries.length) {
+      document.getElementById("sb").innerHTML = `<div class="sb-empty">没有匹配的记录</div>`;
+    } else {
+      document.getElementById("sb").innerHTML = entries.map(([mod, ids]) => {
+        const open = forceOpen || exp.has(mod);
+        return `<div>
+          <div class="mod-hd" onclick="tog('${esc(mod)}')">
+            <span class="chev ${open ? 'open' : ''}">▶</span>
+            <span class="mod-ico">📁</span>
+            <span class="mod-nm">${esc(mod)}</span>
+            <span class="mod-badge">${ids.length}</span>
+          </div>
+          <div style="display:${open ? 'block' : 'none'}">
+            ${ids.map(i => {
+              const c = changes[i], isBug = c.kind === 'bug';
+              return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})">
+                <span class="doc-ico">${isBug ? '🐛' : '📄'}</span>
+                <span class="doc-lbl">${esc(c.title)}</span>
+                <span class="sdot" style="background:${statusColor(effStatus(c))}" title="${esc(effStatus(c))}"></span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    }
     document.getElementById("log-btn").className = "log-btn" + (sel === -1 ? " active" : "");
   }
 
@@ -355,6 +404,7 @@
     const d = changes[i];
     if (d.kind === 'bug') { renderBug(d); return; }
     const mod = d.module || "通用";
+    const st = effStatus(d);
     const main = document.getElementById("main");
 
     let h = `<div class="doc-view">
@@ -363,7 +413,7 @@
       <div class="tags">
         <span class="tag t-${esc(d.type)}">${esc(d.type)}</span>
         <span class="tag t-cplx">${esc(d.complexity)}</span>
-        <span class="tag t-status-${esc(d.status)}">${esc(d.status)}</span>
+        <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
       </div>
       <div class="doc-meta">
         <span>📅 ${esc(d.date)}</span>
@@ -465,12 +515,13 @@
   function renderBug(d) {
     const mod = d.module || "通用";
     const sev = d.severity || 'P2';
+    const st = effStatus(d);
     let h = `<div class="doc-view">
       <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>${esc(mod)}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
       <h1 class="doc-h1">${esc(d.title)}</h1>
       <div class="tags">
         <span class="tag t-${esc(sev)}">${esc(sev)}</span>
-        <span class="tag t-status-${esc(d.status)}">${esc(d.status)}</span>
+        <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
       </div>
       <div class="doc-meta">
         <span>📅 ${esc(d.date)}</span>
@@ -552,8 +603,7 @@
   }
 
   // ─── Init ────────────────────────────────────────────────────────────────────
-  const g = grp();
-  Object.keys(g).forEach(m => exp.add(m));
+  Object.keys(grp()).forEach(m => exp.add(m));
   renderSidebar();
   if (changes.length > 0) pick(0);
 </script>

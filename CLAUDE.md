@@ -45,7 +45,9 @@ skills/<name>/
 
 SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). Both skills set `disable-model-invocation: true`, meaning Claude must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`.
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` reuses the HTML template from `../dev-doc/reference.md` (sibling dir after install).
+
+The HTML board has two copies that must stay in sync: `project-html/index.html` (the live demo / a real project's board) and the `## HTML 展示页模板` block inside `skills/dev-doc/reference.md`. They share an identical shell (CSS + HTML + JS); only the `htmlChangelog` / `changes` data arrays differ (template uses `<placeholder>` values). When changing board behavior, update both.
 
 ## Workflow the Skills Support
 
