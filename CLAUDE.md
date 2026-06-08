@@ -11,6 +11,7 @@ A collection of Claude Code skills for Java backend developers. Skills are distr
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
 | `/dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
+| `/bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template) |
 | `/code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
 
 ## Installation
@@ -53,8 +54,9 @@ Skills reference their sibling files with relative paths (e.g., `[reference.md](
 ```
 
 - `/dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
+- `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`; both dev-doc and bug-fix auto-append to `project-html/index.html`
 - `/code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
-- Both use `python3` (fallback `python`) for date generation and directory creation
+- All skills use `python3` (fallback `python`) for date generation and directory creation
 
 ## Editing Skills
 

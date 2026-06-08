@@ -10,6 +10,8 @@ FILES=(
   "dev-doc/examples.md"
   "code-reading/SKILL.md"
   "code-reading/reference.md"
+  "bug-fix/SKILL.md"
+  "bug-fix/reference.md"
 )
 
 echo "Installing dev-workflow-skills to ${SKILLS_DIR}..."
@@ -27,4 +29,4 @@ for file in "${FILES[@]}"; do
 done
 
 echo ""
-echo "Done! Restart Claude Code and try /dev-doc or /code-reading"
+echo "Done! Restart Claude Code and try /dev-doc, /code-reading or /bug-fix"

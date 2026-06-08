@@ -8,6 +8,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 | Skill | 用途 |
 |-------|------|
 | `/dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
+| `/bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
 | `/code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引） |
 
 ## /dev-doc 能做什么

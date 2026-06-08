@@ -154,6 +154,21 @@
     .a-修改 { background: #fff7e6; color: #d97706; }
     .a-删除 { background: #fff0f0; color: #d83931; }
 
+    /* Bug severity */
+    .t-P0 { background: #fff0f0; color: #d83931; }
+    .t-P1 { background: #fff7e6; color: #d97706; }
+    .t-P2 { background: #fffbe6; color: #b45309; }
+    .t-P3 { background: #f5f5f5; color: #8f959e; }
+    /* Bug status */
+    .t-status-未修复 { background: #fff0f0; color: #d83931; }
+    .t-status-修复中 { background: #fff7e6; color: #d97706; }
+    .t-status-已修复 { background: #edfaef; color: #2da641; }
+    .t-status-已验证 { background: #e8f0ff; color: #2b5ef6; }
+    /* Bug sidebar item */
+    .doc-item.bug .doc-ico { color: #d97706; }
+    .doc-item.active.bug { background: #fff7e6; color: #d97706; }
+    .doc-item.active.bug .doc-ico { color: #d97706; }
+
     /* Timeline (changelog view) */
     .timeline { display: flex; flex-direction: column; gap: 0; }
     .tl-item { display: flex; gap: 0; padding-bottom: 0; }
@@ -217,6 +232,21 @@
   //   keyImpl     关键实现要点 {title,desc}[]
   //   changeList  代码变更清单 {file,action,desc}[]
   //   todos       实现 Todo string[]
+  //
+  // Bug 记录（kind:"bug"）额外字段：
+  //   kind        "bug"（文档条目可省略此字段）
+  //   severity    P0-致命 / P1-严重 / P2-一般 / P3-轻微
+  //   symptom     现象描述（一段话）
+  //   stackTrace  异常堆栈（原始文本，多行）
+  //   reproSteps  复现步骤 string[]
+  //   trigger     触发条件
+  //   expected    预期行为
+  //   actual      实际行为
+  //   impact      影响范围
+  //   codeLocation AI 代码定位摘要
+  //   rootCause   根因
+  //   fixPlan     修复方案描述
+  //   verifySteps 验证步骤 string[]
   const changes = [
     {
       module: "dev-workflow-skills",
@@ -291,7 +321,9 @@
 
   function renderSidebar() {
     const g = grp();
-    document.getElementById("sub").textContent = `共 ${changes.length} 篇文档`;
+    const docCnt = changes.filter(c => c.kind !== 'bug').length;
+    const bugCnt = changes.filter(c => c.kind === 'bug').length;
+    document.getElementById("sub").textContent = bugCnt ? `${docCnt} 篇文档 · ${bugCnt} 个 Bug` : `共 ${docCnt} 篇文档`;
     document.getElementById("sb").innerHTML = Object.entries(g).map(([mod, ids]) => {
       const open = exp.has(mod);
       return `<div>
@@ -302,11 +334,13 @@
           <span class="mod-badge">${ids.length}</span>
         </div>
         <div style="display:${open ? 'block' : 'none'}">
-          ${ids.map(i => `
-            <div class="doc-item ${sel === i ? 'active' : ''}" onclick="pick(${i})">
-              <span class="doc-ico">📄</span>
+          ${ids.map(i => {
+            const isBug = changes[i].kind === 'bug';
+            return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})">
+              <span class="doc-ico">${isBug ? '🐛' : '📄'}</span>
               <span class="doc-lbl">${esc(changes[i].title)}</span>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>
       </div>`;
     }).join('');
@@ -319,6 +353,7 @@
   function pick(i) {
     sel = i; renderSidebar();
     const d = changes[i];
+    if (d.kind === 'bug') { renderBug(d); return; }
     const mod = d.module || "通用";
     const main = document.getElementById("main");
 
@@ -424,6 +459,70 @@
         }
       }
     }
+  }
+
+  // ─── Bug view ─────────────────────────────────────────────────────────────────
+  function renderBug(d) {
+    const mod = d.module || "通用";
+    const sev = d.severity || 'P2';
+    let h = `<div class="doc-view">
+      <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>${esc(mod)}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
+      <h1 class="doc-h1">${esc(d.title)}</h1>
+      <div class="tags">
+        <span class="tag t-${esc(sev)}">${esc(sev)}</span>
+        <span class="tag t-status-${esc(d.status)}">${esc(d.status)}</span>
+      </div>
+      <div class="doc-meta">
+        <span>📅 ${esc(d.date)}</span>
+        ${d.branch ? `<span>🌿 ${esc(d.branch)}</span>` : ''}
+      </div>`;
+
+    const hasSym = d.symptom || d.stackTrace || d.reproSteps?.length || d.trigger || d.expected || d.actual;
+    if (hasSym) {
+      let b = '';
+      if (d.symptom) b += `<p class="sec-body" style="margin-bottom:12px">${esc(d.symptom)}</p>`;
+      if (d.stackTrace) b += `<details open><summary>堆栈信息</summary><pre class="json-block">${esc(d.stackTrace)}</pre></details>`;
+      if (d.reproSteps?.length) {
+        b += `<p style="margin:12px 0 6px;font-size:13px;color:#646a73">复现步骤</p>`;
+        b += `<ol style="padding-left:18px;color:#3d4757;font-size:14px;line-height:1.75">${d.reproSteps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`;
+      }
+      if (d.trigger) b += `<p style="margin:12px 0 4px;font-size:13px;color:#646a73">触发条件</p><p class="sec-body">${esc(d.trigger)}</p>`;
+      if (d.expected || d.actual) {
+        b += `<table class="api-table" style="margin-top:12px"><thead><tr><th></th><th>预期</th><th>实际</th></tr></thead>
+          <tbody><tr><td style="color:#646a73;font-size:13px">行为</td>
+          <td style="color:#2da641">${esc(d.expected || '')}</td>
+          <td style="color:#d83931">${esc(d.actual || '')}</td></tr></tbody></table>`;
+      }
+      h += sec("现象", b);
+    }
+
+    if (d.impact) h += sec("影响范围", `<p class="sec-body">${esc(d.impact)}</p>`);
+
+    if (d.codeLocation || d.rootCause) {
+      let b = '';
+      if (d.codeLocation) b += `<div class="keyimpl-list" style="margin-bottom:12px"><div class="keyimpl-item"><div class="ki-title">代码定位</div><div class="ki-desc">${esc(d.codeLocation)}</div></div></div>`;
+      if (d.rootCause) b += `<p class="sec-body">${esc(d.rootCause)}</p>`;
+      h += sec("根因分析", b);
+    }
+
+    if (d.fixPlan) h += sec("修复方案", `<p class="sec-body">${esc(d.fixPlan)}</p>`);
+
+    if (d.changeList?.length) {
+      h += sec("代码变更", `<table class="ctable">
+        <thead><tr><th>文件路径</th><th style="width:72px">操作</th><th>说明</th></tr></thead>
+        <tbody>${d.changeList.map(c =>
+          `<tr><td><code>${esc(c.file)}</code></td>
+           <td><span class="abadge a-${esc(c.action)}">${esc(c.action)}</span></td>
+           <td>${esc(c.desc)}</td></tr>`
+        ).join('')}</tbody>
+      </table>`);
+    }
+
+    if (d.verifySteps?.length) h += sec("验证步骤", `<ul class="checklist">${d.verifySteps.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`);
+    if (d.todos?.length) h += sec("实现 Todo", `<ul class="checklist">${d.todos.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`);
+
+    h += '</div>';
+    document.getElementById("main").innerHTML = h;
   }
 
   // ─── Changelog view ──────────────────────────────────────────────────────────

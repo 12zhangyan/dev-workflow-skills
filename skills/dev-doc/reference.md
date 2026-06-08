@@ -430,6 +430,7 @@ components:
     .ctable code { font-size: 12px; background: #f0f1f3; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
     .abadge { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
     .a-新增 { background: #edfaef; color: #2da641; } .a-修改 { background: #fff7e6; color: #d97706; } .a-删除 { background: #fff0f0; color: #d83931; }
+    .t-P0 { background: #fff0f0; color: #d83931; } .t-P1 { background: #fff7e6; color: #d97706; } .t-P2 { background: #fffbe6; color: #b45309; } .t-P3 { background: #f5f5f5; color: #8f959e; } .t-status-未修复 { background: #fff0f0; color: #d83931; } .t-status-修复中 { background: #fff7e6; color: #d97706; } .t-status-已修复 { background: #edfaef; color: #2da641; } .t-status-已验证 { background: #e8f0ff; color: #2b5ef6; } .doc-item.bug .doc-ico { color: #d97706; } .doc-item.active.bug { background: #fff7e6; color: #d97706; } .doc-item.active.bug .doc-ico { color: #d97706; }
     .timeline { display: flex; flex-direction: column; }
     .tl-item { display: flex; }
     .tl-left { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; margin-top: 5px; }
@@ -481,18 +482,21 @@ components:
   function grp() { const m = {}; changes.forEach((c,i)=>{ const k=c.module||"通用"; if(!m[k])m[k]=[]; m[k].push(i); }); return m; }
   function renderSidebar() {
     const g = grp();
-    document.getElementById("sub").textContent = `共 ${changes.length} 篇文档`;
+    const dCnt=changes.filter(c=>c.kind!=='bug').length,bCnt=changes.filter(c=>c.kind==='bug').length;
+    document.getElementById("sub").textContent=bCnt?`${dCnt} 篇文档 · ${bCnt} 个 Bug`:`共 ${dCnt} 篇文档`;
     document.getElementById("sb").innerHTML = Object.entries(g).map(([mod,ids]) => {
       const open = exp.has(mod);
       return `<div><div class="mod-hd" onclick="tog('${esc(mod)}')"><span class="chev ${open?'open':''}">▶</span><span class="mod-ico">📁</span><span class="mod-nm">${esc(mod)}</span><span class="mod-badge">${ids.length}</span></div>
-      <div style="display:${open?'block':'none'}">${ids.map(i=>`<div class="doc-item ${sel===i?'active':''}" onclick="pick(${i})"><span class="doc-ico">📄</span><span class="doc-lbl">${esc(changes[i].title)}</span></div>`).join('')}</div></div>`;
+      <div style="display:${open?'block':'none'}">${ids.map(i=>{const iB=changes[i].kind==='bug';return `<div class="doc-item ${sel===i?'active':''} ${iB?'bug':''}" onclick="pick(${i})"><span class="doc-ico">${iB?'🐛':'📄'}</span><span class="doc-lbl">${esc(changes[i].title)}</span></div>`;}).join('')}</div></div>`;
     }).join('');
     document.getElementById("log-btn").className = "log-btn"+(sel===-1?" active":"");
   }
   function tog(m) { exp.has(m)?exp.delete(m):exp.add(m); renderSidebar(); }
   function pick(i) {
     sel = i; renderSidebar();
-    const d = changes[i], mod = d.module||"通用";
+    const d = changes[i];
+    if(d.kind==='bug'){renderBug(d);return;}
+    const mod = d.module||"通用";
     let h = `<div class="doc-view"><div class="breadcrumb"><span>${esc(mod)}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
       <h1 class="doc-h1">${esc(d.title)}</h1>
       <div class="tags"><span class="tag t-${esc(d.type)}">${esc(d.type)}</span><span class="tag t-cplx">${esc(d.complexity)}</span><span class="tag t-status-${esc(d.status)}">${esc(d.status)}</span></div>
@@ -529,6 +533,28 @@ components:
     h += '</div>';
     document.getElementById("main").innerHTML = h;
     if(d.flowchart){ const wrap=document.getElementById("mmd-wrap"); if(wrap){ const div=document.createElement('div'); div.className='mermaid'; div.textContent=d.flowchart; wrap.appendChild(div); if(typeof mermaid!=='undefined') mermaid.run({nodes:[div]}).catch(()=>{ wrap.innerHTML=`<pre class="flowchart-fallback">${esc(d.flowchart)}</pre>`; }); } }
+  }
+  function renderBug(d) {
+    const mod=d.module||"通用",sev=d.severity||'P2';
+    let h=`<div class="doc-view"><div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>${esc(mod)}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div><h1 class="doc-h1">${esc(d.title)}</h1><div class="tags"><span class="tag t-${esc(sev)}">${esc(sev)}</span><span class="tag t-status-${esc(d.status)}">${esc(d.status)}</span></div><div class="doc-meta"><span>📅 ${esc(d.date)}</span>${d.branch?`<span>🌿 ${esc(d.branch)}</span>`:''}</div>`;
+    const hasSym=d.symptom||d.stackTrace||d.reproSteps?.length||d.trigger||d.expected||d.actual;
+    if(hasSym){let b='';
+      if(d.symptom) b+=`<p class="sec-body" style="margin-bottom:12px">${esc(d.symptom)}</p>`;
+      if(d.stackTrace) b+=`<details open><summary>堆栈信息</summary><pre class="json-block">${esc(d.stackTrace)}</pre></details>`;
+      if(d.reproSteps?.length){b+=`<p style="margin:12px 0 6px;font-size:13px;color:#646a73">复现步骤</p><ol style="padding-left:18px;color:#3d4757;font-size:14px;line-height:1.75">${d.reproSteps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`;}
+      if(d.trigger) b+=`<p style="margin:12px 0 4px;font-size:13px;color:#646a73">触发条件</p><p class="sec-body">${esc(d.trigger)}</p>`;
+      if(d.expected||d.actual) b+=`<table class="api-table" style="margin-top:12px"><thead><tr><th></th><th>预期</th><th>实际</th></tr></thead><tbody><tr><td style="color:#646a73;font-size:13px">行为</td><td style="color:#2da641">${esc(d.expected||'')}</td><td style="color:#d83931">${esc(d.actual||'')}</td></tr></tbody></table>`;
+      h+=sec("现象",b);}
+    if(d.impact) h+=sec("影响范围",`<p class="sec-body">${esc(d.impact)}</p>`);
+    if(d.codeLocation||d.rootCause){let b='';
+      if(d.codeLocation) b+=`<div class="keyimpl-list" style="margin-bottom:12px"><div class="keyimpl-item"><div class="ki-title">代码定位</div><div class="ki-desc">${esc(d.codeLocation)}</div></div></div>`;
+      if(d.rootCause) b+=`<p class="sec-body">${esc(d.rootCause)}</p>`;
+      h+=sec("根因分析",b);}
+    if(d.fixPlan) h+=sec("修复方案",`<p class="sec-body">${esc(d.fixPlan)}</p>`);
+    if(d.changeList?.length) h+=sec("代码变更",`<table class="ctable"><thead><tr><th>文件路径</th><th style="width:72px">操作</th><th>说明</th></tr></thead><tbody>${d.changeList.map(c=>`<tr><td><code>${esc(c.file)}</code></td><td><span class="abadge a-${esc(c.action)}">${esc(c.action)}</span></td><td>${esc(c.desc)}</td></tr>`).join('')}</tbody></table>`);
+    if(d.verifySteps?.length) h+=sec("验证步骤",`<ul class="checklist">${d.verifySteps.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`);
+    if(d.todos?.length) h+=sec("实现 Todo",`<ul class="checklist">${d.todos.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`);
+    h+='</div>'; document.getElementById("main").innerHTML=h;
   }
   function showLog() {
     sel=-1; renderSidebar();

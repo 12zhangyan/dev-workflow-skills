@@ -8,7 +8,9 @@ $files = @(
     "dev-doc/reference.md",
     "dev-doc/examples.md",
     "code-reading/SKILL.md",
-    "code-reading/reference.md"
+    "code-reading/reference.md",
+    "bug-fix/SKILL.md",
+    "bug-fix/reference.md"
 )
 
 Write-Host "Installing dev-workflow-skills to $skillsDir..."
@@ -28,4 +30,4 @@ foreach ($file in $files) {
 }
 
 Write-Host ""
-Write-Host "Done! Restart Claude Code and try /dev-doc or /code-reading"
+Write-Host "Done! Restart Claude Code and try /dev-doc, /code-reading or /bug-fix"
