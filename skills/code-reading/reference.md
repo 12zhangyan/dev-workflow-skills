@@ -109,7 +109,7 @@ stateDiagram-v2
 ## 完成输出格式
 
 ```
-✅ 代码地图已生成：docs/<日期>/<功能名>.md
+✅ 代码地图已生成：docs/code-reading/<日期>/<功能名>.md
 
 可以开始 Review 了。
 如需 AI 审查，运行：/requesting-code-review

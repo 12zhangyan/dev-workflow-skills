@@ -1,31 +1,32 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-REPO="https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main"
+TARBALL="https://github.com/12zhangyan/dev-workflow-skills/archive/refs/heads/main.tar.gz"
 SKILLS_DIR="${HOME}/.claude/skills"
-
-FILES=(
-  "dev-doc/SKILL.md"
-  "dev-doc/reference.md"
-  "dev-doc/examples.md"
-  "code-reading/SKILL.md"
-  "code-reading/reference.md"
-  "bug-fix/SKILL.md"
-  "bug-fix/reference.md"
-)
 
 echo "Installing dev-workflow-skills to ${SKILLS_DIR}..."
 echo ""
 
-for file in "${FILES[@]}"; do
-  dir="${SKILLS_DIR}/$(dirname "$file")"
-  mkdir -p "$dir"
-  if curl -fsSL "${REPO}/skills/${file}" -o "${SKILLS_DIR}/${file}"; then
-    echo "  ✓ ${file}"
-  else
-    echo "  ✗ Failed to download ${file}" >&2
-    exit 1
-  fi
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+if ! curl -fsSL "$TARBALL" | tar -xz -C "$TMP_DIR"; then
+  echo "  ✗ Failed to download ${TARBALL}" >&2
+  exit 1
+fi
+
+SRC_DIR="$(find "$TMP_DIR" -maxdepth 2 -type d -name skills | head -1)"
+if [ -z "$SRC_DIR" ]; then
+  echo "  ✗ skills/ directory not found in downloaded archive" >&2
+  exit 1
+fi
+
+mkdir -p "$SKILLS_DIR"
+for skill in "$SRC_DIR"/*/; do
+  name="$(basename "$skill")"
+  rm -rf "${SKILLS_DIR:?}/${name}"
+  cp -r "$skill" "${SKILLS_DIR}/${name}"
+  echo "  ✓ ${name}"
 done
 
 echo ""

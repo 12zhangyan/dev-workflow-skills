@@ -38,11 +38,8 @@ effort: high
 
 **功能描述模式：**
 
-提取 `$entry` 中的关键词，逐一 Grep 搜索 `.java` 文件：
-
-```bash
-grep -r "<关键词>" --include="*.java" -l 2>/dev/null | head -20
-```
+提取 `$entry` 中的关键词，用 Grep 工具逐一搜索：
+- pattern: `<关键词>`，glob: `**/*.java`，output_mode: `files_with_matches`（每个关键词取前 20 个结果）
 
 收集候选文件后，列出候选入口类/方法，询问用户确认：
 > "找到以下候选入口，请确认从哪里开始追踪（输入序号，或输入完整类名）：
@@ -59,12 +56,7 @@ grep -r "<关键词>" --include="*.java" -l 2>/dev/null | head -20
 **入口代码模式：**
 
 1. 解析 `$entry`：`#` 前为类名，`#` 后为方法名（无 `#` 则追踪整个类）
-2. 定位类文件：
-
-```bash
-find . -name "<ClassName>.java" 2>/dev/null
-```
-
+2. 定位类文件：用 Glob 工具，pattern: `**/<ClassName>.java`
 3. Read 文件，定位方法起始行号
 4. 从该方法向下追踪调用链
 
@@ -93,21 +85,14 @@ find . -name "<ClassName>.java" 2>/dev/null
 ### Step 4：保存文件
 
 ```bash
-python3 -c "
-from datetime import date
-import pathlib
-d = date.today().isoformat()
-pathlib.Path('docs/code-reading/' + d).mkdir(parents=True, exist_ok=True)
-print(d)
-"
+d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 ```
 
-若 `python3` 不可用，回退到 `python`。
 Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 
 输出：
 ```
-✅ 代码地图已生成：docs/<日期>/<功能名>.md
+✅ 代码地图已生成：docs/code-reading/<日期>/<功能名>.md
 
 可以开始 Review 了。
 如需 AI 审查，运行：/requesting-code-review
@@ -115,7 +100,7 @@ Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 
 ## 规则
 
-- **静默分析**：Step 1-2 的 bash/find 命令结果不展示给用户，仅作内部上下文
+- **静默分析**：Step 1-2 的搜索与读取结果不展示给用户，仅作内部上下文
 - **不编造**：只记录代码里实际存在的调用/状态/注释
 - **不越界**：不提修改建议，不标记问题，那是 `/requesting-code-review` 的职责
 

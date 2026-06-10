@@ -32,14 +32,14 @@ if git rev-parse --git-dir 2>/dev/null; then
 else
   echo "no-vcs"
 fi
-python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle','package.json'] if pathlib.Path(f).exists()))"
+ls pom.xml build.gradle package.json 2>/dev/null
 ```
 
 ### Step 2：逐一收集 Bug 信息
 
 **规则：每次只问一个问题，等回答后再问下一个。**
 
-具体问题集见 [reference.md](reference.md#step-2-问题集)，共 5 个问题。
+具体问题集见 [reference.md](reference.md#step-2-问题集)，共 6 个问题（最后一问是微服务/模块归属，Step 5.5 写看板时直接使用，不再追问）。
 
 全部完成后告知用户："信息收集完毕，正在搜索相关代码..."
 
@@ -58,13 +58,7 @@ python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle'
 ### Step 4：路径处理
 
 ```bash
-python3 -c "
-from datetime import date
-import pathlib
-d = date.today().isoformat()
-pathlib.Path('docs/bugs/' + d).mkdir(parents=True, exist_ok=True)
-print(d)
-"
+d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 ```
 
 路径格式：`docs/bugs/<日期>/<任务名>.md`
@@ -74,6 +68,7 @@ print(d)
 ### Step 5：生成文档
 
 加载模板：[reference.md](reference.md#文档模板)
+参考已填示例：[examples.md](examples.md)
 
 **核心规则**：
 - 只使用用户提供的信息，未确认的标 `待补充`
@@ -83,20 +78,21 @@ print(d)
 
 ### Step 5.5：追加到 HTML 看板
 
-**先询问用户（一个问题）：**
-> 这个 Bug 属于哪个服务/模块？（如：用户服务、订单服务；不确定填 `通用`）
+看板为多文件结构（外壳 `index.html` + `css/board.css` + `js/board.js` + 数据 `data/changes.js`），**skill 只追加数据文件**。
 
 从生成文档提取字段：
 
 | JS 字段 | 提取来源 |
 |---------|---------|
 | `kind` | 固定值 `"bug"` |
-| `module` | 用户回答 |
+| `service` | Step 2 Q6 的微服务名（`服务/模块` 前半段） |
+| `module` | Step 2 Q6 的模块名（`服务/模块` 后半段） |
 | `title` | `$task` |
 | `date` | Step 4 日期 |
 | `severity` | Step 2 Q2（P0/P1/P2/P3） |
 | `status` | 固定值 `"未修复"` |
 | `branch` | Step 1 Git 分支（无 VCS 填 `"-"`） |
+| `docPath` | 本次生成的 md 路径（`docs/bugs/<日期>/<任务名>.md`） |
 | `symptom` | 「一、Bug 现象」开头一段（最多 120 字） |
 | `stackTrace` | 「错误信息 / 异常堆栈」代码块内容 |
 | `reproSteps` | 「复现步骤」编号列表 → string[] |
@@ -111,24 +107,26 @@ print(d)
 | `verifySteps` | 「六、验证步骤」列表 → string[] |
 | `todos` | 「七、实现 Todo」列表 → string[] |
 
-**判断文件是否存在**（Read `project-html/index.html`）：
+**字符串转义**（否则看板 JS 语法错误）：字段值含双引号 → `\"`，含换行 → `\n`；`stackTrace` 用反引号模板字面量，内容含反引号时改用双引号 + `\n` 转义。
 
-- **不存在** → Write 创建完整 HTML（模板见 [../dev-doc/reference.md](../dev-doc/reference.md#html-展示页模板)），将当前 bug 写为 `changes` 数组首条记录
-- **已存在** → 两次 Edit：
+**判断看板是否存在**（Read `project-html/data/changes.js`）：
+
+- **不存在** → 从 dev-doc skill 的资产目录 [../dev-doc/assets/board/](../dev-doc/assets/board/) 依次 Read 4 个文件（`index.html`、`css/board.css`、`js/board.js`、`data/changes.js`），按相同相对结构 Write 到用户项目的 `project-html/`；`data/changes.js` 写入前把占位数据替换为当前 bug 记录（`htmlChangelog` 首条 desc 写 `"初始化 AI 变更记录看板"`）
+- **已存在** → 只对 `project-html/data/changes.js` 做两次 Edit：
 
   **① 追加 Bug 条目**：
-  - `old_string`：`    // ─── 在此行上方追加新记录 ───`
+  - `old_string`：`  // ─── 在此行上方追加新记录 ───`
   - `new_string`：bug 对象 + 标记行（格式见 [reference.md](reference.md#html-追加格式)）
 
   **② 追加变更日志**：
-  - `old_string`：`    // ─── 在此行上方追加变更日志 ───`
+  - `old_string`：`  // ─── 在此行上方追加变更日志 ───`
   - `new_string`：
     ```
-        { date: "<date>", desc: "新增 Bug：<title>" },
-        // ─── 在此行上方追加变更日志 ───
+      { date: "<date>", desc: "新增 Bug：<title>" },
+      // ─── 在此行上方追加变更日志 ───
     ```
 
-输出：`🐛 Bug 已追加到 HTML 看板：project-html/index.html`
+输出：`🐛 Bug 已追加到 HTML 看板：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）`
 
 ### Step 6：输出 Next Steps
 
@@ -143,7 +141,7 @@ print(d)
 ## 检查清单（生成前确认）
 
 - [ ] `$task` 已确认（不为空）
-- [ ] Step 2 的 5 个问题全部问完
+- [ ] Step 2 的 6 个问题全部问完
 - [ ] Step 3 代码搜索已执行（或已标记跳过）
 - [ ] 文件路径冲突已处理
 - [ ] 验证步骤具体可执行（至少 1 条）
@@ -153,5 +151,6 @@ print(d)
 | 错误 | 原因 | 修复 |
 |------|------|------|
 | 根因分析为空 | 堆栈不完整或无 src 目录 | Step 3 标记跳过，根因写"待分析" |
-| Step 5.5 追加后 JS 语法错误 | stackTrace 含反引号 | stackTrace 值改用双引号，换行用 `\n` 转义 |
-| 找不到 HTML 模板 | dev-doc 未安装 | 先运行 install 脚本确保 dev-doc 已安装 |
+| Step 5.5 追加后看板打不开 | stackTrace 等字段含未转义的反引号/双引号/换行 | 按转义规则修复 `data/changes.js`，可用 `node --check` 验证语法 |
+| 找不到看板模板 | dev-doc 未安装（模板在 `../dev-doc/assets/board/`） | 先运行 install 脚本确保 dev-doc 已安装 |
+| 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | 提示用户：将数组迁移到 `data/changes.js`，外壳用 assets/board/ 覆盖 |

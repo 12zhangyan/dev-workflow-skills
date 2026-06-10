@@ -41,20 +41,26 @@ else
   svn log -l 3 2>/dev/null
 fi
 # 项目类型检测（记住结果，用于 Step 6 填入验证命令）
-python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle','package.json'] if pathlib.Path(f).exists()))"
+ls pom.xml build.gradle package.json 2>/dev/null
 ```
 
-### Step 2：确认任务类型和复杂度（逐一提问）
+### Step 2：确认任务类型、复杂度和归属（逐一提问）
 
-先问类型，等用户回答后再问复杂度：
+先问类型：
 
 > 任务类型是？（新功能 / Bug 修复 / 重构 / 性能优化 / API 联调 / 配置变更）
 
-收到回答后再问：
+若用户选"Bug 修复"且目的是记录现象、分析根因 → 提示："这类任务建议改用 `/bug-fix`（专门的 Bug 记录与根因分析流程，会登记到看板的 Bug 区）。继续用 dev-doc 吗？" 用户确认继续才往下走。
 
-> 复杂度？（简单：≤50 行 / 中等：50–500 行 / 复杂：>500 行或跨模块）
+收到回答后确认复杂度。**先根据 `$task` 和 Step 1 的上下文给出建议值**，让用户确认而不是凭空估算：
+
+> 复杂度我初步判断是「<建议值>」，对吗？（简单：改动一眼可见，约 ≤50 行 / 中等：50–500 行 / 复杂：>500 行、跨模块或方案不明确）
 
 若用户选"复杂"，追加提示："建议执行阶段输入 `/model opus` 切换更强的模型。"
+
+最后问归属（Step 5.5 写看板时直接使用，避免收尾时再打断）：
+
+> 这属于哪个微服务/模块？格式 `服务/模块`（如 `订单服务/支付`；单体项目填 `项目名/模块名`；不确定填 `通用/通用`）
 
 ### Step 3：按类型收集需求（逐一提问）
 
@@ -62,7 +68,7 @@ python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle'
 
 具体问题集见 [reference.md](reference.md#step-3-问题集)：
 - 简单任务：2 个问题
-- 新功能 / Bug / 重构 / 性能：各 5 个针对性问题
+- 新功能 / Bug / 重构 / 性能 / API 联调 / 配置变更：各 5 个针对性问题
 
 提问引导：利用 Step 1 拿到的 git 上下文做引导式提问。
 用户答"不知道"/"待定" → 记为 `待补充`，继续下一题。
@@ -70,19 +76,13 @@ python3 -c "import pathlib; print('\n'.join(f for f in ['pom.xml','build.gradle'
 
 ### Step 4：路径处理（跨平台）
 
-用 Python 一条命令完成日期获取和目录创建：
+一条 bash 命令完成日期获取和目录创建：
 
 ```bash
-python3 -c "
-from datetime import date
-import pathlib
-d = date.today().isoformat()
-pathlib.Path('docs/' + d).mkdir(parents=True, exist_ok=True)
-print(d)
-"
+d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 ```
 
-若 `python3` 不可用回退到 `python`。命令输出即为日期字符串（如 `2026-05-31`），拼接为最终路径 `docs/<日期>/<任务名>.md`。
+命令输出即为日期字符串（如 `2026-05-31`），拼接为最终路径 `docs/<日期>/<任务名>.md`。
 
 **冲突处理**：用 Read 工具尝试读取目标文件：
 - 读取成功 → 询问：
@@ -102,24 +102,34 @@ print(d)
 - 只使用用户提供的信息，未确认的标 `待补充`，不编造
 - **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
-- **Apifox 章节**：Step 3 问答中提到新增或修改 API 时，生成「十三、Apifox 接口规范」章节，内容为可直接导入 Apifox 的 OpenAPI 3.0 YAML；根据用户提供的接口信息填入 `paths`，未确认字段用 `# 待补充` 注释标记；未涉及接口变更则删除该章节
+- **接口文档仅在接口有变动时生成**：仅当本次新增接口、或修改既有接口的参数/返回结构时，才保留「三、API 设计」与「十三、Apifox 接口规范」；只是调用已有接口且签名无变化 → 两节都删除，看板 `apis` 填 `[]`
+- **Apifox 章节**：满足上一条时，生成「十三、Apifox 接口规范」章节，内容为可直接导入 Apifox 的 OpenAPI 3.0 YAML；根据用户提供的接口信息填入 `paths`，未确认字段用 `# 待补充` 注释标记
 
-### Step 5.5：同步更新 HTML 展示页
+### Step 5.5：同步更新 HTML 看板
 
-**先询问用户（一个问题）：**
-> 这属于哪个服务/模块？（如：用户服务、订单服务；单模块项目填项目名；不确定填 `通用`）
+看板为多文件结构，**skill 只追加数据文件，不碰外壳/样式/逻辑**：
 
-收到回答后，**Read 刚生成的 md 文件**，从中提取以下字段（提取时跳过模板占位符 `[...]`，遇到则填空字符串或空数组）：
+```
+project-html/
+  index.html        ← 外壳（加载 css/js/data）
+  css/board.css     ← 样式
+  js/board.js       ← 渲染逻辑（服务→模块两级树 / 浏览索引 / 接口索引 / Bug 视图）
+  data/changes.js   ← 数据（唯一需要追加的文件）
+```
 
-| JS 字段 | 从 md 文档提取位置 |
-|---------|------------------|
-| `module` | 用户刚才的回答 |
+**Read 刚生成的 md 文件**，从中提取以下字段（提取时跳过模板占位符 `[...]`，遇到则填空字符串或空数组）：
+
+| JS 字段 | 提取来源 |
+|---------|---------|
+| `service` | Step 2 确认的微服务名（`服务/模块` 的前半段） |
+| `module` | Step 2 确认的模块名（`服务/模块` 的后半段） |
 | `title` | `$task`（任务名） |
 | `date` | Step 4 获取的日期 |
 | `type` | Step 2 确认的任务类型 |
 | `complexity` | Step 2 确认的复杂度 |
 | `status` | 固定值 `草稿` |
 | `branch` | Step 1 检测到的 Git branch 名 |
+| `docPath` | 本次生成的 md 路径（如 `docs/<日期>/<任务名>.md`，看板用它链接源文档） |
 | `background` | `### 背景` 下第一段文字（最多 120 字） |
 | `goals` | `### 目标` 下 `- [ ]` 条目 → string[] |
 | `scopeIn` | `✅ 包含：` 后文字，按 `/` 或换行拆分 → string[] |
@@ -127,51 +137,63 @@ print(d)
 | `solution` | `### 方案概述` 下第一段文字 |
 | `coreDesign` | `### 核心设计` 下第一段文字 |
 | `flowchart` | `## 七、流程图` 下 mermaid 代码块内容（不含 ` ``` ` 标记） |
+| `keyImpl` | `### 核心设计` 中的关键决策要点 → `{title, desc}[]`；无明确要点填 `[]` |
 | `changeList` | `## 六、代码变更清单` 表格各行 → `{file, action, desc}[]` |
 | `todos` | `## 十一、实现 Todo` 下 `- [ ]` 条目 → string[] |
-| `apis` | `## 三、API 设计` 表格各行 → `{method, url, desc}[]`；无该节则填 `[]` |
+| `apis` | `## 三、API 设计` 表格各行 → `{method, url, desc}[]`；**仅登记新增或参数有变动的接口**（看板的「接口索引」按此聚合），无接口变更填 `[]` |
 
-**判断文件是否存在**（用 Read 工具尝试读取 `project-html/index.html`）：
+**字符串转义**（否则看板 JS 语法错误，整页打不开）：
+- 字段值含双引号 → 转义为 `\"`；含换行 → 合并为一段或用 `\n`
+- `flowchart` 用反引号模板字面量包裹；内容本身含反引号时改用双引号 + `\n` 转义
 
-- **不存在** → 用 Write 工具创建完整 HTML 文件，模板见 [reference.md](reference.md#html-展示页模板)，将提取的字段写为首条记录
-- **已存在** → 两次 Edit：
+**判断看板是否存在**（用 Read 工具尝试读取 `project-html/data/changes.js`）：
+
+- **不存在** → 从本 skill 目录的 `assets/board/` 依次 Read 以下文件，按相同相对结构 Write 到用户项目：
+  - `assets/board/index.html` → `project-html/index.html`
+  - `assets/board/css/board.css` → `project-html/css/board.css`
+  - `assets/board/js/board.js` → `project-html/js/board.js`
+  - `assets/board/data/changes.js` → `project-html/data/changes.js`（写入前把占位数据替换为本次提取的字段）
+- **已存在** → 只对 `project-html/data/changes.js` 做两次 Edit：
 
   **① 追加文档条目**（定位文档标记行）：
-  - `old_string`：`    // ─── 在此行上方追加新记录 ───`
-  - `new_string`：将所有提取到的字段组成对象插入，末尾加逗号，保留标记行。
+  - `old_string`：`  // ─── 在此行上方追加新记录 ───`
+  - `new_string`：将提取到的字段组成对象插入，末尾加逗号，保留标记行。
     非空字段才写入，空数组可省略。最小格式示例：
     ```
-        {
-          module: "<module>",
-          title: "<title>",
-          date: "<date>",
-          type: "<type>",
-          complexity: "<complexity>",
-          status: "草稿",
-          branch: "<branch>",
-          background: "<background>",
-          goals: [<goals>],
-          scopeIn: [<scopeIn>],
-          scopeOut: [<scopeOut>],
-          apis: [],
-          solution: "<solution>",
-          coreDesign: "<coreDesign>",
-          flowchart: `<flowchart>`,
-          changeList: [<changeList>],
-          todos: [<todos>]
-        },
-        // ─── 在此行上方追加新记录 ───
+      {
+        service: "<service>",
+        module: "<module>",
+        title: "<title>",
+        date: "<date>",
+        type: "<type>",
+        complexity: "<complexity>",
+        status: "草稿",
+        branch: "<branch>",
+        docPath: "<docPath>",
+        background: "<background>",
+        goals: [<goals>],
+        scopeIn: [<scopeIn>],
+        scopeOut: [<scopeOut>],
+        apis: [],
+        solution: "<solution>",
+        coreDesign: "<coreDesign>",
+        flowchart: `<flowchart>`,
+        keyImpl: [<keyImpl>],
+        changeList: [<changeList>],
+        todos: [<todos>]
+      },
+      // ─── 在此行上方追加新记录 ───
     ```
 
   **② 追加 HTML 变更日志**（定位日志标记行）：
-  - `old_string`：`    // ─── 在此行上方追加变更日志 ───`
+  - `old_string`：`  // ─── 在此行上方追加变更日志 ───`
   - `new_string`：
     ```
-        { date: "<date>", desc: "新增文档：<title>" },
-        // ─── 在此行上方追加变更日志 ───
+      { date: "<date>", desc: "新增文档：<title>" },
+      // ─── 在此行上方追加变更日志 ───
     ```
 
-输出一行提示：`📄 HTML 展示页已更新：project-html/index.html`
+输出一行提示：`📄 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）`
 
 ### Step 6：输出 Next Steps
 
@@ -209,6 +231,7 @@ print(d)
 
 - 完整文档模板与问题集：[reference.md](reference.md)
 - 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
+- 看板模板（外壳 + 样式 + 逻辑 + 数据占位）：[assets/board/](assets/board/)
 - 中文文档规范：**必需背景：** `chinese-documentation` skill
 - 后续步骤：`/requesting-code-review`（AI 代码审查）、`/code-reading`（生成代码地图）、`/chinese-code-review`（PR 评论话术）
 
@@ -220,3 +243,5 @@ print(d)
 | 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
 | 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
 | Step 1 git 命令报错 | 项目无 VCS | 正常，自动降级到无 VCS 模式 |
+| Step 5.5 追加后看板打不开 | 字符串字段含未转义的双引号/换行/反引号 | 按转义规则修复 `data/changes.js`，可用 `node --check` 验证语法 |
+| 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | 提示用户：将 index.html 中 `changes`/`htmlChangelog` 数组迁移到 `data/changes.js`，外壳用 assets/board/ 覆盖 |

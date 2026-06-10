@@ -26,10 +26,12 @@ Claude Code skill 集，为 Java 后端开发者设计。
 - 实现 Todo / 代码评审关注点
 - **Apifox 接口规范**（OpenAPI 3.0 YAML，可直接导入 Apifox）
 
-**② 自动追加到 `project-html/index.html`**（飞书知识库风格展示页）：
+**② 自动登记到 HTML 看板**（`project-html/`，飞书知识库风格）：
 
-- 左侧：按服务/模块分组的文档树，顶部支持**搜索** + **文档/Bug 类型筛选** + **仅看未完成**
-- 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更）
+- 左侧：**微服务 → 模块**两级文档树，顶部支持**搜索** + **文档/Bug 类型筛选** + **仅看未完成**
+- 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更），每条记录可一键打开 **md 源文档**
+- **📊 浏览索引**：首页汇总统计 + 最近更新 + 按服务/模块归类的全量索引
+- **🔌 接口索引**：聚合所有记录的接口变更，单独成页（仅登记新增或参数有变动的接口）
 - **状态可点击切换**：点详情页状态标签即可推进（草稿→进行中→已完成 / Bug：未修复→修复中→已修复→已验证），保存在浏览器本地，无需重跑 skill
 - 底部：HTML 变更日志时间轴（Mermaid 图表支持）
 
@@ -67,10 +69,20 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 
 详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)
 
-## HTML 展示页
+## HTML 看板
 
-每次运行 `/dev-doc` 或 `/bug-fix` 后，AI 会自动将本次记录追加到项目根目录的 `project-html/index.html`。
-直接用浏览器打开该文件即可查阅所有历史文档与 Bug，搜索、筛选、点击切换状态，无需服务器。
+每次运行 `/dev-doc` 或 `/bug-fix` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`。
+看板为多文件结构（外壳 / 样式 / 逻辑 / 数据分离），方便长期堆叠记录与自定义样式：
+
+```
+project-html/
+  index.html        外壳（浏览器直接打开，无需服务器）
+  css/board.css     样式
+  js/board.js       渲染逻辑（两级树 / 浏览索引 / 接口索引 / Bug 视图）
+  data/changes.js   数据（skill 只追加这个文件）
+```
+
+直接用浏览器打开 `index.html` 即可查阅所有历史文档与 Bug：搜索、筛选、切换状态、跳转 md 源文档。
 状态变更保存在浏览器 localStorage（按当前浏览器 + 文件路径隔离）。
 
 示例：[project-html/index.html](project-html/index.html)

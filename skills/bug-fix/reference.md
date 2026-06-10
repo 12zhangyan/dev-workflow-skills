@@ -16,6 +16,8 @@
 
 > Q5：预期行为 vs 实际行为分别是什么？
 
+> Q6：这个 Bug 属于哪个微服务/模块？格式 `服务/模块`（如 `订单服务/支付`；单体项目填 `项目名/模块名`；不确定填 `通用/通用`）
+
 ---
 
 ## 文档模板
@@ -97,35 +99,37 @@
 
 ## html-追加格式
 
-追加到 `changes` 数组时的 JS 对象格式（空值字段可省略）：
+追加到 `project-html/data/changes.js` 的 `changes` 数组时的 JS 对象格式（空值字段可省略）：
 
 ```js
-    {
-      kind: "bug",
-      module: "<module>",
-      title: "<title>",
-      date: "<date>",
-      severity: "<severity>",
-      status: "未修复",
-      branch: "<branch>",
-      symptom: "<symptom>",
-      stackTrace: `<stackTrace>`,
-      reproSteps: [<reproSteps>],
-      trigger: "<trigger>",
-      expected: "<expected>",
-      actual: "<actual>",
-      impact: "<impact>",
-      codeLocation: "<codeLocation>",
-      rootCause: "<rootCause>",
-      fixPlan: "<fixPlan>",
-      changeList: [<changeList>],
-      verifySteps: [<verifySteps>],
-      todos: [<todos>]
-    },
-    // ─── 在此行上方追加新记录 ───
+  {
+    kind: "bug",
+    service: "<service>",
+    module: "<module>",
+    title: "<title>",
+    date: "<date>",
+    severity: "<severity>",
+    status: "未修复",
+    branch: "<branch>",
+    docPath: "<docPath>",
+    symptom: "<symptom>",
+    stackTrace: `<stackTrace>`,
+    reproSteps: [<reproSteps>],
+    trigger: "<trigger>",
+    expected: "<expected>",
+    actual: "<actual>",
+    impact: "<impact>",
+    codeLocation: "<codeLocation>",
+    rootCause: "<rootCause>",
+    fixPlan: "<fixPlan>",
+    changeList: [<changeList>],
+    verifySteps: [<verifySteps>],
+    todos: [<todos>]
+  },
+  // ─── 在此行上方追加新记录 ───
 ```
 
-**注意**：`stackTrace` 含换行时用模板字面量（反引号）；含反引号时改用双引号并将换行转为 `\n`。
+**注意**：`stackTrace` 含换行时用模板字面量（反引号）；含反引号时改用双引号并将换行转为 `\n`。其余字符串字段含双引号 → `\"`，含换行 → `\n`。
 
 ---
 
@@ -133,7 +137,7 @@
 
 ```
 ✅ Bug 文档已生成：docs/bugs/{date}/{task}.md
-🐛 HTML 看板已更新：project-html/index.html
+🐛 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）
 
 📋 关键信息
 - 严重度：{severity}

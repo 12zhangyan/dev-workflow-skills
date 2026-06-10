@@ -10,8 +10,8 @@ A collection of Claude Code skills for Java backend developers. Skills are distr
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `/dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
-| `/bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template) |
+| `/dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
+| `/bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
 | `/code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
 
 ## Installation
@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-The scripts download only the `skills/` subtree into `~/.claude/skills/`. Restart Claude Code after install.
+The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/` — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart Claude Code after install.
 
 The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
 
@@ -41,13 +41,29 @@ skills/<name>/
   SKILL.md       ← skill definition (frontmatter + execution instructions)
   reference.md   ← question sets and document templates loaded by the skill at runtime
   examples.md    ← filled-in examples the skill references during generation
+  assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
 ```
 
-SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). Both skills set `disable-model-invocation: true`, meaning Claude must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
+SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). All skills set `disable-model-invocation: true`, meaning Claude must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` reuses the HTML template from `../dev-doc/reference.md` (sibling dir after install).
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` reuses the board template from `../dev-doc/assets/board/` (sibling dir after install).
 
-The HTML board has two copies that must stay in sync: `project-html/index.html` (the live demo / a real project's board) and the `## HTML 展示页模板` block inside `skills/dev-doc/reference.md`. They share an identical shell (CSS + HTML + JS); only the `htmlChangelog` / `changes` data arrays differ (template uses `<placeholder>` values). When changing board behavior, update both.
+### HTML board
+
+The board is a multi-file static page; skills only ever append to the data file:
+
+```
+project-html/
+  index.html        ← shell (loads css/data/js)
+  css/board.css     ← styles
+  js/board.js       ← rendering: service→module two-level tree, 浏览索引 (browse index),
+                       接口索引 (API index aggregated from `apis` fields), bug view, changelog
+  data/changes.js   ← data arrays (htmlChangelog + changes) with append-marker lines
+```
+
+Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link). The `apis` field only records new or signature-changed endpoints — unchanged existing endpoints are not documented.
+
+Two copies must stay in sync: `project-html/` (the live demo / a real project's board) and `skills/dev-doc/assets/board/` (the template skills copy into user projects). The shell files (`index.html`, `css/board.css`, `js/board.js`) are byte-identical; only `data/changes.js` differs (template uses `<placeholder>` values). When changing board behavior, update both, and run `node --check` on the JS files.
 
 ## Workflow the Skills Support
 
@@ -56,9 +72,9 @@ The HTML board has two copies that must stay in sync: `project-html/index.html` 
 ```
 
 - `/dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
-- `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`; both dev-doc and bug-fix auto-append to `project-html/index.html`
+- `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`; both dev-doc and bug-fix auto-append to `project-html/data/changes.js`
 - `/code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
-- All skills use `python3` (fallback `python`) for date generation and directory creation
+- All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 
 ## Editing Skills
 
