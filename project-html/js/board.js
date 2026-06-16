@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 5;
+const BOARD_VERSION = 9;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -21,11 +21,25 @@ function modOf(d) { return d.module || '通用'; }
 function keyOf(d) { return `${svcOf(d)}::${modOf(d)}::${d.date}::${d.title}`; }
 function effStatus(d) { return overrides[keyOf(d)] ?? d.status; }
 function statusColor(s) { return SC[s] || '#c8c9cc'; }
+// 类型/严重度 → CSS 类后缀：去掉空格，使「Bug 修复」「API 联调」能匹配 .t-Bug修复 / .t-API联调
+function tcls(v) { return String(v == null ? '' : v).replace(/\s+/g, ''); }
 // 单页文件名：与 build.js 的 slugOf 保持一致（生成 pages/<slug>.html）
 function slugOf(d) {
   return [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
     .replace(/[\/\\:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
+// 去重后的单页文件名映射：与 build.js buildSlugMap 算法逐字一致（同名 slug 追加 -1）。
+// pageLink 必须用它而非裸 slugOf，否则同名条目的「独立页面」链接会指向第一个条目的页面。
+const _slugMap = (() => {
+  const used = new Set(), map = new Map();
+  (typeof changes !== 'undefined' ? changes : []).forEach(d => {
+    let slug = slugOf(d);
+    while (used.has(slug)) slug += '-1';
+    used.add(slug); map.set(d, slug);
+  });
+  return map;
+})();
+function pageSlug(d) { return _slugMap.get(d) || slugOf(d); }
 function cycleStatus(ev) {
   if (ev) ev.stopPropagation();
   if (typeof sel !== 'number' || sel < 0) return;
@@ -41,11 +55,23 @@ function cycleStatus(ev) {
 function kindOf(c) { return c.kind === 'bug' ? 'bug' : c.kind === 'reading' ? 'reading' : c.kind === 'biz' ? 'biz' : 'doc'; }
 function icoOf(c) { return c.kind === 'bug' ? '🐛' : c.kind === 'reading' ? '📖' : c.kind === 'biz' ? '🔀' : '📄'; }
 let q = '', kindF = 'all', openOnly = false;
+// 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
+function searchHay(c) {
+  const parts = [c.title, c.service, c.module, c.type,
+    c.background, c.solution, c.coreDesign,            // doc
+    c.symptom, c.trigger, c.impact, c.rootCause, c.fixPlan, c.codeLocation,  // bug
+    c.entry];                                          // reading
+  const push = arr => { if (Array.isArray(arr)) arr.forEach(x => parts.push(typeof x === 'string' ? x : (x && (x.title + ' ' + x.desc)))); };
+  push(c.goals); push(c.scopeIn); push(c.scopeOut); push(c.testPoints);
+  push(c.bizRules); push(c.keyImpl); push(c.todos);
+  (c.apis || []).forEach(a => parts.push(a.url, a.desc));
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
 function matchF(c) {
   if (kindF !== 'all' && kindOf(c) !== kindF) return false;
   if (openOnly && DONE.has(effStatus(c))) return false;
   if (q) {
-    const hay = [c.title, c.service, c.module, c.type, c.background, c.symptom, c.rootCause].filter(Boolean).join(' ').toLowerCase();
+    const hay = searchHay(c);
     if (!hay.includes(q)) return false;
   }
   return true;
@@ -139,12 +165,14 @@ function togMod(s, m) { const k = mk(s, m); expMod.has(k) ? expMod.delete(k) : e
 // ─── 浏览索引（首页）──────────────────────────────────────────────────────────
 function mdLink(d, label) {
   if (!d.docPath) return '';
+  // 自包含单页会被单独发给没有仓库的人，../docPath 必然 404 → 隐藏（与 pageLink 一致）
+  if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
   return `<a class="md-link" href="../${esc(d.docPath)}" target="_blank" onclick="event.stopPropagation()">${label || '📄 源文档'}</a>`;
 }
 // 独立单页链接（pages/<slug>.html，由 build.js 生成）；自包含页面内部不显示此链接
 function pageLink(d) {
   if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
-  return `<a class="md-link" href="pages/${esc(slugOf(d))}.html" target="_blank" onclick="event.stopPropagation()">📤 独立页面</a>`;
+  return `<a class="md-link" href="pages/${esc(pageSlug(d))}.html" target="_blank" onclick="event.stopPropagation()">📤 独立页面</a>`;
 }
 
 function showHome() {
@@ -191,8 +219,8 @@ function showHome() {
         <table class="idx-table"><tbody>${ids.map(i => {
           const c = changes[i], isBug = c.kind === 'bug';
           const tag = isBug
-            ? `<span class="tag t-${esc(c.severity || 'P2')}">${esc(c.severity || 'P2')}</span>`
-            : `<span class="tag t-${esc(c.type)}">${esc(c.type || '')}</span>`;
+            ? `<span class="tag t-${esc(tcls(c.severity || 'P2'))}">${esc(c.severity || 'P2')}</span>`
+            : `<span class="tag t-${esc(tcls(c.type))}">${esc(c.type || '')}</span>`;
           const st = effStatus(c);
           return `<tr>
             <td style="width:20px">${icoOf(c)}</td>
@@ -263,7 +291,7 @@ function pick(i) {
     <div class="breadcrumb">${isReading ? '<span>📖 代码阅读</span><span class="bc-sep">/</span>' : ''}<span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     <div class="tags">
-      ${d.type ? `<span class="tag t-${esc(d.type)}">${esc(d.type)}</span>` : ''}
+      ${d.type ? `<span class="tag t-${esc(tcls(d.type))}">${esc(d.type)}</span>` : ''}
       ${d.complexity ? `<span class="tag t-cplx">${esc(d.complexity)}</span>` : ''}
       <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
     </div>
@@ -337,7 +365,7 @@ function renderBug(d) {
     <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     <div class="tags">
-      <span class="tag t-${esc(sev)}">${esc(sev)}</span>
+      <span class="tag t-${esc(tcls(sev))}">${esc(sev)}</span>
       <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
     </div>
     <div class="doc-meta">

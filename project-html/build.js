@@ -34,6 +34,17 @@ function slugOf(d) {
   return [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
     .replace(/[\/\\:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
+// 去重后的 slug 映射：同名 slug 追加 -1（与 board.js 的 _slugMap 算法逐字一致）。
+// buildPages 与 buildIndex 都用它，保证单页文件名与索引/链接指向一致。
+function buildSlugMap(changes) {
+  const used = new Set(), map = new Map();
+  for (const d of changes) {
+    let slug = slugOf(d);
+    while (used.has(slug)) slug += '-1';
+    used.add(slug); map.set(d, slug);
+  }
+  return map;
+}
 function kindOf(d) { return d.kind === 'bug' ? 'bug' : d.kind === 'reading' ? 'reading' : d.kind === 'biz' ? 'biz' : 'doc'; }
 function icoOf(d) { return d.kind === 'bug' ? '🐛' : d.kind === 'reading' ? '📖' : d.kind === 'biz' ? '🔀' : '📄'; }
 
@@ -55,12 +66,10 @@ function buildPages(data) {
     if (f.endsWith('.html')) fs.unlinkSync(path.join(pagesDir, f));
   }
 
-  const used = new Set();
+  const slugMap = buildSlugMap(data.changes);
   let n = 0;
   for (const d of data.changes) {
-    let slug = slugOf(d);
-    while (used.has(slug)) slug += '-1';
-    used.add(slug);
+    const slug = slugMap.get(d);
     const entryJs = 'const changes = [' + JSON.stringify(d) + '];\nconst htmlChangelog = [];';
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -96,6 +105,7 @@ function buildIndex(data, archiveSummary) {
   fs.mkdirSync(DOCS, { recursive: true });
   const today = new Date().toISOString().slice(0, 10);
   const kindLabel = { doc: '开发文档', bug: 'Bug', reading: '代码阅读', biz: '业务流' };
+  const slugMap = buildSlugMap(data.changes);
 
   // service -> module -> [entry]
   const g = {};
@@ -125,7 +135,7 @@ function buildIndex(data, archiveSummary) {
         const ico = icoOf(d);
         const type = d.kind === 'bug' ? (d.severity || 'P2') : (d.type || kindLabel[kindOf(d)]);
         const docCell = d.docPath ? `[md](../${d.docPath})` : '-';
-        const pageCell = `[页](../project-html/pages/${slugOf(d)}.html)`;
+        const pageCell = `[页](../project-html/pages/${slugMap.get(d)}.html)`;
         L.push(`| ${ico} | ${mdEsc(d.title)} | ${mdEsc(type)} | ${mdEsc(d.status || '')} | ${d.date || ''} | ${docCell} | ${pageCell} |`);
       });
       L.push('');
