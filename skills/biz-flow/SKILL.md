@@ -135,6 +135,7 @@ cp "$src/build.js" project-html/build.js
 - **不存在** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
   2. 否则：执行外壳复制命令；`data/changes.js` 从模板 Read（`../dev-doc/assets/board/data/changes.js`），占位数据替换为当前业务流记录后 Write（`htmlChangelog` 首条 desc 写 `"初始化 AI 变更记录看板"`）
+  3. **创建完成后同样走下方 ③ `node --check` 校验与 ④ 构建**——首次创建也必须生成单页与索引
 - **已存在** → 依次执行：
 
   **⓪ 外壳版本检查**：`grep -m1 "BOARD_VERSION" project-html/js/board.js` 与 `grep -m1 "BOARD_VERSION" "$src/js/board.js"` 比较；项目侧缺失或小于模板 → 执行外壳复制命令（`data/` 不动），输出 `🔄 看板外壳已升级到 v<N>`

@@ -88,7 +88,11 @@ effort: high
 d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 ```
 
-Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
+**冲突处理**：Write 前先用 Read 检查 `docs/code-reading/<日期>/<功能名>.md` 是否已存在：
+- 读取成功 → 用 AskUserQuestion 询问：`A` 覆盖（重新生成地图）/ `B` 时间戳后缀（`<功能名>-1530.md`）/ `C` 取消。默认建议 A（代码地图本就是当前代码的快照，重跑即刷新）。
+- 读取失败 → 直接 Write 到 `docs/code-reading/<日期>/<功能名>.md`。
+
+> 看板登记（Step 4.5）按 `docPath` 查重：选 A 覆盖时命中既有条目改为更新，不会产生重复看板记录。
 
 ### Step 4.5：登记到 HTML 看板
 
@@ -135,12 +139,21 @@ Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 - **不编造**：只记录代码里实际存在的调用/状态/注释
 - **不越界**：不提修改建议，不标记问题，那是 `/requesting-code-review` 的职责
 
+## 检查清单（生成前确认）
+
+- [ ] `$entry` 已确认（不为空），入口模式已识别
+- [ ] Step 1-2 静默分析完成，调用链/状态/关键位置已收集
+- [ ] 文件路径冲突已处理（Step 4）
+- [ ] 只记录代码里实际存在的内容，无修改建议、无问题标记
+- [ ] dev-doc 模式已生成「六、方案 vs 实现对照」章节
+- [ ] 看板 `data/changes.js` 已通过 `node --check`，并已运行 `node project-html/build.js`
+
 ## 相关资源
 
 - 完整文档模板：[reference.md](reference.md)
 - **必需背景：** `dev-doc` skill（了解 dev-doc 模式入口的文档结构）
 - AI 代码审查：`/requesting-code-review`（code-reading 之后运行）
-- 完整工作流参考：`best-practice/java-svn-dev-workflow.md`
+- 完整工作流参考：仓库内 `docs/workflow-guide.md`（dev-workflow-skills 项目文档，非安装后的同级文件）
 
 ## 常见错误
 

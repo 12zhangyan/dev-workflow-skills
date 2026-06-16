@@ -180,6 +180,7 @@ cp "$src/build.js" project-html/build.js
 - **不存在** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
   2. 否则：执行外壳复制命令；`data/changes.js` 从 `assets/board/data/changes.js` Read 模板，把占位数据替换为本次提取的字段后 Write
+  3. **创建完成后同样要走下方 ③ 语法校验**（`node --check`），再进入 Step 5.6 构建——首次创建也必须生成单页与索引
 - **已存在** → 依次执行：
 
   **⓪ 外壳版本检查**：
@@ -195,6 +196,7 @@ cp "$src/build.js" project-html/build.js
 
   **① 追加文档条目**（定位文档标记行）：
   - `old_string`：`  // ─── 在此行上方追加新记录 ───`
+  - **标记行缺失兜底**：若 Edit 报「找不到 old_string」（用户手工编辑时误删了标记行），改为定位 `const changes = [` 这一行，在其后插入新对象（仍补尾逗号），不要求标记行存在；变更日志标记行同理可退回定位 `const htmlChangelog = [`。
   - `new_string`：将提取到的字段组成对象插入，末尾加逗号，保留标记行。
     非空字段才写入，空数组可省略。最小格式示例：
     ```
