@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code skills for Java backend developers. Skills are distributed via install scripts and land in `~/.claude/skills/` on the user's machine. There is no build step and no test suite — the "product" is the SKILL.md files.
+A collection of Claude Code skills for Java backend developers. Skills are distributed via install scripts and land in `~/.claude/skills/` on the user's machine. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the SKILL.md files.
 
 ## Skills
 
@@ -13,6 +13,7 @@ A collection of Claude Code skills for Java backend developers. Skills are distr
 | `/dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
 | `/bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
 | `/code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
+| `/biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
 
 ## Installation
 
@@ -46,24 +47,32 @@ skills/<name>/
 
 SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). All skills set `disable-model-invocation: true`, meaning Claude must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` reuses the board template from `../dev-doc/assets/board/` (sibling dir after install).
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install).
 
 ### HTML board
 
-The board is a multi-file static page; skills only ever append to the data file:
+**Division of responsibilities**: the md files are AI-execution documents (precise paths, change lists, actionable todos for Claude/Cursor); board entries are standalone human-readable write-ups. Narrative fields (`background`, `solution`, `coreDesign`, `symptom`, `rootCause`, `fixPlan`, …) are authored by the skills for a colleague who didn't participate in the work — complete sentences, the "why" included, `\n` renders as paragraph breaks. They are never excerpts of the md.
+
+The board is a multi-file static page; skills modify only the data file (plus shell upgrades, see below):
 
 ```
 project-html/
-  index.html        ← shell (loads css/data/js)
-  css/board.css     ← styles
-  js/board.js       ← rendering: service→module two-level tree, 浏览索引 (browse index),
-                       接口索引 (API index aggregated from `apis` fields), bug view, changelog
-  data/changes.js   ← data arrays (htmlChangelog + changes) with append-marker lines
+  index.html               ← shell (local mermaid vendor with CDN fallback)
+  css/board.css            ← styles (paper/editorial theme: serif headings, vermilion accent)
+  js/board.js              ← rendering; declares `const BOARD_VERSION = N` at top
+  js/vendor/mermaid.min.js ← ~3MB local vendor for intranet use; copy via bash cp, never Read+Write
+  build.js                 ← Node build script (no deps): generates pages/ + docs/INDEX.md + first-run archive
+  data/changes.js          ← data arrays (htmlChangelog + changes) with append-marker lines
+  pages/<slug>.html        ← GENERATED self-contained single pages (one per entry, gitignored here)
 ```
 
-Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link). The `apis` field only records new or signature-changed endpoints — unchanged existing endpoints are not documented.
+Entry kinds: docs (default, from `/dev-doc`), `kind:"bug"` (from `/bug-fix`), `kind:"reading"` (from `/code-reading`), `kind:"biz"` (from `/biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields). Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). The `apis` field only records new or signature-changed endpoints.
 
-Two copies must stay in sync: `project-html/` (the live demo / a real project's board) and `skills/dev-doc/assets/board/` (the template skills copy into user projects). The shell files (`index.html`, `css/board.css`, `js/board.js`) are byte-identical; only `data/changes.js` differs (template uses `<placeholder>` values). When changing board behavior, update both, and run `node --check` on the JS files.
+**`build.js` (run by every skill after `node --check`, invoked as `node project-html/build.js`)** does three things: (1) regenerates `project-html/pages/<slug>.html` — one **self-contained single file per entry** (inlines css/board.css + board.js + local mermaid, single entry data) so a user can send one page to a colleague without the whole folder; (2) regenerates `docs/INDEX.md` (the doc index, refreshed from `changes.js` each run); (3) on first run (no `docs/archive/`) scans the project root and **copies** (never deletes) scattered legacy md / board html / API docs into `docs/archive/`. `slugOf()` in build.js must stay identical to `slugOf()` in board.js (they produce the same page filename). If `node` is absent, skills skip this step with a notice.
+
+Shell upgrade mechanism: skills compare the user project's `BOARD_VERSION` against the template's; if lower/missing they re-copy the shell files (never `data/`). **Bump `BOARD_VERSION` whenever shell behavior changes** (board.js, build.js, index.html, or css). Skills must run `node --check` on `data/changes.js` after every append/update, then `node project-html/build.js`.
+
+Two copies must stay in sync: `project-html/` (the live demo / a real project's board) and `skills/dev-doc/assets/board/` (the template skills copy into user projects). The shell files (`index.html`, `css/board.css`, `js/board.js`, `js/vendor/mermaid.min.js`, `build.js`) are byte-identical; only `data/changes.js` differs (template uses `<placeholder>` values). When changing board behavior, update both and run `bash scripts/check-board-sync.sh` (verifies sync + syntax; also runs in CI via `.github/workflows/check.yml`). The generated `project-html/pages/` and `docs/` are gitignored in this repo.
 
 ## Workflow the Skills Support
 
@@ -72,9 +81,12 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ```
 
 - `/dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
-- `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`; both dev-doc and bug-fix auto-append to `project-html/data/changes.js`
+- `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
 - `/code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
+- `/biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
+- All four skills auto-register their output in `project-html/data/changes.js` (dev-doc: doc entry, bug-fix: `kind:"bug"`, code-reading: `kind:"reading"`, biz-flow: `kind:"biz"`), then run `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
+- Closed-choice questions (task type, complexity, severity, file-conflict resolution) use the AskUserQuestion tool; free-text questions stay conversational
 
 ## Editing Skills
 

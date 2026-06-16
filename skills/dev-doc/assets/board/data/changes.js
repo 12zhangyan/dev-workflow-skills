@@ -10,6 +10,9 @@ const htmlChangelog = [
 ];
 
 // ─── 文档数据 ────────────────────────────────────────────────────────────────
+// 定位：看板条目是面向人类阅读的独立技术说明（md 文件才是给 AI 执行的文档）。
+// 叙述字段（background/solution/coreDesign/symptom/rootCause/fixPlan 等）由 skill
+// 面向"没参与开发的同事"撰写，完整句子、可用 \n 分段（看板按段落渲染），不是 md 摘录。
 // 字段说明：
 //   service     微服务名（一级分组，单体项目填项目名）
 //   module      模块名（二级分组）
@@ -47,6 +50,26 @@ const htmlChangelog = [
 //   rootCause   根因
 //   fixPlan     修复方案描述
 //   verifySteps 验证步骤 string[]
+//
+// 代码阅读记录（kind:"reading"，由 /code-reading 追加）字段：
+//   kind        "reading"
+//   type        固定 "代码阅读"，status 固定 "已完成"
+//   entry       追踪入口（如 AuthController#login）
+//   background  文档概览（一段话）
+//   flowchart   调用链 Mermaid DSL
+//   keyImpl     代码位置索引 {title:类.方法, desc:文件路径+职责}[]
+//
+// 业务流记录（kind:"biz"，由 /biz-flow 追加，面向测试人员）字段：
+//   kind        "biz"
+//   type        固定 "业务流"，status 默认 "已完成"
+//   background  业务概述（一段话，从测试视角讲这条业务整体在做什么）
+//   apis        涉及的接口 {method,url,desc}[]
+//   bizFlow     业务流转图 Mermaid（flowchart，业务状态/分支怎么走）
+//   dataFlow    数据流图 Mermaid（数据从哪进、经过谁、落到哪）
+//   sequence    时序图 Mermaid（sequenceDiagram，服务/接口间调用时序）
+//   stateMachine 状态流转 Mermaid（stateDiagram-v2，可选）
+//   bizRules    关键业务规则 {title,desc}[]（校验/计算/约束规则）
+//   testPoints  测试关注点 string[]（边界、异常、并发等测试要点）
 const changes = [
   {
     service: "<service>",

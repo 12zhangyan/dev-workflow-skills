@@ -4,7 +4,7 @@ description: 当需要在 Code Review 前理解代码结构时使用——AI 修
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Write
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
 shell: bash
 model: sonnet
 effort: high
@@ -21,7 +21,7 @@ effort: high
 
 ### Step 0：入口检测与参数检查
 
-`$entry` 为空 → 询问用户：
+`$entry` 为空 → 用 AskUserQuestion 询问（三选一，候选入口确认同样用 AskUserQuestion）：
 > "请选择入口方式：
 > ① 功能描述（如：用户短信登录）
 > ② dev-doc 文档路径（如：docs/2026-06-01/sms-login.md）
@@ -90,9 +90,40 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 
 Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 
+### Step 4.5：登记到 HTML 看板
+
+代码地图也是项目知识资产，登记为看板的「阅读」类条目（kind:"reading"）。
+
+**定位：看板条目面向人类阅读**——让没读过这段代码的同事看完就有整体心智模型；md 是供 Review 时逐项对照的完整地图。
+
+**字段提取**：
+
+| JS 字段 | 取值 |
+|---------|------|
+| `kind` | 固定 `"reading"` |
+| `type` | 固定 `"代码阅读"` |
+| `status` | 固定 `"已完成"` |
+| `title` | 功能名（文档文件名去扩展名） |
+| `date` | Step 4 日期 |
+| `entry` | `$entry` 原值（如 `AuthController#login`） |
+| `docPath` | `docs/code-reading/<日期>/<功能名>.md` |
+| `background` | **面向人类撰写（不要截取 md）**：这个功能从入口到出口整体怎么运转——请求从哪进、经过哪些关键环节、数据最终落到哪，3–5 句；有状态机时点一句状态怎么流转。可用 `\n` 分段 |
+| `flowchart` | 调用链 mermaid 代码块内容（不含 ` ``` ` 标记） |
+| `keyImpl` | 代码位置索引前 5 项 → `{title:"类.方法", desc:"文件路径 + 用一句人话说明它在链路中干什么"}[]` |
+
+**service/module 归属**：
+- dev-doc 模式 → Read `project-html/data/changes.js`，按源 dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
+- 其他模式 → 问一次："属于哪个微服务/模块？格式 `服务/模块`（不确定填 `通用/通用`）"
+
+**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**（外壳复制含 `build.js`、版本升级的 bash 块、旧版单文件迁移、按 `docPath` 查重、两个标记行 Edit、`node --check` 必做，最后运行 `node project-html/build.js` 生成单页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`），模板目录同为 `$HOME/.claude/skills/dev-doc/assets/board`。变更日志 desc 写 `新增代码地图：<title>`。
+
+**跳过条件**：dev-doc 未安装（模板目录不存在）且项目中也无 `project-html/` → 跳过本步，提示用户安装 dev-doc 后可启用看板。
+
 输出：
 ```
 ✅ 代码地图已生成：docs/code-reading/<日期>/<功能名>.md
+📖 已登记到 HTML 看板（浏览器打开 project-html/index.html，筛选「📖 阅读」查看）
+📑 已刷新单页 pages/ 与文档总索引 docs/INDEX.md
 
 可以开始 Review 了。
 如需 AI 审查，运行：/requesting-code-review
@@ -119,3 +150,4 @@ Write 文件到 `docs/code-reading/<日期>/<功能名>.md`。
 | dev-doc 模式无「六、代码变更清单」 | dev-doc 文档格式不同 | 切换到入口代码模式 |
 | 流程图节点太多看不清 | 追踪层级过深 | 只追踪 3 层以内，更深的用「...」省略 |
 | 状态机图没有生成 | 代码里没有找到明确状态跳转 | 正常，只有发现 setStatus/枚举赋值时才生成 |
+| Step 4.5 找不到看板模板 | dev-doc 未安装 | 跳过看板登记，提示安装 dev-doc |

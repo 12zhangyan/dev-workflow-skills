@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 变更记录</title>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="js/vendor/mermaid.min.js"></script>
+  <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\/script>');</script>
   <link rel="stylesheet" href="css/board.css">
 </head>
 <body>
@@ -18,6 +21,8 @@
       <span class="fpill" data-k="all" onclick="setKind('all')">全部</span>
       <span class="fpill" data-k="doc" onclick="setKind('doc')">📄 文档</span>
       <span class="fpill" data-k="bug" onclick="setKind('bug')">🐛 Bug</span>
+      <span class="fpill" data-k="reading" onclick="setKind('reading')">📖 阅读</span>
+      <span class="fpill" data-k="biz" onclick="setKind('biz')">🔀 业务流</span>
       <span class="fpill toggle" id="openPill" onclick="toggleOpen()">仅未完成</span>
     </div>
   </div>

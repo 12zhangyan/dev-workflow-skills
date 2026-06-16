@@ -334,6 +334,10 @@ components:
 - [ ] `/code-reading docs/<日期>/<任务名>.md`（利用 dev-doc 生成调用链 + 状态机 + 关键位置）
 - [ ] 对照地图检查业务逻辑、事务边界、关键注意点
 - [ ] /chinese-code-review 整理评论话术（如有问题）
+
+🏁 收尾（提交/合并后，让状态全员可见）：
+- [ ] 看板里点状态标签只存浏览器本地；要让团队都看到，直接对 Claude 说：
+      "把 project-html/data/changes.js 中标题为「<任务名>」的记录 status 改为 \"已完成\"，改完跑 node --check"
 ```
 
 ---
@@ -343,15 +347,19 @@ components:
 
 ```
 assets/board/
-  index.html        外壳（加载 css/js/data）
-  css/board.css     样式
-  js/board.js       渲染逻辑（服务→模块两级树 / 浏览索引 / 接口索引 / Bug 视图 / 变更日志）
-  data/changes.js   数据文件（占位符版本，首次创建看板时替换占位数据后写入）
+  index.html               外壳（优先加载本地 mermaid，CDN 兜底）
+  css/board.css            样式（纸面编辑部风格）
+  js/board.js              渲染逻辑（含 BOARD_VERSION 版本号；两级树 / 浏览索引 / 接口索引 / Bug 视图 / 阅读视图 / 业务流视图 / 变更日志）
+  js/vendor/mermaid.min.js 本地 vendor（~3MB，内网可用；复制必须走 bash cp，禁止 Read+Write）
+  build.js                 构建脚本（Node，无依赖）：生成自包含单页 pages/<slug>.html + docs/INDEX.md + 首次历史归档
+  data/changes.js          数据文件（占位符版本，首次创建看板时替换占位数据后写入）
 ```
 
-使用方式见 SKILL.md Step 5.5：看板不存在时按相同相对结构复制 4 个文件并填充数据；已存在时只对 `project-html/data/changes.js` 追加。
+**外壳复制时记得带上 `build.js`**（它也是字节一致的外壳文件）：`cp "$src/build.js" project-html/build.js`。
+
+使用方式见 SKILL.md Step 5.5：看板不存在时用 bash cp 复制外壳 + 填充数据；已存在时检查 `BOARD_VERSION` 升级外壳、按 `docPath` 查重后追加/更新 `data/changes.js`，最后 `node --check`。
 
 **维护提示**：
-- `assets/board/` 的 index.html / css / js 与仓库根 `project-html/` 对应文件保持完全一致，仅 `data/changes.js` 不同（模板为占位符，实际看板为真实数据）。修改看板行为时两处同步更新。
-- `/bug-fix` skill 复用同一资产目录（安装后路径 `../dev-doc/assets/board/`）。
+- `assets/board/` 的外壳文件（index.html / css / js / vendor）与仓库根 `project-html/` 对应文件保持完全一致，仅 `data/changes.js` 不同（模板为占位符，实际看板为真实数据）。修改看板行为时两处同步更新，**外壳有行为变化时 `BOARD_VERSION` +1**，并运行 `scripts/check-board-sync.sh` 校验。
+- `/bug-fix` 与 `/code-reading` skill 复用同一资产目录（安装后路径 `../dev-doc/assets/board/`）。
 - 数据追加依赖 `data/changes.js` 中的两个标记行（`// ─── 在此行上方追加新记录 ───` 与 `// ─── 在此行上方追加变更日志 ───`），不可删除。

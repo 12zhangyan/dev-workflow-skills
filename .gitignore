@@ -2,3 +2,10 @@
 Thumbs.db
 *.log
 .claude/settings.local.json
+.idea/
+
+# build.js 在本仓库（演示看板）运行时的生成产物，不纳入版本控制
+# （注意：docs/ 下的手写文档仍纳入版本控制，仅忽略 build.js 自动生成的部分）
+project-html/pages/
+/docs/INDEX.md
+/docs/archive/
