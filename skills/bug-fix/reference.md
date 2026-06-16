@@ -148,6 +148,7 @@
 1. 打开文档，根据代码定位结果补全「三、根因分析」
 2. 按「五、代码变更清单」逐项修复
 3. 执行「六、验证步骤」确认修复效果
-4. 浏览器打开看板，点击该 Bug 的状态标签切换为「修复中 / 已修复 / 已验证」（保存在本地）
+4. 修复验证后更新看板状态（浏览器点状态标签只存本地；要全员可见，对 Claude 说：
+   "把 project-html/data/changes.js 中标题为「{task}」的记录 status 改为 \"已修复\"，改完跑 node --check"）
 5. {Git → /requesting-code-review | SVN → svn diff > /tmp/bug.patch 后让 Claude 审查}
 ```

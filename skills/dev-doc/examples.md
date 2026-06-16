@@ -216,6 +216,55 @@ flowchart TD
 - **不要改的**：`User` 实体类、`/api/v1/auth/login` 原接口的请求/响应结构
 ````
 
+**追加到看板的对象（Step 5.5，叙述字段面向人类重写、非 md 摘录；注意字符串转义）：**
+
+```js
+  {
+    service: "用户中心",
+    module: "认证",
+    title: "用户登录优化",
+    date: "2026-05-31",
+    type: "新功能",
+    complexity: "中等",
+    status: "草稿",
+    branch: "feature/sms-login",
+    docPath: "docs/2026-05-31/用户登录优化.md",
+    background: "现有登录只支持账号密码，新用户留存仅 18%，运营调研发现 60% 流失在注册环节、卡在设密码。\n这次加手机号验证码登录，让新用户少一步密码设置，同时保留老的密码登录不动。",
+    goals: ["新增手机号+短信验证码登录", "注册流程支持验证码注册", "原账号密码登录保持可用"],
+    scopeIn: ["手机号登录", "短信网关接入", "验证码生成与校验"],
+    scopeOut: ["第三方登录（微信/支付宝）", "生物识别登录"],
+    apis: [
+      { method: "POST", url: "/api/v1/auth/sms-code", desc: "发送短信验证码（同手机号 60 秒限一次）" },
+      { method: "POST", url: "/api/v1/auth/sms-login", desc: "验证码登录，校验通过签发 Token" }
+    ],
+    solution: "引入策略模式：抽出 LoginStrategy 接口，密码登录和验证码登录各做一个实现，AuthServiceImpl 改成按登录类型分发。\n验证码走 Redis 存（key sms:code:{phone}，TTL 5 分钟），登录成功后主动删；发码用 SETNX 做 60 秒防重。",
+    coreDesign: "选策略模式而不是在原方法里加 if-else，是为了后续再加登录方式（扫码、第三方）时只加实现类、不动分发逻辑。\n放弃了「复制一套登录流程」的做法，因为会和密码登录产生大量重复校验代码。",
+    flowchart: `flowchart TD
+    A([用户输入手机号]) --> B[发送验证码]
+    B --> C{60秒内已发送?}
+    C -->|是| D([限流提示])
+    C -->|否| E[生成验证码/Redis TTL 5min]
+    E --> F[调短信网关]
+    F --> G[用户输入验证码]
+    G --> H{Redis 校验}
+    H -->|不匹配| I([返回错误])
+    H -->|匹配| J[查/建 User → 签发 Token]`,
+    keyImpl: [
+      { title: "登录方式分发", desc: "AuthServiceImpl 持有 Map<LoginType, LoginStrategy>，按入参类型路由，避免在单方法里堆登录分支。" },
+      { title: "验证码防重发", desc: "发码用 Redis SETNX 占位 60 秒，命中则直接返回限流，挡住并发重复发送。" },
+      { title: "验证码时效", desc: "code 存 Redis TTL 5 分钟，登录成功即删，过期或用过都不能复用。" }
+    ],
+    changeList: [
+      { file: "auth/strategy/LoginStrategy.java", action: "新增", desc: "登录策略接口，统一 login 入口" },
+      { file: "auth/strategy/SmsLoginStrategy.java", action: "新增", desc: "验证码登录实现" },
+      { file: "auth/service/AuthServiceImpl.java", action: "修改", desc: "改为按类型分发，原单一密码登录无法用扩展替代" }
+    ],
+    todos: ["DDL 上 test", "LoginStrategy 及两实现", "SmsService+网关 client", "Controller 加 2 接口", "单测覆盖", "联调短信网关", "配置灰度开关"]
+  },
+```
+
+> 对照看：md 的「核心设计」是给 AI 执行的要点清单，看板的 `coreDesign` 是讲给人听的取舍（为什么选策略模式、放弃了什么）；两者不是复制关系。`flowchart` 用反引号包裹，字符串字段含换行用 `\n`、含双引号用 `\"`。
+
 ---
 
 ## 示例 2：Bug 修复 - 支付回调签名

@@ -30,4 +30,4 @@ for skill in "$SRC_DIR"/*/; do
 done
 
 echo ""
-echo "Done! Restart Claude Code and try /dev-doc, /code-reading or /bug-fix"
+echo "Done! Restart Claude Code and try /dev-doc, /bug-fix, /code-reading or /biz-flow"
