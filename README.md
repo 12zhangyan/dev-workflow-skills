@@ -30,7 +30,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 **② 自动登记到 HTML 看板（人类阅读文档）**（`project-html/`，纸面编辑部风格：衬线标题 + 朱砂强调色 + 纸张底色）。
 看板条目不是 md 的摘录，而是面向"没参与这次开发的同事"独立撰写的技术说明——背景、方案、取舍都用完整句子讲清楚，不看 md、不看代码也能在站会上转述这次改动：
 
-- 左侧：**微服务 → 模块**两级文档树，顶部支持**搜索** + **文档/Bug/阅读类型筛选** + **仅看未完成**
+- 左侧：**微服务 → 模块**两级文档树，顶部支持**搜索** + **文档/Bug/阅读/业务流类型筛选** + **仅看未完成**
 - 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更），每条记录可一键打开 **md 源文档**
 - **📊 浏览索引**：首页汇总统计 + 最近更新 + 按服务/模块归类的全量索引
 - **🔌 接口索引**：聚合所有记录的接口变更，单独成页（仅登记新增或参数有变动的接口）
@@ -47,7 +47,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 npx superpowers-zh
 ```
 
-### 第二步：安装 dev-workflow-skills（提供 dev-doc、code-reading）
+### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow）
 
 **macOS / Linux / Git Bash**
 
@@ -61,7 +61,29 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-重启 Claude Code 后生效，在任意项目中使用 `/dev-doc` 或 `/code-reading`。
+重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading` 或 `/biz-flow`。
+
+#### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
+
+已经 clone 了本仓库、想把技能装到多个工具的用户级目录（Skills 格式），在仓库根目录运行：
+
+```bat
+install-local.cmd                 :: 装到全部三个工具
+install-local.cmd claude          :: 仅 Claude Code
+install-local.cmd cursor codex    :: 仅指定工具（可组合）
+```
+
+按 Skills 目录格式（`目录 + SKILL.md`，含 `reference.md`/`examples.md`/`assets`）复制到：
+
+| 工具 | 用户级目录 |
+|------|-----------|
+| Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
+| Cursor（≥1.6） | `%USERPROFILE%\.cursor\skills\<name>\` |
+| Codex CLI | `%USERPROFILE%\.codex\skills\<name>\` |
+
+不下载、直接从当前仓库复制；可重复运行（覆盖同名技能，不动其他技能）。装完重启对应工具加载。
+
+> ⚠️ **关于 Cursor 的重复加载**：Cursor（除自己的 `~/.cursor/skills`）还会「为兼容」从 `~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills` 一并加载技能。所以**若三处都装，Cursor 里同一技能可能出现多份**。只想给 Cursor 用时，装一处即可（如 `install-local.cmd claude`，Cursor 会自动读到）；Codex 只读自己的 `~/.codex/skills`，需要 Codex 时务必带上 `codex`。
 
 ## 工作流
 

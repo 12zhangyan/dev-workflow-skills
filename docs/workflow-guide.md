@@ -23,7 +23,7 @@
 npx superpowers-zh
 ```
 
-### 2. dev-workflow-skills（提供 dev-doc、code-reading）
+### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow）
 
 ```bash
 # macOS / Linux / Git Bash
@@ -40,7 +40,9 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 | Skill | 来源 | 用途 | 调用方式 |
 |-------|------|------|---------|
 | `/dev-doc` | dev-workflow-skills | 生成开发文档（工作流第一步） | 显式调用 |
+| `/bug-fix` | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | 显式调用 |
 | `/code-reading` | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
+| `/biz-flow` | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | 显式调用 |
 | `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
 | `/requesting-code-review` | superpowers-zh | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
 | `/chinese-code-review` | superpowers-zh | 整理中文 PR 评论话术 | 显式调用 |

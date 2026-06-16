@@ -31,4 +31,4 @@ try {
 }
 
 Write-Host ""
-Write-Host "Done! Restart Claude Code and try /dev-doc, /code-reading or /bug-fix"
+Write-Host "Done! Restart Claude Code and try /dev-doc, /bug-fix, /code-reading or /biz-flow"

@@ -27,6 +27,8 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 
 The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/` — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart Claude Code after install.
 
+`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
+
 The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
 
 ```bash
