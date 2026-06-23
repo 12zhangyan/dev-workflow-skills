@@ -87,6 +87,8 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 
 看板为多文件结构（外壳 `index.html` + `css/board.css` + `js/board.js` + 数据 `data/changes.js`），**skill 只追加数据文件**。
 
+> **⚠️ 强制规则**：修改 `data/changes.js` 只能用 Edit 在标记行追加/更新既有条目，**禁止用 Write 整体重写**。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
+
 **定位：看板条目不是 md 的摘录，而是一篇独立的、给人看的故障复盘。** md 写给 AI 执行修复，看板写给「没遇到这个 Bug 的同事」——让他读完能避开同类坑。
 
 **结构字段（照搬，不加工）：**
@@ -135,13 +137,20 @@ cp "$src/build.js" project-html/build.js
 
 > cp 失败（skill 不在默认安装路径）→ 降级：从 [../dev-doc/assets/board/](../dev-doc/assets/board/) Read+Write 四个文本外壳文件（index.html/css/js/build.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
 
-**判断看板是否存在**（Read `project-html/data/changes.js`）：
+**判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
-- **不存在** →
+```bash
+test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```
+
+- **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
   2. 否则：执行外壳复制命令；`data/changes.js` 从模板 Read（`../dev-doc/assets/board/data/changes.js`），占位数据替换为当前 bug 记录后 Write（`htmlChangelog` 首条 desc 写 `"初始化 AI 变更记录看板"`）
   3. **创建完成后同样走下方 ③ `node --check` 校验与 ④ 构建**——首次创建也必须生成单页与索引
-- **已存在** → 依次执行：
+  4. **检测 VCS**（仅本次新建时提示一次，不代为执行）：`if [ -d .svn ]; then echo "💡 建议: svn add project-html --depth=infinity"; elif [ -d .git ]; then echo "💡 建议: git add project-html"; fi`
+- **EXISTS** → 依次执行：
+
+  **🗄 写前备份**（在下方 ⓪ 之前执行；下方任何 Edit 改动 `data/changes.js` 之前必做）：`cp project-html/data/changes.js project-html/data/changes.js.bak`
 
   **⓪ 外壳版本检查**：`grep -m1 "BOARD_VERSION" project-html/js/board.js` 与 `grep -m1 "BOARD_VERSION" "$src/js/board.js"` 比较；项目侧缺失或小于模板 → 执行外壳复制命令（`data/` 不动），输出 `🔄 看板外壳已升级到 v<N>`
 
@@ -159,7 +168,13 @@ cp "$src/build.js" project-html/build.js
       // ─── 在此行上方追加变更日志 ───
     ```
 
-  **③ 语法校验（必做，不可跳过）**：`node --check project-html/data/changes.js`；报错 → 修复转义后重新校验直到通过；`node` 不存在 → 跳过并提示用户打开看板确认
+  **③ 语法 + 记录数双重校验（必做，不可跳过；任一项失败先回滚再停下）**：`node --check project-html/data/changes.js`；报错 → 修复转义后重新校验直到通过；`node` 不存在 → 跳过本步全部校验并提示用户打开看板确认。语法通过后，**若做过 🗄 备份**，再校验记录数：
+  ```bash
+  OLD=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js.bak','utf8');console.log(new Function(s+';return changes.length')())")
+  NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js','utf8');console.log(new Function(s+';return changes.length')())")
+  if [ "$NEW" -lt "$OLD" ]; then cp project-html/data/changes.js.bak project-html/data/changes.js; echo "✗ 记录数从 $OLD 降到 $NEW，疑似误覆盖，已自动回滚"; fi
+  ```
+  触发回滚 → 停止本次更新，不要重试同样的操作，先重新确认 `test -f` 判断是否正确
 
   **④ 生成单页 + 文档总索引（构建）**：通过 ③ 后运行 `node project-html/build.js`，为每条记录生成自包含单页 `project-html/pages/<slug>.html`（可单独发人）、重新生成 `docs/INDEX.md` 文档总索引，并在首次运行时把项目根散落的旧 md/看板/接口文档复制归档到 `docs/archive/`（不删原件）。`node` 不存在 → 跳过。
 
@@ -194,3 +209,5 @@ cp "$src/build.js" project-html/build.js
 | 找不到看板模板 | dev-doc 未安装（模板在 `../dev-doc/assets/board/`） | 先运行 install 脚本确保 dev-doc 已安装 |
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 已自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一 Bug 重复运行产生重复条目 | 冲突选 A/E 后仍追加 | Step 5.5 ⓪′ 按 `docPath` 查重，命中改为更新既有条目 |
+| Step 5.5 ③ 报"记录数下降，已自动回滚" | `data/changes.js` 在本次 Edit 前被整体覆盖（误判"不存在"走了 Write） | 已自动用 `.bak` 回滚，不要重试同一操作；重新走一遍 `test -f` 判断再继续 |
+| `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |

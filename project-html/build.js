@@ -61,9 +61,17 @@ function buildPages(data) {
 
   const pagesDir = path.join(BOARD_DIR, 'pages');
   fs.mkdirSync(pagesDir, { recursive: true });
+  const oldPages = fs.readdirSync(pagesDir).filter(f => f.endsWith('.html'));
+  // 哨兵：已有单页数远多于 data/changes.js 当前记录数，疑似 changes.js 被误覆盖（而非有意删条目），
+  // 先中止而不是清空 pages/——清空后唯一的恢复线索（旧单页）就没了。BOARD_FORCE_BUILD=1 可强制跳过。
+  if (oldPages.length > 0 && data.changes.length < oldPages.length * 0.7 && !process.env.BOARD_FORCE_BUILD) {
+    console.error(`✗ build.js 中止：现有单页 ${oldPages.length} 个，但 data/changes.js 只有 ${data.changes.length} 条记录，疑似数据被误覆盖。`);
+    console.error('  确认是有意删除条目的话，设置 BOARD_FORCE_BUILD=1 后重新运行可强制继续。');
+    process.exit(1);
+  }
   // 清掉旧页面（标题改名后避免残留孤儿文件）
-  for (const f of fs.readdirSync(pagesDir)) {
-    if (f.endsWith('.html')) fs.unlinkSync(path.join(pagesDir, f));
+  for (const f of oldPages) {
+    fs.unlinkSync(path.join(pagesDir, f));
   }
 
   const slugMap = buildSlugMap(data.changes);

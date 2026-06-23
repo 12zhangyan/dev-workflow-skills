@@ -91,6 +91,8 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 **定位：看板条目面向人类阅读**——让没碰过这条业务的测试/同事看完就懂整体怎么走。md 是完整方案，看板是浓缩的业务地图。
 
+> **⚠️ 强制规则**：修改 `data/changes.js` 只能用 Edit 在标记行追加/更新既有条目，**禁止用 Write 整体重写**。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
+
 **结构字段（照搬）：**
 
 | JS 字段 | 来源 |
@@ -130,13 +132,20 @@ cp "$src/build.js" project-html/build.js
 
 > cp 失败（skill 不在默认安装路径）→ 降级：从 [../dev-doc/assets/board/](../dev-doc/assets/board/) Read+Write 四个文本外壳文件（index.html/css/js/build.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
 
-**判断看板是否存在**（Read `project-html/data/changes.js`）：
+**判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
-- **不存在** →
+```bash
+test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```
+
+- **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
   2. 否则：执行外壳复制命令；`data/changes.js` 从模板 Read（`../dev-doc/assets/board/data/changes.js`），占位数据替换为当前业务流记录后 Write（`htmlChangelog` 首条 desc 写 `"初始化 AI 变更记录看板"`）
   3. **创建完成后同样走下方 ③ `node --check` 校验与 ④ 构建**——首次创建也必须生成单页与索引
-- **已存在** → 依次执行：
+  4. **检测 VCS**（仅本次新建时提示一次，不代为执行）：`if [ -d .svn ]; then echo "💡 建议: svn add project-html --depth=infinity"; elif [ -d .git ]; then echo "💡 建议: git add project-html"; fi`
+- **EXISTS** → 依次执行：
+
+  **🗄 写前备份**（在下方 ⓪ 之前执行；下方任何 Edit 改动 `data/changes.js` 之前必做）：`cp project-html/data/changes.js project-html/data/changes.js.bak`
 
   **⓪ 外壳版本检查**：`grep -m1 "BOARD_VERSION" project-html/js/board.js` 与 `grep -m1 "BOARD_VERSION" "$src/js/board.js"` 比较；项目侧缺失或小于模板 → 执行外壳复制命令（`data/` 不动），输出 `🔄 看板外壳已升级到 v<N>`
 
@@ -154,7 +163,13 @@ cp "$src/build.js" project-html/build.js
       // ─── 在此行上方追加变更日志 ───
     ```
 
-  **③ 语法校验（必做，不可跳过）**：`node --check project-html/data/changes.js`；报错 → 修复转义后重新校验直到通过；`node` 不存在 → 跳过并提示用户打开看板确认
+  **③ 语法 + 记录数双重校验（必做，不可跳过；任一项失败先回滚再停下）**：`node --check project-html/data/changes.js`；报错 → 修复转义后重新校验直到通过；`node` 不存在 → 跳过本步全部校验并提示用户打开看板确认。语法通过后，**若做过 🗄 备份**，再校验记录数：
+  ```bash
+  OLD=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js.bak','utf8');console.log(new Function(s+';return changes.length')())")
+  NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js','utf8');console.log(new Function(s+';return changes.length')())")
+  if [ "$NEW" -lt "$OLD" ]; then cp project-html/data/changes.js.bak project-html/data/changes.js; echo "✗ 记录数从 $OLD 降到 $NEW，疑似误覆盖，已自动回滚"; fi
+  ```
+  触发回滚 → 停止本次更新，不要重试同样的操作，先重新确认 `test -f` 判断是否正确
 
   **④ 生成单页 + 文档总索引（构建）**：通过 ③ 后运行 `node project-html/build.js`，为每条记录生成自包含单页 `project-html/pages/<slug>.html`（可单独发给测试）、重新生成 `docs/INDEX.md` 文档总索引，首次运行时把项目根散落历史资料复制归档到 `docs/archive/`（不删原件）。`node` 不存在 → 跳过。
 
@@ -196,3 +211,5 @@ cp "$src/build.js" project-html/build.js
 | Step 5.5 追加后看板打不开 | Mermaid 字段含未转义的反引号/双引号/换行 | ③ 的 `node --check` 必做，报错即修复后重校验 |
 | 找不到看板模板 | dev-doc 未安装 | 先运行 install 脚本确保 dev-doc 已安装 |
 | 写得像给开发看的 | 堆了代码细节 | 回到"测试读者"视角：讲业务怎么走、数据去哪、该测什么 |
+| Step 5.5 ③ 报"记录数下降，已自动回滚" | `data/changes.js` 在本次 Edit 前被整体覆盖（误判"不存在"走了 Write） | 已自动用 `.bak` 回滚，不要重试同一操作；重新走一遍 `test -f` 判断再继续 |
+| `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |

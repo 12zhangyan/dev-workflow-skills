@@ -351,13 +351,13 @@ assets/board/
   css/board.css            样式（纸面编辑部风格）
   js/board.js              渲染逻辑（含 BOARD_VERSION 版本号；两级树 / 浏览索引 / 接口索引 / Bug 视图 / 阅读视图 / 业务流视图 / 变更日志）
   js/vendor/mermaid.min.js 本地 vendor（~3MB，内网可用；复制必须走 bash cp，禁止 Read+Write）
-  build.js                 构建脚本（Node，无依赖）：生成自包含单页 pages/<slug>.html + docs/INDEX.md + 首次历史归档
+  build.js                 构建脚本（Node，无依赖）：生成自包含单页 pages/<slug>.html + docs/INDEX.md + 首次历史归档；清空 pages/ 前会比对 data/changes.js 记录数，疑似被误覆盖时中止（哨兵，BOARD_FORCE_BUILD=1 可强制跳过）
   data/changes.js          数据文件（占位符版本，首次创建看板时替换占位数据后写入）
 ```
 
 **外壳复制时记得带上 `build.js`**（它也是字节一致的外壳文件）：`cp "$src/build.js" project-html/build.js`。
 
-使用方式见 SKILL.md Step 5.5：看板不存在时用 bash cp 复制外壳 + 填充数据；已存在时检查 `BOARD_VERSION` 升级外壳、按 `docPath` 查重后追加/更新 `data/changes.js`，最后 `node --check`。
+使用方式见 SKILL.md Step 5.5：用 `test -f` 确定性判断看板是否存在（不靠模型读 Read 结果猜）；不存在时 bash cp 复制外壳 + 填充数据；已存在时先备份 `data/changes.js.bak`，再检查 `BOARD_VERSION` 升级外壳、按 `docPath` 查重后追加/更新 `data/changes.js`，最后 `node --check` + 记录数回归校验（数变小自动回滚）。
 
 **维护提示**：
 - `assets/board/` 的外壳文件（index.html / css / js / vendor）与仓库根 `project-html/` 对应文件保持完全一致，仅 `data/changes.js` 不同（模板为占位符，实际看板为真实数据）。修改看板行为时两处同步更新，**外壳有行为变化时 `BOARD_VERSION` +1**，并运行 `scripts/check-board-sync.sh` 校验。

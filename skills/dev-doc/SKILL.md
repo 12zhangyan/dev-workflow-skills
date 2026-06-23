@@ -114,7 +114,9 @@ d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 
 ### Step 5.5：同步更新 HTML 看板
 
-看板为多文件结构，**skill 只追加数据文件，不碰外壳/样式/逻辑**：
+看板为多文件结构，**skill 只追加数据文件，不碰外壳/样式/逻辑**。
+
+> **⚠️ 强制规则**：修改 `data/changes.js` 只能用 Edit 在标记行追加/更新既有条目，**禁止用 Write 整体重写**。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
 
 ```
 project-html/
@@ -175,13 +177,26 @@ cp "$src/build.js" project-html/build.js
 
 > cp 失败（skill 不在默认安装路径）→ 降级：Read+Write 四个文本外壳文件（index.html/css/js/build.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
 
-**判断看板是否存在**（用 Read 工具尝试读取 `project-html/data/changes.js`）：
+**判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
-- **不存在** →
+```bash
+test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```
+
+- **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
   2. 否则：执行外壳复制命令；`data/changes.js` 从 `assets/board/data/changes.js` Read 模板，把占位数据替换为本次提取的字段后 Write
   3. **创建完成后同样要走下方 ③ 语法校验**（`node --check`），再进入 Step 5.6 构建——首次创建也必须生成单页与索引
-- **已存在** → 依次执行：
+  4. **检测 VCS**（仅本次新建时提示一次，不代为执行）：
+     ```bash
+     if [ -d .svn ]; then echo "💡 检测到 SVN 工作副本，建议执行: svn add project-html --depth=infinity，把看板数据纳入版本管理"; elif [ -d .git ]; then echo "💡 检测到 Git 仓库，建议把 project-html/ 加入版本管理: git add project-html"; fi
+     ```
+- **EXISTS** → 依次执行：
+
+  **🗄 写前备份**（在下方 ⓪ 之前执行；下方任何 Edit 改动 `data/changes.js` 之前必做，不依赖 IDE/编辑器缓存兜底）：
+  ```bash
+  cp project-html/data/changes.js project-html/data/changes.js.bak
+  ```
 
   **⓪ 外壳版本检查**：
   ```bash
@@ -233,14 +248,24 @@ cp "$src/build.js" project-html/build.js
       // ─── 在此行上方追加变更日志 ───
     ```
 
-**③ 语法校验（必做，不可跳过）**：
+**③ 语法 + 记录数双重校验（必做，不可跳过；任一项失败都先回滚再停下，不静默写入）**：
 
 ```bash
 node --check project-html/data/changes.js
 ```
 
 - 报错 → 按报错位置修复转义问题（双引号 `\"`、换行 `\n`、反引号），重新校验直到通过
-- `node` 命令不存在 → 跳过，但提示用户："未检测到 node，请打开看板确认页面正常显示"
+- `node` 命令不存在 → 跳过本步全部校验，提示用户："未检测到 node，请打开看板确认页面正常显示"
+
+语法通过后，**若上一步做过 🗄 备份**，再做记录数回归校验（新建分支没有 `.bak`，跳过）：
+
+```bash
+OLD=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js.bak','utf8');console.log(new Function(s+';return changes.length')())")
+NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js','utf8');console.log(new Function(s+';return changes.length')())")
+if [ "$NEW" -lt "$OLD" ]; then cp project-html/data/changes.js.bak project-html/data/changes.js; echo "✗ 记录数从 $OLD 降到 $NEW，疑似误覆盖，已自动回滚"; fi
+```
+
+- 触发回滚 → **停止本次看板更新，不要重试同样的操作**。先确认是不是把"看板不存在"判断错了、走到了 Write 整体重写的分支，再重新走一遍上面的 `test -f` 判断
 
 输出一行提示：`📄 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）`
 
@@ -314,3 +339,5 @@ node project-html/build.js
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 已自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | Step 5.5 ⓪′ 按 `docPath` 查重，命中改为更新既有条目 |
 | 外壳 cp 失败 | skill 不在 `~/.claude/skills/` 默认路径 | 降级 Read+Write 三个文本外壳，vendor 跳过走 CDN |
+| Step 5.5 ③ 报"记录数下降，已自动回滚" | `data/changes.js` 在本次 Edit 前被整体覆盖（误判"不存在"走了 Write） | 已自动用 `.bak` 回滚，不要重试同一操作；重新走一遍 `test -f` 判断再继续 |
+| `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |
