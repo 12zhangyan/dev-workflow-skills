@@ -9,7 +9,7 @@ set -u
 cd "$(dirname "$0")/.."
 fail=0
 
-for f in index.html css/board.css js/board.js js/vendor/mermaid.min.js build.js; do
+for f in index.html css/board.css js/board.js js/vendor/mermaid.min.js build.js board-add.js; do
   if ! cmp -s "project-html/$f" "skills/dev-doc/assets/board/$f"; then
     echo "✗ 外壳不同步: $f（两份拷贝必须字节一致）"
     fail=1

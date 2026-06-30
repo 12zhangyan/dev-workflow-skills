@@ -5,7 +5,6 @@
 
 // ─── HTML 变更日志 ──────────────────────────────────────────────────────────
 const htmlChangelog = [
-  { date: "<date>", desc: "初始化 AI 变更记录看板" },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -71,27 +70,5 @@ const htmlChangelog = [
 //   bizRules    关键业务规则 {title,desc}[]（校验/计算/约束规则）
 //   testPoints  测试关注点 string[]（边界、异常、并发等测试要点）
 const changes = [
-  {
-    service: "<service>",
-    module: "<module>",
-    title: "<title>",
-    date: "<date>",
-    type: "<type>",
-    complexity: "<complexity>",
-    status: "草稿",
-    branch: "<branch>",
-    docPath: "<docPath>",
-    background: "<background>",
-    goals: [<goals>],
-    scopeIn: [<scopeIn>],
-    scopeOut: [<scopeOut>],
-    apis: [],
-    solution: "<solution>",
-    coreDesign: "<coreDesign>",
-    flowchart: `<flowchart>`,
-    keyImpl: [<keyImpl>],
-    changeList: [<changeList>],
-    todos: [<todos>]
-  },
   // ─── 在此行上方追加新记录 ───
 ];

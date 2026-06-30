@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 10;
+const BOARD_VERSION = 13;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -54,6 +54,19 @@ function cycleStatus(ev) {
 // ─── 过滤 ────────────────────────────────────────────────────────────────────
 function kindOf(c) { return c.kind === 'bug' ? 'bug' : c.kind === 'reading' ? 'reading' : c.kind === 'biz' ? 'biz' : 'doc'; }
 function icoOf(c) { return c.kind === 'bug' ? '🐛' : c.kind === 'reading' ? '📖' : c.kind === 'biz' ? '🔀' : '📄'; }
+// 一句话导语：取主叙述字段的第一句，让人不点开也能扫读这条记录在讲什么。
+// 确定性提取（Rule 5），不依赖 skill 额外撰写字段。
+function leadOf(c) {
+  const raw = c.kind === 'bug' ? (c.symptom || c.rootCause || c.impact)
+    : c.kind === 'reading' ? (c.entry || c.background || c.solution)
+    : c.kind === 'biz' ? (c.background || c.solution)
+    : (c.background || c.solution || c.coreDesign);
+  if (!raw) return '';
+  const s = String(raw).trim();
+  const m = s.match(/^[^。！？!?\n]+[。！？!?]?/);
+  const first = (m ? m[0] : s).trim();
+  return first.length > 80 ? first.slice(0, 80) + '…' : first;
+}
 let q = '', kindF = 'all', openOnly = false;
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
 function searchHay(c) {
@@ -134,7 +147,7 @@ function renderSidebar() {
           <div style="display:${modOpen ? 'block' : 'none'}">
             ${ids.map(i => {
               const c = changes[i], isBug = c.kind === 'bug';
-              return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})">
+              return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})" title="${esc(leadOf(c) || c.title)}">
                 <span class="doc-ico">${icoOf(c)}</span>
                 <span class="doc-lbl">${esc(c.title)}</span>
                 <span class="sdot" style="background:${statusColor(effStatus(c))}" title="${esc(effStatus(c))}"></span>
@@ -185,6 +198,9 @@ function showHome() {
   const bizCnt = visible.filter(i => kindOf(changes[i]) === 'biz').length;
   const openCnt = visible.filter(i => !DONE.has(effStatus(changes[i]))).length;
   const svcCnt = Object.keys(g).length;
+  const totalCnt = visible.length;
+  const doneCnt = totalCnt - openCnt;
+  const pct = totalCnt ? Math.round(doneCnt / totalCnt * 100) : 0;
 
   let h = `<div class="doc-view">
     <h1 class="doc-h1">📊 浏览索引</h1>
@@ -196,6 +212,10 @@ function showHome() {
       ${bizCnt ? `<div class="stat-card sc-teal"><div class="stat-num">${bizCnt}</div><div class="stat-lbl">🔀 业务流</div></div>` : ''}
       <div class="stat-card sc-amber"><div class="stat-num">${openCnt}</div><div class="stat-lbl">⏳ 未完成</div></div>
       <div class="stat-card sc-blue"><div class="stat-num">${svcCnt}</div><div class="stat-lbl">📦 微服务</div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-hd"><span>整体完成度</span><span class="progress-pct">${doneCnt} / ${totalCnt} 已完成 · ${pct}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     </div>`;
 
   const recent = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || '')).slice(0, 8);
@@ -222,9 +242,10 @@ function showHome() {
             ? `<span class="tag t-${esc(tcls(c.severity || 'P2'))}">${esc(c.severity || 'P2')}</span>`
             : `<span class="tag t-${esc(tcls(c.type))}">${esc(c.type || '')}</span>`;
           const st = effStatus(c);
-          return `<tr>
+          const lead = leadOf(c);
+          return `<tr class="${DONE.has(st) ? '' : 'idx-open'}">
             <td style="width:20px">${icoOf(c)}</td>
-            <td><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span></td>
+            <td><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span>${lead ? `<div class="idx-lead">${esc(lead)}</div>` : ''}</td>
             <td style="width:90px">${tag}</td>
             <td style="width:90px"><span class="idx-status"><span class="sdot" style="background:${statusColor(st)}"></span>${esc(st)}</span></td>
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
@@ -277,6 +298,25 @@ function renderMermaid(wrap, code) {
   }
 }
 
+// 详情页导读：渲染完成后扫描页面里的小标题，生成可点击章节导航（章节≥3 才显示）。
+// 对 pick / renderBug / renderBiz 统一生效，自包含单页同样适用。
+function addToc() {
+  const view = document.querySelector('#main .doc-view');
+  if (!view) return;
+  const titles = Array.prototype.slice.call(view.querySelectorAll('.sec-title'));
+  if (titles.length < 3) return;
+  const chips = titles.map((t, i) => {
+    const id = 'sec-' + i;
+    if (t.parentElement) t.parentElement.id = id;
+    return `<a class="toc-chip" href="#${id}" onclick="event.preventDefault();var e=document.getElementById('${id}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${esc(t.textContent.trim())}</a>`;
+  }).join('');
+  const nav = document.createElement('nav');
+  nav.className = 'doc-toc';
+  nav.innerHTML = `<span class="toc-lbl">本页导读</span>${chips}`;
+  const meta = view.querySelector('.doc-meta');
+  if (meta) meta.after(nav); else view.prepend(nav);
+}
+
 // ─── Document view ────────────────────────────────────────────────────────────
 function pick(i) {
   sel = i; renderSidebar();
@@ -290,6 +330,7 @@ function pick(i) {
   let h = `<div class="doc-view">
     <div class="breadcrumb">${isReading ? '<span>📖 代码阅读</span><span class="bc-sep">/</span>' : ''}<span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
+    ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
     <div class="tags">
       ${d.type ? `<span class="tag t-${esc(tcls(d.type))}">${esc(d.type)}</span>` : ''}
       ${d.complexity ? `<span class="tag t-cplx">${esc(d.complexity)}</span>` : ''}
@@ -353,6 +394,7 @@ function pick(i) {
 
   h += '</div>';
   main.innerHTML = h;
+  addToc();
 
   if (d.flowchart) renderMermaid(document.getElementById("mmd-wrap"), d.flowchart);
 }
@@ -364,6 +406,7 @@ function renderBug(d) {
   let h = `<div class="doc-view">
     <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
+    ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
     <div class="tags">
       <span class="tag t-${esc(tcls(sev))}">${esc(sev)}</span>
       <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
@@ -421,6 +464,7 @@ function renderBug(d) {
 
   h += '</div>';
   document.getElementById("main").innerHTML = h;
+  addToc();
 }
 
 // ─── 业务流 view（kind:"biz"，由 /biz-flow 追加，面向测试人员）──────────────────
@@ -429,6 +473,7 @@ function renderBiz(d) {
   let h = `<div class="doc-view">
     <div class="breadcrumb"><span>🔀 业务流</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
+    ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
     <div class="tags">
       <span class="tag t-业务流">业务流</span>
       <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
@@ -460,6 +505,7 @@ function renderBiz(d) {
 
   h += '</div>';
   document.getElementById("main").innerHTML = h;
+  addToc();
   mmds.forEach(([id, code]) => renderMermaid(document.getElementById(id), code));
 }
 

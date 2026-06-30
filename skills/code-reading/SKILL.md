@@ -119,7 +119,22 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 - dev-doc 模式 → Read `project-html/data/changes.js`，按源 dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
 - 其他模式 → 问一次："属于哪个微服务/模块？格式 `服务/模块`（不确定填 `通用/通用`）"
 
-**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**（外壳复制含 `build.js`、版本升级的 bash 块、旧版单文件迁移、按 `docPath` 查重、两个标记行 Edit、`node --check` 必做，最后运行 `node project-html/build.js` 生成单页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`），模板目录同为 `$HOME/.claude/skills/dev-doc/assets/board`。变更日志 desc 写 `新增代码地图：<title>`。
+**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**：先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳。模板目录同为 `$HOME/.claude/skills/dev-doc/assets/board`。
+
+**写入条目同样走 `board-add.js`**（确定性脚本：备份、按 `docPath` 查重、转义、记录数回归全自动，不手改 `data/changes.js`）：
+
+```bash
+cat > project-html/data/_entry.json <<'JSON'
+{ "changelog": "新增代码地图：<title>",
+  "entry": { "kind":"reading", "type":"代码阅读", "status":"已完成",
+    "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>",
+    "entry":"<entry>", "docPath":"<docPath>", "background":"<background>",
+    "flowchart":"<flowchart>", "keyImpl":[<keyImpl>] } }
+JSON
+node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
+```
+
+entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`flowchart` 是带 `\n` 的普通字符串）。脚本打印 `✓` 即成功，命中 `docPath` 会就地更新；校验失败则原文件不动。写入后运行 `node project-html/build.js` 刷新单页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`。`node` 不存在 → 降级手工 Edit 标记行（注意 JS 转义）并提示用户打开看板确认。
 
 **跳过条件**：dev-doc 未安装（模板目录不存在）且项目中也无 `project-html/` → 跳过本步，提示用户安装 dev-doc 后可启用看板。
 
@@ -146,7 +161,7 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 - [ ] 文件路径冲突已处理（Step 4）
 - [ ] 只记录代码里实际存在的内容，无修改建议、无问题标记
 - [ ] dev-doc 模式已生成「六、方案 vs 实现对照」章节
-- [ ] 看板 `data/changes.js` 已通过 `node --check`，并已运行 `node project-html/build.js`
+- [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
 
 ## 相关资源
 

@@ -173,9 +173,12 @@ cp "$src/css/board.css" project-html/css/board.css
 cp "$src/js/board.js" project-html/js/board.js
 cp "$src/js/vendor/mermaid.min.js" project-html/js/vendor/mermaid.min.js
 cp "$src/build.js" project-html/build.js
+cp "$src/board-add.js" project-html/board-add.js
+# 仅 MISSING 时补一份空数据模板；EXISTS 时绝不覆盖 data/
+test -f project-html/data/changes.js || cp "$src/data/changes.js" project-html/data/changes.js
 ```
 
-> cp 失败（skill 不在默认安装路径）→ 降级：Read+Write 四个文本外壳文件（index.html/css/js/build.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
+> cp 失败（skill 不在默认安装路径）→ 降级：Read+Write 文本外壳文件（index.html/css/js/build.js/board-add.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
 
 **判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
@@ -184,88 +187,47 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 ```
 
 - **MISSING** →
-  1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行），再执行外壳复制命令
-  2. 否则：执行外壳复制命令；`data/changes.js` 从 `assets/board/data/changes.js` Read 模板，把占位数据替换为本次提取的字段后 Write
-  3. **创建完成后同样要走下方 ③ 语法校验**（`node --check`），再进入 Step 5.6 构建——首次创建也必须生成单页与索引
-  4. **检测 VCS**（仅本次新建时提示一次，不代为执行）：
+  1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行）。
+  2. 否则执行上方「外壳复制命令」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 的 `board-add.js` 统一写入（首次创建同样要进入 Step 5.6 构建）。
+  3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：
      ```bash
      if [ -d .svn ]; then echo "💡 检测到 SVN 工作副本，建议执行: svn add project-html --depth=infinity，把看板数据纳入版本管理"; elif [ -d .git ]; then echo "💡 检测到 Git 仓库，建议把 project-html/ 加入版本管理: git add project-html"; fi
      ```
-- **EXISTS** → 依次执行：
-
-  **🗄 写前备份**（在下方 ⓪ 之前执行；下方任何 Edit 改动 `data/changes.js` 之前必做，不依赖 IDE/编辑器缓存兜底）：
-  ```bash
-  cp project-html/data/changes.js project-html/data/changes.js.bak
-  ```
-
-  **⓪ 外壳版本检查**：
+- **EXISTS** → 先做 **⓪ 外壳版本检查**：
   ```bash
   grep -m1 "BOARD_VERSION" project-html/js/board.js
   grep -m1 "BOARD_VERSION" "$HOME/.claude/skills/dev-doc/assets/board/js/board.js"
   ```
-  项目侧无 `BOARD_VERSION` 或数字小于模板 → 执行外壳复制命令（`data/` 不动），并输出一行：`🔄 看板外壳已升级到 v<N>`
+  项目侧无 `BOARD_VERSION` 或数字小于模板 → 执行外壳复制命令（`data/` 不动），并输出一行：`🔄 看板外壳已升级到 v<N>`。然后进入 ②。
 
-  **⓪′ 查重**：在 `data/changes.js` 中搜索相同 `docPath` 的既有条目（Step 4 选了 A 覆盖或 E 追加更新时必然命中）：
-  - 命中 → 不追加新条目，Edit 更新该条目的字段（status 保留原值），变更日志 desc 写 `更新文档：<title>`，跳过下方 ①
-  - 未命中 → 继续 ①
+**② 用 board-add.js 写入条目（确定性脚本，替代手工 Edit）**
 
-  **① 追加文档条目**（定位文档标记行）：
-  - `old_string`：`  // ─── 在此行上方追加新记录 ───`
-  - **标记行缺失兜底**：若 Edit 报「找不到 old_string」（用户手工编辑时误删了标记行），改为定位 `const changes = [` 这一行，在其后插入新对象（仍补尾逗号），不要求标记行存在；变更日志标记行同理可退回定位 `const htmlChangelog = [`。
-  - `new_string`：将提取到的字段组成对象插入，末尾加逗号，保留标记行。
-    非空字段才写入，空数组可省略。最小格式示例：
-    ```
-      {
-        service: "<service>",
-        module: "<module>",
-        title: "<title>",
-        date: "<date>",
-        type: "<type>",
-        complexity: "<complexity>",
-        status: "草稿",
-        branch: "<branch>",
-        docPath: "<docPath>",
-        background: "<background>",
-        goals: [<goals>],
-        scopeIn: [<scopeIn>],
-        scopeOut: [<scopeOut>],
-        apis: [],
-        solution: "<solution>",
-        coreDesign: "<coreDesign>",
-        flowchart: `<flowchart>`,
-        keyImpl: [<keyImpl>],
-        changeList: [<changeList>],
-        todos: [<todos>]
-      },
-      // ─── 在此行上方追加新记录 ───
-    ```
-
-  **② 追加 HTML 变更日志**（定位日志标记行）：
-  - `old_string`：`  // ─── 在此行上方追加变更日志 ───`
-  - `new_string`：
-    ```
-      { date: "<date>", desc: "新增文档：<title>" },
-      // ─── 在此行上方追加变更日志 ───
-    ```
-
-**③ 语法 + 记录数双重校验（必做，不可跳过；任一项失败都先回滚再停下，不静默写入）**：
+把本次提取的字段组成一个 entry 对象、连同变更日志描述写进一个临时 JSON 文件，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归校验全在脚本里完成**——AI 只负责产出结构化字段，不再手改 `data/changes.js`，从根上杜绝「误判看板不存在 → 整体覆盖」事故。
 
 ```bash
-node --check project-html/data/changes.js
+cat > project-html/data/_entry.json <<'JSON'
+{
+  "changelog": "新增文档：<title>",
+  "entry": {
+    "service": "<service>", "module": "<module>", "title": "<title>",
+    "date": "<date>", "type": "<type>", "complexity": "<complexity>",
+    "status": "草稿", "branch": "<branch>", "docPath": "<docPath>",
+    "background": "<background>",
+    "goals": [<goals>], "scopeIn": [<scopeIn>], "scopeOut": [<scopeOut>], "apis": [],
+    "solution": "<solution>", "coreDesign": "<coreDesign>",
+    "flowchart": "<flowchart>",
+    "keyImpl": [<keyImpl>], "changeList": [<changeList>], "todos": [<todos>]
+  }
+}
+JSON
+node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
 
-- 报错 → 按报错位置修复转义问题（双引号 `\"`、换行 `\n`、反引号），重新校验直到通过
-- `node` 命令不存在 → 跳过本步全部校验，提示用户："未检测到 node，请打开看板确认页面正常显示"
-
-语法通过后，**若上一步做过 🗄 备份**，再做记录数回归校验（新建分支没有 `.bak`，跳过）：
-
-```bash
-OLD=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js.bak','utf8');console.log(new Function(s+';return changes.length')())")
-NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('project-html/data/changes.js','utf8');console.log(new Function(s+';return changes.length')())")
-if [ "$NEW" -lt "$OLD" ]; then cp project-html/data/changes.js.bak project-html/data/changes.js; echo "✗ 记录数从 $OLD 降到 $NEW，疑似误覆盖，已自动回滚"; fi
-```
-
-- 触发回滚 → **停止本次看板更新，不要重试同样的操作**。先确认是不是把"看板不存在"判断错了、走到了 Write 整体重写的分支，再重新走一遍上面的 `test -f` 判断
+写 entry 的规则：
+- **标准 JSON**：字符串值用双引号，内部换行写成 `\n`，**不要用反引号**；`flowchart` 也是普通 JSON 字符串（用 `\n` 分行，不含 ` ``` ` 标记）。非空字段才写，空数组可省略。
+- **查重自动处理**：脚本按 `docPath` 命中既有条目时**就地更新并保留原 status**，否则追加。Step 4 选了 A 覆盖 / E 追加更新时无需特殊操作，只把 `changelog` 文案改成 `更新文档：<title>` 即可。
+- **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（记录数 X → Y）`；若校验失败（语法错误或记录数下降）脚本会**放弃写入并保持原文件不动**，按提示排查后重试，不要去手改文件。
+- **`node` 不存在** → 跳过脚本，降级手工：用 Edit 在 `// ─── 在此行上方追加新记录 ───` 上方插入同一个对象（注意 JS 转义：双引号 `\"`、换行 `\n`），并在 `// ─── 在此行上方追加变更日志 ───` 上方插入 `{ date: "<date>", desc: "新增文档：<title>" }`；改完提示用户手动打开看板确认页面正常。
 
 输出一行提示：`📄 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）`
 
@@ -316,7 +278,7 @@ node project-html/build.js
 - [ ] 最小影响分析已包含
 - [ ] 代码评审关注点已填写
 - [ ] Claude/Cursor 执行提示已生成
-- [ ] 看板 `data/changes.js` 已通过 `node --check`（Step 5.5 ③）
+- [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
 
 ## 相关资源
@@ -335,9 +297,9 @@ node project-html/build.js
 | 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
 | 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
 | Step 1 git 命令报错 | 项目无 VCS | 正常，自动降级到无 VCS 模式 |
-| Step 5.5 追加后看板打不开 | 字符串字段含未转义的双引号/换行/反引号 | Step 5.5 ③ 的 `node --check` 必做，报错即修复后重校验 |
-| 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 已自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
-| 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | Step 5.5 ⓪′ 按 `docPath` 查重，命中改为更新既有条目 |
-| 外壳 cp 失败 | skill 不在 `~/.claude/skills/` 默认路径 | 降级 Read+Write 三个文本外壳，vendor 跳过走 CDN |
-| Step 5.5 ③ 报"记录数下降，已自动回滚" | `data/changes.js` 在本次 Edit 前被整体覆盖（误判"不存在"走了 Write） | 已自动用 `.bak` 回滚，不要重试同一操作；重新走一遍 `test -f` 判断再继续 |
+| 看板写入后打不开 | 手工降级时字段含未转义的双引号/换行/反引号 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
+| 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
+| 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
+| 外壳 cp 失败 | skill 不在 `~/.claude/skills/` 默认路径 | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
+| `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
 | `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |
