@@ -14,6 +14,8 @@ const htmlChangelog = [
   { date: "2026-06-11", desc: "外壳 v3：新增 BOARD_VERSION 版本号（skill 自动升级外壳）、代码阅读记录类型（kind:reading，/code-reading 登记）、mermaid 本地 vendor（内网可用，CDN 兜底）" },
   { date: "2026-06-11", desc: "外壳 v4：看板定位调整为面向人类的独立技术说明（md 面向 AI 执行）——叙述字段支持 \\n 多段落渲染，skill 撰写完整叙述而非摘录 md 片段" },
   { date: "2026-06-16", desc: "外壳 v5：新增 build.js（每条记录生成自包含单页 pages/<slug>.html，可单独发人）、docs/INDEX.md 文档总索引与首次历史归档；新增业务流记录类型（kind:biz，/biz-flow 登记，含业务流转/数据流/时序图，面向测试）" },
+  { date: "2026-07-01", desc: "外壳 v14：新增首页阅读路线、详情页读者速览与执行口径，帮助同事先看结论、再看改动范围和下一步动作" },
+  { date: "2026-07-01", desc: "外壳 v15：新增代码审查标签样式，配合 /review-fix 登记 Review 修复交接文档" },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -26,7 +28,7 @@ const htmlChangelog = [
 //   module      模块名（二级分组）
 //   title       文档标题
 //   date        日期 YYYY-MM-DD
-//   type        新功能 / Bug修复 / 重构 / 性能优化 / 设计 / API联调 / 配置变更
+//   type        新功能 / Bug修复 / 重构 / 性能优化 / 设计 / API联调 / 配置变更 / 代码审查
 //   complexity  简单 / 中等 / 复杂
 //   status      草稿 / 进行中 / 已完成（详情页点击状态标签可切换，保存在浏览器本地）
 //   branch      Git 分支名

@@ -23,7 +23,7 @@
 npx superpowers-zh
 ```
 
-### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow）
+### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow、review-fix）
 
 ```bash
 # macOS / Linux / Git Bash
@@ -43,6 +43,7 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 | `/bug-fix` | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | 显式调用 |
 | `/code-reading` | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
 | `/biz-flow` | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | 显式调用 |
+| `/review-fix` | dev-workflow-skills | 汇总多 AI code-review 结果，生成修复交接文档和 AI 修复操作码 | 显式调用 |
 | `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
 | `/requesting-code-review` | superpowers-zh | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
 | `/chinese-code-review` | superpowers-zh | 整理中文 PR 评论话术 | 显式调用 |
@@ -118,6 +119,14 @@ svn diff > /tmp/changes.patch
 - Important → 修复后再继续
 - Minor → 记录，可稍后处理
 
+如果有多份 AI review 结果，或希望把修复任务交给另一个 AI 执行，运行：
+
+```
+/review-fix docs/YYYY-MM-DD/[任务名].md
+```
+
+它会汇总 Codex/Cursor/Claude 等 review 结果，生成 `docs/review-fix/` 修复交接文档，并输出一段可直接粘贴给任意 AI 的修复操作码。
+
 修复完成后重新跑一遍测试，确认全绿。
 
 ### Step 7　生成代码地图，自己 Review
@@ -186,7 +195,7 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 | AI 执行 | 粘贴执行提示 | 粘贴执行提示 |
 | 纳入版本控制 | `svn add + status` | `svn add + status` |
 | 验证 | `mvn test` | `mvn test` |
-| AI Review + 修复 | `svn diff > patch` 后让 Claude 审查 | `svn diff > patch` 后让 Claude 审查 |
+| AI Review + 修复 | `svn diff > patch` 后让 Claude 审查，必要时 `/review-fix` 生成修复操作码 | `svn diff > patch` 后多 AI 审查，再 `/review-fix` 汇总交接 |
 | 代码地图 + 人工 Review | `/code-reading <doc路径>` | `/code-reading <doc路径>` |
 | 提交 | `svn commit` | `svn commit` |
 
@@ -198,7 +207,7 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 |------|------|
 | **测试全绿才进 Review** | Review 关注设计，不是排查编译失败 |
 | **svn add 在测试前** | 测试要能找到新文件，否则测不完整 |
-| **AI review 后才人工 review** | AI 先消除低级问题，你再用 `/code-reading` 地图关注业务逻辑和架构 |
+| **AI review 后才人工 review** | AI 先消除低级问题；多 AI 意见用 `/review-fix` 汇总成可执行修复交接，再用 `/code-reading` 地图关注业务逻辑和架构 |
 | **AI 不会自动提交** | `svn commit` 永远由你触发，提交权在你手里 |
 | **复杂任务先 brainstorming** | 方向错了，文档和代码都白费 |
 
@@ -207,5 +216,5 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 ## 七、一句话速记
 
 ```
-写文档 → AI 执行 → add 新文件 → 读 diff → 跑测试 → AI review → /code-reading → 人工 review → 提交
+写文档 → AI 执行 → add 新文件 → 读 diff → 跑测试 → AI review → /review-fix → AI 修复 → /code-reading → 人工 review → 提交
 ```

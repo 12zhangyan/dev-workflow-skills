@@ -1,10 +1,10 @@
 /* AI 变更记录看板 — 渲染与交互逻辑
- * 数据在 data/changes.js（由 /dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加，本文件不存数据）
+ * 数据在 data/changes.js（由 /dev-doc、/bug-fix、/code-reading、/biz-flow、/review-fix 自动追加，本文件不存数据）
  * 与 skills/dev-doc/assets/board/js/board.js 保持一致，修改时两处同步 */
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 13;
+const BOARD_VERSION = 15;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -66,6 +66,100 @@ function leadOf(c) {
   const m = s.match(/^[^。！？!?\n]+[。！？!?]?/);
   const first = (m ? m[0] : s).trim();
   return first.length > 80 ? first.slice(0, 80) + '…' : first;
+}
+function shortText(s, n = 96) {
+  const one = String(s || '').replace(/\s+/g, ' ').trim();
+  return one.length > n ? one.slice(0, n) + '…' : one;
+}
+function firstItems(arr, n = 2) {
+  return Array.isArray(arr) ? arr.filter(Boolean).slice(0, n) : [];
+}
+function summaryRows(d) {
+  const rows = [];
+  if (d.kind === 'bug') {
+    if (d.impact) rows.push(['影响范围', shortText(d.impact)]);
+    if (d.rootCause) rows.push(['当前判断', shortText(d.rootCause)]);
+    if (d.fixPlan) rows.push(['修复方向', shortText(d.fixPlan)]);
+    const verify = firstItems(d.verifySteps, 2);
+    if (verify.length) rows.push(['验证重点', verify.join('；')]);
+    return rows;
+  }
+  if (d.kind === 'biz') {
+    const apis = (d.apis || []).map(a => `${a.method || ''} ${a.url || ''}`.trim()).filter(Boolean).slice(0, 3);
+    if (apis.length) rows.push(['接口主线', apis.join(' → ')]);
+    const rules = firstItems(d.bizRules, 2).map(x => x.title || x.desc).filter(Boolean);
+    if (rules.length) rows.push(['关键规则', rules.join('；')]);
+    const tests = firstItems(d.testPoints, 2);
+    if (tests.length) rows.push(['优先测试', tests.join('；')]);
+    return rows;
+  }
+  if (d.kind === 'reading') {
+    if (d.entry) rows.push(['追踪入口', d.entry]);
+    const locs = firstItems(d.keyImpl, 2).map(x => x.title || x.desc).filter(Boolean);
+    if (locs.length) rows.push(['先看位置', locs.join('；')]);
+    return rows;
+  }
+  const goals = firstItems(d.goals, 2);
+  if (goals.length) rows.push(['目标', goals.join('；')]);
+  if (d.solution) rows.push(['方案', shortText(d.solution)]);
+  const impl = firstItems(d.keyImpl, 2).map(x => x.title || x.desc).filter(Boolean);
+  if (impl.length) rows.push(['关键实现', impl.join('；')]);
+  const todos = firstItems(d.todos, 2);
+  if (todos.length) rows.push(['下一步', todos.join('；')]);
+  return rows;
+}
+function nextAction(d) {
+  if (d.kind === 'bug') return effStatus(d) === '已验证' ? '已验证：可沉淀复盘或关闭记录' : '建议先确认根因，再按验证步骤回归';
+  if (d.kind === 'biz') return '建议测试先按业务流转图设计主流程，再补异常、边界、并发用例';
+  if (d.kind === 'reading') return '建议 Review 先沿调用链读主路径，再核对状态流转和关键位置';
+  if (DONE.has(effStatus(d))) return '已完成：可从源文档或独立页面复盘方案';
+  return '建议 AI 执行前先核对目标、范围、代码变更清单和验收方式';
+}
+function quickBrief(d, title) {
+  const rows = summaryRows(d);
+  const action = nextAction(d);
+  if (!rows.length && !action) return '';
+  return `<div class="quick-brief">
+    <div class="qb-head"><span>${esc(title || '读者速览')}</span><span class="qb-action">${esc(action)}</span></div>
+    ${rows.length ? `<div class="qb-grid">${rows.map(([k, v]) =>
+      `<div class="qb-item"><div class="qb-k">${esc(k)}</div><div class="qb-v">${esc(v)}</div></div>`
+    ).join('')}</div>` : ''}
+  </div>`;
+}
+function executionBrief(d) {
+  const lanes = [];
+  const listText = items => items.filter(Boolean).slice(0, 3).map(x => `<li>${esc(x)}</li>`).join('');
+  if (d.kind === 'bug') {
+    const loc = d.codeLocation ? [shortText(d.codeLocation, 120)] : [];
+    const work = firstItems(d.todos, 3);
+    const verify = firstItems(d.verifySteps, 3);
+    if (loc.length) lanes.push(['先定位', loc]);
+    if (work.length) lanes.push(['再修复', work]);
+    if (verify.length) lanes.push(['最后验证', verify]);
+  } else if (d.kind === 'biz') {
+    const api = (d.apis || []).map(a => `${a.method || ''} ${a.url || ''}：${a.desc || ''}`.trim()).slice(0, 3);
+    const rules = firstItems(d.bizRules, 3).map(x => x.title ? `${x.title}：${x.desc || ''}` : x.desc).filter(Boolean);
+    const tests = firstItems(d.testPoints, 3);
+    if (api.length) lanes.push(['接口顺序', api]);
+    if (rules.length) lanes.push(['业务规则', rules]);
+    if (tests.length) lanes.push(['测试落点', tests]);
+  } else if (d.kind !== 'reading') {
+    const files = firstItems(d.changeList, 3).map(x => `${x.action || '修改'} ${x.file || ''}：${x.desc || ''}`.trim()).filter(Boolean);
+    const todos = firstItems(d.todos, 3);
+    const goals = firstItems(d.goals, 3);
+    if (files.length) lanes.push(['改动位置', files]);
+    if (todos.length) lanes.push(['执行任务', todos]);
+    if (goals.length) lanes.push(['验收目标', goals]);
+  }
+  if (!lanes.length) return '';
+  return `<div class="exec-brief">
+    <div class="exec-title">执行口径</div>
+    <div class="exec-grid">${lanes.map(([title, items]) => `
+      <div class="exec-lane">
+        <div class="exec-lane-title">${esc(title)}</div>
+        <ul>${listText(items)}</ul>
+      </div>`).join('')}</div>
+  </div>`;
 }
 let q = '', kindF = 'all', openOnly = false;
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
@@ -204,7 +298,7 @@ function showHome() {
 
   let h = `<div class="doc-view">
     <h1 class="doc-h1">📊 浏览索引</h1>
-    <p class="doc-intro">按微服务 → 模块归类的全部 AI 变更记录，点击标题查看详情，点击「源文档」打开 md 原文，「📤 独立页面」可单独分享</p>
+    <p class="doc-intro">按微服务 → 模块归类的全部 AI 变更记录。先看「最近更新」判断变更范围，再点开详情页的「读者速览」确认结论和下一步。</p>
     <div class="home-stats">
       <div class="stat-card sc-accent"><div class="stat-num">${docCnt}</div><div class="stat-lbl">📄 开发文档</div></div>
       <div class="stat-card sc-red"><div class="stat-num">${bugCnt}</div><div class="stat-lbl">🐛 Bug 记录</div></div>
@@ -216,6 +310,11 @@ function showHome() {
     <div class="progress-wrap">
       <div class="progress-hd"><span>整体完成度</span><span class="progress-pct">${doneCnt} / ${totalCnt} 已完成 · ${pct}%</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="reader-guide">
+      <div class="guide-card"><div class="guide-title">先判断范围</div><div class="guide-text">看服务、模块、类型和状态，快速确认这次改动影响哪里。</div></div>
+      <div class="guide-card"><div class="guide-title">再读结论</div><div class="guide-text">点开记录后优先看标题下导语和「读者速览」，不用先翻完整 md。</div></div>
+      <div class="guide-card"><div class="guide-title">最后执行</div><div class="guide-text">需要动代码时打开源文档，按 Todo、变更清单和验证步骤推进。</div></div>
     </div>`;
 
   const recent = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || '')).slice(0, 8);
@@ -343,6 +442,8 @@ function pick(i) {
       ${mdLink(d)}
       ${pageLink(d)}
     </div>`;
+  h += quickBrief(d, isReading ? "代码阅读速览" : "读者速览");
+  h += executionBrief(d);
 
   const hasReq = d.background || d.goals?.length || d.scopeIn?.length || d.scopeOut?.length;
   if (hasReq) {
@@ -417,6 +518,8 @@ function renderBug(d) {
       ${mdLink(d)}
       ${pageLink(d)}
     </div>`;
+  h += quickBrief(d, "Bug 速览");
+  h += executionBrief(d);
 
   const hasSym = d.symptom || d.stackTrace || d.reproSteps?.length || d.trigger || d.expected || d.actual;
   if (hasSym) {
@@ -484,6 +587,8 @@ function renderBiz(d) {
       ${mdLink(d)}
       ${pageLink(d)}
     </div>`;
+  h += quickBrief(d, "测试速览");
+  h += executionBrief(d);
 
   const mmds = [];
   if (d.background) h += sec("业务概述", para(d.background));

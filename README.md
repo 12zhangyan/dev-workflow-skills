@@ -11,6 +11,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 | `/bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
 | `/code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引），并登记到 HTML 看板 |
 | `/biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
+| `/review-fix` | 汇总 Codex/Cursor/Claude 等 AI 的 code-review 结果，生成修复交接文档与可直接执行的 AI 修复操作码 |
 
 ## /dev-doc 能做什么
 
@@ -47,7 +48,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 npx superpowers-zh
 ```
 
-### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow）
+### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow、review-fix）
 
 **macOS / Linux / Git Bash**
 
@@ -61,7 +62,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading` 或 `/biz-flow`。
+重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading`、`/biz-flow` 或 `/review-fix`。
 
 #### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
 
@@ -88,14 +89,14 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 ## 工作流
 
 ```
-/dev-doc → AI 执行 → 跑测试 → AI review → /code-reading → 人工 review → 提交
+/dev-doc → AI 执行 → 跑测试 → AI review → /review-fix → AI 修复 → /code-reading → 人工 review → 提交
 ```
 
 详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)
 
 ## HTML 看板
 
-每次运行 `/dev-doc`、`/bug-fix`、`/code-reading` 或 `/biz-flow` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`（同一文档重复运行会更新既有条目，不会产生重复记录），并运行 `node project-html/build.js` 刷新单页与索引。
+每次运行 `/dev-doc`、`/bug-fix`、`/code-reading`、`/biz-flow` 或 `/review-fix` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`（同一文档重复运行会更新既有条目，不会产生重复记录），并运行 `node project-html/build.js` 刷新单页与索引。
 看板为多文件结构（外壳 / 样式 / 逻辑 / 数据分离），方便长期堆叠记录与自定义样式：
 
 ```

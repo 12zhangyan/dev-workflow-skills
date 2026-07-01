@@ -1,10 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## What This Repo Is
 
-A collection of Claude Code skills for Java backend developers. Skills are distributed via install scripts and land in `~/.claude/skills/` on the user's machine. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the SKILL.md files.
+A collection of Codex skills for Java backend developers. Skills are distributed via install scripts and land in `~/.Codex/skills/` on the user's machine. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the SKILL.md files.
 
 ## Skills
 
@@ -26,9 +26,9 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/` — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart Claude Code after install.
+The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.Codex/skills/` — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart Codex after install.
 
-`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
+`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.Codex/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `Codex` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
 
 The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
 
@@ -48,13 +48,13 @@ skills/<name>/
   assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
 ```
 
-SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). All skills set `disable-model-invocation: true`, meaning Claude must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
+SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). All skills set `disable-model-invocation: true`, meaning Codex must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.claude/skills/`. `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install).
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.Codex/skills/`. `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install).
 
 ### HTML board
 
-**Division of responsibilities**: the md files are AI-execution documents (precise paths, change lists, actionable todos for Claude/Cursor); board entries are standalone human-readable write-ups. Narrative fields (`background`, `solution`, `coreDesign`, `symptom`, `rootCause`, `fixPlan`, …) are authored by the skills for a colleague who didn't participate in the work — complete sentences, the "why" included, `\n` renders as paragraph breaks. They are never excerpts of the md.
+**Division of responsibilities**: the md files are AI-execution documents (precise paths, change lists, actionable todos for Codex/Cursor); board entries are standalone human-readable write-ups. Narrative fields (`background`, `solution`, `coreDesign`, `symptom`, `rootCause`, `fixPlan`, …) are authored by the skills for a colleague who didn't participate in the work — complete sentences, the "why" included, `\n` renders as paragraph breaks. They are never excerpts of the md.
 
 The board is a multi-file static page; skills modify only the data file (plus shell upgrades, see below):
 
@@ -74,7 +74,7 @@ Entry kinds: docs (default, from `/dev-doc` and `/review-fix`), `kind:"bug"` (fr
 
 **`build.js` (run by every skill after `node --check`, invoked as `node project-html/build.js`)** does three things: (1) regenerates `project-html/pages/<slug>.html` — one **self-contained single file per entry** (inlines css/board.css + board.js + local mermaid, single entry data) so a user can send one page to a colleague without the whole folder; (2) regenerates `docs/INDEX.md` (the doc index, refreshed from `changes.js` each run); (3) on first run (no `docs/archive/`) scans the project root and **copies** (never deletes) scattered legacy md / board html / API docs into `docs/archive/`. `slugOf()` in build.js must stay identical to `slugOf()` in board.js (they produce the same page filename), and likewise the collision-dedup map (`buildSlugMap()` in build.js / `_slugMap`+`pageSlug()` in board.js) — `buildPages`, `buildIndex`'s page cell, and board.js's `pageLink` must all resolve to the *same* deduped slug, or same-titled entries link to the wrong page. If `node` is absent, skills skip this step with a notice.
 
-Board writes go through **`board-add.js`** (`node project-html/board-add.js <entry.json>`), not hand-edited marker lines: skills build a structured entry object (`{ changelog, entry }`) and the script deterministically backs up `data/changes.js`, dedupes by `docPath` (in-place update preserving `status`, else append), escapes strings, re-emits the file (preserving the header + field-doc comments), and aborts without writing if parsing fails or the record count would drop. This is the CLAUDE.md Rule 5 ("决策能用代码判定就别交给模型") applied to the wipeout-prone write path. The template `data/changes.js` ships **empty** (no placeholder entry) so first-create and subsequent writes share one path. Manual marker-line Edit remains only as a `node`-absent fallback.
+Board writes go through **`board-add.js`** (`node project-html/board-add.js <entry.json>`), not hand-edited marker lines: skills build a structured entry object (`{ changelog, entry }`) and the script deterministically backs up `data/changes.js`, dedupes by `docPath` (in-place update preserving `status`, else append), escapes strings, re-emits the file (preserving the header + field-doc comments), and aborts without writing if parsing fails or the record count would drop. This is the AGENTS.md Rule 5 ("决策能用代码判定就别交给模型") applied to the wipeout-prone write path. The template `data/changes.js` ships **empty** (no placeholder entry) so first-create and subsequent writes share one path. Manual marker-line Edit remains only as a `node`-absent fallback.
 
 Shell upgrade mechanism: skills compare the user project's `BOARD_VERSION` against the template's; if lower/missing they re-copy the shell files (never `data/`). **Bump `BOARD_VERSION` whenever shell behavior changes** (board.js, build.js, board-add.js, index.html, or css). Skills must run `node project-html/board-add.js` to write, then `node project-html/build.js`.
 

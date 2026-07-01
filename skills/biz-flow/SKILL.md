@@ -181,6 +181,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - **面向测试**：语言通俗，每张图配说明，重点落在"怎么测"
 - **不编造**：未确认的接口/字段/分支标 `待补充`，宁缺毋假
 - **图按需画**：画不出来的图直接删，不放空模板
+- **测试执行口径必须落地**：主流程、优先异常、数据核对、暂不覆盖都要写清楚，测试拿到后能直接拆用例
 - **静默分析**：Step 1、Step 3 的命令与读码过程不展示给用户
 
 ## 检查清单（生成前确认）
@@ -189,6 +190,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - [ ] Step 2 的 5 个问题问完（至少拿到接口清单）
 - [ ] 文件路径冲突已处理
 - [ ] 至少画出业务流转图，其余图按需
+- [ ] 测试执行口径已写清主流程、优先异常、数据核对、暂不覆盖
 - [ ] 测试关注点具体可验证（至少 3 条）
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
 

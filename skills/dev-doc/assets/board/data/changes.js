@@ -17,7 +17,7 @@ const htmlChangelog = [
 //   module      模块名（二级分组）
 //   title       文档标题
 //   date        日期 YYYY-MM-DD
-//   type        新功能 / Bug修复 / 重构 / 性能优化 / 设计 / API联调 / 配置变更
+//   type        新功能 / Bug修复 / 重构 / 性能优化 / 设计 / API联调 / 配置变更 / 代码审查
 //   complexity  简单 / 中等 / 复杂
 //   status      草稿 / 进行中 / 已完成（详情页点击状态标签可切换，保存在浏览器本地）
 //   branch      Git 分支名

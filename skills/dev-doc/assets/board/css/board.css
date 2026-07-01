@@ -168,6 +168,7 @@ body {
 .t-设计     { background: var(--purple-soft); color: var(--purple); border-color: #c5b6d9; }
 .t-API联调  { background: var(--teal-soft); color: var(--teal); border-color: #a8ccc8; }
 .t-代码阅读 { background: var(--purple-soft); color: var(--purple); border-color: #c5b6d9; }
+.t-代码审查 { background: var(--amber-soft); color: var(--amber); border-color: #ddc794; }
 .t-业务流   { background: var(--teal-soft); color: var(--teal); border-color: #a8ccc8; }
 .t-配置变更 { background: var(--paper-deep); color: var(--ink-soft); border-color: var(--line); }
 .t-status-草稿   { background: var(--paper-deep); color: var(--ink-faint); border-color: var(--line); }
@@ -182,6 +183,46 @@ body {
 }
 .md-link { color: var(--accent); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: .06em; }
 .md-link:hover { text-decoration: underline; }
+
+/* 详情页首屏摘要：让读者先拿到结论，再决定是否深读 */
+.quick-brief {
+  background: #fff; border: 1px solid var(--line-strong);
+  box-shadow: 5px 5px 0 rgba(184, 173, 153, .28);
+  margin: -10px 0 34px; padding: 14px 16px;
+}
+.qb-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--line);
+}
+.qb-head > span:first-child {
+  font-family: var(--serif); font-size: 15px; font-weight: 800; color: var(--ink);
+}
+.qb-action {
+  font-size: 12px; color: var(--accent); line-height: 1.6; text-align: right;
+}
+.qb-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.qb-item { min-width: 0; }
+.qb-k {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+  color: var(--ink-faint); margin-bottom: 3px;
+}
+.qb-v { font-size: 13px; line-height: 1.65; color: var(--ink-soft); }
+
+/* 面向执行的三栏口径：改哪里、做什么、怎么验 */
+.exec-brief {
+  margin: -18px 0 36px; padding: 0 0 18px;
+  border-bottom: 3px double var(--line-strong);
+}
+.exec-title {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+  color: var(--ink-faint); margin-bottom: 10px;
+}
+.exec-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.exec-lane { background: rgba(255,255,255,.72); border: 1px solid var(--line); padding: 11px 12px; min-width: 0; }
+.exec-lane-title { font-family: var(--serif); font-size: 13.5px; font-weight: 800; color: var(--blue); margin-bottom: 6px; }
+.exec-lane ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.exec-lane li { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); overflow-wrap: anywhere; }
+.exec-lane li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 6px; }
 
 /* 详情页导读（章节快速跳转） */
 .doc-toc { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0 0 32px; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -303,6 +344,12 @@ summary:hover { color: var(--accent); }
 .progress-bar { height: 8px; background: var(--paper-deep); border: 1px solid var(--line-strong); overflow: hidden; }
 .progress-fill { height: 100%; background: var(--green); transition: width .3s ease; }
 
+/* 首页阅读路线 */
+.reader-guide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: -12px 0 36px; }
+.guide-card { background: #fff; border: 1px solid var(--line); padding: 12px 14px; }
+.guide-title { font-family: var(--serif); font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
+.guide-text { font-size: 12.5px; line-height: 1.65; color: var(--ink-soft); }
+
 .recent { margin-bottom: 40px; }
 .recent-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px; border-bottom: 1px dashed var(--line); }
 .recent-title { cursor: pointer; color: var(--ink); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -341,3 +388,10 @@ summary:hover { color: var(--accent); }
 .tl-right { padding: 0 0 24px 14px; flex: 1; }
 .tl-date { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--ink-faint); margin-bottom: 3px; }
 .tl-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+
+@media (max-width: 980px) {
+  .doc-view { padding: 32px 28px 70px; }
+  .qb-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .qb-action { text-align: left; }
+  .qb-grid, .exec-grid, .reader-guide { grid-template-columns: 1fr; }
+}

@@ -82,6 +82,7 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 - `代码定位` 用 Step 3 结论填入；跳过时写 `待分析`
 - 根因无明确结论时可写"初步怀疑…（推断，待验证）"
 - 验证步骤必须具体可执行
+- 修复方案必须包含"修复执行口径"：先确认、最小修复、禁止改动、完成判定；防止 AI 扩大修改范围
 
 ### Step 5.5：追加到 HTML 看板
 
@@ -195,6 +196,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - [ ] Step 3 代码搜索已执行（或已标记跳过）
 - [ ] 文件路径冲突已处理
 - [ ] 验证步骤具体可执行（至少 1 条）
+- [ ] 修复执行口径已写清先确认、最小修复、禁止改动、完成判定
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 
 ## 常见错误
