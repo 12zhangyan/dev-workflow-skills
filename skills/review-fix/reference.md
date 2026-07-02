@@ -65,7 +65,7 @@
 
 ```text
 如果当前环境已安装 dev-workflow-skills，请优先直接运行：
-/code-review <当前 Review 任务包路径>
+/review-check <当前 Review 任务包路径>
 
 如果不能运行 skill，请按下面要求手工审查。
 
@@ -98,7 +98,7 @@
 
 ```text
 如果 Cursor 已加载 dev-workflow-skills，请优先直接运行：
-/code-review <当前 Review 任务包路径>
+/review-check <当前 Review 任务包路径>
 
 如果不能运行 skill，请按下面要求手工审查。
 
@@ -130,7 +130,7 @@
 
 ```text
 如果 Claude 已加载 dev-workflow-skills，请优先直接运行：
-/code-review <当前 Review 任务包路径>
+/review-check <当前 Review 任务包路径>
 
 如果不能运行 skill，请按下面要求手工审查。
 
@@ -315,7 +315,7 @@ Accepted finding 必须同时满足：
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
 
 如果目标 AI 已安装本仓库 skill，直接让它运行：
-/code-review docs/review-fix/<日期>/<任务名>-review-task.md
+/review-check docs/review-fix/<日期>/<任务名>-review-task.md
 
 否则请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
 等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
@@ -330,3 +330,4 @@ Accepted finding 必须同时满足：
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>
 ```
+

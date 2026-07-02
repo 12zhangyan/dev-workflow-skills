@@ -26,7 +26,7 @@ effort: high
 
 与相邻 skill 的分工：
 - `/code-reading`：只生成代码地图，不判断问题。
-- `/code-review`：根据本 skill 生成的任务包执行一次只读审查，输出可回收 findings。
+- `/review-check`：根据本 skill 生成的任务包执行一次只读审查，输出可回收 findings。
 - `/requesting-code-review`：执行一次通用 AI review（Git 项目）。
 - `/review-fix`：先生成 review 任务包；可选地汇总 review 结果并交接修复。
 - `/bug-fix`：面向线上/测试 Bug 的现象、根因、修复记录。
@@ -101,7 +101,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 2. **证据包**：其他 AI 需要读取/粘贴的文档、diff、源码、测试命令。
 3. **统一审查清单**：按风险类别列出检查项。
 4. **AI 分发提示**：Codex / Cursor / Claude 三份可复制 prompt。
-5. **技能化审查入口**：提示安装了本仓库 skill 的 AI 可直接运行 `/code-review <任务包路径>`。
+5. **技能化审查入口**：提示安装了本仓库 skill 的 AI 可直接运行 `/review-check <任务包路径>`。
 6. **回收格式**：要求其他 AI 按统一 JSON-like findings 返回。
 
 冲突处理：Read 检查目标文件是否存在。
@@ -116,7 +116,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
 
 下一步：
-1. 如果目标 AI 已安装本仓库 skill，直接让它运行：`/code-review docs/review-fix/<日期>/<任务名>-review-task.md`
+1. 如果目标 AI 已安装本仓库 skill，直接让它运行：`/review-check docs/review-fix/<日期>/<任务名>-review-task.md`
 2. 否则把任务包里的「Codex / Cursor / Claude 审查提示」分别交给对应 AI
 3. 将它们返回的 findings 粘贴回来，再运行/继续 `/review-fix` 汇总
 ```
@@ -180,7 +180,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 - [ ] 已生成证据包清单
 - [ ] 已生成统一 review 清单
 - [ ] 已生成 Codex / Cursor / Claude 审查提示
-- [ ] 已提示可用 `/code-review <review-task路径>` 执行审查
+- [ ] 已提示可用 `/review-check <review-task路径>` 执行审查
 - [ ] 已写明 findings 回收格式
 - [ ] 没有 review 结果时已停住，没有生成修复文档
 
@@ -199,3 +199,4 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 - 示例：[examples.md](examples.md)
 - 工作流背景：仓库 `docs/workflow-guide.md`
 - 相邻 skill：`/dev-doc`、`/code-reading`、`/bug-fix`
+

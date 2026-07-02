@@ -1,6 +1,6 @@
 ---
-name: code-review
-description: 根据 /review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。仅在用户显式 /code-review，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档
+name: review-check
+description: 根据 /review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。仅在用户显式 /review-check，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档
 argument-hint: [review-task路径 | dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true
@@ -18,7 +18,7 @@ effort: high
 
 与相邻 skill 的分工：
 - `/review-fix`：生成 Review 任务包，回收多方 findings，并产出修复交接。
-- `/code-review`：拿任务包或 diff 执行一次审查，只输出 findings，不修代码。
+- `/review-check`：拿任务包或 diff 执行一次审查，只输出 findings，不修代码。
 - `/code-reading`：生成代码地图，只梳理结构，不判断问题。
 
 ## 执行流程
@@ -144,7 +144,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 - [ ] 已识别入口模式
 - [ ] 已读取任务包 / dev-doc / patch / 关键源码
-- [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、性能、兼容、测试
+- [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试
 - [ ] 每条 finding 都有证据、影响、修复建议、验证方式
 - [ ] 未修改任何代码或文档
 - [ ] 输出可直接贴回 `/review-fix`
@@ -155,3 +155,4 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - 示例：[examples.md](examples.md)
 - 组织多 AI review 与修复交接：`/review-fix`
 - Review 前代码地图：`/code-reading`
+

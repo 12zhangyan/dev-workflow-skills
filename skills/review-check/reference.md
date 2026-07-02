@@ -1,6 +1,6 @@
-# code-review Reference
+# review-check Reference
 
-> `/code-review` 的审查清单和输出格式。该 skill 只读，不修复。
+> `/review-check` 的审查清单和输出格式。该 skill 只读，不修复。
 
 ---
 
@@ -82,3 +82,4 @@ Notes:
 Notes:
 - <仍建议人工关注的不确定点>
 ```
+

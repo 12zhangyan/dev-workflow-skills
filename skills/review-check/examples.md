@@ -1,11 +1,11 @@
-# code-review Examples
+# review-check Examples
 
 ## 示例 1：审查 Review 任务包
 
 用户调用：
 
 ```text
-/code-review docs/review-fix/2026-07-02/sms-login-review-task.md
+/review-check docs/review-fix/2026-07-02/sms-login-review-task.md
 ```
 
 输出片段：
@@ -64,3 +64,4 @@ Important:
 Notes:
 - 已检查 EventSource 不支持自定义 Header 的限制，使用一次性 sseToken 是合理方案。
 ```
+

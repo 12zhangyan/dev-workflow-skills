@@ -23,7 +23,7 @@
 npx superpowers-zh
 ```
 
-### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、code-review、biz-flow、review-fix）
+### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、review-check、biz-flow、review-fix）
 
 ```bash
 # macOS / Linux / Git Bash
@@ -42,7 +42,7 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 | `/dev-doc` | dev-workflow-skills | 生成开发文档（工作流第一步） | 显式调用 |
 | `/bug-fix` | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | 显式调用 |
 | `/code-reading` | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
-| `/code-review` | dev-workflow-skills | 按 Review 任务包或统一清单执行只读代码审查，输出 findings 给 `/review-fix` 汇总 | 显式调用 |
+| `/review-check` | dev-workflow-skills | 按 Review 任务包或统一清单执行只读代码审查，输出 findings 给 `/review-fix` 汇总 | 显式调用 |
 | `/biz-flow` | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | 显式调用 |
 | `/review-fix` | dev-workflow-skills | 生成可分发给多 AI 的 code-review 审查清单；贴回结果后再汇总修复交接和 AI 修复操作码 | 显式调用 |
 | `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
@@ -126,7 +126,7 @@ svn diff > /tmp/changes.patch
 /review-fix docs/YYYY-MM-DD/[任务名].md
 ```
 
-它会先生成 `docs/review-fix/YYYY-MM-DD/[任务名]-review-task.md`，里面包含审查目标、上下文、代码变更入口、分级标准和可直接粘贴给其他 AI 的 review 提示。若其他 AI 已安装本仓库 skill，让它直接运行 `/code-review <review-task路径>`；否则把任务包里的提示分别交给 Codex/Cursor/Claude 审查。
+它会先生成 `docs/review-fix/YYYY-MM-DD/[任务名]-review-task.md`，里面包含审查目标、上下文、代码变更入口、分级标准和可直接粘贴给其他 AI 的 review 提示。若其他 AI 已安装本仓库 skill，让它直接运行 `/review-check <review-task路径>`；否则把任务包里的提示分别交给 Codex/Cursor/Claude 审查。
 
 拿到多份 review 结果后，把结果贴回当前对话，再让 `/review-fix` 继续汇总。它会去重、分级、判断是否采纳，生成 `docs/review-fix/` 修复交接文档，并输出一段可直接粘贴给任意 AI 的修复操作码。
 
@@ -198,7 +198,7 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 | AI 执行 | 粘贴执行提示 | 粘贴执行提示 |
 | 纳入版本控制 | `svn add + status` | `svn add + status` |
 | 验证 | `mvn test` | `mvn test` |
-| AI Review + 修复 | `svn diff > patch` 后让 Claude 审查，必要时 `/review-fix` 生成审查清单，`/code-review` 执行审查并回收 findings | `svn diff > patch` 后用 `/review-fix` 生成多 AI 审查任务包，多方 `/code-review` 后贴回结果汇总交接 |
+| AI Review + 修复 | `svn diff > patch` 后让 Claude 审查，必要时 `/review-fix` 生成审查清单，`/review-check` 执行审查并回收 findings | `svn diff > patch` 后用 `/review-fix` 生成多 AI 审查任务包，多方 `/review-check` 后贴回结果汇总交接 |
 | 代码地图 + 人工 Review | `/code-reading <doc路径>` | `/code-reading <doc路径>` |
 | 提交 | `svn commit` | `svn commit` |
 
@@ -210,7 +210,7 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 |------|------|
 | **测试全绿才进 Review** | Review 关注设计，不是排查编译失败 |
 | **svn add 在测试前** | 测试要能找到新文件，否则测不完整 |
-| **AI review 后才人工 review** | AI 先消除低级问题；多 AI 审查用 `/review-fix` 先生成审查清单，用 `/code-review` 产出 findings，贴回结果后汇总成可执行修复交接，再用 `/code-reading` 地图关注业务逻辑和架构 |
+| **AI review 后才人工 review** | AI 先消除低级问题；多 AI 审查用 `/review-fix` 先生成审查清单，用 `/review-check` 产出 findings，贴回结果后汇总成可执行修复交接，再用 `/code-reading` 地图关注业务逻辑和架构 |
 | **AI 不会自动提交** | `svn commit` 永远由你触发，提交权在你手里 |
 | **复杂任务先 brainstorming** | 方向错了，文档和代码都白费 |
 
@@ -219,5 +219,6 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 ## 七、一句话速记
 
 ```
-写文档 → AI 执行 → add 新文件 → 读 diff → 跑测试 → /review-fix 审查清单 → /code-review 多 AI 审查 → 汇总修复 → /code-reading → 人工 review → 提交
+写文档 → AI 执行 → add 新文件 → 读 diff → 跑测试 → /review-fix 审查清单 → /review-check 多 AI 审查 → 汇总修复 → /code-reading → 人工 review → 提交
 ```
+

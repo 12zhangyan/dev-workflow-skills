@@ -1,4 +1,5 @@
 interface:
   display_name: "Code Review"
   short_description: "按统一清单执行只读代码审查并输出 findings"
-  default_prompt: "/code-review "
+  default_prompt: "/review-check "
+
