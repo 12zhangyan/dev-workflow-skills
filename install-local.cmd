@@ -87,8 +87,14 @@ for /d %%S in ("%SRC%\*") do (
     echo   [FAIL] !NAME!
     set /a FAIL+=1
   ) else (
+    if /i "%TOOL%"=="Codex CLI" call :codex_normalize "%DEST%\!NAME!"
     echo   [ OK ] !NAME!
   )
 )
 echo.
+goto :eof
+
+REM -- Codex skill discovery expects SKILL.md to start with --- without BOM ----
+:codex_normalize
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$d='%~1'; Get-ChildItem -LiteralPath $d -Recurse -Filter 'SKILL.md' | ForEach-Object { $b=[System.IO.File]::ReadAllBytes($_.FullName); if ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) { [System.IO.File]::WriteAllBytes($_.FullName,$b[3..($b.Length-1)]) } }" >nul
 goto :eof

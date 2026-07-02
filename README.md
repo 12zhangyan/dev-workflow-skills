@@ -14,7 +14,7 @@ Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
 | `biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
 | `review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
 
-> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 不要输入 `/dev-doc` 或 `$dev-doc`，直接说“使用 dev-doc skill 给 XX 生成开发文档”。安装到 `~/.codex/skills` 只代表 Codex 可以在会话中发现 skill，不保证 UI 的技能/应用选择器出现同名条目。
+> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 不要输入 `/dev-doc` 或 `$dev-doc`，直接说“使用 dev-doc skill 给 XX 生成开发文档”。安装脚本会在复制到 `~/.codex/skills` 后移除 `SKILL.md` 文件头 BOM，因为 Codex 发现器要求 frontmatter 直接以 `---` 开头；源码仍保留 BOM 以兼容部分 Windows 工具读取中文。
 
 ## dev-doc 能做什么
 
@@ -69,6 +69,8 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 
 远程 PowerShell 安装默认会复制到 `%USERPROFILE%\.claude\skills`、`%USERPROFILE%\.cursor\skills`、`%USERPROFILE%\.codex\skills`。如果只想装 Codex，本地 clone 后用 `.\install.ps1 codex`，或使用下面的 `install-local.cmd codex`。
 
+> Codex 目标有一条额外处理：复制完成后会把每个 `SKILL.md` 开头的 UTF-8 BOM 去掉，避免 Codex Desktop/CLI 读取 skill frontmatter 失败。Claude/Cursor 目标保持源码编码不变。
+
 装完重启对应工具后生效：Claude Code 可尝试 `/dev-doc`；Codex 直接输入“使用 dev-doc skill 给 XX 生成开发文档”。
 
 #### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
@@ -87,7 +89,7 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 |------|-----------|
 | Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
 | Cursor（≥1.6） | `%USERPROFILE%\.cursor\skills\<name>\` |
-| Codex | `%USERPROFILE%\.codex\skills\<name>\` |
+| Codex | `%USERPROFILE%\.codex\skills\<name>\`（安装副本的 `SKILL.md` 无 BOM） |
 
 不下载、直接从当前仓库复制；可重复运行（覆盖同名技能，不动其他技能）。装完重启对应工具加载。
 

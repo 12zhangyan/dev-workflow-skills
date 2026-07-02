@@ -27,9 +27,9 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/` by default — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart the target tool after install.
+The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/` by default — no hardcoded file list, so new files under `skills/` are picked up automatically. For the Codex target only, installers remove a leading UTF-8 BOM from copied `SKILL.md` files because Codex discovery expects frontmatter to start directly with `---`. Restart the target tool after install.
 
-`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
+`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched; Codex copies get `SKILL.md` BOM normalization after copy. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
 
 The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
 
@@ -105,6 +105,6 @@ When modifying a skill:
 - The execution steps in SKILL.md are the authoritative source of behavior — keep them precise and sequential
 - `reference.md` holds content the skill loads at runtime (templates, question banks); keep it anchored with markdown headings that match the `#anchor` references in SKILL.md
 - `agents/openai.yaml` is the Codex UI/default-prompt metadata; update it when renaming a skill or changing the user-facing trigger
-- Keep skill Markdown files (`skills/**/*.md`) encoded as UTF-8 with BOM. This is intentional: some Windows-based AI tools and PowerShell readers otherwise decode Chinese skill text as the local ANSI code page and show mojibake.
+- Keep repository skill Markdown files (`skills/**/*.md`) encoded as UTF-8 with BOM. This is intentional: some Windows-based AI tools and PowerShell readers otherwise decode Chinese skill text as the local ANSI code page and show mojibake. Do not copy that BOM policy blindly into the installed Codex target: the installers strip the leading BOM from copied `SKILL.md` files under `~/.codex/skills` so Codex can discover the skill frontmatter.
 - Test by installing locally (`install.ps1` / `install.sh`) and running the skill in a Java project
 

@@ -9,6 +9,17 @@ if ($null -eq $Targets -or $Targets.Count -eq 0) {
     $Targets = @("claude", "cursor", "codex")
 }
 
+function Remove-SkillMarkdownBom {
+    param([string]$SkillDir)
+
+    Get-ChildItem -Path $SkillDir -Recurse -Filter "SKILL.md" | ForEach-Object {
+        $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+        if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+            [System.IO.File]::WriteAllBytes($_.FullName, $bytes[3..($bytes.Length - 1)])
+        }
+    }
+}
+
 Write-Host "Installing dev-workflow-skills..."
 Write-Host ""
 
@@ -39,6 +50,9 @@ try {
             $dest = Join-Path $skillsDir $_.Name
             if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
             Copy-Item -Recurse $_.FullName $dest
+            if ($target.ToLowerInvariant() -eq "codex") {
+                Remove-SkillMarkdownBom $dest
+            }
             Write-Host "  OK $($_.Name)"
         }
         Write-Host ""
@@ -49,4 +63,4 @@ try {
 
 Write-Host ""
 Write-Host "Done! Restart Claude Code / Cursor / Codex to load the skills."
-Write-Host "Claude Code usually uses slash names like /dev-doc; Codex can use `$dev-doc or natural language such as '按 dev-doc 生成开发文档'."
+Write-Host "Claude Code usually uses slash names like /dev-doc; Codex should use natural language such as '使用 dev-doc skill 生成开发文档'."
