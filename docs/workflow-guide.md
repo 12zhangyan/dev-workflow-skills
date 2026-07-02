@@ -1,6 +1,8 @@
-# Java 后端开发工作流（Claude Code + SVN）
+# Java 后端开发工作流（Claude Code / Cursor / Codex + SVN）
 
-> 适用场景：Java Spring Boot / MVC 后端开发，团队使用 SVN，借助 Claude Code 或 Cursor 辅助开发。
+> 适用场景：Java Spring Boot / MVC 后端开发，团队使用 SVN，借助 Claude Code、Cursor 或 Codex 辅助开发。
+
+> 调用约定：本文保留 Claude Code 的 `/dev-doc` 写法；在 Codex 中请改用 `$dev-doc`，或直接说“按 dev-doc 给 XX 生成开发文档”。Codex 安装 skill 不等于注册同名斜杠命令。
 
 ---
 
@@ -33,18 +35,18 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-安装完成后重启 Claude Code 生效。
+安装完成后重启目标工具生效。Claude Code 通常使用 `/skill-name`；Codex 使用 `$skill-name` 或自然语言触发。
 
 ### 所需 Skills 一览
 
-| Skill | 来源 | 用途 | 调用方式 |
-|-------|------|------|---------|
-| `/dev-doc` | dev-workflow-skills | 生成开发文档（工作流第一步） | 显式调用 |
-| `/bug-fix` | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | 显式调用 |
-| `/code-reading` | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | 显式调用 |
-| `/review-check` | dev-workflow-skills | 按 Review 任务包或统一清单执行只读代码审查，输出 findings 给 `/review-fix` 汇总 | 显式调用 |
-| `/biz-flow` | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | 显式调用 |
-| `/review-fix` | dev-workflow-skills | 生成可分发给多 AI 的 code-review 审查清单；贴回结果后再汇总修复交接和 AI 修复操作码 | 显式调用 |
+| Skill | 来源 | 用途 | Claude Code | Codex |
+|-------|------|------|-------------|-------|
+| dev-doc | dev-workflow-skills | 生成开发文档（工作流第一步） | `/dev-doc` | `$dev-doc` |
+| bug-fix | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | `/bug-fix` | `$bug-fix` |
+| code-reading | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | `/code-reading` | `$code-reading` |
+| review-check | dev-workflow-skills | 按 Review 任务包或统一清单执行只读代码审查，输出 findings 给 review-fix 汇总 | `/review-check` | `$review-check` |
+| biz-flow | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | `/biz-flow` | `$biz-flow` |
+| review-fix | dev-workflow-skills | 生成可分发给多 AI 的 code-review 审查清单；贴回结果后再汇总修复交接和 AI 修复操作码 | `/review-fix` | `$review-fix` |
 | `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
 | `/requesting-code-review` | superpowers-zh | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
 | `/chinese-code-review` | superpowers-zh | 整理中文 PR 评论话术 | 显式调用 |

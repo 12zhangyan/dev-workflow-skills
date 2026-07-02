@@ -16,7 +16,7 @@ Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
 
 > 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 更稳定的显式方式是 `$dev-doc`，或直接说“按 dev-doc 给 XX 生成开发文档”。安装到 `~/.codex/skills` 只代表 Codex 可以发现 skill，不保证 UI 一定出现同名斜杠命令。
 
-## /dev-doc 能做什么
+## $dev-doc 能做什么
 
 运行一次 `dev-doc`，自动产出**两份分工不同的文档**：md 给 AI 执行，看板给人看。
 
