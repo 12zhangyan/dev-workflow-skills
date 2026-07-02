@@ -1,6 +1,6 @@
 ﻿---
 name: review-fix
-description: 根据当前上下文生成可分发给 Codex/Cursor/Claude 等 AI 的代码审查清单、证据包和 review 提示；当用户显式 /review-fix，或要求"列出 code-review 清单/让其他 AI review/生成 AI 审查提示"时使用。仅在用户贴回 review 结果或明确要求汇总修复时，才继续生成修复交接文档和修复操作码
+description: 根据当前上下文生成可分发给 Codex/Cursor/Claude 等 AI 的代码审查清单、证据包和 review 提示；当用户显式输入 $review-fix、Claude Code 输入 /review-fix，或要求"列出 code-review 清单/让其他 AI review/生成 AI 审查提示"时使用。仅在用户贴回 review 结果或明确要求汇总修复时，才继续生成修复交接文档和修复操作码
 argument-hint: [dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true

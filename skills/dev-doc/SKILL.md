@@ -1,6 +1,6 @@
 ﻿---
 name: dev-doc
-description: 当开始编码前需要把需求落成可执行文档时使用——需求还是口头想法、AI 可能走错方向、或任务范围不清晰时。仅在用户显式 /dev-doc 时调用
+description: 当开始编码前需要把需求落成可执行文档时使用——需求还是口头想法、AI 可能走错方向、或任务范围不清晰时。Codex 中用户可显式输入 $dev-doc，或说"按 dev-doc 生成开发文档"；Claude Code 可兼容 /dev-doc。
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true

@@ -1,6 +1,6 @@
 ﻿---
 name: code-reading
-description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。仅在用户显式 /code-reading 时调用
+description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。Codex 中用户可显式输入 $code-reading，或说"按 code-reading 生成代码地图"；Claude Code 可兼容 /code-reading。
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
