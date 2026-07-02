@@ -55,6 +55,7 @@ case "$vcs_type" in
   git)
     echo "VCS_TYPE=git"
     git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
     git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status 2>/dev/null
     git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --stat 2>/dev/null
     ;;
@@ -65,21 +66,23 @@ case "$vcs_type" in
     ;;
   *) echo "VCS_TYPE=none" ;;
 esac
-ls pom.xml build.gradle package.json 2>/dev/null
+find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`，避免漏掉未纳入索引的新增文件。
 
 按模式读取：
 - 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。
-- patch 模式：Read patch/diff，提取文件列表、关键 hunk、接口/状态/事务相关改动。
+- patch 模式：Read patch/diff，提取文件列表、关键 hunk、接口/状态/事务相关改动；若存在 `??` 新增文件，按路径优先级主动读取关键新增文件。
 - 文档模式：Read dev-doc，提取目标、范围、代码变更清单、测试关注点；必要时读取同日期的 `docs/code-reading/`。
 - 上下文模式：用 Grep/Glob 查找候选入口；不确定时询问用户补充 dev-doc、patch 或入口类。
 
 优先读取：
-1. 变更文件中被修改的 Java/SQL/XML/YAML 配置。
-2. Controller/Service/Mapper/Repository/DTO/枚举/配置类。
-3. 任务包或 dev-doc 明确点名的关键文件。
+1. 任务包或 dev-doc 明确点名的关键文件。
+2. 后端：Controller/Service/Mapper/Repository/DTO/枚举/配置类、SQL/XML/YAML。
+3. 前端：路由、请求封装、状态管理、鉴权守卫、核心 Vue 页面、SSE/iframe/富文本渲染。
+4. AI 生成/文件工具：读写/列表工具、路径解析器、沙箱根目录、生成产物部署逻辑。
+5. 配置与部署：环境变量模板、Docker、CORS、JWT/Redis/LLM profile、CI 命令。
 
 ### Step 2：按清单审查
 
@@ -91,8 +94,10 @@ ls pom.xml build.gradle package.json 2>/dev/null
 3. **边界与异常**：null、空集合、非法枚举、重复提交、异常分支。
 4. **事务与并发**：回滚边界、跨服务调用、幂等、锁、分页状态。
 5. **安全与敏感信息**：越权、敏感日志、注入、明文凭证。
-6. **性能与兼容**：N+1、循环远程调用、接口签名/响应结构变更。
-7. **测试与验证**：测试是否覆盖正常、异常、边界、回归。
+6. **前端交互**：路由守卫、token 刷新、SSE 错误事件、XSS/iframe、loading 状态。
+7. **AI 文件沙箱**：路径穿越、覆盖写、读取截断、生成/修改模式误判、部署回滚。
+8. **性能与兼容**：N+1、循环远程调用、接口签名/响应结构变更、OpenAPI 生成兼容。
+9. **测试与验证**：测试是否覆盖正常、异常、边界、回归。
 
 ### Step 3：判定 finding
 

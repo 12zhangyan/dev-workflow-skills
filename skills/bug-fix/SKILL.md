@@ -40,6 +40,7 @@ case "$vcs_type" in
   git)
     echo "VCS_TYPE=git"
     git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
     ;;
   svn)
     echo "VCS_TYPE=svn"
@@ -47,7 +48,7 @@ case "$vcs_type" in
     ;;
   *) echo "VCS_TYPE=none" ;;
 esac
-ls pom.xml build.gradle package.json 2>/dev/null
+find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
 判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。

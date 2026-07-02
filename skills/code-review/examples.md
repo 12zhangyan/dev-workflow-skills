@@ -44,3 +44,23 @@ Critical:
 Notes:
 - 建议人工确认测试数据是否覆盖空查询条件。
 ```
+
+## 示例 3：前端 SSE / Token 审查
+
+```text
+来源：Code Review
+审查对象：docs/review-fix/2026-07-02/app-chat-review-task.md
+审查范围：AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
+
+Important:
+1. Severity: Important
+   File/Line: AppChatView.vue eventSource.addEventListener('error')
+   Problem: 前端没有读取 SSE 业务错误中的 code 字段，无法区分未登录、无权限和系统错误。
+   Evidence: 后端 event:error data 包含 {"code": ..., "d": ...}；前端只读取 parsed.d 并统一 message.error。
+   Impact: accessToken 过期或 SSE token 失效时，用户只看到生成失败，无法触发重新登录或权限提示。
+   Fix: 解析 event:error 的 code；对 NOT_LOGIN/NO_AUTH 做登录跳转或权限提示，其余保留通用错误。
+   Verify: 构造过期 token 调用 SSE，确认前端按 code 跳转登录或展示权限错误。
+
+Notes:
+- 已检查 EventSource 不支持自定义 Header 的限制，使用一次性 sseToken 是合理方案。
+```
