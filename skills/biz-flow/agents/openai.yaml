@@ -1,7 +1,7 @@
 interface:
   display_name: "Biz Flow"
   short_description: "生成面向测试和产品的业务流方案"
-  default_prompt: "Use $biz-flow to turn APIs or features into tester-facing business flow documentation."
+  default_prompt: "Use biz-flow skill to turn APIs or features into tester-facing business flow documentation."
 
 policy:
   allow_implicit_invocation: true

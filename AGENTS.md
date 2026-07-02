@@ -10,12 +10,12 @@ A collection of workflow skills for Java backend developers, targeting Claude Co
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `$dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
-| `$bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
-| `$code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
-| `$review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
-| `$biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
-| `$review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
+| `dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
+| `bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
+| `code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
+| `review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
+| `biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
+| `review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
 
 ## Installation
 
@@ -49,7 +49,7 @@ skills/<name>/
   assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
 ```
 
-SKILL.md frontmatter `name` and `description` are the portable discovery surface for Codex. Some files also keep Claude-oriented fields (`allowed-tools`, `model`, `effort`, `disable-model-invocation`) for compatibility, but do not rely on those fields to make Codex show slash commands. Codex explicit invocation is `$skill-name` or plain-language naming, while Claude Code may expose `/skill-name`.
+SKILL.md frontmatter `name` and `description` are the portable discovery surface for Codex. Some files also keep Claude-oriented fields (`allowed-tools`, `model`, `effort`, `disable-model-invocation`) for compatibility, but do not rely on those fields to make Codex show slash commands. Codex invocation should be plain-language naming such as "使用 dev-doc skill ..."; do not document `$skill-name` as a user input because `$` opens the Desktop skill/app selector, which may not index personal skills.
 
 Each skill may include `agents/openai.yaml` for Codex UI metadata (display name, short description, default prompt). Keep it in sync with SKILL.md when changing a skill's purpose or invocation wording.
 
@@ -73,7 +73,7 @@ project-html/
   pages/<slug>.html        ← GENERATED self-contained single pages (one per entry, gitignored here)
 ```
 
-Entry kinds: docs (default, from `$dev-doc`; also from `$review-fix` only when it reaches the fix-handoff phase), `kind:"bug"` (from `$bug-fix`), `kind:"reading"` (from `$code-reading`), `kind:"biz"` (from `$biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields). `$review-fix` first produces a review task package for other AIs; after review findings are pasted back, its fix-handoff document uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). The `apis` field only records new or signature-changed endpoints.
+Entry kinds: docs (default, from `dev-doc`; also from `review-fix` only when it reaches the fix-handoff phase), `kind:"bug"` (from `bug-fix`), `kind:"reading"` (from `code-reading`), `kind:"biz"` (from `biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields). `review-fix` first produces a review task package for other AIs; after review findings are pasted back, its fix-handoff document uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). The `apis` field only records new or signature-changed endpoints.
 
 **`build.js` (run by every skill after `node --check`, invoked as `node project-html/build.js`)** does three things: (1) regenerates `project-html/pages/<slug>.html` — one **self-contained single file per entry** (inlines css/board.css + board.js + local mermaid, single entry data) so a user can send one page to a colleague without the whole folder; (2) regenerates `docs/INDEX.md` (the doc index, refreshed from `changes.js` each run); (3) on first run (no `docs/archive/`) scans the project root and **copies** (never deletes) scattered legacy md / board html / API docs into `docs/archive/`. `slugOf()` in build.js must stay identical to `slugOf()` in board.js (they produce the same page filename), and likewise the collision-dedup map (`buildSlugMap()` in build.js / `_slugMap`+`pageSlug()` in board.js) — `buildPages`, `buildIndex`'s page cell, and board.js's `pageLink` must all resolve to the *same* deduped slug, or same-titled entries link to the wrong page. If `node` is absent, skills skip this step with a notice.
 
@@ -86,16 +86,16 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ## Workflow the Skills Support
 
 ```
-$dev-doc → AI executes → svn add → mvn test → $review-fix review task → $review-check multi-AI findings → fix handoff → $code-reading → human review → svn commit
+dev-doc → AI executes → svn add → mvn test → review-fix review task → review-check multi-AI findings → fix handoff → code-reading → human review → svn commit
 ```
 
-- `$dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
-- `$bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
-- `$code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
-- `$review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
-- `$biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
-- `$review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
-- `$dev-doc`, `$bug-fix`, `$code-reading`, and `$biz-flow` auto-register their output in `project-html/data/changes.js`; `$review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
+- `dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
+- `bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
+- `code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
+- `review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
+- `biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
+- `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
+- `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Closed-choice questions (task type, complexity, severity, file-conflict resolution) use the AskUserQuestion tool; free-text questions stay conversational
 

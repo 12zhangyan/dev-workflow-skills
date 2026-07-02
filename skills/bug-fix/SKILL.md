@@ -1,6 +1,6 @@
 ﻿---
 name: bug-fix
-description: 记录和分析 Bug，生成修复文档并追加到 HTML 看板——发现需要完整记录分析的 Bug 时使用。Codex 中用户可显式输入 $bug-fix，或说"按 bug-fix 记录 Bug"；Claude Code 可兼容 /bug-fix。
+description: 记录和分析 Bug，生成修复文档并追加到 HTML 看板——发现需要完整记录分析的 Bug 时使用。Codex 中用户可说"使用 bug-fix skill 记录 Bug"；Claude Code 可兼容 /bug-fix。
 argument-hint: [bug 名称]
 arguments: task
 disable-model-invocation: true
@@ -150,8 +150,7 @@ for candidate in \
   "$HOME/.codex/skills/dev-doc/assets/board" \
   "$HOME/.claude/skills/dev-doc/assets/board" \
   "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board" \
-  "$HOME/.nacos-cli/skill-sync/profiles/default/skill-repo/dev-doc/assets/board"
+  "$HOME/.agents/skills/dev-doc/assets/board"
 do
   if [ -d "$candidate" ]; then src="$candidate"; break; fi
 done

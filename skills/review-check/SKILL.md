@@ -1,6 +1,6 @@
 ﻿---
 name: review-check
-description: 根据 review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。当用户显式输入 $review-check、Claude Code 输入 /review-check，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档
+description: 根据 review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。当用户说"使用 review-check skill"、Claude Code 输入 /review-check，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档
 argument-hint: [review-task路径 | dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true

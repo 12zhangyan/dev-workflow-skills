@@ -1,6 +1,6 @@
 ﻿---
 name: code-reading
-description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。Codex 中用户可显式输入 $code-reading，或说"按 code-reading 生成代码地图"；Claude Code 可兼容 /code-reading。
+description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。Codex 中用户可说"使用 code-reading skill 生成代码地图"；Claude Code 可兼容 /code-reading。
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
@@ -119,7 +119,7 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 - dev-doc 模式 → Read `project-html/data/changes.js`，按源 dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
 - 其他模式 → 问一次："属于哪个微服务/模块？格式 `服务/模块`（不确定填 `通用/通用`）"
 
-**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**：先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳。模板目录按 `~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills`、`.nacos-cli` 同步目录依次查找。
+**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**：先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳。模板目录按 `~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills` 依次查找。
 
 **写入条目同样走 `board-add.js`**（确定性脚本：备份、按 `docPath` 查重、转义、记录数回归全自动，不手改 `data/changes.js`）：
 

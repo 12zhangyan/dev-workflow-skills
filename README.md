@@ -14,9 +14,9 @@ Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
 | `biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
 | `review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
 
-> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 更稳定的显式方式是 `$dev-doc`，或直接说“按 dev-doc 给 XX 生成开发文档”。安装到 `~/.codex/skills` 只代表 Codex 可以发现 skill，不保证 UI 一定出现同名斜杠命令。
+> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 不要输入 `/dev-doc` 或 `$dev-doc`，直接说“使用 dev-doc skill 给 XX 生成开发文档”。安装到 `~/.codex/skills` 只代表 Codex 可以在会话中发现 skill，不保证 UI 的技能/应用选择器出现同名条目。
 
-## $dev-doc 能做什么
+## dev-doc 能做什么
 
 运行一次 `dev-doc`，自动产出**两份分工不同的文档**：md 给 AI 执行，看板给人看。
 
@@ -69,7 +69,7 @@ irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/instal
 
 远程 PowerShell 安装默认会复制到 `%USERPROFILE%\.claude\skills`、`%USERPROFILE%\.cursor\skills`、`%USERPROFILE%\.codex\skills`。如果只想装 Codex，本地 clone 后用 `.\install.ps1 codex`，或使用下面的 `install-local.cmd codex`。
 
-装完重启对应工具后生效：Claude Code 可尝试 `/dev-doc`；Codex 可尝试 `$dev-doc`，或直接输入“按 dev-doc 给 XX 生成开发文档”。
+装完重启对应工具后生效：Claude Code 可尝试 `/dev-doc`；Codex 直接输入“使用 dev-doc skill 给 XX 生成开发文档”。
 
 #### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
 

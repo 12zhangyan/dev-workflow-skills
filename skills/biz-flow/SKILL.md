@@ -1,6 +1,6 @@
 ﻿---
 name: biz-flow
-description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出业务流转图、数据流图、时序图、业务规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流时使用。Codex 中用户可显式输入 $biz-flow，或说"按 biz-flow 生成业务流方案"；Claude Code 可兼容 /biz-flow。
+description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出业务流转图、数据流图、时序图、业务规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流时使用。Codex 中用户可说"使用 biz-flow skill 生成业务流方案"；Claude Code 可兼容 /biz-flow。
 argument-hint: [业务/功能名称]
 arguments: feature
 disable-model-invocation: true
@@ -144,8 +144,7 @@ for candidate in \
   "$HOME/.codex/skills/dev-doc/assets/board" \
   "$HOME/.claude/skills/dev-doc/assets/board" \
   "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board" \
-  "$HOME/.nacos-cli/skill-sync/profiles/default/skill-repo/dev-doc/assets/board"
+  "$HOME/.agents/skills/dev-doc/assets/board"
 do
   if [ -d "$candidate" ]; then src="$candidate"; break; fi
 done
