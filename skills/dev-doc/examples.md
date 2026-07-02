@@ -1,4 +1,4 @@
-# dev-doc Examples
+﻿# dev-doc Examples
 
 > 两个完整示例：新功能（用户登录优化）和 Bug 修复（支付回调签名）。
 > 用于参考生成文档的风格和详略程度。

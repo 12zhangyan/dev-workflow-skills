@@ -1,4 +1,4 @@
-# code-reading Reference
+﻿# code-reading Reference
 
 > SKILL.md 的文档模板和输出格式。
 > 在 Step 3 按需加载，不在 SKILL.md 启动时注入。

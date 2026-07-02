@@ -1,4 +1,4 @@
-# review-check Reference
+﻿# review-check Reference
 
 > `/review-check` 的审查清单和输出格式。该 skill 只读，不修复。
 

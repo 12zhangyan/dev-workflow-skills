@@ -1,4 +1,4 @@
-# dev-doc Reference
+﻿# dev-doc Reference
 
 > SKILL.md 的详细规范——文档模板、问题集、输出格式。
 > 此文件在 Step 3-6 按需加载，不在 SKILL.md 启动时注入。

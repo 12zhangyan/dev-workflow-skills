@@ -1,4 +1,4 @@
-# biz-flow Reference
+﻿# biz-flow Reference
 
 > SKILL.md 的详细规范——问题集、文档模板、HTML 追加格式、输出格式。
 > 在 Step 2-6 按需加载，不在 SKILL.md 启动时注入。

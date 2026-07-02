@@ -102,5 +102,6 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 When modifying a skill:
 - The execution steps in SKILL.md are the authoritative source of behavior — keep them precise and sequential
 - `reference.md` holds content the skill loads at runtime (templates, question banks); keep it anchored with markdown headings that match the `#anchor` references in SKILL.md
+- Keep skill Markdown files (`skills/**/*.md`) encoded as UTF-8 with BOM. This is intentional: some Windows-based AI tools and PowerShell readers otherwise decode Chinese skill text as the local ANSI code page and show mojibake.
 - Test by installing locally (`install.ps1` / `install.sh`) and running the skill in a Java project
 

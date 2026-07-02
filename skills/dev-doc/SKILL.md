@@ -1,4 +1,4 @@
----
+﻿---
 name: dev-doc
 description: 当开始编码前需要把需求落成可执行文档时使用——需求还是口头想法、AI 可能走错方向、或任务范围不清晰时。仅在用户显式 /dev-doc 时调用
 argument-hint: [任务名称]

@@ -1,4 +1,4 @@
----
+﻿---
 name: bug-fix
 description: 记录和分析 Bug，生成修复文档并追加到 HTML 看板——发现需要完整记录分析的 Bug 时使用。仅在用户显式 /bug-fix 时调用
 argument-hint: [bug 名称]
