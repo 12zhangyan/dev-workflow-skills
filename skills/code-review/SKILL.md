@@ -42,16 +42,33 @@ effort: high
 静默执行，只用于审查，不完整展示给用户：
 
 ```bash
-if git rev-parse --git-dir 2>/dev/null; then
-  git branch --show-current 2>/dev/null
-  git diff --name-status 2>/dev/null
-  git diff --stat 2>/dev/null
-else
-  svn info 2>/dev/null | grep -E "^(Relative URL|Revision):"
-  svn diff --summarize 2>/dev/null
-fi
+vcs_root="$PWD"
+vcs_type="none"
+while [ "$vcs_root" != "/" ]; do
+  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
+  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
+  parent=$(dirname "$vcs_root")
+  [ "$parent" = "$vcs_root" ] && break
+  vcs_root="$parent"
+done
+case "$vcs_type" in
+  git)
+    echo "VCS_TYPE=git"
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --stat 2>/dev/null
+    ;;
+  svn)
+    echo "VCS_TYPE=svn"
+    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
+    svn diff --summarize "$vcs_root" 2>/dev/null
+    ;;
+  *) echo "VCS_TYPE=none" ;;
+esac
 ls pom.xml build.gradle package.json 2>/dev/null
 ```
+
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
 
 按模式读取：
 - 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。

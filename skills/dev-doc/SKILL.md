@@ -37,17 +37,34 @@ md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 执行以下命令，结果**用作引导提问和 Step 6 输出填充**，不展示给用户：
 
 ```bash
-# VCS 类型检测（记住结果：git / svn / none，用于 Step 6 填入代码审查命令）
-if git rev-parse --git-dir 2>/dev/null; then
-  git branch --show-current 2>/dev/null
-  git log --oneline -3 2>/dev/null
-else
-  svn info 2>/dev/null | grep -E "^(Relative URL|Revision):"
-  svn log -l 3 2>/dev/null
-fi
+# VCS 类型检测（记住 VCS_TYPE=git/svn/none，用于 Step 6 填入代码审查命令）
+vcs_root="$PWD"
+vcs_type="none"
+while [ "$vcs_root" != "/" ]; do
+  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
+  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
+  parent=$(dirname "$vcs_root")
+  [ "$parent" = "$vcs_root" ] && break
+  vcs_root="$parent"
+done
+case "$vcs_type" in
+  git)
+    echo "VCS_TYPE=git"
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" log --oneline -3 2>/dev/null
+    ;;
+  svn)
+    echo "VCS_TYPE=svn"
+    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
+    svn log "$vcs_root" -l 3 2>/dev/null
+    ;;
+  *) echo "VCS_TYPE=none" ;;
+esac
 # 项目类型检测（记住结果，用于 Step 6 填入验证命令）
 ls pom.xml build.gradle package.json 2>/dev/null
 ```
+
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
 
 ### Step 2：确认任务类型、复杂度和归属（逐一提问）
 
@@ -299,7 +316,7 @@ node project-html/build.js
 | 文档生成后 AI 执行走偏 | 「六、代码变更清单」写得不够具体 | 每个条目加上「为何不能用扩展替代」说明 |
 | 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
 | 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
-| Step 1 git 命令报错 | 项目无 VCS | 正常，自动降级到无 VCS 模式 |
+| Step 1 git 命令报 dubious ownership / safe.directory | 当前执行用户不是仓库拥有者 | 仍按 `.git` 判定为 Git；只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不要改全局配置 |
 | 看板写入后打不开 | 手工降级时字段含未转义的双引号/换行/反引号 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |

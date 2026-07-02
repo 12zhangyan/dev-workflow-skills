@@ -27,13 +27,30 @@ effort: high
 ### Step 1：静默收集上下文（不展示给用户）
 
 ```bash
-if git rev-parse --git-dir 2>/dev/null; then
-  git branch --show-current 2>/dev/null
-else
-  echo "no-vcs"
-fi
+vcs_root="$PWD"
+vcs_type="none"
+while [ "$vcs_root" != "/" ]; do
+  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
+  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
+  parent=$(dirname "$vcs_root")
+  [ "$parent" = "$vcs_root" ] && break
+  vcs_root="$parent"
+done
+case "$vcs_type" in
+  git)
+    echo "VCS_TYPE=git"
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
+    ;;
+  svn)
+    echo "VCS_TYPE=svn"
+    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
+    ;;
+  *) echo "VCS_TYPE=none" ;;
+esac
 ls pom.xml build.gradle package.json 2>/dev/null
 ```
+
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
 
 ### Step 2：逐一收集 Bug 信息
 
@@ -102,7 +119,7 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 | `date` | Step 4 日期 |
 | `severity` | Step 2 Q2（P0/P1/P2/P3） |
 | `status` | 固定值 `"未修复"` |
-| `branch` | Step 1 Git 分支（无 VCS 填 `"-"`） |
+| `branch` | Step 1 Git 分支；SVN 可填 revision；无 VCS 填 `"-"` |
 | `docPath` | 本次生成的 md 路径（`docs/bugs/<日期>/<任务名>.md`） |
 | `stackTrace` | 异常堆栈原文（原样保留） |
 | `reproSteps` | 复现步骤 → string[] |
