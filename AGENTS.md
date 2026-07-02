@@ -70,7 +70,7 @@ project-html/
   pages/<slug>.html        ← GENERATED self-contained single pages (one per entry, gitignored here)
 ```
 
-Entry kinds: docs (default, from `/dev-doc` and `/review-fix`), `kind:"bug"` (from `/bug-fix`), `kind:"reading"` (from `/code-reading`), `kind:"biz"` (from `/biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields). `/review-fix` uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). The `apis` field only records new or signature-changed endpoints.
+Entry kinds: docs (default, from `/dev-doc`; also from `/review-fix` only when it reaches the fix-handoff phase), `kind:"bug"` (from `/bug-fix`), `kind:"reading"` (from `/code-reading`), `kind:"biz"` (from `/biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields). `/review-fix` first produces a review task package for other AIs; after review findings are pasted back, its fix-handoff document uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). The `apis` field only records new or signature-changed endpoints.
 
 **`build.js` (run by every skill after `node --check`, invoked as `node project-html/build.js`)** does three things: (1) regenerates `project-html/pages/<slug>.html` — one **self-contained single file per entry** (inlines css/board.css + board.js + local mermaid, single entry data) so a user can send one page to a colleague without the whole folder; (2) regenerates `docs/INDEX.md` (the doc index, refreshed from `changes.js` each run); (3) on first run (no `docs/archive/`) scans the project root and **copies** (never deletes) scattered legacy md / board html / API docs into `docs/archive/`. `slugOf()` in build.js must stay identical to `slugOf()` in board.js (they produce the same page filename), and likewise the collision-dedup map (`buildSlugMap()` in build.js / `_slugMap`+`pageSlug()` in board.js) — `buildPages`, `buildIndex`'s page cell, and board.js's `pageLink` must all resolve to the *same* deduped slug, or same-titled entries link to the wrong page. If `node` is absent, skills skip this step with a notice.
 
@@ -83,15 +83,15 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ## Workflow the Skills Support
 
 ```
-/dev-doc → AI executes → svn add → mvn test → AI review → /review-fix → AI fixes → /code-reading → human review → svn commit
+/dev-doc → AI executes → svn add → mvn test → /review-fix review task → multi-AI review → fix handoff → /code-reading → human review → svn commit
 ```
 
 - `/dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
 - `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
 - `/code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
 - `/biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
-- `/review-fix` produces `docs/review-fix/YYYY-MM-DD/<task>.md` plus an AI fix prompt/code for Codex/Cursor/Claude handoff
-- All five skills auto-register their output in `project-html/data/changes.js` (dev-doc: doc entry, bug-fix: `kind:"bug"`, code-reading: `kind:"reading"`, biz-flow: `kind:"biz"`, review-fix: doc entry with `type:"代码审查"`), then run `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
+- `/review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
+- `/dev-doc`, `/bug-fix`, `/code-reading`, and `/biz-flow` auto-register their output in `project-html/data/changes.js`; `/review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Closed-choice questions (task type, complexity, severity, file-conflict resolution) use the AskUserQuestion tool; free-text questions stay conversational
 

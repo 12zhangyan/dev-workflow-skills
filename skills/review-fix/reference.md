@@ -1,18 +1,46 @@
 # review-fix Reference
 
-> SKILL.md 的详细模板：review 清单、多 AI 审查提示、汇总规则、修复文档、AI 修复操作码。
+> SKILL.md 的详细模板：Review 任务包、多 AI 审查提示、findings 回收格式、可选修复交接。
 
 ---
 
-## Review 清单模板
+## Review 任务包模板
 
-### 审查目标
+````markdown
+# <任务名> Review 任务包
 
-- 对照需求/开发文档确认实现是否偏离目标。
-- 对照 diff/patch 找出会导致线上缺陷、数据错误、回归或维护风险的问题。
-- 只输出有证据的问题，不输出泛泛建议。
+> 日期：<YYYY-MM-DD>
+> 来源：<dev-doc / patch / code-reading / 上下文>
+> 分支/路径：<branch 或 SVN path>
+> 阶段：等待其他 AI Review
 
-### 审查范围
+---
+
+## 一、审查目标
+
+请其他 AI 基于本任务包做 code review，目标是发现会导致线上缺陷、业务偏差、数据错误、回归、安全风险或维护风险的问题。
+
+本次重点确认：
+- [ ] 实现是否符合需求/方案文档
+- [ ] 关键业务分支、状态流转、异常处理是否正确
+- [ ] 本次改动是否引入兼容性、事务、并发、性能、安全问题
+- [ ] 测试是否能证明改动正确
+
+---
+
+## 二、证据包
+
+| 类型 | 路径/内容 | 给其他 AI 的使用方式 |
+|------|-----------|----------------------|
+| 需求/方案文档 | <path 或无> | 对照目标、范围、技术方案 |
+| 代码地图 | <path 或无> | 理解调用链、状态机、关键位置 |
+| diff/patch | <path 或粘贴位置> | 审查实际改动 |
+| 关键源码 | <文件路径列表> | 定位风险和证据 |
+| 测试命令 | <mvn test / ./gradlew test / npm test / 待补充> | 判断验证方式 |
+
+---
+
+## 三、统一 Review 清单
 
 | 类别 | 检查点 |
 |------|--------|
@@ -26,9 +54,9 @@
 | 可维护性 | 命名、重复逻辑、异常被吞、魔法值、职责边界 |
 | 测试 | 是否覆盖正常、异常、边界、回归；测试是否能证明修复有效 |
 
-### 多 AI 审查提示
+---
 
-#### Codex 审查提示
+## 四、分发给 Codex 的审查提示
 
 ```text
 请作为代码审查者，基于以下材料做 review：
@@ -36,6 +64,11 @@
 2. 代码地图：<code-reading路径或无>
 3. diff/patch：<patch路径或粘贴内容>
 4. 重点源码：<文件路径列表>
+
+审查重点：
+- 实现是否符合需求和方案
+- 是否存在正确性、边界、事务、并发、安全、性能、兼容性、测试覆盖问题
+- 是否有会影响线上稳定性或数据正确性的风险
 
 输出结构化 findings，只关注有证据的问题：
 - Severity: Critical / Important / Minor
@@ -49,7 +82,9 @@
 不要输出泛泛建议，不要要求重构无关代码，不要回滚用户已有改动。
 ```
 
-#### Cursor 审查提示
+---
+
+## 五、分发给 Cursor 的审查提示
 
 ```text
 请在当前工程中按文件上下文审查本次改动。重点看：
@@ -74,7 +109,9 @@
 只列可操作问题；没有证据的猜测请放到 notes，不要当 finding。
 ```
 
-#### Claude 审查提示
+---
+
+## 六、分发给 Claude 的审查提示
 
 ```text
 请读取给定 patch / 文档 / 关键源码，做一次偏业务正确性的 code review。
@@ -87,6 +124,30 @@
 输出按 Critical / Important / Minor 分组。每条必须包含证据、影响、修复建议、验证方式。
 如果认为某条只是风格偏好，请明确标为 Minor 或 notes。
 ```
+
+---
+
+## 七、Review 结果回收格式
+
+请把其他 AI 的结果贴回时尽量保持以下格式：
+
+```text
+来源：Codex / Cursor / Claude
+
+Findings:
+1. Severity:
+   File/Line:
+   Problem:
+   Evidence:
+   Impact:
+   Fix:
+   Verify:
+
+Notes:
+- <非阻塞建议或不确定观察>
+```
+
+````
 
 ---
 
@@ -122,49 +183,18 @@ Accepted finding 必须同时满足：
 
 ---
 
-## 修复文档模板
+## 修复交接模板
 
 ````markdown
 # <任务名> Review 修复交接
 
 > 日期：<YYYY-MM-DD>
-> 来源：<dev-doc / patch / code-reading / 上下文>
-> 分支/路径：<branch 或 SVN path>
+> Review 任务包：<docs/review-fix/YYYY-MM-DD/task-review-task.md>
 > 状态：草稿
 
 ---
 
-## 一、上下文
-
-- **需求/方案文档**：<path 或无>
-- **代码地图**：<path 或无>
-- **diff/patch**：<path 或说明>
-- **测试命令**：<mvn test / ./gradlew test / npm test / 待补充>
-
-### 本次变更概述
-
-<用 3-5 句说明这次改动做了什么、为什么需要 review-fix、哪些模块风险最高。>
-
----
-
-## 二、Review 证据包
-
-| 类型 | 路径/内容 | 用途 |
-|------|-----------|------|
-| dev-doc | | 对照需求与方案 |
-| code-reading | | 理解调用链和状态流 |
-| patch/diff | | 审查实际改动 |
-| 源码 | | 定位问题 |
-
----
-
-## 三、AI Review 清单
-
-<粘贴或摘要 Codex/Cursor/Claude 的审查提示，便于复跑。>
-
----
-
-## 四、Review 结果汇总
+## 一、Review 结果汇总
 
 ### Critical（必须修）
 
@@ -192,7 +222,7 @@ Accepted finding 必须同时满足：
 
 ---
 
-## 五、修复策略
+## 二、修复策略
 
 - **修复批次**：先 Critical，再 Important，最后按时间处理 Minor。
 - **修改边界**：只修改 accepted findings 涉及的文件和必要测试；不重构无关代码。
@@ -201,7 +231,7 @@ Accepted finding 必须同时满足：
 
 ---
 
-## 六、修复 Todo
+## 三、修复 Todo
 
 - [ ] 修复 CR-1：<动词 + 文件/方法 + 可观察结果>
 - [ ] 修复 IM-1：<动词 + 文件/方法 + 可观察结果>
@@ -210,20 +240,11 @@ Accepted finding 必须同时满足：
 
 ---
 
-## 七、AI 修复操作码
+## 四、AI 修复操作码
 
 ```text
 <由本 skill 生成，可直接粘贴给任意 AI>
 ```
-
----
-
-## 八、修复后回填
-
-- [ ] 在本文档勾选已修 findings。
-- [ ] 记录验证命令和结果。
-- [ ] 如修复后仍有 review 意见，追加到「Review 结果汇总」。
-- [ ] 修复验证后更新看板状态为 `已完成`。
 ````
 
 ---
@@ -234,7 +255,8 @@ Accepted finding 必须同时满足：
 你现在接手一次 code-review 修复任务。请严格按以下边界执行，不要自由扩展。
 
 【输入文档】
-- Review 修复交接文档：<docs/review-fix/YYYY-MM-DD/task.md>
+- Review 修复交接文档：<docs/review-fix/YYYY-MM-DD/task-fix-handoff.md>
+- Review 任务包：<docs/review-fix/YYYY-MM-DD/task-review-task.md>
 - 需求/方案文档：<dev-doc路径或无>
 - 代码地图：<code-reading路径或无>
 - patch/diff：<patch路径或当前工作区 diff>
@@ -244,10 +266,6 @@ Accepted finding 必须同时满足：
 
 【必须修复】
 1. <CR/IM ID> <文件/方法>：<问题>。修复到：<期望结果>。验证：<验证方式>
-2. ...
-
-【可选修复】
-1. <MI ID> ...
 
 【禁止处理】
 - 不处理 Rejected 项。
@@ -256,7 +274,7 @@ Accepted finding 必须同时满足：
 - 不执行数据库写操作或 DDL；需要时只输出 DBA 建议。
 
 【执行顺序】
-1. 先阅读 Review 修复交接文档和相关 dev-doc/code-reading。
+1. 先阅读 Review 修复交接文档和 Review 任务包。
 2. 查看当前 diff，确认目标文件仍然处于预期状态。
 3. 按 Critical -> Important -> Minor 顺序修改。
 4. 每修完一类问题，运行对应测试或最小验证。
@@ -271,52 +289,21 @@ Accepted finding 必须同时满足：
 
 ---
 
-## HTML 看板 entry 建议
-
-```json
-{
-  "changelog": "新增 Review 修复交接：<title>",
-  "entry": {
-    "service": "<service>",
-    "module": "<module>",
-    "title": "<title> Review 修复交接",
-    "date": "<date>",
-    "type": "代码审查",
-    "complexity": "<简单|中等|复杂>",
-    "status": "草稿",
-    "branch": "<branch>",
-    "docPath": "<docPath>",
-    "background": "<review 上下文和高风险区域>",
-    "goals": ["修复 CR-1", "修复 IM-1"],
-    "scopeIn": ["accepted findings 涉及的文件和测试"],
-    "scopeOut": ["Rejected 项", "无关重构", "数据库写操作"],
-    "solution": "<修复批次和总体策略>",
-    "coreDesign": "<为什么接受/拒绝这些 review 意见>",
-    "keyImpl": [
-      { "title": "CR-1 <问题名>", "desc": "<证据 + 修复方向 + 验证方式>" }
-    ],
-    "changeList": [
-      { "file": "<path>", "action": "修改", "desc": "<需要修复或重点检查的原因>" }
-    ],
-    "todos": ["修复 CR-1", "运行 <验证命令>"]
-  }
-}
-```
-
----
-
-## 完成后输出格式
+## 第一阶段完成后输出格式
 
 ```
-✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>.md
+✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
+
+请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
+等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
+```
+
+## 第二阶段完成后输出格式
+
+```
+✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>-fix-handoff.md
 📋 已汇总 review 结果：Critical <n> / Important <n> / Minor <n> / Rejected <n>
-📄 HTML 看板已更新：project-html/data/changes.js
 
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>
-
-下一步：
-1. 把 AI 修复操作码交给任意 AI 执行修复
-2. 修复后运行验证命令
-3. 再运行 /code-reading 或人工 review 做最终确认
 ```

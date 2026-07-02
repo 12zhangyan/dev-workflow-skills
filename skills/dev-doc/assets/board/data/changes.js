@@ -12,6 +12,7 @@ const htmlChangelog = [
 // 定位：看板条目是面向人类阅读的独立技术说明（md 文件才是给 AI 执行的文档）。
 // 叙述字段（background/solution/coreDesign/symptom/rootCause/fixPlan 等）由 skill
 // 面向"没参与开发的同事"撰写，完整句子、可用 \n 分段（看板按段落渲染），不是 md 摘录。
+// 看板会自动生成"业务人员看这里 / 开发人员看这里"双视角摘要；字段越像完整说明，摘要越清晰。
 // 字段说明：
 //   service     微服务名（一级分组，单体项目填项目名）
 //   module      模块名（二级分组）

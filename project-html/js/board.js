@@ -1,10 +1,10 @@
 /* AI 变更记录看板 — 渲染与交互逻辑
- * 数据在 data/changes.js（由 /dev-doc、/bug-fix、/code-reading、/biz-flow、/review-fix 自动追加，本文件不存数据）
+ * 数据在 data/changes.js（由 /dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加，本文件不存数据）
  * 与 skills/dev-doc/assets/board/js/board.js 保持一致，修改时两处同步 */
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 15;
+const BOARD_VERSION = 16;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -161,6 +161,89 @@ function executionBrief(d) {
       </div>`).join('')}</div>
   </div>`;
 }
+function roleHint(d, role) {
+  if (role === 'biz') {
+    if (d.kind === 'bug') return shortText(d.impact || d.symptom || d.rootCause || leadOf(d), 118);
+    if (d.kind === 'biz') return shortText(d.background || firstItems(d.testPoints, 1)[0] || leadOf(d), 118);
+    if (d.kind === 'reading') return shortText(d.background || d.entry || leadOf(d), 118);
+    return shortText(d.background || firstItems(d.goals, 1)[0] || d.solution || leadOf(d), 118);
+  }
+  if (d.kind === 'bug') return shortText(d.codeLocation || d.fixPlan || firstItems(d.verifySteps, 1)[0] || leadOf(d), 118);
+  if (d.kind === 'biz') return shortText(firstItems(d.testPoints, 1)[0] || firstItems(d.bizRules, 1).map(x => x.desc || x.title)[0] || leadOf(d), 118);
+  if (d.kind === 'reading') return shortText(firstItems(d.keyImpl, 1).map(x => `${x.title || ''} ${x.desc || ''}`.trim())[0] || d.entry || leadOf(d), 118);
+  return shortText(firstItems(d.todos, 1)[0] || firstItems(d.changeList, 1).map(x => `${x.file || ''} ${x.desc || ''}`.trim())[0] || d.solution || leadOf(d), 118);
+}
+function roleBoard(title, subtitle, ids, role, emptyText) {
+  const rows = ids.slice(0, 4).map(i => {
+    const c = changes[i], st = effStatus(c);
+    return `<div class="role-row" onclick="pick(${i})">
+      <div class="role-main">
+        <div class="role-title"><span>${icoOf(c)}</span>${esc(c.title)}</div>
+        <div class="role-desc">${esc(roleHint(c, role) || '暂无摘要')}</div>
+      </div>
+      <div class="role-side">
+        <span class="role-path">${esc(svcOf(c))}/${esc(modOf(c))}</span>
+        <span class="idx-status"><span class="sdot" style="background:${statusColor(st)}"></span>${esc(st)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return `<section class="role-card ${role === 'biz' ? 'role-biz' : 'role-dev'}">
+    <div class="role-head">
+      <div><div class="role-kicker">${role === 'biz' ? 'BUSINESS VIEW' : 'ENGINEERING VIEW'}</div><div class="role-h">${esc(title)}</div></div>
+      <div class="role-sub">${esc(subtitle)}</div>
+    </div>
+    ${rows || `<div class="role-empty">${esc(emptyText)}</div>`}
+  </section>`;
+}
+function fieldList(items) {
+  return items.filter(x => x && x.value).map(x => `
+    <div class="aud-item">
+      <div class="aud-k">${esc(x.key)}</div>
+      <div class="aud-v">${esc(x.value)}</div>
+    </div>`).join('');
+}
+function audienceBrief(d) {
+  const business = [];
+  const developer = [];
+  if (d.kind === 'bug') {
+    business.push({ key: '业务影响', value: shortText(d.impact || d.symptom || '待补充', 140) });
+    business.push({ key: '期望结果', value: shortText(d.expected || '恢复预期业务行为', 120) });
+    business.push({ key: '验收方式', value: shortText(firstItems(d.verifySteps, 1)[0] || '按验证步骤回归', 120) });
+    developer.push({ key: '定位线索', value: shortText(d.codeLocation || d.rootCause || '待分析', 140) });
+    developer.push({ key: '修复方向', value: shortText(d.fixPlan || '待补充', 140) });
+    developer.push({ key: '执行任务', value: shortText(firstItems(d.todos, 2).join('；') || '按修复方案补齐 Todo', 140) });
+  } else if (d.kind === 'biz') {
+    business.push({ key: '业务主线', value: shortText(d.background || '待补充', 150) });
+    business.push({ key: '业务规则', value: shortText(firstItems(d.bizRules, 2).map(x => x.title || x.desc).join('；') || '待补充', 140) });
+    business.push({ key: '测试重点', value: shortText(firstItems(d.testPoints, 2).join('；') || '待补充', 140) });
+    developer.push({ key: '接口链路', value: shortText((d.apis || []).slice(0, 3).map(a => `${a.method || ''} ${a.url || ''}`.trim()).join(' → ') || '待补充', 140) });
+    developer.push({ key: '数据/状态', value: d.dataFlow ? '查看数据流图' : d.stateMachine ? '查看状态流转图' : '待补充' });
+    developer.push({ key: '联调关注', value: shortText(firstItems(d.testPoints, 1)[0] || '按测试关注点联调验证', 130) });
+  } else if (d.kind === 'reading') {
+    business.push({ key: '整体说明', value: shortText(d.background || d.entry || '待补充', 150) });
+    business.push({ key: '当前状态', value: '用于 Review 前理解，不直接代表变更完成' });
+    developer.push({ key: '追踪入口', value: shortText(d.entry || '待补充', 140) });
+    developer.push({ key: '先看位置', value: shortText(firstItems(d.keyImpl, 2).map(x => x.title || x.desc).join('；') || '待补充', 140) });
+    developer.push({ key: '阅读方式', value: '沿调用链读主路径，再核对状态和关键变量' });
+  } else {
+    business.push({ key: '为什么做', value: shortText(d.background || firstItems(d.goals, 1)[0] || '待补充', 150) });
+    business.push({ key: '业务目标', value: shortText(firstItems(d.goals, 2).join('；') || '待补充', 140) });
+    business.push({ key: '不包含', value: shortText(firstItems(d.scopeOut, 2).join('；') || '未特别排除', 120) });
+    developer.push({ key: '实现方案', value: shortText(d.solution || d.coreDesign || '待补充', 150) });
+    developer.push({ key: '改动位置', value: shortText(firstItems(d.changeList, 2).map(x => `${x.file || ''} ${x.desc || ''}`.trim()).join('；') || '待补充', 150) });
+    developer.push({ key: '下一步', value: shortText(firstItems(d.todos, 2).join('；') || '待补充', 140) });
+  }
+  return `<div class="audience-grid">
+    <section class="aud-card aud-biz">
+      <div class="aud-head"><span>业务人员看这里</span><em>影响 / 目标 / 验收</em></div>
+      ${fieldList(business)}
+    </section>
+    <section class="aud-card aud-dev">
+      <div class="aud-head"><span>开发人员看这里</span><em>方案 / 文件 / 执行</em></div>
+      ${fieldList(developer)}
+    </section>
+  </div>`;
+}
 let q = '', kindF = 'all', openOnly = false;
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
 function searchHay(c) {
@@ -295,10 +378,29 @@ function showHome() {
   const totalCnt = visible.length;
   const doneCnt = totalCnt - openCnt;
   const pct = totalCnt ? Math.round(doneCnt / totalCnt * 100) : 0;
+  const sortedVisible = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || ''));
+  const businessIds = sortedVisible.filter(i => {
+    const c = changes[i];
+    return c.kind === 'biz' || c.kind === 'bug' || c.background || c.goals?.length;
+  });
+  const devIds = sortedVisible.filter(i => {
+    const c = changes[i];
+    return !DONE.has(effStatus(c)) || c.todos?.length || c.changeList?.length || c.keyImpl?.length || c.kind === 'reading';
+  });
 
   let h = `<div class="doc-view">
-    <h1 class="doc-h1">📊 浏览索引</h1>
-    <p class="doc-intro">按微服务 → 模块归类的全部 AI 变更记录。先看「最近更新」判断变更范围，再点开详情页的「读者速览」确认结论和下一步。</p>
+    <div class="home-hero">
+      <div>
+        <div class="home-kicker">AI WORK RECORDS</div>
+        <h1 class="doc-h1">业务和研发共读的变更看板</h1>
+        <p class="doc-intro">业务人员先看影响、状态和测试重点；开发人员再看实现范围、代码位置和下一步动作。每条记录都能回到源文档，也能生成独立页面单独分享。</p>
+      </div>
+      <div class="home-health">
+        <div class="health-num">${pct}%</div>
+        <div class="health-label">整体完成度</div>
+        <div class="health-sub">${doneCnt} / ${totalCnt} 已完成</div>
+      </div>
+    </div>
     <div class="home-stats">
       <div class="stat-card sc-accent"><div class="stat-num">${docCnt}</div><div class="stat-lbl">📄 开发文档</div></div>
       <div class="stat-card sc-red"><div class="stat-num">${bugCnt}</div><div class="stat-lbl">🐛 Bug 记录</div></div>
@@ -311,13 +413,17 @@ function showHome() {
       <div class="progress-hd"><span>整体完成度</span><span class="progress-pct">${doneCnt} / ${totalCnt} 已完成 · ${pct}%</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     </div>
+    <div class="role-grid">
+      ${roleBoard('业务人员先看', '影响范围、业务规则、测试重点、当前状态', businessIds, 'biz', '暂无业务视角记录')}
+      ${roleBoard('开发人员再看', '实现范围、代码位置、待办、验证命令', devIds, 'dev', '暂无开发视角记录')}
+    </div>
     <div class="reader-guide">
-      <div class="guide-card"><div class="guide-title">先判断范围</div><div class="guide-text">看服务、模块、类型和状态，快速确认这次改动影响哪里。</div></div>
-      <div class="guide-card"><div class="guide-title">再读结论</div><div class="guide-text">点开记录后优先看标题下导语和「读者速览」，不用先翻完整 md。</div></div>
-      <div class="guide-card"><div class="guide-title">最后执行</div><div class="guide-text">需要动代码时打开源文档，按 Todo、变更清单和验证步骤推进。</div></div>
+      <div class="guide-card"><div class="guide-title">业务读法</div><div class="guide-text">先看标题、读者速览和业务视角，确认为什么改、影响谁、怎么验收。</div></div>
+      <div class="guide-card"><div class="guide-title">研发读法</div><div class="guide-text">再看开发视角、执行口径、代码变更和 Todo，确认改哪里、怎么改、如何验证。</div></div>
+      <div class="guide-card"><div class="guide-title">交接读法</div><div class="guide-text">需要同步给同事或测试时，打开独立页面；需要落地时，打开源文档。</div></div>
     </div>`;
 
-  const recent = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || '')).slice(0, 8);
+  const recent = sortedVisible.slice(0, 8);
   if (recent.length) {
     h += `<div class="recent"><div class="sec-title">最近更新</div>${recent.map(i => {
       const c = changes[i];
@@ -443,6 +549,7 @@ function pick(i) {
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, isReading ? "代码阅读速览" : "读者速览");
+  h += audienceBrief(d);
   h += executionBrief(d);
 
   const hasReq = d.background || d.goals?.length || d.scopeIn?.length || d.scopeOut?.length;
@@ -519,6 +626,7 @@ function renderBug(d) {
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, "Bug 速览");
+  h += audienceBrief(d);
   h += executionBrief(d);
 
   const hasSym = d.symptom || d.stackTrace || d.reproSteps?.length || d.trigger || d.expected || d.actual;
@@ -588,6 +696,7 @@ function renderBiz(d) {
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, "测试速览");
+  h += audienceBrief(d);
   h += executionBrief(d);
 
   const mmds = [];
