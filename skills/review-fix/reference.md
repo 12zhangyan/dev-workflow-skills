@@ -59,6 +59,11 @@
 ## 四、分发给 Codex 的审查提示
 
 ```text
+如果当前环境已安装 dev-workflow-skills，请优先直接运行：
+/code-review <当前 Review 任务包路径>
+
+如果不能运行 skill，请按下面要求手工审查。
+
 请作为代码审查者，基于以下材料做 review：
 1. 需求/方案文档：<dev-doc路径或无>
 2. 代码地图：<code-reading路径或无>
@@ -87,6 +92,11 @@
 ## 五、分发给 Cursor 的审查提示
 
 ```text
+如果 Cursor 已加载 dev-workflow-skills，请优先直接运行：
+/code-review <当前 Review 任务包路径>
+
+如果不能运行 skill，请按下面要求手工审查。
+
 请在当前工程中按文件上下文审查本次改动。重点看：
 - diff 是否符合 <dev-doc路径或功能描述>
 - 是否有空指针、边界、事务、并发、权限、性能和接口兼容风险
@@ -114,6 +124,11 @@
 ## 六、分发给 Claude 的审查提示
 
 ```text
+如果 Claude 已加载 dev-workflow-skills，请优先直接运行：
+/code-review <当前 Review 任务包路径>
+
+如果不能运行 skill，请按下面要求手工审查。
+
 请读取给定 patch / 文档 / 关键源码，做一次偏业务正确性的 code review。
 请优先找：
 1. 方案和实现不一致
@@ -294,7 +309,10 @@ Accepted finding 必须同时满足：
 ```
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
 
-请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
+如果目标 AI 已安装本仓库 skill，直接让它运行：
+/code-review docs/review-fix/<日期>/<任务名>-review-task.md
+
+否则请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
 等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
 ```
 

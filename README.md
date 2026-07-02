@@ -10,6 +10,7 @@ Claude Code skill 集，为 Java 后端开发者设计。
 | `/dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
 | `/bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
 | `/code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引），并登记到 HTML 看板 |
+| `/code-review` | 按 `/review-fix` 任务包或统一审查清单执行只读 code review，输出可回收 findings |
 | `/biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
 | `/review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
 
@@ -42,13 +43,13 @@ Claude Code skill 集，为 Java 后端开发者设计。
 
 完整工作流需要安装两个 skill 包：
 
-### 第一步：安装 superpowers-zh（提供 brainstorming、code-review 等通用 skill）
+### 第一步：安装 superpowers-zh（提供 brainstorming、requesting-code-review 等通用 skill）
 
 ```bash
 npx superpowers-zh
 ```
 
-### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、biz-flow、review-fix）
+### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、code-review、biz-flow、review-fix）
 
 **macOS / Linux / Git Bash**
 
@@ -62,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading`、`/biz-flow` 或 `/review-fix`。
+重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading`、`/code-review`、`/biz-flow` 或 `/review-fix`。
 
 #### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
 
@@ -89,7 +90,7 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 ## 工作流
 
 ```
-/dev-doc → AI 执行 → 跑测试 → /review-fix 生成审查清单 → 多 AI review → 汇总修复 → /code-reading → 人工 review → 提交
+/dev-doc → AI 执行 → 跑测试 → /review-fix 生成审查清单 → /code-review 多 AI 审查 → /review-fix 汇总修复 → /code-reading → 人工 review → 提交
 ```
 
 详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)

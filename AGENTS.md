@@ -13,6 +13,7 @@ A collection of Codex skills for Java backend developers. Skills are distributed
 | `/dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
 | `/bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
 | `/code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
+| `/code-review` | `skills/code-review/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
 | `/biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
 | `/review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
 
@@ -83,12 +84,13 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ## Workflow the Skills Support
 
 ```
-/dev-doc → AI executes → svn add → mvn test → /review-fix review task → multi-AI review → fix handoff → /code-reading → human review → svn commit
+/dev-doc → AI executes → svn add → mvn test → /review-fix review task → /code-review multi-AI findings → fix handoff → /code-reading → human review → svn commit
 ```
 
 - `/dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
 - `/bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
 - `/code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
+- `/code-review` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
 - `/biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
 - `/review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `/dev-doc`, `/bug-fix`, `/code-reading`, and `/biz-flow` auto-register their output in `project-html/data/changes.js`; `/review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
