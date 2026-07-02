@@ -1,0 +1,7 @@
+interface:
+  display_name: "Bug Fix"
+  short_description: "记录 Bug 根因、修复方案并登记看板"
+  default_prompt: "Use $bug-fix to record a bug, analyze the root cause, and create a fix document."
+
+policy:
+  allow_implicit_invocation: true

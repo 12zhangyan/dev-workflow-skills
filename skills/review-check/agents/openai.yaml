@@ -1,5 +1,7 @@
 interface:
-  display_name: "Code Review"
-  short_description: "按统一清单执行只读代码审查并输出 findings"
-  default_prompt: "/review-check "
+  display_name: "Review Check"
+  short_description: "按统一清单执行只读代码审查"
+  default_prompt: "Use $review-check to perform a read-only code review from a review task, dev-doc, patch, or diff."
 
+policy:
+  allow_implicit_invocation: true

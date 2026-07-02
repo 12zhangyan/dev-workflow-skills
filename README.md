@@ -1,22 +1,24 @@
 # dev-workflow-skills
 
-Claude Code skill 集，为 Java 后端开发者设计。
+Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
 覆盖从需求分析到代码 Review 的完整工作流。
 
 ## 包含的 Skills
 
 | Skill | 用途 |
 |-------|------|
-| `/dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
-| `/bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
-| `/code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引），并登记到 HTML 看板 |
-| `/review-check` | 按 `/review-fix` 任务包或统一审查清单执行只读 code review，输出可回收 findings |
-| `/biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
-| `/review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
+| `dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
+| `bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
+| `code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引），并登记到 HTML 看板 |
+| `review-check` | 按 `review-fix` 任务包或统一审查清单执行只读 code review，输出可回收 findings |
+| `biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
+| `review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
+
+> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 更稳定的显式方式是 `$dev-doc`，或直接说“按 dev-doc 给 XX 生成开发文档”。安装到 `~/.codex/skills` 只代表 Codex 可以发现 skill，不保证 UI 一定出现同名斜杠命令。
 
 ## /dev-doc 能做什么
 
-运行一次 `/dev-doc`，自动产出**两份分工不同的文档**：md 给 AI 执行，看板给人看。
+运行一次 `dev-doc`，自动产出**两份分工不同的文档**：md 给 AI 执行，看板给人看。
 
 **① 生成 md 开发文档（AI 执行文档）**，精确到文件路径和执行步骤，交给 Claude/Cursor 照着干活，包含：
 
@@ -57,13 +59,17 @@ npx superpowers-zh
 curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
 ```
 
+只安装到某个工具时可传目标，例如：`curl -fsSL .../install.sh | bash -s -- codex`；本地仓库中也可直接运行 `bash install.sh claude cursor`。
+
 **Windows PowerShell**
 
 ```powershell
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-重启 Claude Code 后生效，在任意项目中使用 `/dev-doc`、`/bug-fix`、`/code-reading`、`/review-check`、`/biz-flow` 或 `/review-fix`。
+远程 PowerShell 安装默认会复制到 `%USERPROFILE%\.claude\skills`、`%USERPROFILE%\.cursor\skills`、`%USERPROFILE%\.codex\skills`。如果只想装 Codex，本地 clone 后用 `.\install.ps1 codex`，或使用下面的 `install-local.cmd codex`。
+
+装完重启对应工具后生效：Claude Code 可尝试 `/dev-doc`；Codex 可尝试 `$dev-doc`，或直接输入“按 dev-doc 给 XX 生成开发文档”。
 
 #### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
 
@@ -81,7 +87,7 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 |------|-----------|
 | Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
 | Cursor（≥1.6） | `%USERPROFILE%\.cursor\skills\<name>\` |
-| Codex CLI | `%USERPROFILE%\.codex\skills\<name>\` |
+| Codex | `%USERPROFILE%\.codex\skills\<name>\` |
 
 不下载、直接从当前仓库复制；可重复运行（覆盖同名技能，不动其他技能）。装完重启对应工具加载。
 
@@ -90,14 +96,14 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 ## 工作流
 
 ```
-/dev-doc → AI 执行 → 跑测试 → /review-fix 生成审查清单 → /review-check 多 AI 审查 → /review-fix 汇总修复 → /code-reading → 人工 review → 提交
+dev-doc → AI 执行 → 跑测试 → review-fix 生成审查清单 → review-check 多 AI 审查 → review-fix 汇总修复 → code-reading → 人工 review → 提交
 ```
 
 详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)
 
 ## HTML 看板
 
-每次运行 `/dev-doc`、`/bug-fix`、`/code-reading` 或 `/biz-flow` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`（同一文档重复运行会更新既有条目，不会产生重复记录），并运行 `node project-html/build.js` 刷新单页与索引。`/review-fix` 默认先生成审查任务包；只有在贴回 review 结果并生成修复交接文档时，才登记到看板。
+每次运行 `dev-doc`、`bug-fix`、`code-reading` 或 `biz-flow` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`（同一文档重复运行会更新既有条目，不会产生重复记录），并运行 `node project-html/build.js` 刷新单页与索引。`review-fix` 默认先生成审查任务包；只有在贴回 review 结果并生成修复交接文档时，才登记到看板。
 看板为多文件结构（外壳 / 样式 / 逻辑 / 数据分离），方便长期堆叠记录与自定义样式：
 
 ```

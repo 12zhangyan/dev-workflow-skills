@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What This Repo Is
 
-A collection of Codex skills for Java backend developers. Skills are distributed via install scripts and land in `~/.Codex/skills/` on the user's machine. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the SKILL.md files.
+A collection of workflow skills for Java backend developers, targeting Claude Code, Cursor, and Codex. Skills are distributed via install scripts and land in user-level skill directories such as `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the skill folders.
 
 ## Skills
 
@@ -27,9 +27,9 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.Codex/skills/` — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart Codex after install.
+The scripts download the repo archive (tarball/zip) and copy the `skills/` subtree into `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/` by default — no hardcoded file list, so new files under `skills/` are picked up automatically. Restart the target tool after install.
 
-`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.Codex/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `Codex` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
+`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
 
 The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
 
@@ -49,9 +49,11 @@ skills/<name>/
   assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
 ```
 
-SKILL.md frontmatter controls runtime behavior (`allowed-tools`, `model`, `effort`, `disable-model-invocation`). All skills set `disable-model-invocation: true`, meaning Codex must follow the explicit step-by-step instructions in the file rather than exercising free-form judgment.
+SKILL.md frontmatter `name` and `description` are the portable discovery surface for Codex. Some files also keep Claude-oriented fields (`allowed-tools`, `model`, `effort`, `disable-model-invocation`) for compatibility, but do not rely on those fields to make Codex show slash commands. Codex explicit invocation is `$skill-name` or plain-language naming, while Claude Code may expose `/skill-name`.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). These paths resolve correctly because the skill is executed from its own directory inside `~/.Codex/skills/`. `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install).
+Each skill may include `agents/openai.yaml` for Codex UI metadata (display name, short description, default prompt). Keep it in sync with SKILL.md when changing a skill's purpose or invocation wording.
+
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install), and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
 
 ### HTML board
 
@@ -102,6 +104,7 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 When modifying a skill:
 - The execution steps in SKILL.md are the authoritative source of behavior — keep them precise and sequential
 - `reference.md` holds content the skill loads at runtime (templates, question banks); keep it anchored with markdown headings that match the `#anchor` references in SKILL.md
+- `agents/openai.yaml` is the Codex UI/default-prompt metadata; update it when renaming a skill or changing the user-facing trigger
 - Keep skill Markdown files (`skills/**/*.md`) encoded as UTF-8 with BOM. This is intentional: some Windows-based AI tools and PowerShell readers otherwise decode Chinese skill text as the local ANSI code page and show mojibake.
 - Test by installing locally (`install.ps1` / `install.sh`) and running the skill in a Java project
 

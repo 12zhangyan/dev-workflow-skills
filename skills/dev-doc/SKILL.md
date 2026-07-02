@@ -185,7 +185,17 @@ project-html/
 **外壳复制命令**（创建和升级共用；外壳含 ~3MB 的 `js/vendor/mermaid.min.js`，**禁止用 Read+Write 复制外壳**，必须用 bash cp）：
 
 ```bash
-src="$HOME/.claude/skills/dev-doc/assets/board"
+src=""
+for candidate in \
+  "$HOME/.codex/skills/dev-doc/assets/board" \
+  "$HOME/.claude/skills/dev-doc/assets/board" \
+  "$HOME/.cursor/skills/dev-doc/assets/board" \
+  "$HOME/.agents/skills/dev-doc/assets/board" \
+  "$HOME/.nacos-cli/skill-sync/profiles/default/skill-repo/dev-doc/assets/board"
+do
+  if [ -d "$candidate" ]; then src="$candidate"; break; fi
+done
+[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
 mkdir -p project-html/css project-html/js/vendor project-html/data
 cp "$src/index.html" project-html/index.html
 cp "$src/css/board.css" project-html/css/board.css
@@ -214,8 +224,19 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
      ```
 - **EXISTS** → 先做 **⓪ 外壳版本检查**：
   ```bash
+  src=""
+  for candidate in \
+    "$HOME/.codex/skills/dev-doc/assets/board" \
+    "$HOME/.claude/skills/dev-doc/assets/board" \
+    "$HOME/.cursor/skills/dev-doc/assets/board" \
+    "$HOME/.agents/skills/dev-doc/assets/board" \
+    "$HOME/.nacos-cli/skill-sync/profiles/default/skill-repo/dev-doc/assets/board"
+  do
+    if [ -d "$candidate" ]; then src="$candidate"; break; fi
+  done
+  [ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
   grep -m1 "BOARD_VERSION" project-html/js/board.js
-  grep -m1 "BOARD_VERSION" "$HOME/.claude/skills/dev-doc/assets/board/js/board.js"
+  grep -m1 "BOARD_VERSION" "$src/js/board.js"
   ```
   项目侧无 `BOARD_VERSION` 或数字小于模板 → 执行外壳复制命令（`data/` 不动），并输出一行：`🔄 看板外壳已升级到 v<N>`。然后进入 ②。
 

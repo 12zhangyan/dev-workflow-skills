@@ -1,0 +1,7 @@
+interface:
+  display_name: "Code Reading"
+  short_description: "生成 Review 前的代码地图和调用链"
+  default_prompt: "Use $code-reading to map the code paths, call chain, and state transitions before review."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Review Fix"
+  short_description: "生成多 AI 审查任务包与修复交接"
+  default_prompt: "Use $review-fix to create a distributable AI review task package and later summarize fixes."
+
+policy:
+  allow_implicit_invocation: true
