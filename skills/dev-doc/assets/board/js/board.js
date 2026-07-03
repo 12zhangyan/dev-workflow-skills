@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 19;
+const BOARD_VERSION = 20;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -295,6 +295,7 @@ function searchHay(c) {
   push(c.bizRules); push(c.keyImpl); push(c.todos);
   push(c.roles); push(c.context); push(c.dataChanges); push(c.validations); push(c.dataObjects);
   push(c.assumptions); push(c.conflicts); push(c.blockers); push(c.openQuestions);
+  parts.push(c.apiSpecPath, c.apiIndexPath);
   (c.apis || []).forEach(a => parts.push(a.url, a.desc));
   return parts.filter(Boolean).join(' ').toLowerCase();
 }
@@ -399,6 +400,16 @@ function mdLink(d, label) {
   // 自包含单页会被单独发给没有仓库的人，../docPath 必然 404 → 隐藏（与 pageLink 一致）
   if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
   return `<a class="md-link" href="../${esc(d.docPath)}" target="_blank" onclick="event.stopPropagation()">${label || '📄 源文档'}</a>`;
+}
+function apiSpecLink(d, label) {
+  if (!d.apiSpecPath) return '';
+  if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
+  return `<a class="md-link" href="../${esc(d.apiSpecPath)}" target="_blank" onclick="event.stopPropagation()">${label || '📤 Apifox YAML'}</a>`;
+}
+function apiIndexLink(d, label) {
+  if (!d.apiIndexPath) return '';
+  if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
+  return `<a class="md-link" href="../${esc(d.apiIndexPath)}" target="_blank" onclick="event.stopPropagation()">${label || '📚 API 索引'}</a>`;
 }
 // 独立单页链接（pages/<slug>.html，由 build.js 生成）；自包含页面内部不显示此链接
 function pageLink(d) {
@@ -631,6 +642,8 @@ function pick(i) {
       ${d.branch ? `<span>🌿 ${esc(d.branch)}</span>` : ''}
       ${d.entry ? `<span>🧭 ${esc(d.entry)}</span>` : ''}
       ${mdLink(d)}
+      ${apiSpecLink(d)}
+      ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, isReading ? "代码阅读速览" : "读者速览");
@@ -709,6 +722,8 @@ function renderBug(d) {
       <span>📅 ${esc(d.date)}</span>
       ${d.branch ? `<span>🌿 ${esc(d.branch)}</span>` : ''}
       ${mdLink(d)}
+      ${apiSpecLink(d)}
+      ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, "Bug 速览");
@@ -780,6 +795,8 @@ function renderBiz(d) {
       <span>📅 ${esc(d.date)}</span>
       ${d.branch ? `<span>🌿 ${esc(d.branch)}</span>` : ''}
       ${mdLink(d)}
+      ${apiSpecLink(d)}
+      ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
   h += quickBrief(d, "测试速览");
@@ -853,7 +870,7 @@ function showApis() {
             <td style="width:72px"><span class="method ${mClass}">${esc(a.method)}</span></td>
             <td><code class="api-url">${esc(a.url)}</code></td>
             <td>${esc(a.desc || '')}${detail}</td>
-            <td style="width:160px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span></td>
+            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink(c, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
           </tr>`);
         });

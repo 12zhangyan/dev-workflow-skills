@@ -24,6 +24,8 @@ const htmlChangelog = [
 //   status      草稿 / 进行中 / 已完成（详情页点击状态标签可切换，保存在浏览器本地）
 //   branch      Git 分支名
 //   docPath     md 源文档相对仓库根的路径（看板渲染为 ../<docPath> 链接）
+//   apiSpecPath Apifox/OpenAPI YAML 相对仓库根路径（仅接口变更时填写，看板渲染为 ../<apiSpecPath> 链接）
+//   apiIndexPath Apifox/OpenAPI 索引相对仓库根路径（生成 YAML 时通常为 docs/apifox/INDEX.md）
 //   background  需求背景（一段话）
 //   goals       目标列表 string[]
 //   scopeIn     包含范围 string[]

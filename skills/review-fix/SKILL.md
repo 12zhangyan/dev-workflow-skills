@@ -74,6 +74,7 @@ case "$vcs_type" in
   svn)
     echo "VCS_TYPE=svn"
     svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
+    svn status "$vcs_root" 2>/dev/null
     svn diff --summarize "$vcs_root" 2>/dev/null
     ;;
   *) echo "VCS_TYPE=none" ;;
@@ -81,7 +82,7 @@ esac
 find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`，避免漏掉未纳入索引的新增文件。
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`；SVN 项目必须同时看 `svn status` 和 `svn diff --summarize`，避免漏掉未纳入版本控制的新增源码或测试文件。
 
 按入口读取：
 - 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。

@@ -19,6 +19,7 @@ const htmlChangelog = [
   { date: "2026-07-01", desc: "外壳 v15：新增代码审查标签样式，配合 /review-fix 登记 Review 修复交接文档" },
   { date: "2026-07-02", desc: "外壳 v16：视觉升级为业务研发共读工作台，新增首页业务/研发双入口与详情页双视角摘要" },
   { date: "2026-07-03", desc: "外壳 v19：看板视觉打磨为飞书式浅色工作台，浅色侧栏、蓝色主强调、轻阴影卡片与更清爽的信息层级" },
+  { date: "2026-07-03", desc: "外壳 v20：新增 Apifox/OpenAPI YAML 链接字段，详情页与接口索引可直接打开独立接口规范和索引文件" },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -37,6 +38,8 @@ const htmlChangelog = [
 //   status      草稿 / 进行中 / 已完成（详情页点击状态标签可切换，保存在浏览器本地）
 //   branch      Git 分支名
 //   docPath     md 源文档相对仓库根的路径（看板渲染为 ../<docPath> 链接）
+//   apiSpecPath Apifox/OpenAPI YAML 相对仓库根路径（仅接口变更时填写，看板渲染为 ../<apiSpecPath> 链接）
+//   apiIndexPath Apifox/OpenAPI 索引相对仓库根路径（生成 YAML 时通常为 docs/apifox/INDEX.md）
 //   background  需求背景（一段话）
 //   goals       目标列表 string[]
 //   scopeIn     包含范围 string[]

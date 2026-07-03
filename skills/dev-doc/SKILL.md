@@ -135,8 +135,26 @@ d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 - **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
 - **AI 执行口径必须写实**：在技术方案里明确前置条件、执行顺序、验收标准、禁止改动；不要只写"按方案实现"
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
-- **接口文档仅在接口有变动时生成**：仅当本次新增接口、或修改既有接口的参数/返回结构时，才保留「三、API 设计」与「十三、Apifox 接口规范」；只是调用已有接口且签名无变化 → 两节都删除，看板 `apis` 填 `[]`
-- **Apifox 章节**：满足上一条时，生成「十三、Apifox 接口规范」章节，内容为可直接导入 Apifox 的 OpenAPI 3.0 YAML；根据用户提供的接口信息填入 `paths`，未确认字段用 `# 待补充` 注释标记
+- **接口文档仅在接口有变动时生成**：仅当本次新增接口、或修改既有接口的参数/返回结构时，才保留「三、API 设计」与「十三、Apifox 接口规范」；只是调用已有接口且签名无变化 → 两节都删除，看板 `apis` 填 `[]`，不生成 Apifox/OpenAPI 文件
+- **Apifox/OpenAPI 独立产物**：满足上一条时，必须把可导入 Apifox 的 OpenAPI 3.0 YAML 单独生成到 `docs/apifox/<日期>/<任务名>.openapi.yaml`，并更新 `docs/apifox/INDEX.md`；md 的「十三、Apifox 接口规范」只放文件位置、导入说明、接口索引和维护规则，不再内嵌完整 YAML
+- **OpenAPI 填写口径**：根据用户提供的接口信息填入 `paths` / `components.schemas`；未确认字段用 `# 待补充` 注释标记。后续接口变更优先更新同一个 `apiSpecPath` 文件，不要只改 md 接口表或另起新 YAML 文件
+
+### Step 5.1：生成 Apifox/OpenAPI 文件与索引（仅接口变更时）
+
+当 Step 5 判定存在新增接口或接口签名变更时执行；无接口变更时跳过本步。
+
+```bash
+mkdir -p "docs/apifox/$d"
+```
+
+产物规则：
+- OpenAPI 文件路径：`docs/apifox/<日期>/<任务名>.openapi.yaml`
+- Apifox 索引路径：`docs/apifox/INDEX.md`
+- 若 Step 4 因文件冲突选择了时间戳/版本号后缀，OpenAPI 文件名必须使用同一个后缀，保证 md 与 YAML 一一对应
+- 若 Step 4 选择 A 覆盖或 E 追加更新，优先更新同一个 OpenAPI 文件，不重复生成第二份
+- `docs/apifox/INDEX.md` 至少包含：日期、服务/模块、任务、OpenAPI 文件、源 md、接口列表、维护备注
+- md「十三、Apifox 接口规范」必须写明 `apiSpecPath`、`apiIndexPath`、Apifox 导入方式，以及“后续接口变更要更新此 YAML 文件”的维护规则
+- 看板 entry 必须同步写入 `apiSpecPath`；生成索引时写入 `apiIndexPath: "docs/apifox/INDEX.md"`
 
 ### Step 5.5：同步更新 HTML 看板
 
@@ -167,6 +185,8 @@ project-html/
 | `status` | 固定值 `草稿` |
 | `branch` | Step 1 检测到的 Git branch 名 |
 | `docPath` | 本次生成的 md 路径（看板用它链接源文档） |
+| `apiSpecPath` | Apifox/OpenAPI YAML 路径；仅接口变更时填写 |
+| `apiIndexPath` | Apifox/OpenAPI 索引路径；生成 YAML 时固定为 `docs/apifox/INDEX.md` |
 | `goals` | md `### 目标` 的条目 → string[] |
 | `scopeIn` / `scopeOut` | md 范围条目 → string[] |
 | `flowchart` | md 流程图的 mermaid 代码（不含 ` ``` ` 标记） |
@@ -249,6 +269,8 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 
 把本次提取的字段组成一个 entry 对象、连同变更日志描述写进一个临时 JSON 文件，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归校验全在脚本里完成**——AI 只负责产出结构化字段，不再手改 `data/changes.js`，从根上杜绝「误判看板不存在 → 整体覆盖」事故。
 
+下例是**存在接口变更**时的写法；如果本次没有新增接口或接口签名变更，必须删除 `apiSpecPath` / `apiIndexPath` 两个字段，并保持 `apis: []`。
+
 ```bash
 cat > project-html/data/_entry.json <<'JSON'
 {
@@ -257,6 +279,7 @@ cat > project-html/data/_entry.json <<'JSON'
     "service": "<service>", "module": "<module>", "title": "<title>",
     "date": "<date>", "type": "<type>", "complexity": "<complexity>",
     "status": "草稿", "branch": "<branch>", "docPath": "<docPath>",
+    "apiSpecPath": "<apiSpecPath>", "apiIndexPath": "docs/apifox/INDEX.md",
     "background": "<background>",
     "goals": [<goals>], "scopeIn": [<scopeIn>], "scopeOut": [<scopeOut>], "apis": [],
     "solution": "<solution>", "coreDesign": "<coreDesign>",
@@ -320,6 +343,8 @@ node project-html/build.js
 - [ ] 信息槽位已用于查漏；阻塞项已确认，非阻塞未知已标注假设或 `待补充`
 - [ ] 文件路径冲突已处理
 - [ ] 不相关章节已删除（避免大量"待补充"）
+- [ ] 如存在新增接口或接口签名变更，已生成 `docs/apifox/<日期>/<任务名>.openapi.yaml` 并更新 `docs/apifox/INDEX.md`
+- [ ] 如不存在接口变更，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] 最小影响分析已包含
 - [ ] AI 执行口径已写清前置条件、执行顺序、验收标准、禁止改动
 - [ ] 实现 Todo 均为"动词 + 对象 + 结果"，没有无法验收的泛化表述
@@ -347,6 +372,7 @@ node project-html/build.js
 | 看板写入后打不开 | 手工降级时字段含未转义的双引号/换行/反引号 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
+| Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
 | 外壳 cp 失败 | skill 不在 `~/.claude/skills/` 默认路径 | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
 | `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
 | `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |

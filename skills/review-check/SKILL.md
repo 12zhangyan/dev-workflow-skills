@@ -66,6 +66,7 @@ case "$vcs_type" in
   svn)
     echo "VCS_TYPE=svn"
     svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
+    svn status "$vcs_root" 2>/dev/null
     svn diff --summarize "$vcs_root" 2>/dev/null
     ;;
   *) echo "VCS_TYPE=none" ;;
@@ -73,7 +74,7 @@ esac
 find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`，避免漏掉未纳入索引的新增文件。
+判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`；SVN 项目必须同时看 `svn status` 和 `svn diff --summarize`，避免漏掉未纳入版本控制的新增源码或测试文件。
 
 按模式读取：
 - 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。
@@ -101,7 +102,8 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 6. **前端交互**：路由守卫、token 刷新、SSE 错误事件、XSS/iframe、loading 状态。
 7. **AI 文件沙箱**：路径穿越、覆盖写、读取截断、生成/修改模式误判、部署回滚。
 8. **性能与兼容**：N+1、循环远程调用、接口签名/响应结构变更、OpenAPI 生成兼容。
-9. **测试与验证**：测试是否覆盖正常、异常、边界、回归。
+9. **测试与验证**：测试是否覆盖正常、异常、边界、回归；新增/修改的测试文件是否已纳入 VCS。
+10. **提交完整性**：关键源码、测试、配置、SQL/XML、前端资源等是否存在"本地有文件但未被 Git/SVN 跟踪"的问题；这类问题即使本地测试通过，也会导致提交后缺文件。
 
 ### Step 3：判定 finding
 
@@ -154,7 +156,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 - [ ] 已识别入口模式
 - [ ] 已读取任务包 / dev-doc / patch / 关键源码
-- [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试
+- [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试与提交完整性
 - [ ] 每条 finding 都有证据、影响、修复建议、验证方式
 - [ ] 已在 Findings / NoEvidenceIssue / InsufficientMaterial 三种结论中选择一种，并写明依据
 - [ ] 未修改任何代码或文档

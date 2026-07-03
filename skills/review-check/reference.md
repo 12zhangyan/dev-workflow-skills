@@ -23,6 +23,7 @@
 | 兼容 | 接口签名、响应字段、枚举值、配置默认值、老数据兼容 | DTO、Controller、OpenAPI、配置读取 |
 | 配置部署 | CORS、JWT、Redis、LLM profile、Docker、CI 是否和运行文档一致 | yml/env/Dockerfile/workflow/README |
 | 测试 | 是否覆盖主流程、异常、边界、回归；验证命令是否能证明风险已解除 | 测试类、用例数据、mvn/gradle 命令 |
+| 提交完整性 | 新增/修改的源码、测试、配置、SQL/XML、前端资源是否已纳入 Git/SVN；是否存在本地测试能跑但提交后缺文件 | `git status --short`、`svn status`、diff 文件列表、测试类路径 |
 
 ---
 
@@ -92,7 +93,7 @@ OpenQuestions:
 已检查：
 - 需求一致性：<说明>
 - 业务正确性：<说明>
-- 边界/事务/并发/安全/前端/SSE/AI 文件沙箱/性能/兼容/测试：<说明>
+- 边界/事务/并发/安全/前端/SSE/AI 文件沙箱/性能/兼容/测试/提交完整性：<说明>
 
 Notes:
 - <仍建议人工关注的不确定点>

@@ -214,7 +214,25 @@ flowchart TD
 ## 十三、Apifox 接口规范
 
 > 仅当新增接口、或修改既有接口的参数/返回结构时保留本节，否则删除（调用已有接口且签名无变化不算接口变更）。
-> 以下 YAML 可直接复制，在 Apifox 中通过「导入 → OpenAPI / Swagger」粘贴导入。
+> 完整 OpenAPI YAML 单独保存，本文档只记录导入入口、接口索引和维护规则。
+
+- **OpenAPI 文件**：`docs/apifox/<YYYY-MM-DD>/<任务名>.openapi.yaml`
+- **Apifox 导入**：Apifox → 导入 → OpenAPI / Swagger → 选择该 YAML 文件，或粘贴文件内容
+- **接口索引**：`docs/apifox/INDEX.md`
+- **维护规则**：后续新增接口、调整请求参数、调整响应结构或变更路径/方法时，优先更新上述 YAML 文件；不要只改本文档的接口表
+
+| Method | URL | operationId | 说明 | OpenAPI 文件 |
+|--------|-----|-------------|------|--------------|
+| GET / POST / PUT / DELETE | /api/v1/xxx | camelCaseUniqueId | | `docs/apifox/<YYYY-MM-DD>/<任务名>.openapi.yaml` |
+
+````
+
+---
+
+## Apifox OpenAPI 文件模板
+
+> 文件路径：`docs/apifox/<YYYY-MM-DD>/<任务名>.openapi.yaml`
+> 仅当新增接口、或修改既有接口的参数/返回结构时生成。后续接口变更优先更新同一个文件。
 
 ```yaml
 openapi: "3.0.3"
@@ -287,7 +305,21 @@ components:
 > - 字段类型：`string` / `integer` / `number` / `boolean` / `array` / `object`
 > - 数组示例：`type: array` + `items: { type: string }`
 > - 引用公共响应体：`$ref: "#/components/schemas/CommonResponse"`
-````
+
+---
+
+## Apifox 索引模板
+
+> 文件路径：`docs/apifox/INDEX.md`
+> 每次生成或更新 OpenAPI YAML 时同步更新本索引，方便导入 Apifox 和后续维护。
+
+```markdown
+# Apifox / OpenAPI 索引
+
+| 日期 | 服务/模块 | 任务 | OpenAPI 文件 | 源文档 | 接口 | 维护备注 |
+|------|-----------|------|--------------|--------|------|----------|
+| <YYYY-MM-DD> | <服务>/<模块> | <任务名> | `docs/apifox/<YYYY-MM-DD>/<任务名>.openapi.yaml` | `docs/<YYYY-MM-DD>/<任务名>.md` | `POST /api/v1/xxx` | 后续接口变更更新同一 YAML 文件 |
+```
 
 ---
 
@@ -295,6 +327,8 @@ components:
 
 ```
 ✅ 文档已生成：docs/<日期>/<任务名>.md
+📤 Apifox/OpenAPI：docs/apifox/<日期>/<任务名>.openapi.yaml（仅接口变更时生成；无接口变更则输出“本次无新增或签名变更接口，未生成”）
+📚 Apifox 索引：docs/apifox/INDEX.md（仅接口变更时更新）
 
 📌 关键决策：
 1. <一句话>
