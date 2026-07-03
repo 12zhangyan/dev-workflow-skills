@@ -1,6 +1,6 @@
 ﻿---
 name: biz-flow
-description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出业务流转图、数据流图、时序图、业务规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流时使用。Codex 中用户可说"使用 biz-flow skill 生成业务流方案"；Claude Code 可兼容 /biz-flow。
+description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出角色入口、上下文前置条件、业务流转图、数据流图、时序图、状态机、阶段数据变动、校验规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流、状态和表字段怎么变时使用，尤其适合 App+PC、审批/审核、扫码/回调、多表状态流转类功能。Codex 中用户可说"使用 biz-flow skill 生成业务流方案"；Claude Code 可兼容 /biz-flow。
 argument-hint: [业务/功能名称]
 arguments: feature
 disable-model-invocation: true
@@ -14,7 +14,7 @@ effort: high
 
 ## 任务定位
 
-输入一组相关接口（或功能描述、Controller 入口），输出一份**面向测试人员**的业务逻辑技术方案：业务流转图 + 数据流图 + 时序图 + 关键业务规则 + 测试关注点。
+输入一组相关接口（或功能描述、Controller 入口），输出一份**面向测试人员**的业务逻辑技术方案：角色入口 + 上下文/前置条件 + 业务流转图 + 数据流图 + 时序图 + 状态机 + 阶段数据变动 + 校验规则 + 测试关注点。
 **目标读者是测试/产品，不是开发**——讲清楚「这条业务整体怎么走、数据从哪来到哪去、什么条件走什么分支、哪里最该测」，少堆代码术语。
 
 产出：`docs/biz-flow/<日期>/<业务名>.md`，并以 `kind:"biz"` 登记到 HTML 看板（🔀 业务流）。
@@ -57,12 +57,16 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
 
-### Step 2：收集接口与业务信息（逐一提问，每次只问一个）
+### Step 2：收集接口与业务信息（少问，先从入口追）
 
-具体问题集见 [reference.md](reference.md#step-2-问题集)，共 5 个问题。**核心是第 1 问：让用户贴出相关接口**（URL + 方法 + 简述，或 Controller 类名/方法、Swagger 片段均可）。封闭选项用 AskUserQuestion，自由文本直接对话。
+具体问题集见 [reference.md](reference.md#step-2-问题集)，作为检查清单使用，不是必问清单。**核心是拿到至少一个入口**（URL + 方法 + 简述，或 Controller 类名/方法、Swagger / Apifox 片段均可）；用户已给入口时直接进入代码追踪，不要再追问能从代码里补齐的角色、状态、表、字段。
 
-用户答"不知道"/"待定" → 记 `待补充`，继续下一题。
-全部完成后告知："信息收集完毕，正在分析业务流..."
+询问策略：
+- 能从接口、Controller、Service、Mapper、字典、已有文档确定 → 直接填入，并在文档里体现依据。
+- 低风险未知（模块归属、展示文案、非核心命名）→ 明确假设后继续。
+- 高风险未知（业务状态语义、审批通过/驳回行为、权限范围、数据归属、接口先后依赖、是否复用既有表）→ 暂停并只问一个聚焦问题。
+- 用户答"不知道"/"待定" → 记 `待补充`，不要继续追问同类非阻塞细节。
+信息足够后告知："信息足够，正在分析业务流；未确认项会集中标注。"
 
 ### Step 3：代码追踪补全（静默，按需）
 
@@ -71,14 +75,17 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 **Java（pom.xml / build.gradle）：**
 1. 用 Grep 定位每个接口的 Controller 方法（pattern: URL 片段或方法名，glob: `**/*.java`）
 2. 顺着 Controller → Service → Mapper/Repository 读 2–3 层，重点记录：
+   - **角色/入口**：谁在 App/PC/后台任务/第三方回调触发，入口接口或操作按钮是什么
+   - **上下文/前置条件**：登录上下文、租户/公司/仓库/部门、权限、缓存、配置、字典值从哪来
    - **数据流**：入参从哪来、查/写了哪些表或外部服务、返回什么
+   - **阶段数据变动**：每个关键阶段 INSERT / UPDATE / SELECT 了哪些表或对象，关键字段如何变化，测试怎么核对
    - **业务分支**：if/else、状态判断、枚举流转（`setStatus`、状态机）
    - **服务/接口交互**：Feign/RestTemplate/MQ 调用、事务边界
 3. 多个接口之间的先后/依赖关系（如「下单」→「支付回调」→「发货」）
 
 **JS/TS（package.json）：** 顺着路由 → controller/service 读取，记录同类信息。
 
-**跳过条件**：无源码 / 用户只给了口头描述 → 仅基于用户提供的信息绘图，未知处标 `待补充`，不编造。
+**跳过条件**：无源码 / 用户只给了口头描述 → 仅基于用户提供的信息绘图；未知处标 `待补充` 或明确假设，不编造。
 
 ### Step 4：路径处理
 
@@ -97,12 +104,14 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 **核心规则**：
 - 面向测试人员撰写：每个图配一段大白话说明「这张图在讲什么、测试该重点看哪里」
+- 若业务像参考页那样存在角色入口、登录上下文、审批/驳回、扫码解析、多表状态流转，必须拆成「角色与入口 / 上下文与前置条件 / 状态流转 / 阶段数据变动 / 校验规则 / 涉及数据对象」几块，测试拿到后能直接按阶段拆用例。
 - **三张图按需画，画不出来的删掉**：
   - 业务流转图（`flowchart`）：业务状态/分支怎么流转——几乎必画
   - 数据流图（`flowchart`，节点用「数据/存储」）：数据从入口经过哪些服务/表，最终落到哪——涉及多表/多服务时画
   - 时序图（`sequenceDiagram`）：多个服务/接口之间的调用时序——跨服务或有回调时画
   - 状态机（`stateDiagram-v2`）：有明确状态字段流转时才画
-- 只用确认的信息，未知标 `待补充`，不编造接口或字段
+- 只用确认的信息和代码/文档证据；未知标 `待补充` 或明确假设，不编造接口或字段
+- **显式暴露业务逻辑冲突**：如果用户描述与现有代码、状态机、字典值、权限模型、数据归属、表复用或接口先后关系冲突，单独写「业务逻辑冲突/待确认」；列出证据、风险、建议口径，不能为了成图把冲突悄悄抹平
 - 业务规则写「触发条件 → 系统行为 → 边界」，测试关注点写「具体可验证的点」（含正常 + 异常 + 边界 + 并发）
 
 ### Step 5.5：登记到 HTML 看板（kind:"biz"）
@@ -131,8 +140,13 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 | JS 字段 | 写什么 |
 |---------|--------|
 | `background` | 业务概述：这条业务整体在做什么、从哪触发、最终达成什么，3–5 句，测试视角 |
+| `roles` | 角色与入口 → `{name,channel,entry,desc}[]`；如 App 现场人员、PC 审核人员、定时任务、第三方回调 |
+| `context` | 上下文与前置条件 → `{field,source,usage,note}[]`；如 token、当前仓库、部门、公司、字典、权限 |
+| `dataChanges` | 阶段数据变动 → `{stage,trigger,summary,operations:[{target,action,fields,check}]}[]`；按申请/审核/驳回/回调等阶段写 |
 | `bizRules` | 关键业务规则 → `{title:规则名, desc:触发条件→系统行为→边界，2–3 句}[]` |
+| `validations` | 校验规则 → `{stage,rule,failure,check}[]`；失败行为和测试核对点要明确 |
 | `testPoints` | 测试关注点 → string[]，每条是一个具体可验证的点（正常/异常/边界/并发） |
+| `dataObjects` | 涉及数据对象 → `{name,phase,action,note}[]`；表、缓存、消息、外部服务均可登记 |
 
 **字符串转义**（否则看板 JS 语法错误）：含双引号 → `\"`，含换行 → `\n`；Mermaid 字段用反引号模板字面量包裹，内容含反引号时改双引号 + `\n`。
 
@@ -185,12 +199,15 @@ cat > project-html/data/_entry.json <<'JSON'
     "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>", "docPath":"<docPath>",
     "background":"<background>", "apis":[<apis>],
     "bizFlow":"<bizFlow>", "dataFlow":"<dataFlow>", "sequence":"<sequence>", "stateMachine":"<stateMachine>",
-    "bizRules":[<bizRules>], "testPoints":[<testPoints>] } }
+    "roles":[<roles>], "context":[<context>], "dataChanges":[<dataChanges>],
+    "bizRules":[<bizRules>], "validations":[<validations>], "testPoints":[<testPoints>],
+    "dataObjects":[<dataObjects>] } }
 JSON
 node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
 
 - **标准 JSON**：字符串值用双引号、内部换行写成 `\n`，**不要用反引号**；各 Mermaid 字段（`bizFlow`/`dataFlow`/`sequence`/`stateMachine`）都是带 `\n` 的普通字符串，没有的字段省略。字段含义见上方表格与 [reference.md](reference.md#html-追加格式)。
+- **结构化字段优先**：`roles` / `context` / `dataChanges` / `validations` / `dataObjects` 能从代码或用户输入确定时必须写入；未知值写 `待补充`，不要整块省略到只剩 Mermaid 图。
 - **查重自动处理**：脚本按 `docPath` 命中既有条目时就地更新并**保留原 status**，否则追加。Step 4 冲突选 A/E 时只把 `changelog` 改成 `更新业务流：<title>`。
 - **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（记录数 X → Y）`；校验失败会放弃写入并保持原文件不动，按提示排查后重试，不要手改文件。
 - **`node` 不存在** → 降级手工：用 Edit 在 `// ─── 在此行上方追加新记录 ───` 上方插入同一对象（注意 JS 转义），并在变更日志标记行上方插入 `{ date: "<date>", desc: "新增业务流：<title>" }`，提示用户手动打开看板确认。
@@ -207,6 +224,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 - **面向测试**：语言通俗，每张图配说明，重点落在"怎么测"
 - **不编造**：未确认的接口/字段/分支标 `待补充`，宁缺毋假
+- **不乱猜需求**：低风险可假设，高风险必须提出来确认；发现逻辑不通时直接指出
 - **图按需画**：画不出来的图直接删，不放空模板
 - **测试执行口径必须落地**：主流程、优先异常、数据核对、暂不覆盖都要写清楚，测试拿到后能直接拆用例
 - **静默分析**：Step 1、Step 3 的命令与读码过程不展示给用户
@@ -214,9 +232,10 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 ## 检查清单（生成前确认）
 
 - [ ] `$feature` 已确认（不为空）
-- [ ] Step 2 的 5 个问题问完（至少拿到接口清单）
+- [ ] 已拿到至少一个入口；问题集已用于查漏，但没有机械追问非阻塞项
 - [ ] 文件路径冲突已处理
 - [ ] 至少画出业务流转图，其余图按需
+- [ ] 角色入口、上下文/前置条件、阶段数据变动、校验规则已按实际复杂度补齐（简单无状态功能可省略）
 - [ ] 测试执行口径已写清主流程、优先异常、数据核对、暂不覆盖
 - [ ] 测试关注点具体可验证（至少 3 条）
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`

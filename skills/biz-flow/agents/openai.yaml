@@ -1,7 +1,7 @@
 interface:
   display_name: "Biz Flow"
-  short_description: "生成面向测试和产品的业务流方案"
-  default_prompt: "Use biz-flow skill to turn APIs or features into tester-facing business flow documentation."
+  short_description: "生成面向测试和产品的业务流、状态与数据变动方案"
+  default_prompt: "Use biz-flow skill to turn APIs or features into tester-facing business flow documentation with roles, context, state transitions, data changes, validation rules, and test points."
 
 policy:
   allow_implicit_invocation: true

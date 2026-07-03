@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 16;
+const BOARD_VERSION = 17;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -87,6 +87,10 @@ function summaryRows(d) {
   if (d.kind === 'biz') {
     const apis = (d.apis || []).map(a => `${a.method || ''} ${a.url || ''}`.trim()).filter(Boolean).slice(0, 3);
     if (apis.length) rows.push(['接口主线', apis.join(' → ')]);
+    const roles = firstItems(d.roles, 2).map(x => x.name || x.role || x.actor).filter(Boolean);
+    if (roles.length) rows.push(['参与角色', roles.join('；')]);
+    const stages = firstItems(d.dataChanges, 2).map(x => x.stage || x.title).filter(Boolean);
+    if (stages.length) rows.push(['数据阶段', stages.join('；')]);
     const rules = firstItems(d.bizRules, 2).map(x => x.title || x.desc).filter(Boolean);
     if (rules.length) rows.push(['关键规则', rules.join('；')]);
     const tests = firstItems(d.testPoints, 2);
@@ -138,10 +142,12 @@ function executionBrief(d) {
     if (verify.length) lanes.push(['最后验证', verify]);
   } else if (d.kind === 'biz') {
     const api = (d.apis || []).map(a => `${a.method || ''} ${a.url || ''}：${a.desc || ''}`.trim()).slice(0, 3);
+    const stages = firstItems(d.dataChanges, 3).map(x => `${x.stage || x.title || '阶段'}：${x.summary || firstItems(x.operations, 1).map(op => `${op.action || ''} ${op.target || ''}`.trim())[0] || ''}`).filter(Boolean);
     const rules = firstItems(d.bizRules, 3).map(x => x.title ? `${x.title}：${x.desc || ''}` : x.desc).filter(Boolean);
     const tests = firstItems(d.testPoints, 3);
     if (api.length) lanes.push(['接口顺序', api]);
-    if (rules.length) lanes.push(['业务规则', rules]);
+    if (stages.length) lanes.push(['数据变动', stages]);
+    else if (rules.length) lanes.push(['业务规则', rules]);
     if (tests.length) lanes.push(['测试落点', tests]);
   } else if (d.kind !== 'reading') {
     const files = firstItems(d.changeList, 3).map(x => `${x.action || '修改'} ${x.file || ''}：${x.desc || ''}`.trim()).filter(Boolean);
@@ -214,10 +220,10 @@ function audienceBrief(d) {
     developer.push({ key: '执行任务', value: shortText(firstItems(d.todos, 2).join('；') || '按修复方案补齐 Todo', 140) });
   } else if (d.kind === 'biz') {
     business.push({ key: '业务主线', value: shortText(d.background || '待补充', 150) });
+    business.push({ key: '参与角色', value: shortText(firstItems(d.roles, 2).map(x => x.name || x.role || x.actor).filter(Boolean).join('；') || '待补充', 140) });
     business.push({ key: '业务规则', value: shortText(firstItems(d.bizRules, 2).map(x => x.title || x.desc).join('；') || '待补充', 140) });
-    business.push({ key: '测试重点', value: shortText(firstItems(d.testPoints, 2).join('；') || '待补充', 140) });
     developer.push({ key: '接口链路', value: shortText((d.apis || []).slice(0, 3).map(a => `${a.method || ''} ${a.url || ''}`.trim()).join(' → ') || '待补充', 140) });
-    developer.push({ key: '数据/状态', value: d.dataFlow ? '查看数据流图' : d.stateMachine ? '查看状态流转图' : '待补充' });
+    developer.push({ key: '数据/状态', value: d.dataChanges?.length ? `查看 ${d.dataChanges.length} 个阶段的数据变动` : d.dataFlow ? '查看数据流图' : d.stateMachine ? '查看状态流转图' : '待补充' });
     developer.push({ key: '联调关注', value: shortText(firstItems(d.testPoints, 1)[0] || '按测试关注点联调验证', 130) });
   } else if (d.kind === 'reading') {
     business.push({ key: '整体说明', value: shortText(d.background || d.entry || '待补充', 150) });
@@ -251,9 +257,10 @@ function searchHay(c) {
     c.background, c.solution, c.coreDesign,            // doc
     c.symptom, c.trigger, c.impact, c.rootCause, c.fixPlan, c.codeLocation,  // bug
     c.entry];                                          // reading
-  const push = arr => { if (Array.isArray(arr)) arr.forEach(x => parts.push(typeof x === 'string' ? x : (x && (x.title + ' ' + x.desc)))); };
+  const push = arr => { if (Array.isArray(arr)) arr.forEach(x => parts.push(typeof x === 'string' ? x : JSON.stringify(x || {}))); };
   push(c.goals); push(c.scopeIn); push(c.scopeOut); push(c.testPoints);
   push(c.bizRules); push(c.keyImpl); push(c.todos);
+  push(c.roles); push(c.context); push(c.dataChanges); push(c.validations); push(c.dataObjects);
   (c.apis || []).forEach(a => parts.push(a.url, a.desc));
   return parts.filter(Boolean).join(' ').toLowerCase();
 }
@@ -487,6 +494,50 @@ function apiTable(apis) {
   </table>`;
 }
 
+function bizRoles(roles) {
+  return `<div class="biz-role-grid">${roles.map(r => {
+    const title = r.name || r.role || r.actor || '角色';
+    const sub = [r.channel, r.scope].filter(Boolean).join(' / ');
+    const entry = r.entry || r.api || r.operation || '';
+    return `<div class="biz-role-card">
+      <div class="biz-role-title">${esc(title)}</div>
+      ${sub ? `<div class="biz-role-sub">${esc(sub)}</div>` : ''}
+      ${r.desc ? `<div class="biz-role-desc">${esc(r.desc)}</div>` : ''}
+      ${entry ? `<code class="biz-role-entry">${esc(entry)}</code>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function simpleTable(columns, rows) {
+  return `<table class="api-table">
+    <thead><tr>${columns.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${columns.map(c => `<td>${esc(row[c.key] || '')}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function dataChangeBlocks(stages) {
+  return `<div class="stage-list">${stages.map(s => {
+    const ops = firstItems(s.operations, 20);
+    const opTable = ops.length ? `<table class="api-table stage-table">
+      <thead><tr><th>对象</th><th>操作</th><th>关键字段/变化</th><th>核对点</th></tr></thead>
+      <tbody>${ops.map(op => `<tr>
+        <td><code>${esc(op.target || op.table || op.object || '')}</code></td>
+        <td>${esc(op.action || '')}</td>
+        <td>${esc(op.fields || op.change || '')}</td>
+        <td>${esc(op.check || op.note || '')}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '';
+    return `<div class="stage-card">
+      <div class="stage-head">
+        <div class="stage-title">${esc(s.stage || s.title || '阶段')}</div>
+        ${s.trigger ? `<div class="stage-trigger">${esc(s.trigger)}</div>` : ''}
+      </div>
+      ${s.summary ? `<p class="stage-summary">${esc(s.summary)}</p>` : ''}
+      ${opTable}
+    </div>`;
+  }).join('')}</div>`;
+}
+
 // ─── Mermaid 渲染（流程图 / 时序图等多图共用）─────────────────────────────────
 function renderMermaid(wrap, code) {
   if (!wrap) return;
@@ -701,11 +752,19 @@ function renderBiz(d) {
 
   const mmds = [];
   if (d.background) h += sec("业务概述", para(d.background));
+  if (d.roles?.length) h += sec("角色与入口", bizRoles(d.roles));
+  if (d.context?.length) h += sec("上下文与前置条件", simpleTable([
+    { key: 'field', label: '上下文字段/条件' },
+    { key: 'source', label: '来源' },
+    { key: 'usage', label: '业务用途' },
+    { key: 'note', label: '说明' }
+  ], d.context));
   if (d.apis?.length) h += sec("涉及接口", apiTable(d.apis));
   if (d.bizFlow) { h += sec("业务流转图", `<div class="mermaid-wrap" id="mmd-biz"></div>`); mmds.push(['mmd-biz', d.bizFlow]); }
   if (d.dataFlow) { h += sec("数据流图", `<div class="mermaid-wrap" id="mmd-data"></div>`); mmds.push(['mmd-data', d.dataFlow]); }
   if (d.sequence) { h += sec("时序图", `<div class="mermaid-wrap" id="mmd-seq"></div>`); mmds.push(['mmd-seq', d.sequence]); }
   if (d.stateMachine) { h += sec("状态流转", `<div class="mermaid-wrap" id="mmd-state"></div>`); mmds.push(['mmd-state', d.stateMachine]); }
+  if (d.dataChanges?.length) h += sec("阶段数据变动", dataChangeBlocks(d.dataChanges));
 
   if (d.bizRules?.length) {
     h += sec("关键业务规则", `<div class="keyimpl-list">${d.bizRules.map(k =>
@@ -713,9 +772,23 @@ function renderBiz(d) {
     ).join('')}</div>`);
   }
 
+  if (d.validations?.length) h += sec("校验规则", simpleTable([
+    { key: 'stage', label: '阶段' },
+    { key: 'rule', label: '校验项' },
+    { key: 'failure', label: '失败提示/行为' },
+    { key: 'check', label: '测试核对点' }
+  ], d.validations));
+
   if (d.testPoints?.length) {
     h += sec("测试关注点", `<ul class="checklist">${d.testPoints.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`);
   }
+
+  if (d.dataObjects?.length) h += sec("涉及数据对象", simpleTable([
+    { key: 'name', label: '对象/表' },
+    { key: 'phase', label: '阶段' },
+    { key: 'action', label: '操作' },
+    { key: 'note', label: '关键字段/说明' }
+  ], d.dataObjects));
 
   h += '</div>';
   document.getElementById("main").innerHTML = h;

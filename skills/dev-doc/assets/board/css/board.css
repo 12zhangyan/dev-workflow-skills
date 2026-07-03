@@ -320,6 +320,30 @@ summary:hover { color: var(--accent); }
 .ki-title { font-family: var(--sans); font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .ki-desc  { font-size: 13px; color: var(--ink-soft); line-height: 1.7; }
 
+/* Biz-flow rich blocks */
+.biz-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.biz-role-card {
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--coral);
+  border-radius: 12px; padding: 14px 15px; box-shadow: var(--shadow-soft);
+}
+.biz-role-title { font-size: 14px; font-weight: 850; color: var(--ink); margin-bottom: 4px; }
+.biz-role-sub { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; color: var(--ink-faint); margin-bottom: 7px; }
+.biz-role-desc { font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 8px; }
+.biz-role-entry {
+  display: inline-block; font-family: var(--mono); font-size: 11.5px; color: var(--blue);
+  background: var(--blue-soft); border: 1px solid #aec7d6; padding: 2px 7px; border-radius: 4px;
+}
+.stage-list { display: flex; flex-direction: column; gap: 14px; }
+.stage-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-soft); }
+.stage-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  background: #edf4f1; border-bottom: 1px solid var(--line); padding: 11px 14px;
+}
+.stage-title { font-size: 14px; font-weight: 850; color: var(--ink); }
+.stage-trigger { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--ink-faint); text-align: right; }
+.stage-summary { padding: 12px 14px 0; color: var(--ink-soft); line-height: 1.75; font-size: 13.5px; }
+.stage-table { margin: 12px 14px 14px; width: calc(100% - 28px); }
+
 .ctable code { font-family: var(--mono); font-size: 12px; background: var(--paper-deep); border: 1px solid var(--line); padding: 1px 6px; border-radius: 2px; color: var(--blue); }
 .abadge { display: inline-block; padding: 1px 8px; border-radius: 2px; font-size: 12px; font-weight: 500; border: 1px solid transparent; }
 .a-新增 { background: var(--green-soft); color: var(--green); border-color: #b7cfbf; }
@@ -459,7 +483,7 @@ summary:hover { color: var(--accent); }
   .doc-view { padding: 32px 28px 70px; }
   .qb-head { flex-direction: column; align-items: flex-start; gap: 6px; }
   .qb-action { text-align: left; }
-  .qb-grid, .exec-grid, .reader-guide, .role-grid, .home-hero, .audience-grid { grid-template-columns: 1fr; }
+  .qb-grid, .exec-grid, .reader-guide, .role-grid, .home-hero, .audience-grid, .biz-role-grid { grid-template-columns: 1fr; }
   .role-sub { text-align: left; max-width: none; }
   .role-row { grid-template-columns: 1fr; }
   .role-side { align-items: flex-start; }
