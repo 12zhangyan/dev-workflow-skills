@@ -68,6 +68,15 @@ OpenQuestions:
 - <材料不足或需要业务确认的问题；阻塞项标注 blocking>
 
 可将以上 findings 原样贴回 /review-fix，用于生成修复交接文档。
+
+【Skill 反馈给 Codex】
+- skill：review-check
+- 本次场景：<一句话描述审查材料，如 review-task/dev-doc/patch/diff>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
 
 没有 findings 时：
@@ -87,6 +96,15 @@ OpenQuestions:
 
 Notes:
 - <仍建议人工关注的不确定点>
+
+【Skill 反馈给 Codex】
+- skill：review-check
+- 本次场景：<一句话描述审查材料，如 review-task/dev-doc/patch/diff>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
 
 材料不足时：
@@ -111,5 +129,14 @@ OpenQuestions:
 - blocking: <必须补充的问题>
 
 可将以上材料不足结论贴回 /review-fix，用于补齐证据包。
+
+【Skill 反馈给 Codex】
+- skill：review-check
+- 本次场景：<一句话描述审查材料缺口>
+- 运行评价：有阻塞
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次材料不足、漏读文件、模板不足或无法判断的具体表现；没有则写 无>
 ```
 

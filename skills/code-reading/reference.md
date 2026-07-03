@@ -123,4 +123,13 @@ stateDiagram-v2
 
 可以开始 Review 了。
 如需 AI 审查，运行：/requesting-code-review
+
+【Skill 反馈给 Codex】
+- skill：code-reading
+- 本次场景：<一句话描述入口形态，如 dev-doc/类方法/自然语言描述>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```

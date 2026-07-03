@@ -341,6 +341,15 @@ Accepted finding 必须同时满足：
 
 否则请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
 等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
+
+【Skill 反馈给 Codex】
+- skill：review-fix
+- 本次场景：<一句话描述输入材料，如 dev-doc/patch/上下文/findings>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
 
 ## 第二阶段完成后输出格式
@@ -351,5 +360,14 @@ Accepted finding 必须同时满足：
 
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>
+
+【Skill 反馈给 Codex】
+- skill：review-fix
+- 本次场景：<一句话描述 findings 汇总和修复交接输入形态>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
 

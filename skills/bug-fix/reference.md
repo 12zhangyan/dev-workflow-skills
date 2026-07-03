@@ -180,4 +180,13 @@
 4. 修复验证后更新看板状态（浏览器点状态标签只存本地；要全员可见，对 Claude 说：
    "把 project-html/data/changes.js 中标题为「{task}」的记录 status 改为 \"已修复\"，改完跑 node --check"）
 5. {Git → /requesting-code-review | SVN → svn diff > /tmp/bug.patch 后让 Claude 审查}
+
+【Skill 反馈给 Codex】
+- skill：bug-fix
+- 本次场景：<一句话描述 Bug 输入形态，如有/无堆栈、有/无复现>
+- 运行评价：<顺畅 / 有小问题 / 有阻塞>
+- 建议：
+  1. <无，或一条可落地的 skill 改进建议>
+- 证据：
+  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```

@@ -147,6 +147,8 @@ project-html/
 
 修改交互规则后运行 `node scripts/check-interaction-policy-sync.js`，确认相关 skill 都引用了共享协议。
 
+各文档/审查类 skill 的完成输出末尾会追加 `【Skill 反馈给 Codex】`。如果运行过程中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，直接复制这段反馈回来即可继续优化 skill。
+
 为什么这样设计：[docs/why-dev-doc.md](docs/why-dev-doc.md) · [docs/why-code-reading.md](docs/why-code-reading.md)
 
 ## 升级
