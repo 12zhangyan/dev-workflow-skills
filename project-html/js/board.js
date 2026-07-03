@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 20;
+const BOARD_VERSION = 21;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -296,7 +296,7 @@ function searchHay(c) {
   push(c.roles); push(c.context); push(c.dataChanges); push(c.validations); push(c.dataObjects);
   push(c.assumptions); push(c.conflicts); push(c.blockers); push(c.openQuestions);
   parts.push(c.apiSpecPath, c.apiIndexPath);
-  (c.apis || []).forEach(a => parts.push(a.url, a.desc));
+  (c.apis || []).forEach(a => parts.push(a.url, a.desc, a.operationId, a.specPath));
   return parts.filter(Boolean).join(' ').toLowerCase();
 }
 function matchF(c) {
@@ -530,11 +530,11 @@ function apiTable(apis) {
     return `<tr>
       <td><span class="method ${mClass}">${esc(a.method)}</span></td>
       <td><code class="api-url">${esc(a.url)}</code></td>
-      <td>${esc(a.desc || '')}${detail}</td>
+      <td>${a.operationId ? `<code class="api-url">${esc(a.operationId)}</code><br>` : ''}${esc(a.desc || '')}${detail}</td>
     </tr>`;
   }).join('');
   return `<table class="api-table">
-    <thead><tr><th style="width:72px">方法</th><th>路径</th><th>说明 / 报文</th></tr></thead>
+    <thead><tr><th style="width:72px">方法</th><th>路径</th><th>operationId / 说明 / 报文</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -869,8 +869,8 @@ function showApis() {
           rows.push(`<tr>
             <td style="width:72px"><span class="method ${mClass}">${esc(a.method)}</span></td>
             <td><code class="api-url">${esc(a.url)}</code></td>
-            <td>${esc(a.desc || '')}${detail}</td>
-            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink(c, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
+            <td>${a.operationId ? `<code class="api-url">${esc(a.operationId)}</code><br>` : ''}${esc(a.desc || '')}${detail}</td>
+            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink({ apiSpecPath: a.specPath || c.apiSpecPath }, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
           </tr>`);
         });
@@ -879,7 +879,7 @@ function showApis() {
       return `<div class="idx-mod">
         <div class="idx-mod-title">📁 ${esc(mod)}</div>
         <table class="api-table">
-          <thead><tr><th>方法</th><th>路径</th><th>说明 / 报文</th><th>来源文档</th><th>日期</th></tr></thead>
+          <thead><tr><th>方法</th><th>路径</th><th>operationId / 说明 / 报文</th><th>来源文档</th><th>日期</th></tr></thead>
           <tbody>${rows.join('')}</tbody>
         </table>
       </div>`;
