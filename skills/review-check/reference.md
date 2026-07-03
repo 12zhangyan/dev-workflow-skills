@@ -9,6 +9,7 @@
 | 类别 | 必查问题 | 常见证据 |
 |------|----------|----------|
 | 需求一致性 | 实现是否偏离 dev-doc / Review 任务包目标；是否漏掉范围内要求 | dev-doc 目标、代码变更清单、接口约定 |
+| 需求/实现冲突 | 用户口径、dev-doc、现有状态机、字典、权限、数据归属、表复用、接口先后依赖是否矛盾 | 状态枚举、权限注解、Mapper 条件、历史逻辑、接口契约 |
 | 业务正确性 | 状态、金额、数量、权限、库存、审批、幂等等核心规则是否正确 | Service 分支、枚举流转、Mapper 条件 |
 | 边界与异常 | null、空集合、非法枚举、重复提交、超长、临界值、异常吞掉 | if/else、校验注解、catch 块、默认值 |
 | 事务 | `@Transactional(rollbackFor = Exception.class)`、回滚边界、跨服务调用、分页清理 | 注解位置、异常类型、PageHelper 使用 |
@@ -31,6 +32,7 @@
 来源：Code Review
 审查对象：<review-task/dev-doc/patch/功能描述>
 审查范围：<已读取的关键文件/文档>
+结论状态：Findings
 
 Critical:
 1. Severity: Critical
@@ -62,6 +64,9 @@ Minor:
 Notes:
 - <证据不足、非阻塞建议或已检查但未发现问题的说明>
 
+OpenQuestions:
+- <材料不足或需要业务确认的问题；阻塞项标注 blocking>
+
 可将以上 findings 原样贴回 /review-fix，用于生成修复交接文档。
 ```
 
@@ -71,6 +76,7 @@ Notes:
 来源：Code Review
 审查对象：<...>
 审查范围：<...>
+结论状态：NoEvidenceIssue
 
 未发现有证据的阻塞问题。
 
@@ -81,5 +87,29 @@ Notes:
 
 Notes:
 - <仍建议人工关注的不确定点>
+```
+
+材料不足时：
+
+```text
+来源：Code Review
+审查对象：<...>
+审查范围：<已读取的材料>
+结论状态：InsufficientMaterial
+
+材料不足，无法对以下范围下结论：
+- <范围 1，如状态流转正确性>
+- <范围 2，如权限边界>
+
+缺失材料：
+- <缺失的 dev-doc / diff / 关键源码 / 字典 / 权限说明 / 测试结果>
+
+已能确认：
+- <基于现有材料可以确认的事实>
+
+OpenQuestions:
+- blocking: <必须补充的问题>
+
+可将以上材料不足结论贴回 /review-fix，用于补齐证据包。
 ```
 

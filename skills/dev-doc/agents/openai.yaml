@@ -1,7 +1,7 @@
 interface:
   display_name: "Dev Doc"
   short_description: "生成可执行开发文档并登记看板"
-  default_prompt: "Use dev-doc skill to turn a feature request into an executable development document and board entry."
+  default_prompt: "Use dev-doc skill to turn a feature request into an executable development document and board entry. Infer from existing code/docs first, ask only blocking questions, and call out demand conflicts before coding."
 
 policy:
   allow_implicit_invocation: true

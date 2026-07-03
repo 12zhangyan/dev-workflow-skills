@@ -250,6 +250,26 @@ body {
 .exec-lane li { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); overflow-wrap: anywhere; }
 .exec-lane li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 6px; }
 
+/* 判断依据、假设、冲突与待确认 */
+.risk-notes { margin: 0 0 30px; }
+.risk-title {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+  color: var(--ink-faint); margin-bottom: 10px;
+}
+.risk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.risk-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 13px 14px; box-shadow: var(--shadow-soft); border-left: 4px solid var(--line-strong);
+}
+.risk-blocker { border-left-color: var(--red); }
+.risk-conflict { border-left-color: var(--amber); }
+.risk-assumption { border-left-color: var(--blue); }
+.risk-question { border-left-color: var(--purple); }
+.risk-card-title { font-size: 13.5px; font-weight: 850; color: var(--ink); margin-bottom: 7px; }
+.risk-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.risk-card li { font-size: 12.8px; line-height: 1.65; color: var(--ink-soft); overflow-wrap: anywhere; }
+.risk-card li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 6px; }
+
 /* 详情页导读（章节快速跳转） */
 .doc-toc { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0 0 28px; padding: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.76); border-radius: 12px; }
 .toc-lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--ink-faint); margin-right: 4px; }
@@ -483,7 +503,7 @@ summary:hover { color: var(--accent); }
   .doc-view { padding: 32px 28px 70px; }
   .qb-head { flex-direction: column; align-items: flex-start; gap: 6px; }
   .qb-action { text-align: left; }
-  .qb-grid, .exec-grid, .reader-guide, .role-grid, .home-hero, .audience-grid, .biz-role-grid { grid-template-columns: 1fr; }
+  .qb-grid, .exec-grid, .risk-grid, .reader-guide, .role-grid, .home-hero, .audience-grid, .biz-role-grid { grid-template-columns: 1fr; }
   .role-sub { text-align: left; max-width: none; }
   .role-row { grid-template-columns: 1fr; }
   .role-side { align-items: flex-start; }

@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 17;
+const BOARD_VERSION = 18;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -167,6 +167,39 @@ function executionBrief(d) {
       </div>`).join('')}</div>
   </div>`;
 }
+function noteText(x) {
+  if (typeof x === 'string') return x;
+  if (!x || typeof x !== 'object') return '';
+  const parts = [];
+  if (x.point) parts.push(`冲突点：${x.point}`);
+  if (x.user) parts.push(`用户口径：${x.user}`);
+  if (x.evidence) parts.push(`证据：${x.evidence}`);
+  if (x.risk) parts.push(`风险：${x.risk}`);
+  if (x.suggestion) parts.push(`建议：${x.suggestion}`);
+  if (x.blocking !== undefined) parts.push(`阻塞：${x.blocking ? '是' : '否'}`);
+  if (!parts.length) Object.keys(x).forEach(k => parts.push(`${k}：${x[k]}`));
+  return parts.join('；');
+}
+function riskNotes(d) {
+  const groups = [
+    ['blockers', '阻塞项', 'risk-blocker'],
+    ['conflicts', '冲突/需裁决', 'risk-conflict'],
+    ['assumptions', '明确假设', 'risk-assumption'],
+    ['openQuestions', '待确认', 'risk-question']
+  ].map(([key, title, cls]) => {
+    const items = Array.isArray(d[key]) ? d[key].map(noteText).filter(Boolean) : [];
+    return { title, cls, items };
+  }).filter(g => g.items.length);
+  if (!groups.length) return '';
+  return `<div class="risk-notes">
+    <div class="risk-title">判断依据与待确认</div>
+    <div class="risk-grid">${groups.map(g => `
+      <div class="risk-card ${g.cls}">
+        <div class="risk-card-title">${esc(g.title)}</div>
+        <ul>${g.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      </div>`).join('')}</div>
+  </div>`;
+}
 function roleHint(d, role) {
   if (role === 'biz') {
     if (d.kind === 'bug') return shortText(d.impact || d.symptom || d.rootCause || leadOf(d), 118);
@@ -261,6 +294,7 @@ function searchHay(c) {
   push(c.goals); push(c.scopeIn); push(c.scopeOut); push(c.testPoints);
   push(c.bizRules); push(c.keyImpl); push(c.todos);
   push(c.roles); push(c.context); push(c.dataChanges); push(c.validations); push(c.dataObjects);
+  push(c.assumptions); push(c.conflicts); push(c.blockers); push(c.openQuestions);
   (c.apis || []).forEach(a => parts.push(a.url, a.desc));
   return parts.filter(Boolean).join(' ').toLowerCase();
 }
@@ -602,6 +636,7 @@ function pick(i) {
   h += quickBrief(d, isReading ? "代码阅读速览" : "读者速览");
   h += audienceBrief(d);
   h += executionBrief(d);
+  h += riskNotes(d);
 
   const hasReq = d.background || d.goals?.length || d.scopeIn?.length || d.scopeOut?.length;
   if (hasReq) {
@@ -679,6 +714,7 @@ function renderBug(d) {
   h += quickBrief(d, "Bug 速览");
   h += audienceBrief(d);
   h += executionBrief(d);
+  h += riskNotes(d);
 
   const hasSym = d.symptom || d.stackTrace || d.reproSteps?.length || d.trigger || d.expected || d.actual;
   if (hasSym) {
@@ -749,6 +785,7 @@ function renderBiz(d) {
   h += quickBrief(d, "测试速览");
   h += audienceBrief(d);
   h += executionBrief(d);
+  h += riskNotes(d);
 
   const mmds = [];
   if (d.background) h += sec("业务概述", para(d.background));

@@ -1,5 +1,6 @@
 // ─── AI 变更记录数据 ─────────────────────────────────────────────────────────
-// 本文件由 /dev-doc 与 /bug-fix 自动追加；渲染逻辑在 js/board.js（不要在本文件写逻辑）。
+// 本文件由 /dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加。
+// 渲染逻辑在 js/board.js（不要在本文件写逻辑）。
 // 手工修改时保持 JS 语法合法：每条记录末尾带逗号，追加标记行不可删除。
 
 // ─── HTML 变更日志 ──────────────────────────────────────────────────────────
@@ -46,6 +47,10 @@ const htmlChangelog = [
 //   keyImpl     关键实现要点 {title,desc}[]
 //   changeList  代码变更清单 {file,action,desc}[]
 //   todos       实现 Todo string[]
+//   assumptions 低风险假设 string[] 或对象数组（看板渲染到"判断依据与待确认"）
+//   conflicts   需求/实现/状态/权限/数据归属冲突 {point,user,evidence,risk,suggestion,blocking}[]
+//   blockers    阻塞项 string[]（未确认前不应输出确定修复/测试口径）
+//   openQuestions 非阻塞待确认 string[]
 //
 // Bug 记录（kind:"bug"）额外字段：
 //   kind        "bug"（文档条目可省略此字段）
@@ -82,6 +87,11 @@ const htmlChangelog = [
 //   stateMachine 状态流转 Mermaid（stateDiagram-v2，可选）
 //   bizRules    关键业务规则 {title,desc}[]（校验/计算/约束规则）
 //   testPoints  测试关注点 string[]（边界、异常、并发等测试要点）
+//   roles       角色与入口 {name,channel,entry,desc}[]
+//   context     上下文与前置条件 {field,source,usage,note}[]
+//   dataChanges 阶段数据变动 {stage,trigger,summary,operations:[{target,action,fields,check}]}[]
+//   validations 校验规则 {stage,rule,failure,check}[]
+//   dataObjects 涉及数据对象 {name,phase,action,note}[]
 const changes = [
   {
     service: "dev-workflow-skills",

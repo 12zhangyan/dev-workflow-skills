@@ -23,6 +23,10 @@ effort: high
 
 ## 执行流程
 
+### 共享交互协议
+
+先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码、接口、菜单、文档和现有看板预填；只在业务语义、权限、状态、数据归属或闭环范围会受影响时提一个阻塞问题；冲突和材料不足必须显式记录。
+
 ### Step 0：参数检查
 
 - `$feature` 为空 → 询问："这条业务/功能叫什么？用一句话描述（如 '订单超时自动取消'）"
@@ -59,12 +63,13 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 2：收集接口与业务信息（少问，先从入口追）
 
-具体问题集见 [reference.md](reference.md#step-2-问题集)，作为检查清单使用，不是必问清单。**核心是拿到至少一个入口**（URL + 方法 + 简述，或 Controller 类名/方法、Swagger / Apifox 片段均可）；用户已给入口时直接进入代码追踪，不要再追问能从代码里补齐的角色、状态、表、字段。
+具体槽位见 [reference.md](reference.md#step-2-信息槽位)，作为查漏表使用，不是必问清单。**核心是确定业务闭环入口**：可来自 URL + 方法、Controller 类名/方法、Swagger / Apifox、菜单/按钮名、定时任务、MQ listener、回调入口或现有文档。用户只给功能名时，先用功能名、页面/菜单名、状态/字段名搜索代码和文档；仍找不到入口或闭环不成立时，才问用户补一个最小入口。
 
 询问策略：
-- 能从接口、Controller、Service、Mapper、字典、已有文档确定 → 直接填入，并在文档里体现依据。
+- 能从接口、Controller、Service、Mapper、字典、菜单、任务、MQ listener、已有文档确定 → 直接填入，并在文档里体现依据。
 - 低风险未知（模块归属、展示文案、非核心命名）→ 明确假设后继续。
 - 高风险未知（业务状态语义、审批通过/驳回行为、权限范围、数据归属、接口先后依赖、是否复用既有表）→ 暂停并只问一个聚焦问题。
+- 多入口业务必须给出已覆盖、缺失、排除的入口清单；缺失入口会影响状态/数据闭环时停止生成正式方案，只输出草稿和 blocker。
 - 用户答"不知道"/"待定" → 记 `待补充`，不要继续追问同类非阻塞细节。
 信息足够后告知："信息足够，正在分析业务流；未确认项会集中标注。"
 
@@ -74,18 +79,18 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 **Java（pom.xml / build.gradle）：**
 1. 用 Grep 定位每个接口的 Controller 方法（pattern: URL 片段或方法名，glob: `**/*.java`）
-2. 顺着 Controller → Service → Mapper/Repository 读 2–3 层，重点记录：
+2. 顺着 Controller / Job / Listener / 回调 → Service → Mapper/Repository 追到数据或状态落点，默认 2–3 层；若还未找到状态/数据闭环，继续追踪 MQ、监听器、回调、定时任务或外部服务入口，直到能说明"最终落到哪里"或标记为缺失入口
    - **角色/入口**：谁在 App/PC/后台任务/第三方回调触发，入口接口或操作按钮是什么
    - **上下文/前置条件**：登录上下文、租户/公司/仓库/部门、权限、缓存、配置、字典值从哪来
    - **数据流**：入参从哪来、查/写了哪些表或外部服务、返回什么
    - **阶段数据变动**：每个关键阶段 INSERT / UPDATE / SELECT 了哪些表或对象，关键字段如何变化，测试怎么核对
    - **业务分支**：if/else、状态判断、枚举流转（`setStatus`、状态机）
-   - **服务/接口交互**：Feign/RestTemplate/MQ 调用、事务边界
+   - **服务/接口交互**：Feign/RestTemplate/MQ 调用、监听器、任务、事务边界
 3. 多个接口之间的先后/依赖关系（如「下单」→「支付回调」→「发货」）
 
 **JS/TS（package.json）：** 顺着路由 → controller/service 读取，记录同类信息。
 
-**跳过条件**：无源码 / 用户只给了口头描述 → 仅基于用户提供的信息绘图；未知处标 `待补充` 或明确假设，不编造。
+**跳过条件**：无源码 / 只能基于口头描述 → 输出"草稿"并标注证据等级；状态、权限、数据写入、接口先后依赖缺少证据时列入 blocker，不生成确定性测试口径。
 
 ### Step 4：路径处理
 
@@ -111,7 +116,8 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
   - 时序图（`sequenceDiagram`）：多个服务/接口之间的调用时序——跨服务或有回调时画
   - 状态机（`stateDiagram-v2`）：有明确状态字段流转时才画
 - 只用确认的信息和代码/文档证据；未知标 `待补充` 或明确假设，不编造接口或字段
-- **显式暴露业务逻辑冲突**：如果用户描述与现有代码、状态机、字典值、权限模型、数据归属、表复用或接口先后关系冲突，单独写「业务逻辑冲突/待确认」；列出证据、风险、建议口径，不能为了成图把冲突悄悄抹平
+- **显式暴露业务逻辑冲突**：如果用户描述与现有代码、状态机、字典值、权限模型、数据归属、表复用或接口先后关系冲突，按共享协议单独写「业务逻辑冲突/待确认」；列出证据、风险、建议口径，不能为了成图把冲突悄悄抹平
+- 有阻塞冲突、闭环入口缺失或关键证据不足时，文档状态写"草稿/待确认"，测试口径只给已证实部分，不把推断写成正式用例
 - 业务规则写「触发条件 → 系统行为 → 边界」，测试关注点写「具体可验证的点」（含正常 + 异常 + 边界 + 并发）
 
 ### Step 5.5：登记到 HTML 看板（kind:"biz"）
@@ -147,6 +153,7 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 | `validations` | 校验规则 → `{stage,rule,failure,check}[]`；失败行为和测试核对点要明确 |
 | `testPoints` | 测试关注点 → string[]，每条是一个具体可验证的点（正常/异常/边界/并发） |
 | `dataObjects` | 涉及数据对象 → `{name,phase,action,note}[]`；表、缓存、消息、外部服务均可登记 |
+| `assumptions` / `conflicts` / `blockers` / `openQuestions` | 共享协议字段；记录低风险假设、冲突、阻塞项、非阻塞待确认 |
 
 **字符串转义**（否则看板 JS 语法错误）：含双引号 → `\"`，含换行 → `\n`；Mermaid 字段用反引号模板字面量包裹，内容含反引号时改双引号 + `\n`。
 
@@ -201,7 +208,8 @@ cat > project-html/data/_entry.json <<'JSON'
     "bizFlow":"<bizFlow>", "dataFlow":"<dataFlow>", "sequence":"<sequence>", "stateMachine":"<stateMachine>",
     "roles":[<roles>], "context":[<context>], "dataChanges":[<dataChanges>],
     "bizRules":[<bizRules>], "validations":[<validations>], "testPoints":[<testPoints>],
-    "dataObjects":[<dataObjects>] } }
+    "dataObjects":[<dataObjects>],
+    "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
 JSON
 node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
@@ -224,7 +232,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 - **面向测试**：语言通俗，每张图配说明，重点落在"怎么测"
 - **不编造**：未确认的接口/字段/分支标 `待补充`，宁缺毋假
-- **不乱猜需求**：低风险可假设，高风险必须提出来确认；发现逻辑不通时直接指出
+- **不乱猜需求**：低风险可假设，高风险必须提出来确认；发现逻辑不通时直接指出，闭环缺口不靠图形补齐
 - **图按需画**：画不出来的图直接删，不放空模板
 - **测试执行口径必须落地**：主流程、优先异常、数据核对、暂不覆盖都要写清楚，测试拿到后能直接拆用例
 - **静默分析**：Step 1、Step 3 的命令与读码过程不展示给用户
@@ -232,17 +240,18 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 ## 检查清单（生成前确认）
 
 - [ ] `$feature` 已确认（不为空）
-- [ ] 已拿到至少一个入口；问题集已用于查漏，但没有机械追问非阻塞项
+- [ ] 已找到业务闭环入口，或已列出已覆盖/缺失/排除入口并标记 blocker；信息槽位已用于查漏，没有机械追问非阻塞项
 - [ ] 文件路径冲突已处理
 - [ ] 至少画出业务流转图，其余图按需
 - [ ] 角色入口、上下文/前置条件、阶段数据变动、校验规则已按实际复杂度补齐（简单无状态功能可省略）
 - [ ] 测试执行口径已写清主流程、优先异常、数据核对、暂不覆盖
+- [ ] 证据等级、假设、冲突、阻塞项已写入；阻塞未清时没有输出确定性测试口径
 - [ ] 测试关注点具体可验证（至少 3 条）
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
 
 ## 相关资源
 
-- 完整文档模板与问题集：[reference.md](reference.md)
+- 完整文档模板与信息槽位：[reference.md](reference.md)
 - 已填示例：[examples.md](examples.md)
 - 看板模板与 build.js：复用 `../dev-doc/assets/board/`
 - 相邻 skill：`/code-reading`（给开发的代码地图）、`/dev-doc`（开发文档）
@@ -252,7 +261,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 | 错误 | 原因 | 修复 |
 |------|------|------|
 | 图节点太多看不清 | 一张图塞了所有细节 | 拆成业务流转 / 数据流 / 时序三张，每张只讲一个维度 |
-| 全是"待补充" | 用户只给了功能名没给接口 | Step 2 第 1 问必须拿到接口或入口类，否则先让用户补充 |
+| 全是"待补充" | 用户只给了功能名且代码/文档搜索也找不到入口 | 先用功能名、菜单、Controller、Job、Listener、状态字段搜索；仍没有入口时只问一个最小入口 |
 | 看板写入后打不开 | 手工降级时 Mermaid 字段含未转义的反引号/双引号/换行 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
 | 找不到看板模板 | dev-doc 未安装 | 先运行 install 脚本确保 dev-doc 已安装 |
 | 写得像给开发看的 | 堆了代码细节 | 回到"测试读者"视角：讲业务怎么走、数据去哪、该测什么 |

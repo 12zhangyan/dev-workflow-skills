@@ -15,3 +15,5 @@ jobs:
           node-version: 20
       - name: 看板同步与语法校验
         run: bash scripts/check-board-sync.sh
+      - name: 交互协议引用校验
+        run: node scripts/check-interaction-policy-sync.js

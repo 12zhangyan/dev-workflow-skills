@@ -23,6 +23,10 @@ effort: high
 
 ## 执行流程
 
+### 共享交互协议
+
+先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：只基于已读取材料下结论；材料不足时输出"材料不足，无法下结论"，不要伪装成未发现问题；需求/实现/状态/权限/数据归属冲突要作为重点审查项。
+
 ### Step 0：入口识别
 
 `$entry` 为空时询问：
@@ -90,7 +94,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 审查顺序：
 1. **需求一致性**：实现是否符合 dev-doc / Review 任务包目标。
-2. **业务正确性**：主流程、状态流转、金额/数量/权限/库存等关键规则。
+2. **需求冲突与业务正确性**：用户口径、dev-doc、现有状态机、字典、权限、数据归属、接口先后依赖是否冲突；主流程、状态流转、金额/数量/权限/库存等关键规则是否正确。
 3. **边界与异常**：null、空集合、非法枚举、重复提交、异常分支。
 4. **事务与并发**：回滚边界、跨服务调用、幂等、锁、分页状态。
 5. **安全与敏感信息**：越权、敏感日志、注入、明文凭证。
@@ -114,6 +118,11 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - `Minor`：维护性、局部测试增强、命名/重复逻辑等不阻塞问题。
 - `Notes`：不确定观察或非阻塞建议，不进入 findings。
 
+结论状态（三选一）：
+- `Findings`：发现有证据的问题。
+- `NoEvidenceIssue`：材料足够，未发现有证据的阻塞问题。
+- `InsufficientMaterial`：关键材料不足，无法对目标范围下结论。必须列缺失材料和受影响结论范围，不得写"未发现问题"。
+
 ### Step 4：输出结构化结果
 
 按模板输出：[reference.md](reference.md#输出格式)
@@ -121,7 +130,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 要求：
 - findings 按 `Critical / Important / Minor` 分组。
 - 每条包含 `File/Line`、`Problem`、`Evidence`、`Impact`、`Fix`、`Verify`。
-- 没有明确问题时，输出"未发现有证据的阻塞问题"，并列出已检查范围。
+- 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
 - 不输出大段源码，不复述全部 diff。
 
 ### Step 5：结束提醒
@@ -138,6 +147,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - 不执行数据库写操作或 DDL；涉及数据库只允许只读分析。
 - 不把风格偏好包装成严重问题。
 - 不因为"可能"就输出 finding；证据不足放入 Notes。
+- 不在材料不足时宣称通过或未发现问题。
 - 不要求重构无关模块，不回滚用户已有改动。
 
 ## 检查清单
@@ -146,6 +156,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - [ ] 已读取任务包 / dev-doc / patch / 关键源码
 - [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试
 - [ ] 每条 finding 都有证据、影响、修复建议、验证方式
+- [ ] 已在 Findings / NoEvidenceIssue / InsufficientMaterial 三种结论中选择一种，并写明依据
 - [ ] 未修改任何代码或文档
 - [ ] 输出可直接贴回 `/review-fix`
 

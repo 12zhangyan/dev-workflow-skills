@@ -19,6 +19,10 @@ effort: high
 
 ## 执行流程
 
+### 共享交互协议
+
+先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码和文档证据预填，少问；候选入口唯一且高置信时直接使用并记录依据，低置信或多候选才向用户确认。
+
 ### Step 0：入口检测与参数检查
 
 `$entry` 为空 → 用 AskUserQuestion 询问（三选一，候选入口确认同样用 AskUserQuestion）：
@@ -41,10 +45,13 @@ effort: high
 提取 `$entry` 中的关键词，用 Grep 工具逐一搜索：
 - pattern: `<关键词>`，glob: `**/*.java`，output_mode: `files_with_matches`（每个关键词取前 20 个结果）
 
-收集候选文件后，列出候选入口类/方法，询问用户确认：
+收集候选文件后按命中强度排序：
+- 唯一高置信候选（类名/方法名/接口路径/菜单名多处命中，且路径处于业务模块内）→ 直接作为入口，记录"自动选择依据"，不询问用户。
+- 多个相似候选或低置信候选 → 最多列 5 个，询问用户确认：
 > "找到以下候选入口，请确认从哪里开始追踪（输入序号，或输入完整类名）：
 > 1. [类名]（[文件路径]）
 > 2. ..."
+- 无候选 → 只问一个聚焦问题：让用户提供入口类、接口路径或 dev-doc 路径。
 
 **dev-doc 文档模式：**
 
@@ -77,6 +84,7 @@ effort: high
 
 核心规则：
 - 只记录代码里实际存在的内容，未确认的不写
+- 记录入口选择依据，尤其是功能描述模式下自动选中的候选
 - 调用链节点格式：`类名.方法名()`，不含包名
 - 业务状态机仅在发现明确状态跳转时生成（`stateDiagram-v2`）
 - 关键变量追踪仅在变量被 3 处以上读写时记录
@@ -114,6 +122,7 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 | `background` | **面向人类撰写（不要截取 md）**：这个功能从入口到出口整体怎么运转——请求从哪进、经过哪些关键环节、数据最终落到哪，3–5 句；有状态机时点一句状态怎么流转。可用 `\n` 分段 |
 | `flowchart` | 调用链 mermaid 代码块内容（不含 ` ``` ` 标记） |
 | `keyImpl` | 代码位置索引前 5 项 → `{title:"类.方法", desc:"文件路径 + 用一句人话说明它在链路中干什么"}[]` |
+| `assumptions` / `openQuestions` | 入口自动选择依据、非阻塞不确定点；code-reading 不输出修复建议 |
 
 **service/module 归属**：
 - dev-doc 模式 → Read `project-html/data/changes.js`，按源 dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
@@ -129,7 +138,8 @@ cat > project-html/data/_entry.json <<'JSON'
   "entry": { "kind":"reading", "type":"代码阅读", "status":"已完成",
     "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>",
     "entry":"<entry>", "docPath":"<docPath>", "background":"<background>",
-    "flowchart":"<flowchart>", "keyImpl":[<keyImpl>] } }
+    "flowchart":"<flowchart>", "keyImpl":[<keyImpl>],
+    "assumptions":[<assumptions>], "openQuestions":[<openQuestions>] } }
 JSON
 node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
@@ -153,6 +163,7 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 - **静默分析**：Step 1-2 的搜索与读取结果不展示给用户，仅作内部上下文
 - **不编造**：只记录代码里实际存在的调用/状态/注释
 - **不越界**：不提修改建议，不标记问题，那是 `/requesting-code-review` 的职责
+- **偏差只记录，不定性**：dev-doc 模式下发现方案与实现不一致，只写"偏差/观察，Review 时关注"，不把它定为 Bug
 
 ## 检查清单（生成前确认）
 

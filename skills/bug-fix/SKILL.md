@@ -19,6 +19,10 @@ effort: high
 
 ## 执行流程
 
+### 共享交互协议
+
+先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填、按风险分级、一次只问一个阻塞问题；发现业务/修复口径冲突时显式记录，不用猜测静默折中。
+
 ### Step 0：参数检查
 
 - `$task` 为空 → 询问："这个 Bug 叫什么名字？用一句话描述（如 '用户登录500错误'）"
@@ -55,9 +59,9 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 2：收集 Bug 信息（先从证据预填）
 
-**规则：先从用户描述、报错、堆栈、日志、当前分支/改动和源码搜索中预填。不要机械把问题集逐条问完；只有缺失信息会影响复现、严重度、定位方向或修复范围时才问。确需询问时每次只问一个，并说明为什么这个答案会影响判断。封闭选项的问题（严重度、Step 4 冲突处理）用 AskUserQuestion 工具提问；自由文本问题直接对话提问。**
+**规则：先从用户描述、报错、堆栈、日志、当前分支/改动和源码搜索中预填。不要机械按信息槽位逐条追问；只有缺失信息会影响复现、严重度、定位方向或修复范围时才问。确需询问时每次只问一个，并说明为什么这个答案会影响判断。封闭选项的问题（严重度、Step 4 冲突处理）用 AskUserQuestion 工具提问；自由文本问题直接对话提问。**
 
-具体问题集见 [reference.md](reference.md#step-2-问题集)，作为检查清单使用，不是必问清单。最后一问是微服务/模块归属，优先从路径/包名/类名推断，只有无法判断时再问。
+具体槽位见 [reference.md](reference.md#step-2-信息槽位)，作为查漏表使用，不是必问清单。服务/模块归属优先从路径、包名、Controller、日志 logger、最近改动推断，只有无法判断且会影响看板归类或修复范围时再问。
 
 足够定位后告知用户："信息足够，正在搜索相关代码；未确认项会集中标注。"
 
@@ -68,17 +72,18 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 **Java 项目（pom.xml / build.gradle）：**
 
 1. 识别堆栈中 `at com.xxx.ClassName.method` 格式的类名（取最靠近抛出点的 1-2 个）
-2. 用 Grep 工具搜索：pattern: `class <ClassName>`，glob: `**/*.java`，output_mode: `files_with_matches`
-3. 读取命中文件，定位堆栈中 method 对应的方法体
+2. 若无堆栈，改用用户描述中的接口 URL、页面/按钮名、字段名、错误码、异常提示、最近 diff 文件名做关键词搜索
+3. 用 Grep 工具搜索：pattern: `class <ClassName>`、URL 片段、错误码或字段名，glob: `**/*.java`，output_mode: `files_with_matches`
+4. 读取命中文件，定位堆栈 method、接口方法或相关分支
 
 **JS/TS 项目（package.json）：**
 
 1. JS 堆栈行一般直接含文件路径（如 `at fn (src/services/auth.ts:42:7)`）→ 直接 Read 该文件定位行号
-2. 堆栈无路径时：用 Grep 搜索函数名，glob: `**/*.{js,ts,vue}`，output_mode: `files_with_matches`
+2. 堆栈无路径时：用接口 URL、页面/按钮名、字段名、错误码、异常提示、函数名搜索，glob: `**/*.{js,ts,vue}`，output_mode: `files_with_matches`
 
 定位结论（文件路径 + 方法名 + 初步判断）存为 `codeLocation` 文字摘要。
 
-**跳过条件**：堆栈为空 / 未检测到项目类型 / grep 无结果 → `codeLocation` 置空，继续
+**跳过条件**：堆栈为空且关键词搜索也无结果 / 未检测到项目类型 / grep 无结果 → `codeLocation` 置空，继续，但在文档中写明已搜索的线索与未命中原因。
 
 ### Step 4：路径处理
 
@@ -98,8 +103,9 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 **核心规则**：
 - 只使用用户提供的信息和代码/日志证据；未确认的标 `待补充` 或明确写为"推断，待验证"，不能把猜测写成事实
 - `代码定位` 用 Step 3 结论填入；跳过时写 `待分析`
-- 根因无明确结论时可写"初步怀疑…（推断，待验证）"
-- **显式暴露业务/修复口径冲突**：如果用户描述的预期行为与现有状态机、权限、字典、接口契约或历史逻辑冲突，单独写「疑似需求冲突/待确认」；列出证据、风险和建议先确认的问题，不要直接按猜测给修复方案
+- 根因无明确结论时可写"初步怀疑…（推断，待验证）"，但只能给诊断计划和补证据步骤，不生成可直接执行的修复 Todo
+- **显式暴露业务/修复口径冲突**：如果用户描述的预期行为与现有状态机、权限、字典、接口契约或历史逻辑冲突，按共享协议单独写「疑似需求冲突/待确认」；列出证据、风险和建议先确认的问题，不要直接按猜测给修复方案
+- 存在阻塞项或冲突未确认时，文档状态保持为"待确认"，看板可登记但 `fixPlan` 必须写成确认/诊断计划，不能写成确定修复方案
 - 验证步骤必须具体可执行
 - 修复方案必须包含"修复执行口径"：先确认、最小修复、禁止改动、完成判定；防止 AI 扩大修改范围
 
@@ -116,10 +122,10 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 | JS 字段 | 来源 |
 |---------|------|
 | `kind` | 固定值 `"bug"` |
-| `service` / `module` | Step 2 Q6 的归属（`服务/模块` 前后半段） |
+| `service` / `module` | Step 2 预填/确认的归属（`服务/模块` 前后半段） |
 | `title` | `$task` |
 | `date` | Step 4 日期 |
-| `severity` | Step 2 Q2（P0/P1/P2/P3） |
+| `severity` | Step 2 预填/确认的严重度（P0/P1/P2/P3） |
 | `status` | 固定值 `"未修复"` |
 | `branch` | Step 1 Git 分支；SVN 可填 revision；无 VCS 填 `"-"` |
 | `docPath` | 本次生成的 md 路径（`docs/bugs/<日期>/<任务名>.md`） |
@@ -192,7 +198,8 @@ cat > project-html/data/_entry.json <<'JSON'
     "date":"<date>", "severity":"<severity>", "status":"未修复", "branch":"<branch>", "docPath":"<docPath>",
     "symptom":"<symptom>", "stackTrace":"<stackTrace>", "trigger":"<trigger>", "impact":"<impact>",
     "rootCause":"<rootCause>", "codeLocation":"<codeLocation>", "fixPlan":"<fixPlan>",
-    "reproSteps":[<reproSteps>], "changeList":[<changeList>], "verifySteps":[<verifySteps>], "todos":[<todos>] } }
+    "reproSteps":[<reproSteps>], "changeList":[<changeList>], "verifySteps":[<verifySteps>], "todos":[<todos>],
+    "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
 JSON
 node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
@@ -214,17 +221,17 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 ## 规则
 
 - **不污染主对话**：Step 1、Step 3 命令输出不展示
-- **不编造根因**：无明确代码问题时写 `待分析`
+- **不编造根因**：无明确代码问题时写 `待分析`，并输出诊断计划，不输出确定修复 Todo
 - **搜索失败静默跳过**：无 Java 源码或 grep 无结果 → 跳过 Step 3
 
 ## 检查清单（生成前确认）
 
 - [ ] `$task` 已确认（不为空）
-- [ ] 问题集已用于查漏；复现、严重度、定位方向和修复范围的阻塞项已确认
+- [ ] 信息槽位已用于查漏；复现、严重度、定位方向和修复范围的阻塞项已确认或已列为 blocker
 - [ ] Step 3 代码搜索已执行（或已标记跳过）
 - [ ] 文件路径冲突已处理
 - [ ] 验证步骤具体可执行（至少 1 条）
-- [ ] 修复执行口径已写清先确认、最小修复、禁止改动、完成判定
+- [ ] 修复执行口径已写清先确认、最小修复、禁止改动、完成判定；根因未证实时只给诊断计划
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 
 ## 常见错误

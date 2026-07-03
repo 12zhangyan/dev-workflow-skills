@@ -138,10 +138,14 @@ project-html/
 
 ## 自定义
 
-每个 skill 的问题集和文档模板放在对应的 `reference.md` 中，
+每个 skill 的信息槽位和文档模板放在对应的 `reference.md` 中，
 安装后直接修改 `~/.claude/skills/` 下的文件适配团队需求。
 
-问题集是查漏清单，不是必须逐条问完的问卷。Skill 应先从用户输入、当前代码、接口、字典和现有文档预填信息；只在答案会影响业务语义、数据状态、权限范围、接口契约、修复范围或验收标准时追问。发现需求与现有逻辑冲突时要显式写出证据和建议口径。
+信息槽位是查漏清单，不是必须逐条问完的问卷。Skill 应先从用户输入、当前代码、接口、字典和现有文档预填信息；只在答案会影响业务语义、数据状态、权限范围、接口契约、修复范围或验收标准时追问。发现需求与现有逻辑冲突时要显式写出证据和建议口径。
+
+公共交互协议见 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。新增或修改文档/审查类 skill 时，优先引用这份协议，不要在每个 skill 里复制一套容易漂移的问答规则。
+
+修改交互规则后运行 `node scripts/check-interaction-policy-sync.js`，确认相关 skill 都引用了共享协议。
 
 为什么这样设计：[docs/why-dev-doc.md](docs/why-dev-doc.md) · [docs/why-code-reading.md](docs/why-code-reading.md)
 

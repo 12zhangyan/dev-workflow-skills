@@ -9,13 +9,13 @@
 
 **用户调用：** `/bug-fix 订单导出500错误`
 
-**收集到的信息（Step 2 六问）：**
-- Q1 错误信息：`java.lang.NullPointerException at com.shop.order.service.OrderExportServiceImpl.buildRow(OrderExportServiceImpl.java:87)`
-- Q2 严重度：P1（运营每天要用导出，无绕行方案）
-- Q3 复现：1. 登录运营后台 → 2. 订单管理选 5 月整月 → 3. 点击「导出 Excel」→ 4. 提示系统繁忙，后端日志 NPE
-- Q4 触发条件：导出范围包含「已取消且未支付」的订单时必现；只导出已完成订单不出现
-- Q5 预期 vs 实际：预期生成 Excel 文件；实际接口 500，无文件生成
-- Q6 归属：`订单服务/导出`
+**由日志、堆栈、用户描述预填的信息：**
+- 错误信息：`java.lang.NullPointerException at com.shop.order.service.OrderExportServiceImpl.buildRow(OrderExportServiceImpl.java:87)`
+- 严重度：P1（运营每天要用导出，无绕行方案）
+- 复现：1. 登录运营后台 → 2. 订单管理选 5 月整月 → 3. 点击「导出 Excel」→ 4. 提示系统繁忙，后端日志 NPE
+- 触发条件：导出范围包含「已取消且未支付」的订单时必现；只导出已完成订单不出现
+- 预期 vs 实际：预期生成 Excel 文件；实际接口 500，无文件生成
+- 归属：`订单服务/导出`
 
 **Step 3 代码定位结果：** `src/main/java/com/shop/order/service/OrderExportServiceImpl.java` 第 87 行 `order.getPayment().getPayTime()`，未判空。
 

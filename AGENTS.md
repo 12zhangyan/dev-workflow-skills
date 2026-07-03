@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What This Repo Is
 
-A collection of workflow skills for Java backend developers, targeting Claude Code, Cursor, and Codex. Skills are distributed via install scripts and land in user-level skill directories such as `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`. There is no build step; the only check is `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) — the "product" is the skill folders.
+A collection of workflow skills for Java backend developers, targeting Claude Code, Cursor, and Codex. Skills are distributed via install scripts and land in user-level skill directories such as `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`. There is no build step; checks are `scripts/check-board-sync.sh` (board copy sync + JS syntax, also run by GitHub Actions) and `node scripts/check-interaction-policy-sync.js` (shared interaction policy drift) — the "product" is the skill folders.
 
 ## Skills
 
@@ -53,7 +53,7 @@ SKILL.md frontmatter `name` and `description` are the portable discovery surface
 
 Each skill may include `agents/openai.yaml` for Codex UI metadata (display name, short description, default prompt). Keep it in sync with SKILL.md when changing a skill's purpose or invocation wording.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-问题集)`). `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install), and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
+Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-查漏槽位)`). `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install), and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
 
 ### HTML board
 
@@ -97,9 +97,8 @@ dev-doc → AI executes → svn add → mvn test → review-fix review task → 
 - `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
-- Closed-choice questions (task type, complexity, severity, file-conflict resolution) use the AskUserQuestion tool; free-text questions stay conversational
-- Question policy for documentation skills: ask only blocking questions. First mine the user's prompt, nearby code, existing docs, route/controller names, dictionaries, and current project patterns; if a field can be determined from evidence, fill it and cite the source. If the answer is low-risk and only affects wording, make an explicit assumption instead of interrupting. If the answer affects business semantics, data state, permission scope, API contract, or irreversible implementation direction, stop and ask one focused question.
-- Demand-shaping policy: do not silently guess or mechanically accept business requirements. When the user's wording conflicts with existing code, dictionary values, state machines, data ownership, permissions, or table reuse constraints, write a "需求冲突/待确认" note with evidence and a recommended safer interpretation. Use `待补充` only for genuinely unavailable details, not as a substitute for checking the codebase.
+- Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
+- Closed-choice questions are not automatically asked: infer first, and use AskUserQuestion only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Free-text questions stay conversational.
 
 ## Editing Skills
 

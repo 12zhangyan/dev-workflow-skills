@@ -33,6 +33,10 @@ effort: high
 
 ## 执行流程
 
+### 共享交互协议
+
+先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据包不足时先补材料，不把缺证据包装成审查结论；发现需求/实现/状态机/权限/数据归属冲突时写入任务包的阻塞项。
+
 ### Step 0：入口检测
 
 `$entry` 为空时询问：
@@ -82,7 +86,12 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 按入口读取：
 - 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。
 - patch 模式：Read patch/diff 文件，提取文件列表、变更类型、关键 hunks。
-- 上下文模式：用 Grep/Glob 查找候选入口；不确定时问用户确认入口或改用 dev-doc/patch。
+- 上下文模式：用 Grep/Glob 查找候选入口；至少要拿到 diff/patch，或 dev-doc + 关键源码/入口，或当前工作区变更摘要 + 关键文件。材料不足时只问一个聚焦问题让用户补 dev-doc、patch/diff 或入口，不生成任务包。
+
+最低证据门槛：
+- patch 模式：必须能读到 patch/diff 或当前工作区 diff。
+- 文档模式：必须能读到 dev-doc，并提取到目标/范围或代码变更清单；缺关键源码时在证据包标为待补充。
+- 上下文模式：必须能定位至少一个入口或当前变更文件；否则停止并要求补材料。
 
 ### Step 2：生成 Review 任务包
 
@@ -99,6 +108,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 文档必须包含：
 1. **审查目标**：这次 review 要确认什么。
 2. **证据包**：其他 AI 需要读取/粘贴的文档、diff、源码、测试命令。
+   - 必须包含 `assumptions`、`conflicts`、`blockers`、`openQuestions`：材料不足或语义冲突要直接暴露。
 3. **统一审查清单**：按风险类别列出检查项。
 4. **AI 分发提示**：Codex / Cursor / Claude 三份可复制 prompt。
 5. **技能化审查入口**：提示安装了本仓库 skill 的 AI 可直接运行 `/review-check <任务包路径>`。
@@ -171,13 +181,17 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 - **不吞拒绝项**：第二阶段不采纳的 review 意见必须写入 Rejected，说明理由。
 - **不让 AI 自由发挥**：审查提示和修复操作码都必须限定材料、范围、输出格式和验证方式。
 - **尊重现有改动**：提示中必须提醒不要回滚无关本地改动。
+- **材料不足就停**：第一阶段不满足最低证据门槛时，只输出缺失材料清单和一个补充问题，不生成 review 任务包。
+- **阻塞项不下发修复**：第二阶段若存在未确认的 blocker 或需求冲突，AI 修复操作码必须先要求确认，不得让下游 AI 猜着改。
 
 ## 检查清单
 
 ### 第一阶段：Review 任务包
 
 - [ ] 已识别入口模式并收集 dev-doc / patch / code-reading / diff 上下文
+- [ ] 已满足最低证据门槛；材料不足时已停止并列出缺失材料
 - [ ] 已生成证据包清单
+- [ ] 已写入 assumptions / conflicts / blockers / openQuestions
 - [ ] 已生成统一 review 清单
 - [ ] 已生成 Codex / Cursor / Claude 审查提示
 - [ ] 已提示可用 `/review-check <review-task路径>` 执行审查
@@ -191,6 +205,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 - [ ] 每条 accepted finding 有证据、影响、修复建议、验证方式
 - [ ] 修复交接文档已写入 `docs/review-fix/<日期>/<任务名>-fix-handoff.md`
 - [ ] AI 修复操作码已生成，且包含修改边界和验证命令
+- [ ] 若存在 blocker 或需求冲突，操作码已要求先确认，不让 AI 直接修
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
 
 ## 相关资源
