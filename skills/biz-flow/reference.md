@@ -306,11 +306,16 @@ stateDiagram-v2
 🔀 已登记到 HTML 看板（浏览器打开 project-html/index.html，筛选「🔀 业务流」查看）
 📤 单页已生成：project-html/pages/<slug>.html —— 可直接发给测试/产品
 📑 文档总索引已更新：docs/INDEX.md
+🧭 工作流阶段：业务流 Plan Gate 已完成
 
 给测试的一句话摘要：
 <这条业务怎么走 + 最该测的 2-3 个点>
 
-如需深入代码层面的调用链（给开发看），运行：/code-reading <入口类#方法>
+下一步分流：
+1. 只是测试设计：把单页和 md 发给测试/产品，按「测试执行口径」拆用例。
+2. 发现业务冲突或需要开发改造：运行 `/dev-doc docs/biz-flow/<日期>/<业务名>.md` 形成开发方案。
+3. 已有实现且需要审查：运行 `/review-fix docs/biz-flow/<日期>/<业务名>.md`，再分发 `/review-check <review-task路径>`。
+4. 需要开发理解调用链：运行 `/code-reading <入口类#方法>`。
 
 【Skill 反馈给 Codex】
 - skill：biz-flow

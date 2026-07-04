@@ -17,11 +17,15 @@ effort: high
 在 Code Review 之前运行。把陌生代码转化为可阅读的「地图文档」：调用链流程图 + 状态机 + 代码位置索引。
 **只做结构梳理，不做问题判断。**
 
+通常放在 `review-fix -> review-check -> review-fix 修复交接 -> 验证` 之后、人工 review 之前。若用户在 Review 前运行，也要明确说明代码地图可作为 `review-fix` 证据包补充，但不能替代只读审查。
+
 ## 执行流程
 
 ### 共享交互协议
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码和文档证据预填，少问；候选入口唯一且高置信时直接使用并记录依据，低置信或多候选才向用户确认。
+
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 服务 Understanding Gate；输出当前阶段、代码地图产物、人工 review 入口，以及如需 AI 审查时回到 `review-fix` / `review-check` 的路径。
 
 ### Step 0：入口检测与参数检查
 
@@ -154,15 +158,16 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 📖 已登记到 HTML 看板（浏览器打开 project-html/index.html，筛选「📖 阅读」查看）
 📑 已刷新单页 pages/ 与文档总索引 docs/INDEX.md
 
-可以开始 Review 了。
-如需 AI 审查，运行：/requesting-code-review
+工作流阶段：Understanding Gate 已完成。
+可以进入人工 Review / 提交前检查。
+如仍需要 AI 审查，先回到 /review-fix 生成任务包，并让 /review-check 输出 findings；不要用代码地图替代审查结论。
 ```
 
 ## 规则
 
 - **静默分析**：Step 1-2 的搜索与读取结果不展示给用户，仅作内部上下文
 - **不编造**：只记录代码里实际存在的调用/状态/注释
-- **不越界**：不提修改建议，不标记问题，那是 `/requesting-code-review` 的职责
+- **不越界**：不提修改建议，不标记问题，那是 `/review-check` 的职责
 - **偏差只记录，不定性**：dev-doc 模式下发现方案与实现不一致，只写"偏差/观察，Review 时关注"，不把它定为 Bug
 
 ## 检查清单（生成前确认）
@@ -178,7 +183,7 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 
 - 完整文档模板：[reference.md](reference.md)
 - **必需背景：** `dev-doc` skill（了解 dev-doc 模式入口的文档结构）
-- AI 代码审查：`/requesting-code-review`（code-reading 之后运行）
+- AI 代码审查：`/review-fix` 生成任务包，`/review-check` 执行只读审查；code-reading 可作为证据包补充
 - 完整工作流参考：仓库内 `docs/workflow-guide.md`（dev-workflow-skills 项目文档，非安装后的同级文件）
 
 ## 常见错误

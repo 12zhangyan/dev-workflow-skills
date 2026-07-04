@@ -23,6 +23,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填、按风险分级、一次只问一个阻塞问题；发现业务/修复口径冲突时显式记录，不用猜测静默折中。
 
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 完成 Bug 场景的 Plan Gate；根因未证实时不得进入 Implementation Gate，修复验证后优先交给 `review-fix` / `review-check` 闭环。
+
 ### Step 0：参数检查
 
 - `$task` 为空 → 询问："这个 Bug 叫什么名字？用一句话描述（如 '用户登录500错误'）"

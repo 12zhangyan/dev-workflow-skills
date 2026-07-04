@@ -874,6 +874,16 @@ function showApis() {
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
           </tr>`);
         });
+        if ((!c.apis || !c.apis.length) && c.apiSpecPath) {
+          total++;
+          rows.push(`<tr>
+            <td style="width:72px"><span class="method m-GET">YAML</span></td>
+            <td><code class="api-url">${esc(c.apiSpecPath)}</code></td>
+            <td>OpenAPI 规范文件已生成，但看板 entry 未登记具体接口；请回填 apis[] 以完善接口索引。</td>
+            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink(c, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
+            <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
+          </tr>`);
+        }
       });
       if (!rows.length) return '';
       return `<div class="idx-mod">

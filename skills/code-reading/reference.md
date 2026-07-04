@@ -121,8 +121,9 @@ stateDiagram-v2
 ```
 ✅ 代码地图已生成：docs/code-reading/<日期>/<功能名>.md
 
-可以开始 Review 了。
-如需 AI 审查，运行：/requesting-code-review
+工作流阶段：Understanding Gate 已完成。
+可以进入人工 Review / 提交前检查。
+如仍需要 AI 审查，先回到 /review-fix 生成任务包，并让 /review-check 输出 findings；不要用代码地图替代审查结论。
 
 【Skill 反馈给 Codex】
 - skill：code-reading

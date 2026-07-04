@@ -23,7 +23,7 @@ Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
 **① 生成 md 开发文档（AI 执行文档）**，精确到文件路径和执行步骤，交给 Claude/Cursor 照着干活，包含：
 
 - 需求说明（背景 / 目标 / 范围）
-- API 设计与接口列表
+- API 设计与接口列表（仅新增接口或接口签名变更时保留）
 - 技术方案（方案概述 / 核心设计 / 最小影响分析）
 - 流程图（Mermaid 语法）
 - 代码变更清单
@@ -98,10 +98,10 @@ install-local.cmd cursor codex    :: 仅指定工具（可组合）
 ## 工作流
 
 ```
-dev-doc → AI 执行 → 跑测试 → review-fix 生成审查清单 → review-check 多 AI 审查 → review-fix 汇总修复 → code-reading → 人工 review → 提交
+dev-doc / bug-fix / biz-flow → AI 执行并回填结果 → VCS 纳管新增文件 → 跑验证 → review-fix 生成审查清单 → review-check 多 AI 审查 → review-fix 汇总修复 → code-reading → 人工 review → 提交
 ```
 
-详细步骤见 [docs/workflow-guide.md](docs/workflow-guide.md)
+第一次使用请从 [docs/workflow-guide.md](docs/workflow-guide.md) 开始；README 只做能力总览。共享门禁协议见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
 
 ## HTML 看板
 
@@ -123,10 +123,10 @@ project-html/
 
 **单页分享**：详情页 / 浏览索引里的「📤 独立页面」指向 `pages/<slug>.html`——这是一个把样式、数据、mermaid 全部内联的自包含 HTML，单个文件即可直接发给同事/测试，无需打包整个文件夹（内网离线也能看图）。
 
-**文档总索引**：`docs/INDEX.md` 由 `build.js` 从看板数据自动生成（每次运行刷新），按服务/模块归类所有文档，含 md 与单页链接。首次运行还会把项目根目录散落的旧 md、旧看板、接口文档**复制**（不删原件）到 `docs/archive/` 统一归档。
+**文档总索引**：`docs/INDEX.md` 由 `build.js` 从看板数据自动生成（每次运行刷新），按服务/模块归类所有文档，含 md、单页与 OpenAPI YAML 链接。首次运行还会把项目根目录散落的旧 md、旧看板、接口文档**复制**（不删原件）到 `docs/archive/` 统一归档。
 
 状态变更保存在浏览器 localStorage（按当前浏览器 + 文件路径隔离）；要让团队都看到，可让 Claude 直接修改 `data/changes.js` 中的 status 字段。
-看板外壳带版本号（`BOARD_VERSION`）：skill 检测到模板版本更新时会自动升级外壳文件，数据不受影响；每次写入数据后会用 `node --check` 校验语法，避免看板白屏。
+看板外壳带版本号（`BOARD_VERSION`）：skill 检测到模板版本更新时会自动升级外壳文件，数据不受影响；每次写入数据后会用 `node --check` 校验语法，避免看板白屏。维护本仓库时可运行 `node scripts/check-board-sync.js` 检查 `project-html/` 与模板外壳是否字节一致；bash 可用时 `bash scripts/check-board-sync.sh` 会调用同一套 Node 检查。
 
 示例：[project-html/index.html](project-html/index.html)
 
@@ -139,7 +139,7 @@ project-html/
 ## 自定义
 
 每个 skill 的信息槽位和文档模板放在对应的 `reference.md` 中，
-安装后直接修改 `~/.claude/skills/` 下的文件适配团队需求。
+安装后直接修改目标工具的 skills 目录（如 `~/.claude/skills/`、`~/.cursor/skills/`、`~/.codex/skills/`）下的文件适配团队需求。
 
 信息槽位是查漏清单，不是必须逐条问完的问卷。Skill 应先从用户输入、当前代码、接口、字典和现有文档预填信息；只在答案会影响业务语义、数据状态、权限范围、接口契约、修复范围或验收标准时追问。发现需求与现有逻辑冲突时要显式写出证据和建议口径。
 

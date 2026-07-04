@@ -27,6 +27,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：只基于已读取材料下结论；材料不足时输出"材料不足，无法下结论"，不要伪装成未发现问题；需求/实现/状态/权限/数据归属冲突要作为重点审查项。
 
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 只执行 Review Gate 的只读审查；输出必须包含 VerificationStatus，说明已看到或未看到哪些验证命令/结果，材料不足时不能给通过结论。
+
 ### Step 0：入口识别
 
 `$entry` 为空时询问：
@@ -131,6 +133,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 要求：
 - findings 按 `Critical / Important / Minor` 分组。
+- 固定输出 `VerificationStatus`：已运行/未运行/未提供；命令、结果或未运行原因。
 - 每条包含 `File/Line`、`Problem`、`Evidence`、`Impact`、`Fix`、`Verify`。
 - 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
 - 不输出大段源码，不复述全部 diff。

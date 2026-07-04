@@ -34,6 +34,7 @@
 审查对象：<review-task/dev-doc/patch/功能描述>
 审查范围：<已读取的关键文件/文档>
 结论状态：Findings
+VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
 
 Critical:
 1. Severity: Critical

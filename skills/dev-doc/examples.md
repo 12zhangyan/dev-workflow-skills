@@ -95,6 +95,18 @@
 { "code": 0, "data": { "token": "xxx", "expireIn": 7200 } }
 ```
 
+## 十三、Apifox 接口规范
+
+- **OpenAPI 文件**：`docs/apifox/2026-05-31/用户登录优化.openapi.yaml`
+- **Apifox 导入**：Apifox → 导入 → OpenAPI / Swagger → 选择该 YAML 文件
+- **接口索引**：`docs/apifox/INDEX.md`
+- **维护规则**：后续验证码登录接口参数、返回结构或路径变更时，更新同一个 YAML 文件和索引
+
+| Method | URL | operationId | 说明 | OpenAPI 文件 |
+|--------|-----|-------------|------|--------------|
+| POST | /api/v1/auth/sms-code | sendSmsCode | 发送短信验证码 | `docs/apifox/2026-05-31/用户登录优化.openapi.yaml` |
+| POST | /api/v1/auth/sms-login | smsLogin | 验证码登录 | `docs/apifox/2026-05-31/用户登录优化.openapi.yaml` |
+
 ---
 
 ## 四、数据库变更
@@ -229,13 +241,15 @@ flowchart TD
     status: "草稿",
     branch: "feature/sms-login",
     docPath: "docs/2026-05-31/用户登录优化.md",
+    apiSpecPath: "docs/apifox/2026-05-31/用户登录优化.openapi.yaml",
+    apiIndexPath: "docs/apifox/INDEX.md",
     background: "现有登录只支持账号密码，新用户留存仅 18%，运营调研发现 60% 流失在注册环节、卡在设密码。\n这次加手机号验证码登录，让新用户少一步密码设置，同时保留老的密码登录不动。",
     goals: ["新增手机号+短信验证码登录", "注册流程支持验证码注册", "原账号密码登录保持可用"],
     scopeIn: ["手机号登录", "短信网关接入", "验证码生成与校验"],
     scopeOut: ["第三方登录（微信/支付宝）", "生物识别登录"],
     apis: [
-      { method: "POST", url: "/api/v1/auth/sms-code", desc: "发送短信验证码（同手机号 60 秒限一次）" },
-      { method: "POST", url: "/api/v1/auth/sms-login", desc: "验证码登录，校验通过签发 Token" }
+      { method: "POST", url: "/api/v1/auth/sms-code", operationId: "sendSmsCode", desc: "发送短信验证码（同手机号 60 秒限一次）" },
+      { method: "POST", url: "/api/v1/auth/sms-login", operationId: "smsLogin", desc: "验证码登录，校验通过签发 Token" }
     ],
     solution: "引入策略模式：抽出 LoginStrategy 接口，密码登录和验证码登录各做一个实现，AuthServiceImpl 改成按登录类型分发。\n验证码走 Redis 存（key sms:code:{phone}，TTL 5 分钟），登录成功后主动删；发码用 SETNX 做 60 秒防重。",
     coreDesign: "选策略模式而不是在原方法里加 if-else，是为了后续再加登录方式（扫码、第三方）时只加实现类、不动分发逻辑。\n放弃了「复制一套登录流程」的做法，因为会和密码登录产生大量重复校验代码。",

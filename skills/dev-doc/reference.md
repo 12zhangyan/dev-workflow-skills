@@ -220,6 +220,7 @@ flowchart TD
 - **Apifox 导入**：Apifox → 导入 → OpenAPI / Swagger → 选择该 YAML 文件，或粘贴文件内容
 - **接口索引**：`docs/apifox/INDEX.md`
 - **维护规则**：后续新增接口、调整请求参数、调整响应结构或变更路径/方法时，优先更新上述 YAML 文件；不要只改本文档的接口表
+- **总索引说明**：`docs/INDEX.md` 由 `node project-html/build.js` 自动生成，不手工编辑；它会从看板 `apiSpecPath` 生成 OpenAPI 链接列
 
 | Method | URL | operationId | 说明 | OpenAPI 文件 |
 |--------|-----|-------------|------|--------------|
@@ -269,6 +270,9 @@ paths:
                   type: integer
                   description: "[字段说明]"
                   example: 1
+                pendingField:
+                  type: string
+                  description: "待补充字段说明"  # 待补充：字段名/类型/是否必填需确认；保持合法 YAML，不要写破坏导入的占位符
       responses:
         "200":
           description: "成功"
@@ -305,13 +309,14 @@ components:
 > - 字段类型：`string` / `integer` / `number` / `boolean` / `array` / `object`
 > - 数组示例：`type: array` + `items: { type: string }`
 > - 引用公共响应体：`$ref: "#/components/schemas/CommonResponse"`
+> - 未确认字段使用合法 YAML 结构 + `# 待补充` 注释；不要用无效占位符破坏 Apifox 导入
 
 ---
 
 ## Apifox 索引模板
 
 > 文件路径：`docs/apifox/INDEX.md`
-> 每次生成或更新 OpenAPI YAML 时同步更新本索引，方便导入 Apifox 和后续维护。
+> 每次生成或更新 OpenAPI YAML 时同步更新本索引，方便导入 Apifox 和后续维护。按“源文档 + OpenAPI 文件”去重，命中既有行就更新，不重复追加。
 
 ```markdown
 # Apifox / OpenAPI 索引
@@ -329,6 +334,9 @@ components:
 ✅ 文档已生成：docs/<日期>/<任务名>.md
 📤 Apifox/OpenAPI：docs/apifox/<日期>/<任务名>.openapi.yaml（仅接口变更时生成；无接口变更则输出“本次无新增或签名变更接口，未生成”）
 📚 Apifox 索引：docs/apifox/INDEX.md（仅接口变更时更新）
+📚 文档总索引：docs/INDEX.md
+📤 独立单页：project-html/pages/<slug>.html
+🧭 工作流阶段：Plan Gate 已完成；下一步进入 Implementation Gate
 
 📌 关键决策：
 1. <一句话>
@@ -340,21 +348,24 @@ components:
 先阅读「二、技术方案 / AI 执行口径」，确认前置条件、执行顺序、验收标准和禁止改动。
 按「六、代码变更清单」逐项执行。
 修改类条目先确认「最小影响分析」中的原因再动手。
-按「十一、实现 Todo」逐项完成，每完成一项运行对应验证；若文档存在阻塞问题或阻塞型需求冲突，先输出确认问题，不得开始编码；低风险假设按文档记录执行。"
+按「十一、实现 Todo」逐项完成，每完成一项运行对应验证；若文档存在阻塞问题或阻塞型需求冲突，先输出确认问题，不得开始编码；低风险假设按文档记录执行。
+完成后必须回填执行结果对照表：已完成 Todo、未完成/偏离项、变更文件、验证命令、风险/疑问。"
 
 📁 纳入版本控制并确认变更范围：
-- [ ] Git: `git add <新文件>` | SVN: `svn add <新文件>`
+- [ ] Git: `git add docs/<日期>/<任务名>.md project-html/data/changes.js docs/INDEX.md`；如生成接口规范，再加 `docs/apifox/<日期>/<任务名>.openapi.yaml docs/apifox/INDEX.md`
+- [ ] SVN: `svn add <新文件>`；如生成接口规范，确认 `.openapi.yaml` 与 `docs/apifox/INDEX.md` 已纳入版本控制
 - [ ] 查看完整变更：`git diff` / `svn diff`
 
 🧪 先验证（没有绿灯不进 Code Review）：
 - [ ] <验证命令>（Maven: `mvn test` / Gradle: `./gradlew test` / Node: `npm test`）
 - [ ] 测试全绿 → 继续；有失败 → 先修复再验证
 
-🤖 AI 代码审查（修复后再继续）：
-- [ ] Git: `/requesting-code-review` | SVN: `svn diff > /tmp/changes.patch` 后让 Claude 读取审查
-- [ ] 按 Critical / Important / Minor 分级处理，修复后重跑测试确认全绿
+🤖 AI 代码审查（Review Gate）：
+- [ ] 生成审查任务包：`/review-fix docs/<日期>/<任务名>.md`
+- [ ] 分发只读审查：`/review-check docs/review-fix/<日期>/<任务名>-review-task.md`
+- [ ] 把 findings 贴回 `/review-fix` 汇总修复交接；Critical / Important 处理后重跑验证
 
-👁 生成代码地图，自己 Review：
+👁 生成代码地图，自己 Review（Understanding Gate）：
 - [ ] `/code-reading docs/<日期>/<任务名>.md`（利用 dev-doc 生成调用链 + 状态机 + 关键位置）
 - [ ] 对照地图检查业务逻辑、事务边界、关键注意点
 - [ ] /chinese-code-review 整理评论话术（如有问题）
@@ -385,14 +396,14 @@ assets/board/
   js/board.js              渲染逻辑（含 BOARD_VERSION 版本号；两级树 / 浏览索引 / 接口索引 / Bug 视图 / 阅读视图 / 业务流视图 / 变更日志）
   js/vendor/mermaid.min.js 本地 vendor（~3MB，内网可用；复制必须走 bash cp，禁止 Read+Write）
   build.js                 构建脚本（Node，无依赖）：生成自包含单页 pages/<slug>.html + docs/INDEX.md + 首次历史归档；清空 pages/ 前会比对 data/changes.js 记录数，疑似被误覆盖时中止（哨兵，BOARD_FORCE_BUILD=1 可强制跳过）
-  data/changes.js          数据文件（占位符版本，首次创建看板时替换占位数据后写入）
+  data/changes.js          空数据模板（首次创建看板后也交给 board-add.js 写入第一条记录）
 ```
 
 **外壳复制时记得带上 `build.js`**（它也是字节一致的外壳文件）：`cp "$src/build.js" project-html/build.js`。
 
-使用方式见 SKILL.md Step 5.5：用 `test -f` 确定性判断看板是否存在（不靠模型读 Read 结果猜）；不存在时 bash cp 复制外壳 + 填充数据；已存在时先备份 `data/changes.js.bak`，再检查 `BOARD_VERSION` 升级外壳、按 `docPath` 查重后追加/更新 `data/changes.js`，最后 `node --check` + 记录数回归校验（数变小自动回滚）。
+使用方式见 SKILL.md Step 5.5：用 `test -f` 确定性判断看板是否存在（不靠模型读 Read 结果猜）；不存在时 bash cp 复制外壳和空数据模板；新增或更新记录统一写入 `project-html/data/_entry.json` 后交给 `node project-html/board-add.js`，由脚本按 `docPath` 查重、备份、转义和做记录数回归校验。
 
 **维护提示**：
-- `assets/board/` 的外壳文件（index.html / css / js / vendor）与仓库根 `project-html/` 对应文件保持完全一致，仅 `data/changes.js` 不同（模板为占位符，实际看板为真实数据）。修改看板行为时两处同步更新，**外壳有行为变化时 `BOARD_VERSION` +1**，并运行 `scripts/check-board-sync.sh` 校验。
+- `assets/board/` 的外壳文件（index.html / css / js / vendor / build.js / board-add.js）与仓库根 `project-html/` 对应文件保持完全一致，仅 `data/changes.js` 不同（模板为空数据，实际看板为真实数据）。修改看板行为时两处同步更新，**外壳有行为变化时 `BOARD_VERSION` +1**，并运行 `node scripts/check-board-sync.js` 校验。
 - `/bug-fix` 与 `/code-reading` skill 复用同一资产目录（安装后路径 `../dev-doc/assets/board/`）。
-- 数据追加依赖 `data/changes.js` 中的两个标记行（`// ─── 在此行上方追加新记录 ───` 与 `// ─── 在此行上方追加变更日志 ───`），不可删除。
+- 数据追加主路径依赖 `board-add.js`；`data/changes.js` 中的两个标记行（`// ─── 在此行上方追加新记录 ───` 与 `// ─── 在此行上方追加变更日志 ───`）只作为脚本定位和 `node` 不可用时的手工降级入口，不可删除。

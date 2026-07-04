@@ -28,6 +28,8 @@ md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 
 先执行 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填 → 风险分级 → 单点确认 → 冲突显式记录。信息槽位只用于查漏，不是逐条问卷。
 
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 完成的是 Plan Gate；输出必须说明产物路径、阻塞项/冲突/假设、VCS Gate、Verification Gate、Review Gate 和后续 code-reading / 人工 review 入口。
+
 ### Step 0：参数检查
 
 - `$task` 为空 → 询问用户："这次要做什么任务？用一句话描述（如 '用户登录优化'）"
@@ -147,6 +149,13 @@ d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 mkdir -p "docs/apifox/$d"
 ```
 
+执行顺序：
+1. 确认最终 `mdPath`（Step 4 冲突处理后的真实路径）与 `apiSpecPath`，两者文件名后缀保持一致。
+2. 创建或更新 `apiSpecPath`，写入可导入 Apifox 的 OpenAPI 3.0 YAML。
+3. 创建或更新 `docs/apifox/INDEX.md`，按 `源 md + OpenAPI 文件` 作为去重键；命中既有行就更新该行，不重复追加。
+4. 回填 md「十三、Apifox 接口规范」：只写文件位置、导入方式、接口索引和维护规则，不内嵌完整 YAML。
+5. 回填看板 entry：写入 `apiSpecPath`、`apiIndexPath`，并在 `apis[]` 中登记所有新增或签名变更接口。
+
 产物规则：
 - OpenAPI 文件路径：`docs/apifox/<日期>/<任务名>.openapi.yaml`
 - Apifox 索引路径：`docs/apifox/INDEX.md`
@@ -155,12 +164,20 @@ mkdir -p "docs/apifox/$d"
 - `docs/apifox/INDEX.md` 至少包含：日期、服务/模块、任务、OpenAPI 文件、源 md、接口列表、维护备注
 - md「十三、Apifox 接口规范」必须写明 `apiSpecPath`、`apiIndexPath`、Apifox 导入方式，以及“后续接口变更要更新此 YAML 文件”的维护规则
 - 看板 entry 必须同步写入 `apiSpecPath`；生成索引时写入 `apiIndexPath: "docs/apifox/INDEX.md"`
+- `docs/INDEX.md` 只由 `node project-html/build.js` 覆盖生成，不手工编辑；它会从看板 `apiSpecPath` 生成 OpenAPI 链接列
+
+轻量校验（无第三方依赖）：
+```bash
+test -f "$apiSpecPath" && grep -q 'openapi: "3.0.3"' "$apiSpecPath" && grep -q '^paths:' "$apiSpecPath" && grep -q 'operationId:' "$apiSpecPath"
+test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && grep -q "$mdPath" docs/apifox/INDEX.md
+```
+校验失败时不要在完成输出里宣称 Apifox/OpenAPI 已可导入；先修正 YAML 或索引。
 
 ### Step 5.5：同步更新 HTML 看板
 
-看板为多文件结构，**skill 只追加数据文件，不碰外壳/样式/逻辑**。
+看板为多文件结构，**skill 默认只通过 `board-add.js` 更新数据文件，不手改外壳/样式/逻辑**。外壳版本较低时只按下方升级命令复制模板外壳，绝不覆盖 `data/`。
 
-> **⚠️ 强制规则**：修改 `data/changes.js` 只能用 Edit 在标记行追加/更新既有条目，**禁止用 Write 整体重写**。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
+> **⚠️ 强制规则**：修改 `data/changes.js` 的主路径只能是 `node project-html/board-add.js project-html/data/_entry.json`，**禁止用 Write 整体重写**。只有 `node` 不存在时，才允许用 Edit 在标记行降级追加/更新。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
 
 ```
 project-html/
@@ -190,7 +207,7 @@ project-html/
 | `goals` | md `### 目标` 的条目 → string[] |
 | `scopeIn` / `scopeOut` | md 范围条目 → string[] |
 | `flowchart` | md 流程图的 mermaid 代码（不含 ` ``` ` 标记） |
-| `apis` | md `## 三、API 设计` 表格 → `{method, url, desc}[]`；**仅登记新增或参数有变动的接口**，无接口变更填 `[]` |
+| `apis` | md `## 三、API 设计` 表格 → `{method, url, operationId, desc, request?, response?, specPath?}[]`；**仅登记新增或参数有变动的接口**，无接口变更填 `[]`；有 `apiSpecPath` 时必须非空 |
 | `todos` | md `## 十一、实现 Todo` 条目 → string[] |
 
 **叙述字段（不要从 md 截取片段，基于已收集的信息面向人类重新撰写）：**
@@ -269,7 +286,7 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 
 把本次提取的字段组成一个 entry 对象、连同变更日志描述写进一个临时 JSON 文件，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归校验全在脚本里完成**——AI 只负责产出结构化字段，不再手改 `data/changes.js`，从根上杜绝「误判看板不存在 → 整体覆盖」事故。
 
-下例是**存在接口变更**时的写法；如果本次没有新增接口或接口签名变更，必须删除 `apiSpecPath` / `apiIndexPath` 两个字段，并保持 `apis: []`。
+下例是**存在接口变更**时的写法；如果本次没有新增接口或接口签名变更，必须删除 `apiSpecPath` / `apiIndexPath` 两个字段，并保持 `apis: []`。如果生成了 `apiSpecPath`，`apis` 必须至少包含一条接口，接口级 `specPath` 可省略；只有一个任务拆出多个 OpenAPI 文件时才给单个接口写 `specPath` 覆盖任务级路径。
 
 ```bash
 cat > project-html/data/_entry.json <<'JSON'
@@ -281,7 +298,8 @@ cat > project-html/data/_entry.json <<'JSON'
     "status": "草稿", "branch": "<branch>", "docPath": "<docPath>",
     "apiSpecPath": "<apiSpecPath>", "apiIndexPath": "docs/apifox/INDEX.md",
     "background": "<background>",
-    "goals": [<goals>], "scopeIn": [<scopeIn>], "scopeOut": [<scopeOut>], "apis": [],
+    "goals": [<goals>], "scopeIn": [<scopeIn>], "scopeOut": [<scopeOut>],
+    "apis": [{"method":"POST","url":"/api/v1/example","operationId":"createExample","desc":"新增示例资源"}],
     "solution": "<solution>", "coreDesign": "<coreDesign>",
     "flowchart": "<flowchart>",
     "keyImpl": [<keyImpl>], "changeList": [<changeList>], "todos": [<todos>]
@@ -323,11 +341,10 @@ node project-html/build.js
 1. 文件路径（可直接打开）
 2. 关键决策 3 句话摘要
 3. Claude/Cursor 执行提示（可直接粘贴给 AI）
-4. 验证命令：用 Step 1 检测到的项目类型自动填入（`pom.xml` → `mvn test`，`build.gradle` → `./gradlew test`，`package.json` → `npm test`，未检测到则保留占位符）
-5. 验证通过后 Todo：代码审查命令根据 Step 1 检测到的 VCS 类型填入：
-   - Git → `/requesting-code-review`
-   - SVN → `svn diff > /tmp/changes.patch`，然后让 Claude 读取该文件审查
-   - 无 VCS → 保留占位符
+4. 当前门禁：`Plan Gate 已完成`；若存在 blocker/conflict，写 `Plan Gate 未通过` 并停止，不输出可执行编码提示
+5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项
+6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）
+7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再用 `/review-fix <dev-doc路径>` 生成 Review 任务包，分发 `/review-check <review-task路径>`，修复汇总后再运行 `/code-reading <dev-doc路径>`
 
 ## 规则
 
@@ -336,19 +353,22 @@ node project-html/build.js
 - **开闭原则优先**：方案设计偏向扩展新代码，而非修改现有
 - **可执行导向**：文档不是终点，是驱动后续工作的起点
 
-## 检查清单（生成文档前确认）
+## 检查清单
 
+### 生成前检查
 - [ ] $task 已解析（不为空）
 - [ ] 任务类型和复杂度已判定；如影响执行策略，已向用户确认
 - [ ] 信息槽位已用于查漏；阻塞项已确认，非阻塞未知已标注假设或 `待补充`
 - [ ] 文件路径冲突已处理
 - [ ] 不相关章节已删除（避免大量"待补充"）
-- [ ] 如存在新增接口或接口签名变更，已生成 `docs/apifox/<日期>/<任务名>.openapi.yaml` 并更新 `docs/apifox/INDEX.md`
-- [ ] 如不存在接口变更，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] 最小影响分析已包含
 - [ ] AI 执行口径已写清前置条件、执行顺序、验收标准、禁止改动
 - [ ] 实现 Todo 均为"动词 + 对象 + 结果"，没有无法验收的泛化表述
 - [ ] 代码评审关注点已填写
+
+### 生成后检查
+- [ ] 如存在新增接口或接口签名变更，已生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，已更新 `docs/apifox/INDEX.md`，且轻量校验通过
+- [ ] 如不存在接口变更，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] Claude/Cursor 执行提示已生成
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
@@ -359,7 +379,7 @@ node project-html/build.js
 - 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
 - 看板模板（外壳 + 样式 + 逻辑 + 数据占位）：[assets/board/](assets/board/)
 - 中文文档规范：**必需背景：** `chinese-documentation` skill
-- 后续步骤：`/requesting-code-review`（AI 代码审查）、`/code-reading`（生成代码地图）、`/chinese-code-review`（PR 评论话术）
+- 后续步骤：`/review-fix`（生成 Review 任务包并汇总修复）、`/review-check`（只读审查）、`/code-reading`（生成代码地图）、`/chinese-code-review`（PR 评论话术）
 
 ## 常见错误
 
@@ -373,6 +393,8 @@ node project-html/build.js
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
 | Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
-| 外壳 cp 失败 | skill 不在 `~/.claude/skills/` 默认路径 | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
+| 接口索引没有接口但有 YAML 链接 | 生成了 `apiSpecPath`，但看板 `apis[]` 漏填 | 回填 `apis[]`，每条接口至少包含 `method`、`url`、`operationId`、`desc` |
+| Apifox 导入失败 | YAML 结构不合法或缺少 `paths` / `operationId` | 按 Step 5.1 轻量校验修正后再输出完成信息 |
+| 外壳 cp 失败 | skill 不在默认安装路径（`~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills`） | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
 | `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
 | `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |

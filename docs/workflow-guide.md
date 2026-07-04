@@ -1,226 +1,242 @@
-# Java 后端开发工作流（Claude Code / Cursor / Codex + SVN）
+# Java 后端 AI 开发工作流（Dev Workflow Skills）
 
-> 适用场景：Java Spring Boot / MVC 后端开发，团队使用 SVN，借助 Claude Code、Cursor 或 Codex 辅助开发。
+> 目标：先定方案，再实现，再验证，再审查，再读代码，最后由人提交。
+> README 只做能力总览；第一次跑流程从本文开始。
 
-> 调用约定：本文保留 Claude Code 的 `/dev-doc` 写法；在 Codex 中不要输入 `/dev-doc` 或 `$dev-doc`，直接说“使用 dev-doc skill 给 XX 生成开发文档”。Codex 安装 skill 不等于注册同名斜杠命令，也不保证进入 `$` 技能/应用选择器。
+## 调用约定
 
----
+| 场景 | Claude Code | Codex |
+|------|-------------|-------|
+| 生成开发文档 | `/dev-doc 任务名` | `使用 dev-doc skill 给 任务名 生成开发文档` |
+| 记录 Bug | `/bug-fix Bug名` | `使用 bug-fix skill 记录 Bug名` |
+| 梳理测试业务流 | `/biz-flow 业务名` | `使用 biz-flow skill 生成 业务名 的业务流方案` |
+| 生成 Review 任务包 | `/review-fix docs/.../任务.md` | `使用 review-fix skill 基于 docs/.../任务.md 生成 Review 任务包` |
+| 执行只读审查 | `/review-check docs/review-fix/...-review-task.md` | `使用 review-check skill 审查 docs/review-fix/...-review-task.md` |
+| 生成代码地图 | `/code-reading docs/.../任务.md` | `使用 code-reading skill 基于 docs/.../任务.md 生成代码地图` |
 
-## 一、工作流概览
+Codex 不要输入 `/dev-doc` 或 `$dev-doc`。Codex 安装 skill 不等于注册同名斜杠命令，也不保证进入 `$` 技能选择器。
 
+## 一句话主链路
+
+```text
+dev-doc / bug-fix / biz-flow
+→ AI 执行并回填结果
+→ VCS 纳管新增文件
+→ 测试/构建/接口验证
+→ review-fix 生成任务包
+→ review-check 多 AI 只读审查
+→ review-fix 汇总修复
+→ code-reading 生成代码地图
+→ 人工 review
+→ 提交
 ```
-【规划】          【执行】           【验收】              【提交】
-/dev-doc  →  Claude/Cursor  →  读代码 + 测试 + Review  →  svn commit
+
+## 阶段门禁
+
+| 门禁 | 必须看到的证据 | 通过后进入 |
+|------|----------------|------------|
+| Plan Gate | dev-doc / bug-fix / biz-flow 文档；阻塞项、冲突、假设已写清；看板与 `docs/INDEX.md` 已刷新 | 实现 |
+| Implementation Gate | Todo 对照表：已完成项、变更文件、未完成项、执行偏差 | VCS 检查 |
+| VCS Gate | `git status --short` 或 `svn status`；新增源码、测试、配置、OpenAPI YAML、文档已 `add` | 验证 |
+| Verification Gate | 有针对性的测试/构建/接口/数据核对命令和结果；失败已修复并重跑 | Review |
+| Review Gate | `review-fix` 任务包、`review-check` findings、accepted findings 处理状态 | 代码地图 |
+| Understanding Gate | `code-reading` 代码地图；人工 review 关注点 | 提交前检查 |
+| Submit Gate | 最终 status/diff/test/review/doc/sensitive 检查通过 | `git commit` / `svn commit` |
+
+任何门禁失败都先停在当前阶段，不带病进入下一步。
+
+## 产物地图
+
+| 产物 | 位置 | 谁生成 | 是否建议提交 |
+|------|------|--------|--------------|
+| 开发文档 | `docs/YYYY-MM-DD/<task>.md` | `dev-doc` | 是 |
+| Bug 文档 | `docs/bugs/YYYY-MM-DD/<bug>.md` | `bug-fix` | 是 |
+| 业务流文档 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` | `biz-flow` | 是 |
+| OpenAPI YAML | `docs/apifox/YYYY-MM-DD/<task>.openapi.yaml` | `dev-doc`，仅接口变更时 | 是 |
+| OpenAPI 索引 | `docs/apifox/INDEX.md` | `dev-doc` | 是 |
+| Review 任务包 | `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` | `review-fix` 第一阶段 | 是 |
+| Review 修复交接 | `docs/review-fix/YYYY-MM-DD/<task>-fix-handoff.md` | `review-fix` 第二阶段 | 是 |
+| 代码地图 | `docs/code-reading/YYYY-MM-DD/<task>.md` | `code-reading` | 是 |
+| 看板数据 | `project-html/data/changes.js` | 文档类 skill | 是 |
+| 单页与总索引 | `project-html/pages/`、`docs/INDEX.md` | `node project-html/build.js` | `docs/INDEX.md` 是；`pages/` 按项目策略 |
+
+## 详细步骤
+
+### 1. 选入口
+
+- 新功能、接口变更、重构、配置变更：用 `dev-doc`。
+- 需要记录现象、根因、修复边界：用 `bug-fix`。
+- 要给测试/产品讲清业务状态、数据流、接口顺序：用 `biz-flow`。
+
+如果需求和现有代码、字典、状态机、权限或数据模型冲突，先把冲突写进文档并阻塞，不要按猜测继续。
+
+### 2. 生成方案文档
+
+运行入口 skill 后，确认输出里至少有：
+
+- 文档路径。
+- 看板更新结果。
+- 阻塞项、冲突、假设。
+- 实现 Todo。
+- 验证命令建议。
+- 下一步执行提示。
+
+涉及接口新增或签名变更时，还必须有：
+
+- `docs/apifox/<日期>/<任务名>.openapi.yaml`
+- `docs/apifox/INDEX.md`
+- md 中的 Apifox 导入说明和接口索引。
+
+### 3. 实现并回填执行结果
+
+把文档末尾的执行提示交给 AI 或开发者。完成后要求回填：
+
+```text
+执行结果对照表
+- 已完成 Todo：<逐项列出>
+- 未完成/偏离项：<没有写 无>
+- 变更文件：<源码/测试/配置/文档/OpenAPI>
+- 验证命令：<已运行或待运行>
+- 风险/疑问：<没有写 无>
 ```
 
----
+没有这张对照表，后续 review 只能靠 diff 猜，容易漏掉“该做但没做”的项。
 
-## 二、安装 Skills
+### 4. VCS Gate
 
-工作流依赖两个 skill 包，需要分别安装：
-
-### 1. superpowers-zh（提供 brainstorming、requesting-code-review 等通用 skill）
+Git：
 
 ```bash
-npx superpowers-zh
+git status --short
+git diff --name-status
+git add <新增源码/测试/配置/OpenAPI/文档>
 ```
 
-### 2. dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、review-check、biz-flow、review-fix）
+SVN：
 
 ```bash
-# macOS / Linux / Git Bash
-curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
-
-# Windows PowerShell
-irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
+svn status
+svn add <新增源码/测试/配置/OpenAPI/文档>
+svn diff --summarize
 ```
 
-安装完成后重启目标工具生效。Claude Code 通常使用 `/skill-name`；Codex 使用普通自然语言触发，例如“使用 dev-doc skill ...”。
+重点检查：
 
-### 所需 Skills 一览
+- 新增测试文件是否已纳入 VCS。
+- `docs/apifox/*.openapi.yaml` 和 `docs/apifox/INDEX.md` 是否已纳入 VCS。
+- `project-html/data/changes.js`、`docs/INDEX.md` 是否刷新。
+- 没有把临时 patch、日志、凭证文件误加入。
 
-| Skill | 来源 | 用途 | Claude Code | Codex |
-|-------|------|------|-------------|-------|
-| dev-doc | dev-workflow-skills | 生成开发文档（工作流第一步） | `/dev-doc` | `使用 dev-doc skill ...` |
-| bug-fix | dev-workflow-skills | 记录 Bug、搜代码定位根因、生成修复文档并登记看板 | `/bug-fix` | `使用 bug-fix skill ...` |
-| code-reading | dev-workflow-skills | Review 前生成代码地图（调用链 + 状态机 + 代码位置） | `/code-reading` | `使用 code-reading skill ...` |
-| review-check | dev-workflow-skills | 按 Review 任务包或统一清单执行只读代码审查，输出 findings 给 review-fix 汇总 | `/review-check` | `使用 review-check skill ...` |
-| biz-flow | dev-workflow-skills | 把一组接口捋成面向测试的业务流方案（业务流转/数据流/时序图） | `/biz-flow` | `使用 biz-flow skill ...` |
-| review-fix | dev-workflow-skills | 生成可分发给多 AI 的 code-review 审查清单；贴回结果后再汇总修复交接和 AI 修复操作码 | `/review-fix` | `使用 review-fix skill ...` |
-| `/brainstorming` | superpowers-zh | 复杂需求分析，在 dev-doc 之前使用 | 显式调用 |
-| `/requesting-code-review` | superpowers-zh | 派遣 subagent 自动做代码审查（Git 项目） | 显式调用 |
-| `/chinese-code-review` | superpowers-zh | 整理中文 PR 评论话术 | 显式调用 |
-| `/receiving-code-review` | superpowers-zh | 处理 review 反馈，判断是否接受 | 按需调用 |
-| `/compact` | superpowers-zh | 上下文超 50% 时压缩，防止对话失焦 | 按需调用 |
+### 5. Verification Gate
 
----
-
-## 三、简单任务（Bug 修复 / 小功能）
-
-### Step 1　生成开发文档
-
-```
-/dev-doc [任务名称]
-```
-
-依次回答 Claude 的提问（任务类型、复杂度、需求背景等），文档自动保存到 `docs/YYYY-MM-DD/[任务名].md`。
-
-### Step 2　交给 Claude/Cursor 执行
-
-把文档末尾生成的「🤖 执行提示」直接粘贴给 Claude 或 Cursor：
-
-```
-"参考 docs/YYYY-MM-DD/[任务名].md 实现技术方案。
-按「六、代码变更清单」逐项执行。
-修改类条目先确认「最小影响分析」中的原因再动手。"
-```
-
-等待执行完成。
-
-### Step 3　纳入版本控制
+优先用文档里给出的模块级验证命令。泛化命令只作为兜底：
 
 ```bash
-svn add <新增的文件>     # 新文件必须 add，否则不进版本历史
-svn status              # 确认哪些文件变了
-svn diff                # 快速扫一遍完整变更
+mvn test
+./gradlew test
+npm test
 ```
 
-### Step 4　阅读主要代码（不可跳过）
-
-打开文档「六、代码变更清单」，**重点读"修改"类条目**，新增类可略读：
-
-- 业务核心逻辑（计算、状态变更、条件判断分支）
-- 对外接口（入参校验、响应结构）
-- 事务、锁、并发相关代码
-
-> 目的：发现方向性错误和业务逻辑偏差，这类问题测试和 AI Review 都不一定能发现。
-
-### Step 5　运行测试（验证）
+多模块 Maven 项目应优先使用可复现的模块命令，例如：
 
 ```bash
-mvn test           # Maven 项目
-./gradlew test     # Gradle 项目
+mvn -f <module-pom> test
+mvn -pl <module> -am test
 ```
 
-**测试全绿才继续，有失败先修复。**
+验证失败时先修复并重跑。不要把失败测试带入 Review。
 
-### Step 6　AI 代码审查
+### 6. Review Gate
 
-**SVN 项目：**
+先生成任务包：
+
+```text
+Claude Code: /review-fix docs/YYYY-MM-DD/<task>.md
+Codex: 使用 review-fix skill 基于 docs/YYYY-MM-DD/<task>.md 生成 Review 任务包
+```
+
+`review-fix` 第一阶段必须有实际实现证据：VCS status、diff/patch 或明确变更文件。只有方案文档时，只能审方案，不能声称审过代码。
+
+再让一个或多个 AI 执行只读审查：
+
+```text
+Claude Code: /review-check docs/review-fix/YYYY-MM-DD/<task>-review-task.md
+Codex: 使用 review-check skill 审查 docs/review-fix/YYYY-MM-DD/<task>-review-task.md
+```
+
+把 findings 原样贴回 `review-fix`。`review-fix` 第二阶段应输出：
+
+- accepted / rejected / needs-confirmation 分类。
+- 每条 Critical / Important 的修复建议和验证方式。
+- 修复操作码。
+- 修复后回填要求。
+
+Critical / Important 没关闭前，不进入 Submit Gate。
+
+### 7. 修复后复验
+
+按修复交接执行后，回填：
+
+```text
+- 已修复 finding：<CR/IM ID + 证据>
+- 未采纳 finding：<原因>
+- 验证命令与结果：<命令 + 结果>
+- 是否需要二次 review-check：<是/否，原因>
+```
+
+如果改动范围明显扩大，重新跑 `review-check`。小范围确定性修复可由人工 review 签收。
+
+### 8. Understanding Gate
+
+在最终人工 review 前生成代码地图：
+
+```text
+Claude Code: /code-reading docs/YYYY-MM-DD/<task>.md
+Codex: 使用 code-reading skill 基于 docs/YYYY-MM-DD/<task>.md 生成代码地图
+```
+
+人工重点看：
+
+- 调用链是否符合业务入口。
+- 状态流转、权限、数据归属是否符合文档。
+- 事务边界、幂等、重复提交、异常分支是否合理。
+- Review 修复是否引入新风险。
+
+### 9. Submit Gate
+
+提交前必须逐项确认：
+
+- `git status --short` 或 `svn status` 无漏 add。
+- `git diff` 或 `svn diff` 已人工扫过。
+- 目标测试/构建/接口验证已通过。
+- Critical / Important findings 已关闭或有明确不采纳理由。
+- `docs/INDEX.md`、看板、OpenAPI 索引已刷新。
+- diff 中没有 API key、密码、token、cookie、私钥、生产连接串。
+- 数据库 DDL/数据修复没有被 AI 直接执行；需要时只保留 DBA 申请材料。
+
+提交命令：
+
 ```bash
-svn diff > /tmp/changes.patch
-# 然后告诉 Claude："读取 /tmp/changes.patch，对照 docs/.../[任务名].md 做代码审查"
-```
-
-**Git 项目：**
-```
-/requesting-code-review
-```
-
-按返回的 Critical / Important / Minor 分级处理：
-- Critical → 必须修复
-- Important → 修复后再继续
-- Minor → 记录，可稍后处理
-
-如果希望让 Codex/Cursor/Claude 等多个 AI 独立审查，先运行：
-
-```
-/review-fix docs/YYYY-MM-DD/[任务名].md
-```
-
-它会先生成 `docs/review-fix/YYYY-MM-DD/[任务名]-review-task.md`，里面包含审查目标、上下文、代码变更入口、分级标准和可直接粘贴给其他 AI 的 review 提示。若其他 AI 已安装本仓库 skill，让它直接运行 `/review-check <review-task路径>`；否则把任务包里的提示分别交给 Codex/Cursor/Claude 审查。
-
-拿到多份 review 结果后，把结果贴回当前对话，再让 `/review-fix` 继续汇总。它会去重、分级、判断是否采纳，生成 `docs/review-fix/` 修复交接文档，并输出一段可直接粘贴给任意 AI 的修复操作码。
-
-修复完成后重新跑一遍测试，确认全绿。
-
-### Step 7　生成代码地图，自己 Review
-
-```
-/code-reading docs/YYYY-MM-DD/[任务名].md
-```
-
-或直接用入口类：
-
-```
-/code-reading [Controller类名]#[方法名]
-```
-
-地图文档保存到 `docs/code-reading/`，对照地图检查：
-- 调用链是否符合预期
-- 状态跳转是否正确
-- 关键注意点（事务边界、并发、边界条件）
-
-### Step 8　提交
-
-```bash
+git commit -m "<type>: <summary>"
 svn commit -m "[任务类型] [任务名称]：简要说明"
 ```
 
----
+## 失败分支
 
-## 四、复杂功能（跨模块 / 新业务流程）
-
-在简单任务流程基础上，增加以下步骤：
-
-### 0. 需求分析（在 dev-doc 之前）
-
-```
-/brainstorming
-```
-
-把模糊需求拆成清晰的技术方案，再进入 dev-doc。
-
-### 2.5　上下文压缩
-
-对话超过 50% 上下文时执行：
-
-```
-/compact
-```
-
-防止对话过长导致 Claude 遗漏前面的约定。
-
-### 4. 阅读代码（更认真）
-
-复杂任务不能略读，需要理解整体改动逻辑，特别是：
-- 模块间的调用关系是否正确
-- 事务边界是否合理
-- 原有功能是否受影响（对照「最小影响分析」）
-
----
-
-## 五、完整步骤对照表
-
-| 步骤 | 简单任务 | 复杂任务 |
-|------|---------|---------|
-| 需求分析 | 跳过 | `/brainstorming` |
-| 生成文档 | `/dev-doc` | `/dev-doc` |
-| 上下文压缩 | 按需 | 推荐 `/compact` |
-| AI 执行 | 粘贴执行提示 | 粘贴执行提示 |
-| 纳入版本控制 | `svn add + status` | `svn add + status` |
-| 验证 | `mvn test` | `mvn test` |
-| AI Review + 修复 | `svn diff > patch` 后让 Claude 审查，必要时 `/review-fix` 生成审查清单，`/review-check` 执行审查并回收 findings | `svn diff > patch` 后用 `/review-fix` 生成多 AI 审查任务包，多方 `/review-check` 后贴回结果汇总交接 |
-| 代码地图 + 人工 Review | `/code-reading <doc路径>` | `/code-reading <doc路径>` |
-| 提交 | `svn commit` | `svn commit` |
-
----
-
-## 六、核心规则
-
-| 规则 | 说明 |
+| 问题 | 处理 |
 |------|------|
-| **测试全绿才进 Review** | Review 关注设计，不是排查编译失败 |
-| **svn add 在测试前** | 测试要能找到新文件，否则测不完整 |
-| **AI review 后才人工 review** | AI 先消除低级问题；多 AI 审查用 `/review-fix` 先生成审查清单，用 `/review-check` 产出 findings，贴回结果后汇总成可执行修复交接，再用 `/code-reading` 地图关注业务逻辑和架构 |
-| **AI 不会自动提交** | `svn commit` 永远由你触发，提交权在你手里 |
-| **复杂任务先 brainstorming** | 方向错了，文档和代码都白费 |
+| skill 没触发 | Codex 改用自然语言：“使用 <skill-name> skill ...”；确认 skill 已安装到对应工具目录 |
+| Node 不存在 | 文档仍可生成；看板单页和索引无法刷新时，在完成输出说明并让用户安装 Node 后运行 `node project-html/build.js` |
+| `project-html/build.js` 失败 | 停止，先看报错；不要手工覆盖 `data/changes.js` |
+| SVN/Git 新文件漏 add | 回到 VCS Gate，补 `svn add` / `git add` 后再 review |
+| 测试失败 | 回到实现阶段修复并重跑，不进入 Review |
+| `review-check` 输出 Critical | 贴回 `review-fix` 生成修复交接，修复并验证后再签收 |
+| 只有 dev-doc 没有 diff | 只能审方案，不能输出“实现无问题” |
+| OpenAPI YAML 生成失败 | 接口变更任务不得宣称 Apifox 可导入；先修 YAML 或标记为 blocker |
+| 数据库结构变更 | 停止直接实现，只输出 DBA 申请说明或建议 DDL |
 
----
+## 速记
 
-## 七、一句话速记
-
+```text
+文档立项 → 执行回填 → add 新文件 → 跑验证 → review-fix → review-check → review-fix 修复交接 → code-reading → 人工签收 → 提交
 ```
-写文档 → AI 执行 → add 新文件 → 读 diff → 跑测试 → /review-fix 审查清单 → /review-check 多 AI 审查 → 汇总修复 → /code-reading → 人工 review → 提交
-```
-

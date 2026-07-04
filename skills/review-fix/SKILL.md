@@ -27,9 +27,13 @@ effort: high
 与相邻 skill 的分工：
 - `/code-reading`：只生成代码地图，不判断问题。
 - `/review-check`：根据本 skill 生成的任务包执行一次只读审查，输出可回收 findings。
-- `/requesting-code-review`：执行一次通用 AI review（Git 项目）。
+- `/requesting-code-review`：可作为额外 review 来源（Git 项目），但本仓库主路径是 `review-fix` 任务包 + `review-check` findings 回收。
 - `/review-fix`：先生成 review 任务包；可选地汇总 review 结果并交接修复。
 - `/bug-fix`：面向线上/测试 Bug 的现象、根因、修复记录。
+
+### 共享工作流门禁
+
+遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 第一阶段进入 Review Gate，第二阶段输出修复交接并回到 Verification Gate。只有 dev-doc/bug/biz-flow 文档但没有实际 diff、patch、VCS status 或变更文件时，只能生成方案审查任务，不能宣称审过实现代码。
 
 ## 执行流程
 
@@ -45,6 +49,8 @@ effort: high
 
 入口模式：
 - 含 `.patch` / `.diff` 或路径名含 `changes.patch` → **patch 模式**
+- 含 `docs/bugs/` → **Bug 修复文档模式**；证据包必须包含复现/根因/验证结果和实际 diff/status
+- 含 `docs/biz-flow/` → **业务流文档模式**；证据包必须包含测试口径、状态/数据流证据和实际 diff/status；否则只审业务口径，不审实现
 - 含 `.md` 且路径在 `docs/` 下 → **文档模式**
 - 其他自然语言 → **上下文模式**
 

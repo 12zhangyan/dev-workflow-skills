@@ -137,14 +137,15 @@ function buildIndex(data, archiveSummary) {
     L.push(`## 📦 ${svc}`, '');
     Object.keys(g[svc]).sort().forEach(mod => {
       L.push(`### 📁 ${mod}`, '');
-      L.push('| | 标题 | 类型 | 状态 | 日期 | 源文档 | 单页 |');
-      L.push('|---|---|---|---|---|---|---|');
+      L.push('| | 标题 | 类型 | 状态 | 日期 | 源文档 | 单页 | OpenAPI |');
+      L.push('|---|---|---|---|---|---|---|---|');
       g[svc][mod].forEach(d => {
         const ico = icoOf(d);
         const type = d.kind === 'bug' ? (d.severity || 'P2') : (d.type || kindLabel[kindOf(d)]);
         const docCell = d.docPath ? `[md](../${d.docPath})` : '-';
         const pageCell = `[页](../project-html/pages/${slugMap.get(d)}.html)`;
-        L.push(`| ${ico} | ${mdEsc(d.title)} | ${mdEsc(type)} | ${mdEsc(d.status || '')} | ${d.date || ''} | ${docCell} | ${pageCell} |`);
+        const apiCell = d.apiSpecPath ? `[yaml](../${d.apiSpecPath})` : '-';
+        L.push(`| ${ico} | ${mdEsc(d.title)} | ${mdEsc(type)} | ${mdEsc(d.status || '')} | ${d.date || ''} | ${docCell} | ${pageCell} | ${apiCell} |`);
       });
       L.push('');
     });

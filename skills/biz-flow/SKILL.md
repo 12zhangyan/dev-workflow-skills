@@ -27,6 +27,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码、接口、菜单、文档和现有看板预填；只在业务语义、权限、状态、数据归属或闭环范围会受影响时提一个阻塞问题；冲突和材料不足必须显式记录。
 
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 主要完成面向测试/产品的 Plan Gate；如果梳理中发现实现偏差或业务冲突，下一步应分流到 `dev-doc` 形成开发方案，或交给 `review-fix` 形成审查任务。
+
 ### Step 0：参数检查
 
 - `$feature` 为空 → 询问："这条业务/功能叫什么？用一句话描述（如 '订单超时自动取消'）"

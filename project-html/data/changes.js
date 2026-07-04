@@ -20,6 +20,7 @@ const htmlChangelog = [
   { date: "2026-07-02", desc: "外壳 v16：视觉升级为业务研发共读工作台，新增首页业务/研发双入口与详情页双视角摘要" },
   { date: "2026-07-03", desc: "外壳 v19：看板视觉打磨为飞书式浅色工作台，浅色侧栏、蓝色主强调、轻阴影卡片与更清爽的信息层级" },
   { date: "2026-07-03", desc: "外壳 v20：新增 Apifox/OpenAPI YAML 链接字段，详情页与接口索引可直接打开独立接口规范和索引文件" },
+  { date: "2026-07-04", desc: "外壳 v21：接口索引显示 operationId，支持接口级 specPath，并在文档总索引输出 OpenAPI 链接列" },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -44,7 +45,7 @@ const htmlChangelog = [
 //   goals       目标列表 string[]
 //   scopeIn     包含范围 string[]
 //   scopeOut    不包含范围 string[]
-//   apis        接口变更 {method,url,desc,request?,response?}[]（仅登记新增或参数有变动的接口）
+//   apis        接口变更 {method,url,operationId,desc,request?,response?,specPath?}[]（仅登记新增或参数有变动的接口；specPath 可覆盖任务级 apiSpecPath）
 //   solution    技术方案概述（一段话）
 //   coreDesign  核心设计描述（一段话）
 //   flowchart   Mermaid DSL 代码（不含 ```mermaid 标记）
@@ -84,7 +85,7 @@ const htmlChangelog = [
 //   kind        "biz"
 //   type        固定 "业务流"，status 默认 "已完成"
 //   background  业务概述（一段话，从测试视角讲这条业务整体在做什么）
-//   apis        涉及的接口 {method,url,desc}[]
+//   apis        涉及的接口 {method,url,operationId?,desc,specPath?}[]
 //   bizFlow     业务流转图 Mermaid（flowchart，业务状态/分支怎么走）
 //   dataFlow    数据流图 Mermaid（数据从哪进、经过谁、落到哪）
 //   sequence    时序图 Mermaid（sequenceDiagram，服务/接口间调用时序）

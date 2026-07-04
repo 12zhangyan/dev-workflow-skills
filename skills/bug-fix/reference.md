@@ -166,6 +166,7 @@
 ```
 ✅ Bug 文档已生成：docs/bugs/{date}/{task}.md
 🐛 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）
+🧭 工作流阶段：Bug Plan Gate 已完成；根因确认后进入 Implementation Gate
 
 📋 关键信息
 - 严重度：{severity}
@@ -179,7 +180,8 @@
    - 若任一步没有可观察结果，先补充验证口径再执行
 4. 修复验证后更新看板状态（浏览器点状态标签只存本地；要全员可见，对 Claude 说：
    "把 project-html/data/changes.js 中标题为「{task}」的记录 status 改为 \"已修复\"，改完跑 node --check"）
-5. {Git → /requesting-code-review | SVN → svn diff > /tmp/bug.patch 后让 Claude 审查}
+5. Review Gate：运行 `/review-fix docs/bugs/{date}/{task}.md` 生成审查任务包，证据包包含 Bug 文档、diff/status、复现证据和验证结果
+6. 分发 `/review-check <review-task路径>`，把 findings 贴回 `/review-fix` 汇总修复交接；Critical / Important 处理后重跑验证
 
 【Skill 反馈给 Codex】
 - skill：bug-fix

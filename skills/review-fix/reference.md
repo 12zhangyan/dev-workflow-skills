@@ -339,6 +339,7 @@ Accepted finding 必须同时满足：
 
 ```
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
+🧭 工作流阶段：Review Gate 已创建，等待 review-check findings 回收
 
 如果目标 AI 已安装本仓库 skill，直接让它运行：
 /review-check docs/review-fix/<日期>/<任务名>-review-task.md
@@ -361,9 +362,16 @@ Accepted finding 必须同时满足：
 ```
 ✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>-fix-handoff.md
 📋 已汇总 review 结果：Critical <n> / Important <n> / Minor <n> / Rejected <n>
+🧭 工作流阶段：Review Gate 修复交接已完成；下一步回到 Verification Gate，修复并重跑验证
 
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>
+
+修复后回填：
+- 已修复 finding：<CR/IM ID + 证据>
+- 未采纳 finding：<原因>
+- 验证命令与结果：<命令 + 结果>
+- 是否需要二次 review-check：<是/否，原因>
 
 【Skill 反馈给 Codex】
 - skill：review-fix
