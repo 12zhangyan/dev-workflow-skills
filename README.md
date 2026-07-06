@@ -1,157 +1,215 @@
 # dev-workflow-skills
 
-Claude Code / Cursor / Codex skill 集，为 Java 后端开发者设计。
-覆盖从需求分析到代码 Review 的完整工作流。
+面向 Java 后端开发的 Claude Code / Cursor / Codex skill 集。目标不是多生成几份文档，而是把一次需求或 Bug 修复稳定推进到：
 
-## 包含的 Skills
-
-| Skill | 用途 |
-|-------|------|
-| `dev-doc` | 问答式生成开发文档 + 自动维护 HTML 知识库 |
-| `bug-fix` | 记录 Bug、自动搜代码定位根因、生成修复文档并追加到 HTML 看板 |
-| `code-reading` | Review 前生成代码地图（调用链+状态机+代码位置索引），并登记到 HTML 看板 |
-| `review-check` | 按 `review-fix` 任务包或统一审查清单执行只读 code review，输出可回收 findings |
-| `biz-flow` | 把一组接口捋成**面向测试**的业务逻辑方案（业务流转图+数据流图+时序图+测试关注点），登记到 HTML 看板 |
-| `review-fix` | 生成可分发给 Codex/Cursor/Claude 的 code-review 审查清单；贴回 review 结果后再汇总修复交接与 AI 修复操作码 |
-
-> 调用方式因工具而异：Claude Code 通常用 `/dev-doc` 这类斜杠命令；Codex 不要输入 `/dev-doc` 或 `$dev-doc`，直接说“使用 dev-doc skill 给 XX 生成开发文档”。安装脚本会在复制到 `~/.codex/skills` 后移除 `SKILL.md` 文件头 BOM，因为 Codex 发现器要求 frontmatter 直接以 `---` 开头；源码仍保留 BOM 以兼容部分 Windows 工具读取中文。
-
-## dev-doc 能做什么
-
-运行一次 `dev-doc`，自动产出**两份分工不同的文档**：md 给 AI 执行，看板给人看。
-
-**① 生成 md 开发文档（AI 执行文档）**，精确到文件路径和执行步骤，交给 Claude/Cursor 照着干活，包含：
-
-- 需求说明（背景 / 目标 / 范围）
-- API 设计与接口列表（仅新增接口或接口签名变更时保留）
-- 技术方案（方案概述 / 核心设计 / 最小影响分析）
-- 流程图（Mermaid 语法）
-- 代码变更清单
-- 关键实现说明
-- 实现 Todo / 代码评审关注点
-- **Apifox/OpenAPI 入口**（新增或变更接口时，单独生成 `docs/apifox/<日期>/<任务名>.openapi.yaml` 并维护 `docs/apifox/INDEX.md`）
-
-**② 自动登记到 HTML 看板（人类阅读文档）**（`project-html/`，纸面编辑部风格：衬线标题 + 朱砂强调色 + 纸张底色）。
-看板条目不是 md 的摘录，而是面向"没参与这次开发的同事"独立撰写的技术说明——背景、方案、取舍都用完整句子讲清楚，不看 md、不看代码也能在站会上转述这次改动：
-
-- 左侧：**微服务 → 模块**两级文档树，顶部支持**搜索** + **文档/Bug/阅读/业务流类型筛选** + **仅看未完成**
-- 右侧：结构化文档详情（需求 / 接口文档 / 技术方案 / 流程图 / 关键实现 / 代码变更），每条记录可一键打开 **md 源文档**
-- **📊 浏览索引**：首页汇总统计 + 最近更新 + 按服务/模块归类的全量索引
-- **🔌 接口索引**：聚合所有记录的接口变更，单独成页；有独立 OpenAPI YAML 时可直接打开导入文件（仅登记新增或参数有变动的接口）
-- **状态可点击切换**：点详情页状态标签即可推进（草稿→进行中→已完成 / Bug：未修复→修复中→已修复→已验证），保存在浏览器本地，无需重跑 skill
-- 底部：HTML 变更日志时间轴（Mermaid 图表支持）
-
-## 安装
-
-完整工作流需要安装两个 skill 包：
-
-### 第一步：安装 superpowers-zh（提供 brainstorming、requesting-code-review 等通用 skill）
-
-```bash
-npx superpowers-zh
+```text
+方案明确 → AI 执行 → 版本控制纳管 → 验证通过 → 多 AI Review → 修复交接 → 代码地图 → 人工 Review → 提交
 ```
 
-### 第二步：安装 dev-workflow-skills（提供 dev-doc、bug-fix、code-reading、review-check、biz-flow、review-fix）
+第一次使用建议先看 [docs/workflow-guide.md](docs/workflow-guide.md)。README 只说明这个仓库是什么、怎么安装、每个 skill 什么时候用。
 
-**macOS / Linux / Git Bash**
+## 你会得到什么
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
-```
+- 一套可执行开发工作流：`dev-doc / bug-fix / biz-flow -> review-fix -> review-check -> code-reading`。
+- 一组面向 AI 执行的 Markdown 文档：明确路径、变更清单、Todo、验证命令和下一步。
+- 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
+- Apifox/OpenAPI 导入文件：接口新增或签名变更时，单独生成 `docs/apifox/<日期>/<任务>.openapi.yaml` 和索引。
+- 统一门禁协议：每个阶段都说明当前 gate、产物、证据、下一步和失败分支。
 
-只安装到某个工具时可传目标，例如：`curl -fsSL .../install.sh | bash -s -- codex`；本地仓库中也可直接运行 `bash install.sh claude cursor`。
+## 快速开始
 
-**Windows PowerShell**
+### 1. 安装
+
+Windows PowerShell：
 
 ```powershell
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-远程 PowerShell 安装默认会复制到 `%USERPROFILE%\.claude\skills`、`%USERPROFILE%\.cursor\skills`、`%USERPROFILE%\.codex\skills`。如果只想装 Codex，本地 clone 后用 `.\install.ps1 codex`，或使用下面的 `install-local.cmd codex`。
+macOS / Linux / Git Bash：
 
-> Codex 目标有一条额外处理：复制完成后会把每个 `SKILL.md` 开头的 UTF-8 BOM 去掉，避免 Codex Desktop/CLI 读取 skill frontmatter 失败。Claude/Cursor 目标保持源码编码不变。
-
-装完重启对应工具后生效：Claude Code 可尝试 `/dev-doc`；Codex 直接输入“使用 dev-doc skill 给 XX 生成开发文档”。
-
-#### 本地安装到 Cursor / Claude Code / Codex（Windows cmd）
-
-已经 clone 了本仓库、想把技能装到多个工具的用户级目录（Skills 格式），在仓库根目录运行：
-
-```bat
-install-local.cmd                 :: 装到全部三个工具
-install-local.cmd claude          :: 仅 Claude Code
-install-local.cmd cursor codex    :: 仅指定工具（可组合）
+```bash
+curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
 ```
 
-按 Skills 目录格式（`目录 + SKILL.md`，含 `reference.md`/`examples.md`/`assets`）复制到：
+安装后重启 Claude Code / Cursor / Codex。
 
-| 工具 | 用户级目录 |
-|------|-----------|
-| Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
-| Cursor（≥1.6） | `%USERPROFILE%\.cursor\skills\<name>\` |
-| Codex | `%USERPROFILE%\.codex\skills\<name>\`（安装副本的 `SKILL.md` 无 BOM） |
+可选增强：如果需要 `/brainstorming`、`/chinese-code-review` 等通用辅助 skill，再安装 `superpowers-zh`：
 
-不下载、直接从当前仓库复制；可重复运行（覆盖同名技能，不动其他技能）。装完重启对应工具加载。
-
-> ⚠️ **关于 Cursor 的重复加载**：Cursor（除自己的 `~/.cursor/skills`）还会「为兼容」从 `~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills` 一并加载技能。所以**若三处都装，Cursor 里同一技能可能出现多份**。只想给 Cursor 用时，装一处即可（如 `install-local.cmd claude`，Cursor 会自动读到）；Codex 只读自己的 `~/.codex/skills`，需要 Codex 时务必带上 `codex`。
-
-## 工作流
-
-```
-dev-doc / bug-fix / biz-flow → AI 执行并回填结果 → VCS 纳管新增文件 → 跑验证 → review-fix 生成审查清单 → review-check 多 AI 审查 → review-fix 汇总修复 → code-reading → 人工 review → 提交
+```bash
+npx superpowers-zh
 ```
 
-第一次使用请从 [docs/workflow-guide.md](docs/workflow-guide.md) 开始；README 只做能力总览。共享门禁协议见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
+### 2. 触发方式
+
+不同工具调用方式不同：
+
+| 工具 | 写法 |
+|------|------|
+| Claude Code | `/dev-doc 任务名`、`/review-fix docs/...` |
+| Codex | `使用 dev-doc skill 给 XX 生成开发文档` |
+| Cursor | 按 Cursor 当前 skill 入口调用；也可直接引用安装后的 skill 文档 |
+
+Codex 不要输入 `/dev-doc` 或 `$dev-doc`。本仓库的 Codex 推荐入口是自然语言点名 skill，例如：
+
+```text
+使用 dev-doc skill 给“询价详情新报价标识”生成开发文档
+使用 review-check skill 审查 docs/review-fix/2026-07-06/xxx-review-task.md
+```
+
+### 3. 选择 skill
+
+| 你要做什么 | 用哪个 skill | 主要产物 |
+|------------|--------------|----------|
+| 新功能、接口变更、重构、配置变更前先定方案 | `dev-doc` | `docs/YYYY-MM-DD/<task>.md`、看板记录、可选 OpenAPI YAML |
+| 记录 Bug、定位根因、制定修复边界 | `bug-fix` | `docs/bugs/YYYY-MM-DD/<bug>.md`、Bug 看板记录 |
+| 给测试/产品讲清业务状态、数据流、接口顺序 | `biz-flow` | `docs/biz-flow/YYYY-MM-DD/<feature>.md`、业务流看板记录 |
+| 生成多 AI Review 任务包，或汇总 findings 做修复交接 | `review-fix` | `docs/review-fix/YYYY-MM-DD/*-review-task.md`、`*-fix-handoff.md` |
+| 按任务包做只读代码审查 | `review-check` | 结构化 findings，可直接贴回 `review-fix` |
+| Review 前快速理解调用链、状态机和关键代码位置 | `code-reading` | `docs/code-reading/YYYY-MM-DD/<feature>.md`、代码地图看板记录 |
+
+## 推荐工作流
+
+```text
+dev-doc / bug-fix / biz-flow
+→ AI 执行并回填结果
+→ git add / svn add 纳管新增文件
+→ 运行测试或接口验证
+→ review-fix 生成 Review 任务包
+→ review-check 做多 AI 只读审查
+→ review-fix 汇总修复交接
+→ code-reading 生成代码地图
+→ 人工 Review
+→ git commit / svn commit
+```
+
+关键门禁见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)：
+
+- `Plan Gate`：文档、阻塞项、冲突、假设明确。
+- `VCS Gate`：新增源码、测试、配置、OpenAPI、文档已纳入 Git/SVN。
+- `Verification Gate`：测试、构建、接口或数据核对有结果。
+- `Review Gate`：`review-fix` 任务包、`review-check` findings、修复交接闭环。
+- `Submit Gate`：最终 status/diff/test/review/doc/sensitive 检查通过。
+
+## 产物位置
+
+| 产物 | 路径 |
+|------|------|
+| 开发文档 | `docs/YYYY-MM-DD/<task>.md` |
+| Bug 文档 | `docs/bugs/YYYY-MM-DD/<bug>.md` |
+| 业务流文档 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` |
+| Review 任务包 / 修复交接 | `docs/review-fix/YYYY-MM-DD/` |
+| 代码地图 | `docs/code-reading/YYYY-MM-DD/` |
+| Apifox/OpenAPI 文件 | `docs/apifox/YYYY-MM-DD/<task>.openapi.yaml` |
+| Apifox/OpenAPI 索引 | `docs/apifox/INDEX.md` |
+| 文档总索引 | `docs/INDEX.md` |
+| HTML 看板 | `project-html/index.html` |
+| 看板数据 | `project-html/data/changes.js` |
+| 可单独分享的页面 | `project-html/pages/<slug>.html` |
 
 ## HTML 看板
 
-每次运行 `dev-doc`、`bug-fix`、`code-reading` 或 `biz-flow` 后，AI 会自动将本次记录追加到项目的 `project-html/data/changes.js`（同一文档重复运行会更新既有条目，不会产生重复记录），并运行 `node project-html/build.js` 刷新单页与索引。`review-fix` 默认先生成审查任务包；只有在贴回 review 结果并生成修复交接文档时，才登记到看板。
-看板为多文件结构（外壳 / 样式 / 逻辑 / 数据分离），方便长期堆叠记录与自定义样式：
+`dev-doc`、`bug-fix`、`biz-flow`、`code-reading` 会自动登记到项目内 `project-html/data/changes.js`，并运行：
 
+```bash
+node project-html/build.js
 ```
+
+看板能力：
+
+- 按服务 / 模块组织开发文档、Bug、代码地图、业务流。
+- 支持搜索、类型筛选、未完成筛选。
+- 接口索引会聚合新增或签名变更的接口，并链接 OpenAPI YAML。
+- 每条记录可生成独立 HTML 单页，方便发给测试、产品或同事。
+- 状态标签可在浏览器本地点击切换；要让团队都看到，需要修改 `data/changes.js` 中的 `status`。
+
+看板结构：
+
+```text
 project-html/
-  index.html               外壳（浏览器直接打开，无需服务器）
-  css/board.css            样式（纸面编辑部风格）
-  js/board.js              渲染逻辑（两级树 / 浏览索引 / 接口索引 / Bug / 阅读 / 业务流视图），内含 BOARD_VERSION
-  js/vendor/mermaid.min.js 本地 mermaid（内网可用，加载失败自动走 CDN）
-  build.js                 构建脚本（Node，无依赖）：生成单页 + 文档总索引 + 首次历史归档
-  data/changes.js          数据（skill 只追加/更新这个文件）
-  pages/<slug>.html        每条记录的自包含单页（build.js 生成，可单独发给别人）
+  index.html
+  css/board.css
+  js/board.js
+  js/vendor/mermaid.min.js
+  build.js
+  board-add.js
+  data/changes.js
+  pages/<slug>.html
 ```
 
-直接用浏览器打开 `index.html` 即可查阅所有历史文档、Bug、代码地图与业务流：搜索、筛选、切换状态、跳转 md 源文档。业务流详情页支持角色入口、上下文前置条件、阶段数据变动、校验规则和涉及数据对象，适合把 App+PC、审批/驳回、扫码/回调、多表状态流转类功能单独发给测试/产品。
+示例入口：[project-html/index.html](project-html/index.html)
 
-**单页分享**：详情页 / 浏览索引里的「📤 独立页面」指向 `pages/<slug>.html`——这是一个把样式、数据、mermaid 全部内联的自包含 HTML，单个文件即可直接发给同事/测试，无需打包整个文件夹（内网离线也能看图）。
+## 安装细节
 
-**文档总索引**：`docs/INDEX.md` 由 `build.js` 从看板数据自动生成（每次运行刷新），按服务/模块归类所有文档，含 md、单页与 OpenAPI YAML 链接。首次运行还会把项目根目录散落的旧 md、旧看板、接口文档**复制**（不删原件）到 `docs/archive/` 统一归档。
+远程安装默认复制 `skills/` 到三个用户级目录：
 
-状态变更保存在浏览器 localStorage（按当前浏览器 + 文件路径隔离）；要让团队都看到，可让 Claude 直接修改 `data/changes.js` 中的 status 字段。
-看板外壳带版本号（`BOARD_VERSION`）：skill 检测到模板版本更新时会自动升级外壳文件，数据不受影响；每次写入数据后会用 `node --check` 校验语法，避免看板白屏。维护本仓库时可运行 `node scripts/check-board-sync.js` 检查 `project-html/` 与模板外壳是否字节一致；bash 可用时 `bash scripts/check-board-sync.sh` 会调用同一套 Node 检查。
+| 工具 | 安装目录 |
+|------|----------|
+| Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
+| Cursor >= 1.6 | `%USERPROFILE%\.cursor\skills\<name>\` |
+| Codex | `%USERPROFILE%\.codex\skills\<name>\` |
 
-示例：[project-html/index.html](project-html/index.html)
+只安装到某个工具：
 
-## 适用场景
+```bash
+curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash -s -- codex
+```
 
-- Java Spring Boot / MVC 后端
-- SVN 或 Git 版本控制
-- 使用 Claude Code 或 Cursor 辅助开发
+本地 checkout 安装：
+
+```bat
+install-local.cmd
+install-local.cmd codex
+install-local.cmd claude cursor
+```
+
+说明：
+
+- 安装脚本复制整个 `skills/` 子树，不维护硬编码 skill 列表。
+- Codex 目标会移除安装副本 `SKILL.md` 文件头 BOM，避免 frontmatter 发现失败。
+- 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文。
+- Cursor 可能同时读取 `~/.cursor/skills`、`~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills`，多处安装会导致同名 skill 重复出现。
+
+## 维护这个仓库
+
+这个仓库没有传统 build。主要检查命令：
+
+```bash
+node scripts/check-board-sync.js
+node scripts/check-interaction-policy-sync.js
+node project-html/build.js
+git diff --check
+```
+
+维护规则：
+
+- 改看板外壳时，同步 `project-html/` 和 `skills/dev-doc/assets/board/`。
+- 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
+- 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
+- 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
+- 每个 skill 的 `SKILL.md` 是执行步骤权威来源；`reference.md` 是模板和输出格式。
 
 ## 自定义
 
-每个 skill 的信息槽位和文档模板放在对应的 `reference.md` 中，
-安装后直接修改目标工具的 skills 目录（如 `~/.claude/skills/`、`~/.cursor/skills/`、`~/.codex/skills/`）下的文件适配团队需求。
+安装后可以直接改目标工具的 skills 目录：
 
-信息槽位是查漏清单，不是必须逐条问完的问卷。Skill 应先从用户输入、当前代码、接口、字典和现有文档预填信息；只在答案会影响业务语义、数据状态、权限范围、接口契约、修复范围或验收标准时追问。发现需求与现有逻辑冲突时要显式写出证据和建议口径。
+```text
+~/.claude/skills/<skill-name>/
+~/.cursor/skills/<skill-name>/
+~/.codex/skills/<skill-name>/
+```
 
-公共交互协议见 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。新增或修改文档/审查类 skill 时，优先引用这份协议，不要在每个 skill 里复制一套容易漂移的问答规则。
+常改的位置：
 
-修改交互规则后运行 `node scripts/check-interaction-policy-sync.js`，确认相关 skill 都引用了共享协议。
+- `SKILL.md`：执行步骤、触发说明、工具约束。
+- `reference.md`：问题槽位、文档模板、完成输出。
+- `examples.md`：示例输出。
+- `agents/openai.yaml`：Codex UI 展示名、短描述、默认提示。
 
-各文档/审查类 skill 的完成输出末尾会追加 `【Skill 反馈给 Codex】`。如果运行过程中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，直接复制这段反馈回来即可继续优化 skill。
+各文档/审查类 skill 的完成输出末尾会追加 `【Skill 反馈给 Codex】`。如果运行中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，复制这段反馈回来即可继续优化。
 
-为什么这样设计：[docs/why-dev-doc.md](docs/why-dev-doc.md) · [docs/why-code-reading.md](docs/why-code-reading.md)
+## 设计说明
 
-## 升级
-
-重新运行安装命令即可覆盖更新到最新版本。
-
+- [docs/workflow-guide.md](docs/workflow-guide.md)：完整操作手册。
+- [docs/why-dev-doc.md](docs/why-dev-doc.md)：为什么先生成开发文档。
+- [docs/why-code-reading.md](docs/why-code-reading.md)：为什么 Review 前需要代码地图。
