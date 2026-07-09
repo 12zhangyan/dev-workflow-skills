@@ -1,0 +1,7 @@
+interface:
+  display_name: "Review Repair"
+  short_description: "根据 review findings 直接修复代码并验证"
+  default_prompt: "Use review-repair skill to directly fix code after code review findings or a review-fix handoff. Apply only evidence-backed accepted findings, preserve unrelated local changes, run targeted verification, and report each finding as fixed, blocked, rejected, or deferred."
+
+policy:
+  allow_implicit_invocation: true

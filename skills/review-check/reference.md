@@ -70,6 +70,7 @@ OpenQuestions:
 - <材料不足或需要业务确认的问题；阻塞项标注 blocking>
 
 可将以上 findings 原样贴回 /review-fix，用于生成修复交接文档。
+如果希望直接修复，可将 findings 交给 /review-repair；它会修改代码并运行验证。
 
 【Skill 反馈给 Codex】
 - skill：review-check

@@ -14,6 +14,7 @@ A collection of workflow skills for Java backend developers, targeting Claude Co
 | `bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
 | `code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
 | `review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
+| `review-repair` | `skills/review-repair/SKILL.md` | `reference.md` (direct repair workflow + output format), `examples.md` |
 | `biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
 | `review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
 
@@ -86,13 +87,14 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ## Workflow the Skills Support
 
 ```
-dev-doc → AI executes → svn add → mvn test → review-fix review task → review-check multi-AI findings → fix handoff → code-reading → human review → svn commit
+dev-doc → AI executes → svn add → mvn test → review-fix review task → review-check multi-AI findings → review-fix fix handoff or review-repair direct fix → code-reading → human review → svn commit
 ```
 
 - `dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
 - `bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
 - `code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
 - `review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
+- `review-repair` directly fixes accepted review findings in the working copy, preserves unrelated local changes, runs targeted verification, and reports fixed/blocked/rejected/deferred status; it does not create review tasks or perform read-only review
 - `biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
 - `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`

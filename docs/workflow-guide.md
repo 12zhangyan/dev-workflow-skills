@@ -12,6 +12,7 @@
 | 梳理测试业务流 | `/biz-flow 业务名` | `使用 biz-flow skill 生成 业务名 的业务流方案` |
 | 生成 Review 任务包 | `/review-fix docs/.../任务.md` | `使用 review-fix skill 基于 docs/.../任务.md 生成 Review 任务包` |
 | 执行只读审查 | `/review-check docs/review-fix/...-review-task.md` | `使用 review-check skill 审查 docs/review-fix/...-review-task.md` |
+| Review 后直接修复 | `/review-repair <findings或fix-handoff路径>` | `使用 review-repair skill 根据这些 findings 直接修复` |
 | 生成代码地图 | `/code-reading docs/.../任务.md` | `使用 code-reading skill 基于 docs/.../任务.md 生成代码地图` |
 
 Codex 不要输入 `/dev-doc` 或 `$dev-doc`。Codex 安装 skill 不等于注册同名斜杠命令，也不保证进入 `$` 技能选择器。
@@ -25,7 +26,7 @@ dev-doc / bug-fix / biz-flow
 → 测试/构建/接口验证
 → review-fix 生成任务包
 → review-check 多 AI 只读审查
-→ review-fix 汇总修复
+→ review-fix 汇总修复 / review-repair 直接修复
 → code-reading 生成代码地图
 → 人工 review
 → 提交
@@ -39,7 +40,7 @@ dev-doc / bug-fix / biz-flow
 | Implementation Gate | Todo 对照表：已完成项、变更文件、未完成项、执行偏差 | VCS 检查 |
 | VCS Gate | `git status --short` 或 `svn status`；新增源码、测试、配置、OpenAPI YAML、文档已 `add` | 验证 |
 | Verification Gate | 有针对性的测试/构建/接口/数据核对命令和结果；失败已修复并重跑 | Review |
-| Review Gate | `review-fix` 任务包、`review-check` findings、accepted findings 处理状态 | 代码地图 |
+| Review Gate | `review-fix` 任务包、`review-check` findings、accepted findings 处理状态；直修场景包含 `review-repair` 修复和验证结果 | 代码地图 |
 | Understanding Gate | `code-reading` 代码地图；人工 review 关注点 | 提交前检查 |
 | Submit Gate | 最终 status/diff/test/review/doc/sensitive 检查通过 | `git commit` / `svn commit` |
 
@@ -173,9 +174,18 @@ Codex: 使用 review-check skill 审查 docs/review-fix/YYYY-MM-DD/<task>-review
 
 Critical / Important 没关闭前，不进入 Submit Gate。
 
+如果这次不需要再生成修复交接文档，希望 AI 直接修改代码：
+
+```text
+Claude Code: /review-repair <粘贴findings或fix-handoff路径>
+Codex: 使用 review-repair skill 根据这些 findings 直接修复
+```
+
+`review-repair` 只处理有证据、能定位、能验证的 accepted findings；涉及业务语义、权限、状态流转、接口契约、数据库结构或数据修复的问题会停下来确认，不会猜着改。
+
 ### 7. 修复后复验
 
-按修复交接执行后，回填：
+按修复交接或 `review-repair` 直修执行后，回填：
 
 ```text
 - 已修复 finding：<CR/IM ID + 证据>
@@ -230,7 +240,7 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 | `project-html/build.js` 失败 | 停止，先看报错；不要手工覆盖 `data/changes.js` |
 | SVN/Git 新文件漏 add | 回到 VCS Gate，补 `svn add` / `git add` 后再 review |
 | 测试失败 | 回到实现阶段修复并重跑，不进入 Review |
-| `review-check` 输出 Critical | 贴回 `review-fix` 生成修复交接，修复并验证后再签收 |
+| `review-check` 输出 Critical | 严谨路径：贴回 `review-fix` 生成修复交接；直修路径：交给 `review-repair` 直接修复。两种都必须验证后再签收 |
 | 只有 dev-doc 没有 diff | 只能审方案，不能输出“实现无问题” |
 | OpenAPI YAML 生成失败 | 接口变更任务不得宣称 Apifox 可导入；先修 YAML 或标记为 blocker |
 | 数据库结构变更 | 停止直接实现，只输出 DBA 申请说明或建议 DDL |
@@ -238,5 +248,5 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 ## 速记
 
 ```text
-文档立项 → 执行回填 → add 新文件 → 跑验证 → review-fix → review-check → review-fix 修复交接 → code-reading → 人工签收 → 提交
+文档立项 → 执行回填 → add 新文件 → 跑验证 → review-fix → review-check → review-fix 修复交接 / review-repair 直修 → code-reading → 人工签收 → 提交
 ```

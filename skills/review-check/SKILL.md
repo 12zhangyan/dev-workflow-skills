@@ -144,6 +144,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ```text
 可将以上 findings 原样贴回 /review-fix，用于生成修复交接文档。
+如果希望直接修复，可将 findings 交给 /review-repair；它会修改代码并运行验证。
 ```
 
 ## 禁止事项
@@ -170,5 +171,6 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - 审查清单与输出模板：[reference.md](reference.md)
 - 示例：[examples.md](examples.md)
 - 组织多 AI review 与修复交接：`/review-fix`
+- Review 后直接修复：`/review-repair`
 - Review 前代码地图：`/code-reading`
 
