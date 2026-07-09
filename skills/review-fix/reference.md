@@ -202,13 +202,18 @@ OpenQuestions:
 | Minor | 可维护性、命名、局部测试增强，不阻塞但建议处理 |
 | Rejected | 误报、无证据、超范围、与项目规范冲突、收益低 |
 
-### 去重
+### 去重与 ID 归并
 
 同一文件/方法/根因的问题合并为一条，保留：
 - 最明确的证据
 - 最高严重度
 - 最可执行的修复建议
 - 所有来源 AI：`Codex` / `Cursor` / `Claude`
+
+Finding ID 规则（保证发现→修复→关闭全链路追溯；前缀语义见 [../_shared/workflow-chain.md](../_shared/workflow-chain.md#finding-id-命名体系全链路统一)）：
+- 汇总后按最终严重度统一重编 `CR-n` / `IM-n` / `MI-n`，拒绝项标 `RJ-n`、阻塞项标 `BK-n`；在该条 finding 的「来源」里保留各 AI 的原始编号（如 `Codex#2 / Cursor#1`），便于回溯是谁提的。
+- 多 AI 对同一问题给了不同 ID 时合并为一个最终 ID，不要产生两条。
+- 修复交接、AI 修复操作码、回填表都用同一套最终 ID；`review-repair` 按此 ID 回填 fixed/deferred/rejected/blocked，不得另起编号。
 
 ### 接受标准
 
@@ -341,6 +346,19 @@ Accepted finding 必须同时满足：
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
 🧭 工作流阶段：Review Gate 已创建，等待 review-check findings 回收
 
+【Workflow Brief】
+stage: ReviewGate
+task: <任务名>
+source: <dev-doc/bug 文档/patch/diff/status>
+artifacts: docs/review-fix/<日期>/<任务名>-review-task.md
+changed: <任务包中列出的源码/测试/配置/OpenAPI 文件>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <已知验证命令 + 结果；没有写 未运行 + 原因>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+openFindings: 待 review-check 输出
+next: 使用 review-check skill 审查 docs/review-fix/<日期>/<任务名>-review-task.md
+tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 diff/测试输出
+
 如果目标 AI 已安装本仓库 skill，直接让它运行：
 /review-check docs/review-fix/<日期>/<任务名>-review-task.md
 
@@ -363,6 +381,19 @@ Accepted finding 必须同时满足：
 ✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>-fix-handoff.md
 📋 已汇总 review 结果：Critical <n> / Important <n> / Minor <n> / Rejected <n>
 🧭 工作流阶段：Review Gate 修复交接已完成；下一步回到 Verification Gate，修复并重跑验证
+
+【Workflow Brief】
+stage: ReviewGate
+task: <任务名>
+source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check findings 来源>
+artifacts: docs/review-fix/<日期>/<任务名>-fix-handoff.md
+changed: <findings 涉及的源码/测试/配置/OpenAPI 文件>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <已知验证命令 + 结果；没有写 未运行 + 原因>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+openFindings: <Critical/Important/Minor ID 摘要；Rejected 单独列出>
+next: 使用 review-repair skill 根据 fix-handoff 直接修复，或人工按交接文档修复
+tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -> finding 指向的 changed 文件
 
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>

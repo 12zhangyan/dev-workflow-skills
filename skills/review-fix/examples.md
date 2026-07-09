@@ -47,6 +47,17 @@ Verify: 连续调用两次发送接口，第二次返回频控错误。
 `/review-fix` 第二阶段会生成：
 
 - `docs/review-fix/2026-07-01/sms-login-fix-handoff.md`
-- Critical / Important / Minor / Rejected 汇总表
+- Critical / Important / Minor / Rejected 汇总表（统一 ID，保留来源编号）
 - 可直接交给 Codex / Cursor / Claude 的 AI 修复操作码
+
+汇总表里 ID 归并示例（Codex 和 Cursor 都提了同一个频控问题，合并为一条，来源列保留各自原始编号）：
+
+```text
+### Critical（必须修）
+| ID | 来源 | 文件/位置 | 问题 | 影响 | 修复建议 | 验证方式 |
+|----|------|-----------|------|------|----------|----------|
+| CR-1 | Codex#1 / Cursor#2 | SmsLoginService.sendCode() | 未做手机号 60s 频控 | 短信轰炸/成本异常 | 发送前查 Redis 频控 key，成功后写 60s TTL | 连续发两次，第二次返回频控错误 |
+```
+
+这条 `CR-1` 会一路传到 AI 修复操作码、`review-repair` 回填和二次 review-check，全程用同一 ID，不重新编号。
 

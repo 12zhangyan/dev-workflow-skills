@@ -36,6 +36,8 @@ effort: high
 
 遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 第一阶段进入 Review Gate，第二阶段输出修复交接并回到 Verification Gate。只有 dev-doc/bug/biz-flow 文档但没有实际 diff、patch、VCS status 或变更文件时，只能生成方案审查任务，不能宣称审过实现代码。
 
+若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先按 Brief 的 `source` / `artifacts` / `changed` / `tokenHint` 定位 dev-doc 与变更文件，再收集证据包，不要求用户重新粘贴完整 dev-doc 或 diff。Brief 里的 `changed` 只是读取索引，任务包证据仍需回到实际 diff/status 核实。
+
 ## 执行流程
 
 ### 共享交互协议
@@ -49,6 +51,7 @@ effort: high
 > "这次要基于什么生成 review 清单？可以给 dev-doc 路径、patch/diff 路径、code-reading 路径，或一句功能描述。"
 
 入口模式：
+- 文本含 `【Workflow Brief】` → **轻量交接模式**：先读 Brief 的 `source` / `artifacts` / `changed` / `tokenHint`，据此定位 dev-doc 和变更文件，再按 Brief 指向的源类型（dev-doc/bug/patch）继续收集证据，不要求粘贴全文
 - 含 `.patch` / `.diff` 或路径名含 `changes.patch` → **patch 模式**
 - 含 `docs/bugs/` → **Bug 修复文档模式**；证据包必须包含复现/根因/验证结果和实际 diff/status
 - 含 `docs/biz-flow/` → **业务流文档模式**；证据包必须包含测试口径、状态/数据流证据和实际 diff/status；否则只审业务口径，不审实现

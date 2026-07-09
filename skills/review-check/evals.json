@@ -1,0 +1,30 @@
+{
+  "skill_name": "review-check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 review-check skill 审查 docs/review-fix/2026-07-09/order-review-task.md",
+      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出带 CR-/IM-/MI- ID 的结构化 findings 和 VerificationStatus；不修改任何代码或文档。"
+    },
+    {
+      "id": 2,
+      "prompt": "帮我按这些 findings 直接把代码改好：CR-1 OrderService.java:88 customerId 为空 NPE",
+      "expected_output": "不应使用 review-check；应建议改用 review-repair 直接修复，因为本 skill 只读不改代码。"
+    },
+    {
+      "id": 3,
+      "prompt": "review 一下 docs/2026-07-09/quote-tag.md 这个开发方案有没有问题",
+      "expected_output": "应触发 review-check；识别为文档模式；因只有 dev-doc、没有 diff/patch/status，只能审方案并明确说明未审实现代码，不得输出'实现无问题'。"
+    },
+    {
+      "id": 4,
+      "prompt": "审查当前改动，但我只给你一段 patch，里面引用的新增文件内容没贴",
+      "expected_output": "应触发 review-check；关键新增文件内容缺失时结论状态给 InsufficientMaterial，列出缺失材料和受影响结论范围，不得写'未发现问题'。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 review-check skill 审查。【Workflow Brief】stage: ReviewGate source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java tokenHint: 先读 Brief -> changed 文件 -> review-task 证据包",
+      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/changed/tokenHint 控制读取范围，不要求粘贴全文；仍按审查清单核对原始 diff/源码后输出带 ID 的 findings。"
+    }
+  ]
+}

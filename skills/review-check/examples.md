@@ -14,9 +14,24 @@
 来源：Code Review
 审查对象：docs/review-fix/2026-07-02/sms-login-review-task.md
 审查范围：SmsLoginService.java, AuthController.java, SmsLoginRequest.java
+结论状态：Findings
+VerificationStatus: 未运行；任务包未附测试结果，建议修复方运行 mvn -pl auth-service test
+
+【Workflow Brief】
+stage: ReviewGate
+task: sms-login 短信登录
+source: docs/review-fix/2026-07-02/sms-login-review-task.md
+artifacts: 本次只读审查输出；无文件写入
+changed: SmsLoginService.java, AuthController.java, SmsLoginRequest.java
+vcs: git，工作区有上述 3 文件改动
+tests: 未提供
+api: 无
+openFindings: CR-1
+next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
+tokenHint: 下一位 AI 先读本 Brief -> SmsLoginService.sendCode() -> review-task 证据包
 
 Critical:
-1. Severity: Critical
+CR-1. Severity: Critical
    File/Line: SmsLoginService.sendCode()
    Problem: 发送验证码前没有检查同一手机号 60 秒内重复发送。
    Evidence: Review 任务包要求保留短信频控，sendCode() 只写验证码，没有读取频控 key。
@@ -25,6 +40,7 @@ Critical:
    Verify: 同一手机号连续调用两次发送接口，第二次返回频控错误。
 
 可将以上 findings 原样贴回 /review-fix，用于生成修复交接文档。
+如果希望直接修复，可将 findings 交给 /review-repair；它会修改代码并运行验证。
 ```
 
 ## 示例 2：没有发现阻塞问题
@@ -51,9 +67,24 @@ Notes:
 来源：Code Review
 审查对象：docs/review-fix/2026-07-02/app-chat-review-task.md
 审查范围：AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
+结论状态：Findings
+VerificationStatus: 未运行；前端 SSE 行为建议按 Verify 手测
+
+【Workflow Brief】
+stage: ReviewGate
+task: app-chat SSE 会话
+source: docs/review-fix/2026-07-02/app-chat-review-task.md
+artifacts: 本次只读审查输出；无文件写入
+changed: AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
+vcs: git，工作区含上述改动
+tests: 未提供
+api: 无
+openFindings: IM-1
+next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
+tokenHint: 下一位 AI 先读本 Brief -> AppChatView.vue 的 error 事件处理 -> review-task 证据包
 
 Important:
-1. Severity: Important
+IM-1. Severity: Important
    File/Line: AppChatView.vue eventSource.addEventListener('error')
    Problem: 前端没有读取 SSE 业务错误中的 code 字段，无法区分未登录、无权限和系统错误。
    Evidence: 后端 event:error data 包含 {"code": ..., "d": ...}；前端只读取 parsed.d 并统一 message.error。

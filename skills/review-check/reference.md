@@ -29,6 +29,8 @@
 
 ## 输出格式
 
+**Finding ID 规则（全链路可追溯的起点）**：每条 finding 必须带稳定 ID，`Critical → CR-n`、`Important → IM-n`、`Minor → MI-n`，n 在本级别内从 1 递增。这个 ID 会被 `review-fix` 汇总时原样保留、被 `review-repair` 修复时按 ID 回填状态，保证"发现→修复→关闭"一一对应。`openFindings` 里只写 ID 摘要（如 `CR-1, IM-2`），不复述问题正文。
+
 ```text
 来源：Code Review
 审查对象：<review-task/dev-doc/patch/功能描述>
@@ -36,8 +38,21 @@
 结论状态：Findings
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
 
+【Workflow Brief】
+stage: ReviewGate
+task: <任务名或审查对象>
+source: <review-task/dev-doc/patch/diff 路径>
+artifacts: 本次只读审查输出；无文件写入
+changed: <审查到的源码/测试/配置/OpenAPI 文件>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <验证命令 + 结果；未提供写 未提供>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+openFindings: <Critical/Important/Minor ID 摘要，如 CR-1, IM-2；没有写 无>
+next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
+tokenHint: 下一位 AI 先读本 Brief -> finding 指向文件 -> review-task 中证据包；只在冲突时扩展读取全文
+
 Critical:
-1. Severity: Critical
+CR-1. Severity: Critical
    File/Line: <path:line 或 Class.method>
    Problem: <问题是什么>
    Evidence: <来自 diff/源码/文档的证据>
@@ -46,7 +61,7 @@ Critical:
    Verify: <如何验证>
 
 Important:
-1. Severity: Important
+IM-1. Severity: Important
    File/Line:
    Problem:
    Evidence:
@@ -55,7 +70,7 @@ Important:
    Verify:
 
 Minor:
-1. Severity: Minor
+MI-1. Severity: Minor
    File/Line:
    Problem:
    Evidence:
@@ -90,6 +105,19 @@ OpenQuestions:
 审查范围：<...>
 结论状态：NoEvidenceIssue
 
+【Workflow Brief】
+stage: ReviewGate
+task: <任务名或审查对象>
+source: <review-task/dev-doc/patch/diff 路径>
+artifacts: 本次只读审查输出；无文件写入
+changed: <审查到的源码/测试/配置/OpenAPI 文件>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <验证命令 + 结果；未提供写 未提供>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+openFindings: 无
+next: 可进入 code-reading / 人工 review；若后续改动扩大则重新 review-check
+tokenHint: 下一位 AI 先读本 Brief -> review-task -> changed 文件；无须重复粘贴 findings
+
 未发现有证据的阻塞问题。
 
 已检查：
@@ -117,6 +145,19 @@ Notes:
 审查对象：<...>
 审查范围：<已读取的材料>
 结论状态：InsufficientMaterial
+
+【Workflow Brief】
+stage: ReviewGate
+task: <任务名或审查对象>
+source: <已提供材料路径>
+artifacts: 本次只读审查输出；无文件写入
+changed: <已读取文件；未知写 未确认>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <验证命令 + 结果；未提供写 未提供>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无 / 未确认>
+openFindings: blocking material gap
+next: 补齐缺失材料后重新 review-check；不要进入 review-repair
+tokenHint: 下一位 AI 先读本 Brief -> 缺失材料清单 -> 补齐后的 review-task，再重新审查
 
 材料不足，无法对以下范围下结论：
 - <范围 1，如状态流转正确性>

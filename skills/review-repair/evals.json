@@ -1,0 +1,30 @@
+{
+  "skill_name": "review-repair",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 review-repair skill，按下面 review-check findings 直接修复并运行验证：Critical CR-1 File/Line: src/main/java/com/acme/order/OrderService.java:88 Problem: customerId 为 null 时继续查询导致 NPE Fix: 增加入参校验 Verify: mvn -pl order-service test",
+      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。"
+    },
+    {
+      "id": 2,
+      "prompt": "帮我审查 docs/review-fix/2026-07-09/order-review-task.md，看看有没有问题",
+      "expected_output": "不应使用 review-repair；应建议使用 review-check 做只读审查。"
+    },
+    {
+      "id": 3,
+      "prompt": "按 docs/review-fix/2026-07-09/order-fix-handoff.md 直接改代码，不要提交，修完跑测试并告诉我哪些 finding 已关闭",
+      "expected_output": "应触发 review-repair；读取 fix-handoff，按 Critical/Important 优先修复，不提交代码，输出验证结果和 finding 关闭状态。"
+    },
+    {
+      "id": 4,
+      "prompt": "这里有 9 条 review findings，帮我一次性都修掉，里面有 2 条 Critical、4 条 Important、3 条 Minor",
+      "expected_output": "应触发 review-repair，但不应无边界一次性大改；应先处理 Critical/Important 的当前批次，超过 5 条或跨模块内容标为 deferred-next-batch，并输出下一批建议。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 review-repair skill。下面是 Workflow Brief：stage: ReviewGate task: 新报价标识 source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java; src/test/java/com/acme/QuoteServiceTest.java tests: mvn -f pom.xml test openFindings: CR-1 tokenHint: 先读 Brief -> changed 文件 -> CR-1 finding。Finding CR-1 File/Line: src/main/java/com/acme/QuoteService.java:120 Problem: viewer 为空时错误标记新报价 Fix: 增加 viewer 判空并补测试 Verify: mvn -f pom.xml test",
+      "expected_output": "应触发轻量交接模式；先按 Workflow Brief 控制读取范围，再读取 CR-1 指向文件和测试，不应要求用户粘贴完整 review-task；修复后输出 Workflow Brief、处理结果、验证和 VCS 完整性。"
+    }
+  ]
+}

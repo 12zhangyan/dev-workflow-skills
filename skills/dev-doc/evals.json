@@ -1,0 +1,30 @@
+{
+  "skill_name": "dev-doc",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 dev-doc skill 给'询价详情新增报价标识'生成开发文档",
+      "expected_output": "应触发 dev-doc；先静默收集 VCS/项目类型和代码线索预填，只对影响执行方向的问题单点确认；生成 docs/<日期>/询价详情新增报价标识.md，用 board-add.js 写看板并运行 build.js，完成输出含 Plan Gate、验证命令、回填要求和 Workflow Brief。"
+    },
+    {
+      "id": 2,
+      "prompt": "使用 dev-doc skill 记录一个线上偶发的订单状态错乱问题，想分析根因",
+      "expected_output": "应提示这类现象+根因记录更适合 bug-fix skill（会登记看板 Bug 区），确认后再继续；不要静默用 dev-doc 走完。"
+    },
+    {
+      "id": 3,
+      "prompt": "使用 dev-doc skill 给'新增批量导出订单接口'生成开发文档，会新增一个 POST 接口",
+      "expected_output": "应触发 dev-doc；因存在新增接口，除 md 外必须生成 docs/apifox/<日期>/<任务>.openapi.yaml、更新 docs/apifox/INDEX.md、看板 apis[] 至少一条并写 apiSpecPath，且轻量校验通过后才宣称可导入 Apifox。"
+    },
+    {
+      "id": 4,
+      "prompt": "使用 dev-doc skill 给'调用已有的用户查询接口做一个后台列表页'生成开发文档，接口不改",
+      "expected_output": "应触发 dev-doc；因只调用已有接口、签名无变化，删除'三、API 设计'与'十三、Apifox 接口规范'两节，看板 apis 填 []、不写 apiSpecPath、不生成 OpenAPI 文件。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 dev-doc skill 生成'订单支持负数金额退款'开发文档，但现有 amount 字段和状态机只允许正数",
+      "expected_output": "应触发 dev-doc；识别到需求与现有字段/状态机冲突，按冲突记录模板写入'判断依据与待确认'并作为 blocker，只生成待确认文档，不输出可直接粘贴执行的编码提示。"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ﻿# 开发工作流门禁协议
 
-本协议供 `dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
+本协议供 `dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`review-repair`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
 
 ## 主链路
 
@@ -35,7 +35,19 @@
 - 产物路径：md、OpenAPI YAML、看板、单页、索引或 review task。
 - 证据摘要：VCS 类型、变更范围、验证命令、材料不足边界。
 - 下一步输入：下一位 agent 或用户需要复制的路径/命令/反馈。
+- `【Workflow Brief】`：按 [workflow-brief.md](workflow-brief.md) 输出最小交接块，供下一位 AI 先读索引再读证据。
 - 停止原因：存在 blocker、冲突、验证失败、材料不足或 DB/DDL 审批时明确写出。
+
+## 下一步串联
+
+各 skill 完成后"下一步跑什么 + 可复制命令"以 [workflow-chain.md](workflow-chain.md) 为单一权威来源；完成输出和 `Workflow Brief` 的 `next` 字段都据此填写，不要各处另写一套映射。
+
+## 轻量交接与读取顺序
+
+- 跨 skill 交接默认复制 `Workflow Brief + 产物路径 + findings ID`，不要重复粘贴完整长文档、完整 diff 或大段源码。
+- 下一位 AI 的读取顺序应写进 `tokenHint`：先读 Brief，再读源文档或任务包，再读 changed 文件和验证输出。
+- Brief 只能作为索引；如果发现业务语义、权限、状态、接口契约、DB 结构、数据修复、测试失败或证据冲突，必须回到原始文件核对，不能按 Brief 猜测。
+- Review 任务包、修复交接、review-repair 回填都要保留 finding ID，保证从问题发现到修复关闭能一一追踪。
 
 ## 固定风险规则
 

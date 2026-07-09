@@ -125,6 +125,19 @@ stateDiagram-v2
 可以进入人工 Review / 提交前检查。
 如仍需要 AI 审查，先回到 /review-fix 生成任务包，并让 /review-check 输出 findings；不要用代码地图替代审查结论。
 
+【Workflow Brief】
+stage: UnderstandingGate
+task: <功能名>
+source: <dev-doc / bug 文档 / review-repair Brief / 用户指定入口>
+artifacts: docs/code-reading/<日期>/<功能名>.md
+changed: <阅读中确认的关键源码/测试/配置/OpenAPI 文件>
+vcs: <git/svn status 摘要；未检查写原因>
+tests: <已知验证命令 + 结果；未提供写 未提供>
+api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+openFindings: <代码地图发现的非阻塞待确认；没有写 无>
+next: 人工 Review / Submit Gate；如发现新风险则回到 review-check
+tokenHint: 人工或下一位 AI 先读本 Brief -> 代码地图 -> changed 文件关键方法；不要把代码地图当作审查结论
+
 【Skill 反馈给 Codex】
 - skill：code-reading
 - 本次场景：<一句话描述入口形态，如 dev-doc/类方法/自然语言描述>

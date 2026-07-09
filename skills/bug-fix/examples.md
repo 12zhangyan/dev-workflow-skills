@@ -133,3 +133,20 @@ java.lang.NullPointerException: Cannot invoke "com.shop.order.entity.Payment.get
     todos: ["buildRow() 增加判空", "补充单测", "mvn test 全绿后 Code Review"]
   },
 ```
+
+**完成输出末尾的 Workflow Brief（交给下一位 AI 只需复制这段 + 文档路径）：**
+
+```text
+【Workflow Brief】
+stage: PlanGate
+task: 订单导出500错误
+source: 用户描述 + 堆栈 OrderExportServiceImpl.java:87
+artifacts: docs/bugs/2026-06-10/订单导出500错误.md；project-html/data/changes.js；docs/INDEX.md
+changed: 无（Bug 记录阶段未改业务代码）
+vcs: 文档和看板需纳入 VCS；业务代码未检查
+tests: 未运行（Bug 记录阶段）
+api: 无
+openFindings: 无
+next: 按文档修复 buildRow() 判空 → VCS Gate → mvn -pl order-service test → review-fix
+tokenHint: 下一位 AI 先读本 Brief -> 文档的根因/变更清单/验证步骤 -> 只读 OrderExportServiceImpl.buildRow()
+```

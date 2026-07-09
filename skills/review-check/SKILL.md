@@ -29,6 +29,8 @@ effort: high
 
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 只执行 Review Gate 的只读审查；输出必须包含 VerificationStatus，说明已看到或未看到哪些验证命令/结果，材料不足时不能给通过结论。
 
+若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先把 Brief 当读取索引，按 `tokenHint` 依次读取 `source`（review-task/dev-doc）与 `changed` 文件，再按审查清单核对；不要因为已有 Brief 就跳过原始 diff/源码证据，也不要要求用户重新粘贴全文。
+
 ### Step 0：入口识别
 
 `$entry` 为空时询问：
@@ -36,6 +38,7 @@ effort: high
 > "这次要审查什么？请给 Review 任务包路径、dev-doc 路径、patch/diff 路径，或一句功能描述。"
 
 入口模式：
+- 文本含 `【Workflow Brief】` → **轻量交接模式**：先读 Brief 的 `source` / `changed` / `openFindings` / `tokenHint`，据此按需读取任务包和 changed 文件，不扩展到无关目录；随后仍走对应源模式的审查清单。
 - 路径包含 `review-task.md` 或文档标题含 `Review 任务包` → **任务包模式**
 - 含 `.patch` / `.diff` 或文件名含 `changes.patch` → **patch 模式**
 - 含 `.md` 且路径在 `docs/` 下 → **文档模式**
@@ -115,6 +118,10 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - 能说明影响。
 - 有可执行修复建议。
 - 有验证方式。
+
+证据独立性（保证 findings 可复核、不放大误判）：
+- `Critical` / `Important` 的 Evidence 必须来自**实际读到的代码或 diff**，写清 `路径:行号` 或 `类.方法`；只凭 dev-doc/任务包声称"应该如此"而未读到对应实现时，最多记为 `Important` 并在 Evidence 注明"未读到实现，需确认"，不得直接判 `Critical`。
+- 关键源码没读到就无法证实的问题，归入 `InsufficientMaterial` 或 `Notes`，不要凭推测升级严重度。
 
 分级：
 - `Critical`：可能造成数据错误、核心流程不可用、安全漏洞、生产事故。

@@ -1,0 +1,25 @@
+{
+  "skill_name": "biz-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 biz-flow skill 给'询价到下单'生成业务流方案，给测试看",
+      "expected_output": "应触发 biz-flow；生成 docs/biz-flow/<日期>/<业务名>.md，含业务流转图+数据流+校验规则+测试执行口径（主流程/优先异常/数据核对/暂不覆盖），用 board-add.js 登记看板 biz 条目并 build.js，完成输出含 PlanGate 的 Workflow Brief。"
+    },
+    {
+      "id": 2,
+      "prompt": "使用 biz-flow skill 梳理'审批流'，但代码里找不到闭环的终态入口",
+      "expected_output": "应触发 biz-flow；列出已覆盖/缺失/排除入口并标记 blocker，不靠画图补齐闭环缺口，未确认的接口/字段/分支标'待补充'。"
+    },
+    {
+      "id": 3,
+      "prompt": "使用 biz-flow skill 给一个简单的无状态查询功能生成业务流",
+      "expected_output": "应触发 biz-flow；按实际复杂度裁剪，简单无状态功能可省略状态机图和阶段数据变动，至少给业务流转图和测试关注点，不放空模板。"
+    },
+    {
+      "id": 4,
+      "prompt": "帮我画一下这个功能的类调用链和方法在哪个文件",
+      "expected_output": "调用链+代码位置是给开发看的代码地图，属于 code-reading；biz-flow 面向测试的业务流转/数据流。应建议改用 code-reading。"
+    }
+  ]
+}

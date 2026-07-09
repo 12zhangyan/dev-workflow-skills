@@ -1,0 +1,25 @@
+{
+  "skill_name": "bug-fix",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 bug-fix skill 记录：订单列表偶发只显示部分数据，附堆栈 NullPointerException at OrderService.list",
+      "expected_output": "应触发 bug-fix；生成 docs/bugs/<日期>/<bug>.md，含现象、复现、严重度、代码定位和验证步骤，用 board-add.js 登记看板 Bug 区并 build.js，完成输出含 PlanGate 的 Workflow Brief。"
+    },
+    {
+      "id": 2,
+      "prompt": "使用 bug-fix skill 记录一个 Bug：用户说'导出有时候不对'，没有堆栈、没有复现步骤、也没定位到代码",
+      "expected_output": "应触发 bug-fix；根因无证据时写'待分析'并只给诊断/定位计划，不输出确定性修复 Todo，把缺失的复现/日志列为待补充。"
+    },
+    {
+      "id": 3,
+      "prompt": "使用 bug-fix skill：登录接口报 500，堆栈指向 AuthService.java:142 空指针，能稳定复现",
+      "expected_output": "应触发 bug-fix；根因有明确代码证据时，代码定位写 AuthService.java:142，给出最小修复边界、禁止改动项和可执行验证步骤（至少 1 条）。"
+    },
+    {
+      "id": 4,
+      "prompt": "帮我把这个已经定位清楚的 NPE 直接改了：OrderService.java:88 customerId 判空",
+      "expected_output": "bug-fix 面向记录现象/根因/修复边界，不直接改代码；若用户要直接修复应说明可用 review-repair，或按 bug-fix 文档由实现方修改后进入 VCS/验证。"
+    }
+  ]
+}

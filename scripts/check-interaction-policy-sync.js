@@ -9,7 +9,8 @@ const requiredSkills = [
   'code-reading',
   'biz-flow',
   'review-fix',
-  'review-check'
+  'review-check',
+  'review-repair'
 ];
 
 function fail(message) {
@@ -56,6 +57,30 @@ for (const rel of feedbackReferences) {
   const text = fs.readFileSync(file, 'utf8');
   if (!text.includes('【Skill 反馈给 Codex】')) {
     fail(`Reference output format missing skill feedback block: skills/${rel}`);
+  }
+}
+
+// 轻量交接协议与串联速查必须存在，且被门禁协议引用（各 skill 经门禁协议间接指向）。
+const briefFile = path.join(root, 'skills', '_shared', 'workflow-brief.md');
+const chainFile = path.join(root, 'skills', '_shared', 'workflow-chain.md');
+const gatesFile = path.join(root, 'skills', '_shared', 'workflow-gates.md');
+if (!fs.existsSync(briefFile)) fail('Missing shared handoff policy: skills/_shared/workflow-brief.md');
+if (!fs.existsSync(chainFile)) fail('Missing shared chain map: skills/_shared/workflow-chain.md');
+if (fs.existsSync(gatesFile)) {
+  const gates = fs.readFileSync(gatesFile, 'utf8');
+  if (!gates.includes('workflow-brief.md')) fail('workflow-gates.md does not reference workflow-brief.md');
+  if (!gates.includes('workflow-chain.md')) fail('workflow-gates.md does not reference workflow-chain.md');
+} else {
+  fail('Missing shared gate policy: skills/_shared/workflow-gates.md');
+}
+
+// 每个产生下一步动作的 skill 都应在 SKILL.md 引用 Workflow Brief（产出或消费）。
+for (const skill of requiredSkills) {
+  const file = path.join(root, 'skills', skill, 'SKILL.md');
+  if (!fs.existsSync(file)) continue;
+  const text = fs.readFileSync(file, 'utf8');
+  if (!text.includes('Workflow Brief') && !text.includes('workflow-brief.md')) {
+    fail(`Skill does not mention Workflow Brief: skills/${skill}/SKILL.md`);
   }
 }
 

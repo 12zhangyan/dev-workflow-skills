@@ -17,3 +17,5 @@ jobs:
         run: bash scripts/check-board-sync.sh
       - name: 交互协议引用校验
         run: node scripts/check-interaction-policy-sync.js
+      - name: evals 结构校验
+        run: node scripts/check-evals.js

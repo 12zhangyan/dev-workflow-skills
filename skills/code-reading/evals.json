@@ -1,0 +1,25 @@
+{
+  "skill_name": "code-reading",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 code-reading skill 基于 docs/2026-07-09/quote-tag.md 生成代码地图",
+      "expected_output": "应触发 code-reading；dev-doc 模式，从'六、代码变更清单'取修改类文件为追踪起点，生成调用链+状态机+代码位置索引和'六、方案 vs 实现对照'，登记看板 reading 条目并 build.js，输出 UnderstandingGate 的 Workflow Brief；不提修改建议、不判定问题。"
+    },
+    {
+      "id": 2,
+      "prompt": "使用 code-reading skill 梳理 AuthController#login 的调用链",
+      "expected_output": "应触发 code-reading；入口代码模式，定位 AuthController.login 向下追踪调用链，节点用'类名.方法名()'，只记录实际存在的调用/状态/事务，不越界提问题或修复建议。"
+    },
+    {
+      "id": 3,
+      "prompt": "读一下这段登录代码，看看有没有安全问题",
+      "expected_output": "判断问题属于 review-check 的职责；code-reading 只做结构梳理不判定问题，应说明可用 review-check 做只读审查。"
+    },
+    {
+      "id": 4,
+      "prompt": "使用 code-reading skill。【Workflow Brief】stage: ReviewRepair source: docs/2026-07-09/quote-tag.md changed: src/main/java/com/acme/QuoteService.java tokenHint: 先读 Brief -> changed 文件",
+      "expected_output": "应触发轻量交接模式；以 Brief 的 changed 文件为追踪起点、source 作方案对照，不重新全局搜索，再生成代码地图。"
+    }
+  ]
+}

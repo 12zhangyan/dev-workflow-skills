@@ -338,6 +338,19 @@ components:
 📤 独立单页：project-html/pages/<slug>.html
 🧭 工作流阶段：Plan Gate 已完成；下一步进入 Implementation Gate
 
+【Workflow Brief】
+stage: PlanGate
+task: <任务名>
+source: <用户原始需求 / 参考文档 / 代码线索>
+artifacts: docs/<日期>/<任务名>.md；docs/INDEX.md；project-html/data/changes.js；<如有 docs/apifox/<日期>/<任务名>.openapi.yaml；docs/apifox/INDEX.md>
+changed: 无（方案阶段未改业务代码）
+vcs: 未检查业务代码；文档和看板需纳入 VCS
+tests: 未运行（方案阶段）
+api: <无 / docs/apifox/<日期>/<任务名>.openapi.yaml；docs/apifox/INDEX.md>
+openFindings: <阻塞项/需求冲突/待确认；没有写 无>
+next: 交给 AI 或开发者按 docs/<日期>/<任务名>.md 实现；实现后进入 VCS Gate 和 Verification Gate
+tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技术方案、变更清单、Todo、验收标准 -> 只读取相关源码
+
 📌 关键决策：
 1. <一句话>
 2. <一句话>
@@ -357,7 +370,7 @@ components:
 - [ ] 查看完整变更：`git diff` / `svn diff`
 
 🧪 先验证（没有绿灯不进 Code Review）：
-- [ ] <验证命令>（Maven: `mvn test` / Gradle: `./gradlew test` / Node: `npm test`）
+- [ ] <验证命令>：**优先填 Step 1 探测到的构建文件对应的模块级命令**——多模块 Maven 用 `mvn -pl <改动模块> -am test` 或 `mvn -f <module-pom> test`，单模块用 `mvn test`；Gradle 用 `./gradlew :<module>:test`，Node 用 `npm test`。泛化的 `mvn test` / `./gradlew test` 只在无法定位改动模块时兜底。
 - [ ] 测试全绿 → 继续；有失败 → 先修复再验证
 
 🤖 AI 代码审查（Review Gate）：

@@ -308,6 +308,19 @@ stateDiagram-v2
 📑 文档总索引已更新：docs/INDEX.md
 🧭 工作流阶段：业务流 Plan Gate 已完成
 
+【Workflow Brief】
+stage: PlanGate
+task: <业务名>
+source: <用户描述/接口/菜单/Job/MQ/回调/现有代码线索>
+artifacts: docs/biz-flow/<日期>/<业务名>.md；project-html/data/changes.js；project-html/pages/<slug>.html；docs/INDEX.md
+changed: 无（业务流梳理阶段未改业务代码）
+vcs: 文档、看板和索引需纳入 VCS；业务代码未检查
+tests: 未运行（业务流梳理阶段）
+api: <涉及接口列表；如无可导入 OpenAPI 写 无>
+openFindings: <业务冲突/blocker/非阻塞待确认；没有写 无>
+next: 测试设计 / dev-doc 开发方案 / review-fix 审查任务包 / code-reading 调用链阅读
+tokenHint: 下一位 AI 先读本 Brief -> docs/biz-flow/<日期>/<业务名>.md 的角色入口、业务流、数据流、校验规则 -> 只读取相关接口和服务代码
+
 给测试的一句话摘要：
 <这条业务怎么走 + 最该测的 2-3 个点>
 

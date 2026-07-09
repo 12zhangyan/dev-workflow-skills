@@ -46,6 +46,33 @@ dev-doc / bug-fix / biz-flow
 
 任何门禁失败都先停在当前阶段，不带病进入下一步。
 
+## 轻量交接，减少 Token
+
+> "每个 skill 完成后下一步跑什么 + 可复制命令"的单一权威表在 [skills/_shared/workflow-chain.md](../skills/_shared/workflow-chain.md)；下方的下一步提示都以它为准。
+
+每一轮结束后优先复制 `【Workflow Brief】`，再附产物路径或 finding ID。不要把完整 dev-doc、review-task、fix-handoff、长 diff 反复粘贴给下一位 AI。
+
+推荐交接顺序：
+
+```text
+1. 复制上一轮的 Workflow Brief
+2. 提供产物路径：docs/...md、docs/review-fix/...、docs/apifox/...
+3. 如果是 review 修复，只贴 finding ID、文件、证据、修复建议、验证方式
+4. 让下一位 AI 按 tokenHint 先读 Brief -> 源文档/任务包 -> changed 文件 -> 必要验证输出
+```
+
+示例：
+
+```text
+使用 review-check skill 审查 docs/review-fix/2026-07-09/xxx-review-task.md。
+先读下面的 Workflow Brief，再按 tokenHint 读取任务包和 changed 文件；不要要求我粘贴全文。
+```
+
+```text
+使用 review-repair skill 根据这些 findings 直接修复。
+先按 Workflow Brief 确认 source、changed、tests，再只处理 accepted findings。
+```
+
 ## 产物地图
 
 | 产物 | 位置 | 谁生成 | 是否建议提交 |
@@ -192,6 +219,7 @@ Codex: 使用 review-repair skill 根据这些 findings 直接修复
 - 未采纳 finding：<原因>
 - 验证命令与结果：<命令 + 结果>
 - 是否需要二次 review-check：<是/否，原因>
+- Workflow Brief：<修复后的 changed/tests/openFindings/next/tokenHint>
 ```
 
 如果改动范围明显扩大，重新跑 `review-check`。小范围确定性修复可由人工 review 签收。

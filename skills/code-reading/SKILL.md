@@ -27,6 +27,8 @@ effort: high
 
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 服务 Understanding Gate；输出当前阶段、代码地图产物、人工 review 入口，以及如需 AI 审查时回到 `review-fix` / `review-check` 的路径。
 
+若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先按 Brief 的 `source` / `changed` / `tokenHint` 锁定阅读入口和范围，把 `changed` 文件作为追踪起点，不重新全局搜索；随后按对应源模式生成代码地图。
+
 ### Step 0：入口检测与参数检查
 
 `$entry` 为空 → 用 AskUserQuestion 询问（三选一，候选入口确认同样用 AskUserQuestion）：
@@ -36,6 +38,7 @@ effort: high
 > ③ 入口类或方法名（如：AuthController#login）"
 
 检测模式（按优先级）：
+- `$entry` 含 `【Workflow Brief】` → **轻量交接模式**：以 Brief 的 `changed` 文件为追踪起点，`source` 文档为方案对照来源；缺 `changed` 时回退到 `source` 指向的 dev-doc 模式
 - `$entry` 含 `.md` 扩展名 或以 `docs/` 开头 → **dev-doc 模式**
 - `$entry` 含 `#` 或 `.java` → **入口代码模式**
 - 其他自然语言描述 → **功能描述模式**

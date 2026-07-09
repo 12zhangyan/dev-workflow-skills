@@ -230,6 +230,8 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 模板见 [reference.md](reference.md#完成后输出格式)
 
+完成输出必须包含 reference.md 里的 `【Workflow Brief】` 块（PlanGate 阶段），供下一位 AI（测试设计 / dev-doc / review-fix / code-reading）先读索引再按 tokenHint 读取业务流文档和相关接口，不必粘贴全文。
+
 ## 规则
 
 - **面向测试**：语言通俗，每张图配说明，重点落在"怎么测"
@@ -250,6 +252,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - [ ] 证据等级、假设、冲突、阻塞项已写入；阻塞未清时没有输出确定性测试口径
 - [ ] 测试关注点具体可验证（至少 3 条）
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
+- [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6）
 
 ## 相关资源
 

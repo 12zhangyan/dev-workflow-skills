@@ -220,6 +220,8 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 模板见 [reference.md](reference.md#完成后输出格式)
 
+完成输出必须包含 reference.md 里的 `【Workflow Brief】` 块（PlanGate 阶段），供下一位 AI 先读索引再按 tokenHint 读取源文档和相关源码，不必粘贴 Bug 文档全文。
+
 ## 规则
 
 - **不污染主对话**：Step 1、Step 3 命令输出不展示
@@ -235,6 +237,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - [ ] 验证步骤具体可执行（至少 1 条）
 - [ ] 修复执行口径已写清先确认、最小修复、禁止改动、完成判定；根因未证实时只给诊断计划
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
+- [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6）
 
 ## 常见错误
 

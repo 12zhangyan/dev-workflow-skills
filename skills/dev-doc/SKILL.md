@@ -345,6 +345,7 @@ node project-html/build.js
 5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项
 6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）
 7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再用 `/review-fix <dev-doc路径>` 生成 Review 任务包，分发 `/review-check <review-task路径>`，修复汇总后再运行 `/code-reading <dev-doc路径>`
+8. `【Workflow Brief】` 块（PlanGate 阶段，见 reference.md）：供下一位 AI 先读索引、再按 tokenHint 读取 md 方案与相关源码，不必粘贴文档全文
 
 ## 规则
 
@@ -372,6 +373,7 @@ node project-html/build.js
 - [ ] Claude/Cursor 执行提示已生成
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
+- [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6 第 8 项）
 
 ## 相关资源
 

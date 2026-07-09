@@ -1,0 +1,30 @@
+{
+  "skill_name": "review-fix",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 review-fix skill 基于 docs/2026-07-09/quote-tag.md 生成 Review 任务包",
+      "expected_output": "应触发 review-fix 第一阶段；生成 docs/review-fix/<日期>/quote-tag-review-task.md，含审查目标、证据包、统一清单、Codex/Cursor/Claude 分发提示和 findings 回收格式；没有 review 结果时停在 Step 2.5，不生成修复交接、不编造 findings。"
+    },
+    {
+      "id": 2,
+      "prompt": "这是 Codex 和 Cursor 返回的 review 结果，帮我汇总并生成修复交接：Codex CR-1 ...；Cursor 也提了同一个 NPE ...",
+      "expected_output": "应触发 review-fix 第二阶段；去重合并同一问题为一条并保留各 AI 原始来源编号，统一重编 CR-/IM-/MI- ID，生成 fix-handoff、AI 修复操作码，登记看板 type=代码审查，并输出 Workflow Brief。"
+    },
+    {
+      "id": 3,
+      "prompt": "帮我 review 一下这段代码有没有 bug",
+      "expected_output": "本 skill 侧重生成可分发任务包/汇总修复；若用户只是想要一次只读审查结论，应说明可用 review-check 执行审查，review-fix 负责组织任务包与汇总。"
+    },
+    {
+      "id": 4,
+      "prompt": "基于 docs/2026-07-09/quote-tag.md 生成 review 任务包，但项目里还没有任何代码改动",
+      "expected_output": "应触发 review-fix；因只有 dev-doc、没有实际 diff/patch/VCS status，任务包只能定位为方案审查，明确不能宣称审过实现代码，并在证据包 blockers 里标出缺少实现证据。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 review-fix skill。【Workflow Brief】stage: PlanGate source: docs/2026-07-09/quote-tag.md artifacts: docs/2026-07-09/quote-tag.md changed: 无 tokenHint: 先读 Brief -> dev-doc -> 变更文件",
+      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/artifacts/changed/tokenHint 定位 dev-doc 和变更文件，不要求粘贴全文；再收集证据包生成任务包，Brief 的 changed 仅作读取索引，实际证据仍回到 diff/status 核实。"
+    }
+  ]
+}
