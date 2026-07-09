@@ -155,7 +155,7 @@ changed: <已读取文件；未知写 未确认>
 vcs: <git/svn status 摘要；未检查写原因>
 tests: <验证命令 + 结果；未提供写 未提供>
 api: <OpenAPI YAML/INDEX 路径；无接口变更写 无 / 未确认>
-openFindings: blocking material gap
+openFindings: 无（材料不足，未下结论）；阻塞：缺失材料待补齐
 next: 补齐缺失材料后重新 review-check；不要进入 review-repair
 tokenHint: 下一位 AI 先读本 Brief -> 缺失材料清单 -> 补齐后的 review-task，再重新审查
 
