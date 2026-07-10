@@ -1,13 +1,19 @@
 ﻿# dev-doc Examples
 
-> 两个完整示例：新功能（用户登录优化）和 Bug 修复（支付回调签名）。
+> 一个完整新功能示例（用户登录优化）和一个 Bug 修复局部示例（支付回调签名）。
 > 用于参考生成文档的风格和详略程度。
+
+## 目录
+
+- [示例 1：新功能 - 用户登录优化](#示例-1新功能---用户登录优化)
+- [示例 2：Bug 修复 - 支付回调签名](#示例-2bug-修复---支付回调签名)
+- [风格要点](#风格要点)
 
 ---
 
 ## 示例 1：新功能 - 用户登录优化
 
-**用户调用：** `/dev-doc 用户登录优化`
+**用户调用：** Claude Code `/dev-doc 用户登录优化`；Codex `使用 dev-doc skill 给“用户登录优化”生成开发文档`；Cursor 按当前 skill 入口或自然语言点名。
 
 **收集到的信息：**
 - 任务类型：新功能
@@ -17,6 +23,8 @@
 - 方案：新增 LoginStrategy 接口，密码登录和验证码登录各实现一个
 - 数据/接口变化：新增 `/api/v1/auth/sms-login`，DB 加 `sms_verification` 表
 - 风险：短信网关额度、验证码并发
+- 证据：`analytics/login-funnel-2026-05.md` 记录新用户留存率 18%、注册环节流失占比 60%；现有登录入口见 `AuthController.login()`
+- 数据库口径：用户已明确同意把新增 `sms_verification` 表写入方案并提交 DBA 申请；实际 DDL 仍须 DBA 审批和授权执行
 
 **生成的文档：**
 
@@ -46,6 +54,14 @@
 - ✅ 包含：手机号登录、短信网关接入、验证码生成与校验
 - ❌ 不包含：第三方登录（微信/支付宝）、生物识别登录
 
+### 判断依据、明确假设与待确认
+
+| 类型 | 内容 | 依据 | 处理口径 |
+|------|------|------|----------|
+| 事实 | 新用户留存率 18%，注册环节流失占比 60% | `analytics/login-funnel-2026-05.md` | 作为改造背景 |
+| 事实 | 保留原密码登录，本次不做第三方登录 | 用户明确范围 | 不扩大范围 |
+| 事实 | 用户同意将新增 `sms_verification` 表写入 DBA 申请草案 | 用户明确确认；当前代码无对应表 | 只生成建议方案，不由 AI 执行 DDL |
+
 ---
 
 ## 二、技术方案
@@ -57,6 +73,13 @@
 - 新增 `LoginStrategy` 接口：`Result<UserToken> login(LoginRequest req)`
 - 现有 `AuthServiceImpl` 改为持有 `Map<LoginType, LoginStrategy>`，按类型分发
 - 验证码采用 Redis 存储，Key 格式 `sms:code:{phone}`，TTL 5 分钟
+
+### AI 执行口径
+
+- **前置条件**：用户确认数据库结构方案；DBA 审批完成；短信网关账号与测试环境可用
+- **执行顺序**：先扩展登录策略与 Redis 验证码逻辑，再接 Controller，最后联调网关；DB 变更由授权 DBA 独立执行
+- **验收标准**：原密码登录回归通过；验证码登录正常/过期/重复发送/网关超时用例通过
+- **禁止改动**：不得改变原 `/api/v1/auth/login` 契约；AI 不得执行 DDL 或生产数据操作
 
 ### 最小影响分析（开闭原则）
 - **新增内容**：
@@ -109,13 +132,17 @@
 
 ---
 
-## 四、数据库变更
+## 四、数据库变更（DBA 申请草案）
 
-- **DDL 变更**：新增 `sms_verification` 表（phone, code, created_at, used_at）
+- **用户确认**：示例假设用户已明确同意提交变更申请；未确认时本节应作为 blocker
+- **DBA 审批状态**：待申请，必须由授权人员审核和执行
+- **建议结构变更**：新增 `sms_verification` 表（phone, code, created_at, used_at）
 - **数据迁移**：无
-- **回滚 SQL**：`DROP TABLE sms_verification;`
+- **建议回滚方案**：由 DBA 审核是否执行 `DROP TABLE sms_verification`
+- **只读验证 SQL**：通过 `information_schema.tables` / `information_schema.columns` 核对结构
 
 ```sql
+-- 建议 DDL，仅供 DBA 审核；dev-doc 与后续执行 AI 不得直接运行
 CREATE TABLE sms_verification (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   phone VARCHAR(20) NOT NULL,
@@ -188,6 +215,10 @@ flowchart TD
 - [ ] 验证码错误次数限制
 - [ ] 短信网关超时降级
 
+### 验收标准
+- [ ] 原账号密码登录请求/响应契约保持不变且回归通过
+- [ ] 验证码登录主流程、过期、防重发和网关异常均有可复核结果
+
 ---
 
 ## 九、风险与注意事项
@@ -202,7 +233,7 @@ flowchart TD
 
 ## 十、上线计划
 
-- **依赖项**：短信网关账号申请、DB DDL 执行、Redis 容量评估
+- **依赖项**：短信网关账号申请、用户确认 DB 方案、DBA 审批与授权执行结果、Redis 容量评估
 - **灰度策略**：先内部员工 → 1% 流量 → 10% → 全量
 - **回滚方案**：关闭 sms-login 接口的功能开关，前端切回密码登录
 - **监控指标**：发码 QPS、登录成功率、短信到达率、网关耗时 P99
@@ -211,7 +242,7 @@ flowchart TD
 
 ## 十一、实现 Todo
 
-- [ ] DDL 上 test 环境
+- [ ] 准备 DBA 变更申请、建议 DDL、影响评估和只读验证 SQL；由授权 DBA 审批执行
 - [ ] LoginStrategy 接口及两个实现
 - [ ] SmsService + 网关 client
 - [ ] Controller 新增 2 个接口
@@ -227,6 +258,25 @@ flowchart TD
 - **回归风险**：`AuthServiceImpl` 改为策略分发后，原密码登录路径是否仍正确执行
 - **不要改的**：`User` 实体类、`/api/v1/auth/login` 原接口的请求/响应结构
 ````
+
+**完成输出中的 Workflow Brief（只列真实产物）：**
+
+```text
+【Workflow Brief】
+stage: PlanGate
+task: 用户登录优化
+source: 用户明确范围；analytics/login-funnel-2026-05.md；AuthController.login()
+artifacts: docs/2026-05-31/用户登录优化.md；docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md；project-html/data/changes.js
+changed: 无（方案阶段未改业务代码）
+vcs: 文档、OpenAPI 和看板待纳入 VCS
+tests: OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）
+api: docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md
+openFindings: 无；DBA 审批与授权执行属于 Implementation Gate 前置依赖
+next: DBA 审批完成后，交给 AI/开发者按文档实现并进入 VCS/Verification Gate
+tokenHint: 下一位 AI 先读本 Brief -> 开发文档中的判断依据、技术方案、变更清单和 Todo -> 仅按需读取相关源码
+```
+
+> 本例因用户已明确确认数据库方案，所以可以完成 Plan Gate；若未确认或在非交互运行中发现该 blocker，应保持工作区零写入，而不是生成上述产物。
 
 **追加到看板的对象（Step 5.5，叙述字段面向人类重写、非 md 摘录；注意字符串转义）：**
 
@@ -273,7 +323,7 @@ flowchart TD
       { file: "auth/strategy/SmsLoginStrategy.java", action: "新增", desc: "验证码登录实现" },
       { file: "auth/service/AuthServiceImpl.java", action: "修改", desc: "改为按类型分发，原单一密码登录无法用扩展替代" }
     ],
-    todos: ["DDL 上 test", "LoginStrategy 及两实现", "SmsService+网关 client", "Controller 加 2 接口", "单测覆盖", "联调短信网关", "配置灰度开关"]
+    todos: ["准备 DBA 变更申请并等待授权人员执行", "LoginStrategy 及两实现", "SmsService+网关 client", "Controller 加 2 接口", "单测覆盖", "联调短信网关", "配置灰度开关"]
   },
 ```
 
@@ -283,9 +333,9 @@ flowchart TD
 
 ## 示例 2：Bug 修复 - 支付回调签名
 
-**用户调用：** `/dev-doc 支付回调签名修复`
+**用户调用：** Claude Code `/dev-doc 支付回调签名修复`；Codex `使用 dev-doc skill 生成“支付回调签名修复”开发文档`；Cursor 按当前 skill 入口或自然语言点名。
 
-**生成的文档（简版示例，省略未变章节）：**
+**生成的文档（局部示例，省略判断依据、AI 执行口径、Workflow Brief 等未变章节；不可作为完整结构照抄）：**
 
 ````markdown
 # 支付回调签名修复 开发文档
@@ -388,5 +438,5 @@ SDK 升级后默认签名算法从 RSA 改为 RSA2，但回调处理代码仍只
 2. **不相关章节直接删除** — Bug 修复没动 DB 和缓存，那两节就不要保留空模板
 3. **最小影响分析永远要写** — 这是开闭原则的硬约束
 4. **风险章节务必填具体值** — "高/中/低" 后面必须有具体应对措施，不能空着
-5. **代码评审关注点永远要写** — 为后续 /review-check 提供具体检查目标，不能省略
+5. **代码评审关注点永远要写** — 为后续 review-check 提供具体检查目标，不能省略；调用写法按当前宿主生成
 

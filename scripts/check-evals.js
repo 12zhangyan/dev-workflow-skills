@@ -2,7 +2,8 @@
 'use strict';
 
 // 校验每个 skill 的 evals.json 存在且结构正确。
-// evals 是 skill 行为的回归锚点：语法或结构坏掉时应在 CI 拦下。
+// evals 是 skill 行为的回归锚点：CI 校验语法、结构和关键场景覆盖，
+// 不代表已经在真实 Claude Code / Cursor / Codex 宿主中执行了行为测试。
 const fs = require('fs');
 const path = require('path');
 
@@ -16,6 +17,24 @@ const globalCoverage = {
   environmentBlocked: false,
   testAssertionTarget: false,
 };
+const devDocRequiredTags = new Set([
+  'interactive_chat',
+  'non_interactive_blocker',
+  'structured_question',
+  'multiple_question_tools',
+  'tool_failure_fallback',
+  'evidence_default',
+  'exists_unreadable',
+  'no_write',
+  'dba_approval',
+  'no_ddl_execution',
+  'biz_flow',
+  'review_fix',
+  'review_check',
+  'cross_host_output',
+  'light_validation',
+]);
+const devDocSeenTags = new Set();
 
 function fail(message) {
   console.error('FAIL: ' + message);
@@ -59,6 +78,14 @@ for (const skill of requiredSkills) {
     if (!ev.expected_output || typeof ev.expected_output !== 'string' || !ev.expected_output.trim()) {
       fail(`${where} missing expected_output`);
     }
+    if (typeof ev.tags !== 'undefined' && (
+      !Array.isArray(ev.tags)
+      || ev.tags.length === 0
+      || ev.tags.some((tag) => typeof tag !== 'string' || !tag)
+      || new Set(ev.tags).size !== ev.tags.length
+    )) {
+      fail(`${where} tags must be a non-empty string array when provided`);
+    }
     const expected = typeof ev.expected_output === 'string' ? ev.expected_output : '';
     const joined = `${typeof ev.prompt === 'string' ? ev.prompt : ''}\n${expected}`;
     if (/(证据|材料不足|待确认|blocker|不得|不能|不应|未运行|未检查)/.test(expected)) {
@@ -67,6 +94,9 @@ for (const skill of requiredSkills) {
     if (joined.includes('environment-blocked')) globalCoverage.environmentBlocked = true;
     if (/(测试名|断言对象|目标逻辑|被测方法|没有调用目标逻辑)/.test(joined)) {
       globalCoverage.testAssertionTarget = true;
+    }
+    if (skill === 'dev-doc') {
+      for (const tag of ev.tags || []) devDocSeenTags.add(tag);
     }
   });
   if (!hasAccuracyBoundary) {
@@ -79,6 +109,23 @@ if (!globalCoverage.environmentBlocked) {
 }
 if (!globalCoverage.testAssertionTarget) {
   fail('evals must include a test assertion target/effectiveness scenario');
+}
+for (const tag of devDocRequiredTags) {
+  if (!devDocSeenTags.has(tag)) fail(`dev-doc evals missing required scenario tag: ${tag}`);
+}
+
+const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
+const devDocReferencePath = path.join(skillsDir, 'dev-doc', 'reference.md');
+const devDocExamplesPath = path.join(skillsDir, 'dev-doc', 'examples.md');
+for (const [file, needles] of [
+  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
+  [devDocReferencePath, ['数据库变更（DBA 申请草案）', 'Plan Gate 未通过', '轻量结构校验通过，Apifox 实际导入未验证']],
+  [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
+]) {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const needle of needles) {
+    if (!text.includes(needle)) fail(`${path.relative(root, file)} missing dev-doc contract text: ${needle}`);
+  }
 }
 
 if (process.exitCode) {

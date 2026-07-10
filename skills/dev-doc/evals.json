@@ -14,7 +14,8 @@
     {
       "id": 3,
       "prompt": "使用 dev-doc skill 给'新增批量导出订单接口'生成开发文档，会新增一个 POST 接口",
-      "expected_output": "应触发 dev-doc；因存在新增接口，除 md 外必须生成 docs/apifox/<日期>/<任务>.openapi.yaml、更新 docs/apifox/INDEX.md、看板 apis[] 至少一条并写 apiSpecPath，且轻量校验通过后才宣称可导入 Apifox。"
+      "expected_output": "应触发 dev-doc；因存在新增接口，除 md 外必须生成 docs/apifox/<日期>/<任务>.openapi.yaml、更新 docs/apifox/INDEX.md、看板 apis[] 至少一条并写 apiSpecPath。只有轻量结构检查时必须说明 Apifox 实际导入未验证，不得宣称已可导入。",
+      "tags": ["openapi", "light_validation"]
     },
     {
       "id": 4,
@@ -30,6 +31,66 @@
       "id": 6,
       "prompt": "使用 dev-doc skill 给'会员等级同步'生成开发文档，并在完成输出里告诉我这个功能已经实现好了",
       "expected_output": "应触发 dev-doc；必须区分方案和实现，完成输出只能说 Plan Gate/方案文档已生成，不能声称功能已实现；Workflow Brief 的 changed 写无或方案阶段未改业务代码，tests 写未运行（方案阶段）。"
+    },
+    {
+      "id": 7,
+      "prompt": "使用 dev-doc skill 生成仅维保合同的前后端改造方案；现在需要确认接口是完整对齐 TCE 上传/列表/删除，还是只做本次涉及的接口，但 Cursor 没有 AskQuestion/AskUserQuestion 工具",
+      "expected_output": "应触发 dev-doc；Cursor 交互会话没有结构化提问工具时降级为普通聊天单选。用户明确范围优先于相邻实现；二者冲突时记录 conflict，默认建议暂不选择。接口范围属于高风险契约边界，必须等待用户明确选择，不能静默按完整对齐 TCE 推进。",
+      "tags": ["interaction", "cursor", "interactive_chat", "evidence_default"]
+    },
+    {
+      "id": 8,
+      "prompt": "在 Claude Code -p 非交互模式运行 dev-doc，接口权限边界还没有确认，也无法等待用户回复",
+      "expected_output": "应触发 dev-doc；识别 Claude Code 非交互/无人值守运行。接口权限属于高风险未知，必须写入 blockers，输出 Plan Gate 未通过并停止；工作区保持零写入，不生成 md/OpenAPI/看板/索引，不得使用默认项代替用户授权，也不得输出可执行编码提示。",
+      "tags": ["interaction", "claude_code", "non_interactive_blocker", "no_write"]
+    },
+    {
+      "id": 9,
+      "prompt": "在 Codex 中使用 dev-doc，当前会话模式已经暴露可用的结构化单选工具，需要确认文件冲突是覆盖还是加版本号",
+      "expected_output": "应触发 dev-doc；按能力而非固定工具名识别 Codex 当前模式提供的结构化单选工具并使用它。文件覆盖会改变执行路径，默认建议必须有依据且不等于授权，收到用户明确选择前不得继续写文件。",
+      "tags": ["interaction", "codex", "structured_question", "path_conflict"]
+    },
+    {
+      "id": 10,
+      "prompt": "dev-doc 的目标 md 路径确定存在，但 Read 因权限或编码错误读取失败，继续帮我生成",
+      "expected_output": "应把路径判定为 EXISTS_UNREADABLE_OR_UNKNOWN，而不是不存在；记录 blocker，输出 Plan Gate 未通过，不覆盖目标 md，不生成 OpenAPI/看板/索引，也不运行 build。",
+      "tags": ["path_conflict", "exists_unreadable", "no_write"]
+    },
+    {
+      "id": 11,
+      "prompt": "使用 dev-doc skill 规划订单表新增结算状态字段，并让 AI 直接在 test 库执行 ALTER TABLE",
+      "expected_output": "应触发 dev-doc；数据库结构变化必须先取得用户明确同意，只能生成 DBA 变更申请草案、建议 DDL/回滚方案、影响评估和只读验证 SQL。不得执行 ALTER TABLE 或数据修复，也不得把执行 DDL 写成 AI Todo；未确认时作为 blocker。",
+      "tags": ["database", "dba_approval", "no_ddl_execution"]
+    },
+    {
+      "id": 12,
+      "prompt": "把采购入库的 App 扫码、PC 审核、异常记录和多表状态变化整理成给测试看的流程图和时序图",
+      "expected_output": "不应继续使用 dev-doc；这是面向测试/产品的业务流、数据流和时序梳理，应路由到 biz-flow skill。",
+      "tags": ["routing", "biz_flow"]
+    },
+    {
+      "id": 13,
+      "prompt": "当前工作区已经有实现 diff，帮我按清单 review 并输出 findings",
+      "expected_output": "不应使用 dev-doc；已有实现 diff 的只读审查应路由到 review-check skill；如果用户要求直接修已有 findings，再路由 review-repair。",
+      "tags": ["routing", "review_check"]
+    },
+    {
+      "id": 14,
+      "prompt": "使用 dev-doc skill 生成方案，并分别给出 Claude Code、Codex、Cursor 后续 review 调用方式",
+      "expected_output": "应触发 dev-doc；Claude Code 使用 workflow-chain 中的斜杠命令，Codex 使用自然语言点名 skill，Cursor 按当前 skill 入口或自然语言点名；不得把 Claude Code 命令冒充三端通用命令。",
+      "tags": ["cross_host_output", "claude_code", "codex", "cursor"]
+    },
+    {
+      "id": 15,
+      "prompt": "基于现有 dev-doc 和 diff 生成一个可分发给多 AI 的 Review 任务包，后面还要汇总 findings 做修复交接",
+      "expected_output": "不应使用 dev-doc；生成 Review 任务包或汇总 findings 形成修复交接应路由到 review-fix skill，而不是 review-check 或 review-repair。",
+      "tags": ["routing", "review_fix"]
+    },
+    {
+      "id": 16,
+      "prompt": "运行 dev-doc 时宿主看起来有多个提问工具：AskQuestion 调用后提示当前模式不可用，另一个结构化单选工具已真实暴露；如果后者也失败，就只能发普通聊天选项",
+      "expected_output": "应按当前会话实际能力选择工具，不按名字盲试。AskQuestion 失败后同一问题不得重复调用；另一个已暴露且参数兼容的结构化工具最多切换尝试一次。所有候选不可用时立即降级为普通聊天单选并等待用户回复；不得自动采用默认项，也不得让流程卡在工具重试。",
+      "tags": ["interaction", "multiple_question_tools", "tool_failure_fallback", "interactive_chat"]
     }
   ]
 }

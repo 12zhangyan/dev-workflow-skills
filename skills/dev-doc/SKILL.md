@@ -1,6 +1,6 @@
 ﻿---
 name: dev-doc
-description: 当开始编码前需要把需求落成可执行文档时使用——需求还是口头想法、AI 可能走错方向、或任务范围不清晰时。Codex 中用户可说"使用 dev-doc skill 生成开发文档"；Claude Code 可兼容 /dev-doc。
+description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案，并登记看板；用户要求“开发方案/改造方案/实施文档/先设计再编码”、需求仍是口头描述或范围容易走偏时必须使用。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true
@@ -17,7 +17,7 @@ effort: high
 本 Skill 是开发工作流的第一步：把需求落成文档，驱动后续编码、自测、Code Review、上线。
 
 **一次运行产出两份各有分工的文档：**
-- **md 文件 = AI 执行文档**：精确的文件路径、变更清单、约束条件、可执行 Todo，写给 Claude/Cursor 照着干活
+- **md 文件 = AI 执行文档**：精确的文件路径、变更清单、约束条件、可执行 Todo，写给 Codex / Cursor / Claude Code 或开发者照着执行
 - **看板条目 = 人类阅读文档**：面向没参与本次开发的同事独立撰写的技术说明，不看 md、不看代码也能看懂这次改了什么、为什么改
 
 md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
@@ -27,6 +27,20 @@ md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 ### 共享交互协议
 
 先执行 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填 → 风险分级 → 单点确认 → 冲突显式记录。信息槽位只用于查漏，不是逐条问卷。
+
+**交互能力兼容与降级：** 不按产品名猜工具，先检查当前宿主、会话和模式实际暴露的能力。Claude Code 可能提供 `AskUserQuestion`，Codex 可能在特定模式提供结构化用户提问能力，Cursor 或其他模式可能只支持普通聊天；`AskQuestion` 仅视为宿主可能使用的别名，未实际暴露时不得调用。
+
+同一会话可能出现多个候选提问工具。只选择**当前确实已暴露且参数结构兼容**的工具，不按名称列表盲试。某个候选返回“不可用 / 当前模式不支持 / 调用失败”后，记录该失败并且同一问题不再重试该工具；若还有另一个已暴露且兼容的候选，可切换一次，否则立即进入聊天降级。工具失败不能触发自动选择默认项，也不能让流程卡在重复调用工具名上。
+
+按以下顺序处理封闭选项：
+1. 当前模式暴露一个或多个可用的结构化单选工具 → 按上述能力规则选择一个；失败时至多切换到另一个已暴露候选，每次只问一个问题。
+2. 没有结构化工具或调用明确失败，但当前是可等待回复的交互会话 → 降级为普通聊天单选，格式为：`请选择：A. ... / B. ... / C. ...（默认建议：<选项或暂不选择>；理由/依据：...）`，然后等待回复。
+3. 当前是 `-p`、批处理、自动化等非交互/无人值守运行 → 低风险未知可按下述证据口径记录假设后继续；高风险未知必须写入 `blockers`，输出 `Plan Gate 未通过` 并立即停止。此分支不进入 Step 4-5.6，不写 md、OpenAPI、看板或索引，也不运行 build；不得用默认项代替用户授权。
+
+- 默认建议按证据优先级推导：`用户明确范围 > 正式需求/接口契约 > 目标模块代码 > 相邻实现`，并写明依据。高优先级证据与低优先级证据冲突时不推荐具体选项，记录到 `conflicts` 并写 `默认建议：暂不选择，待确认`；不得用相邻实现扩大用户已确认范围。
+- 默认建议只是推荐口径，不代表用户已经授权。接口范围/契约、状态流转、权限、数据归属、DB 结构、回滚语义、文件覆盖等高风险或会改变执行路径的问题，必须收到用户明确选择后再继续；不得因工具不可用、调用失败或运行超时而静默采用默认项。
+- 低风险且不阻塞方案的问题，可以写明 `若无异议，暂按 <有证据的默认项> 推进` 后继续，并把该口径记录到 `assumptions` /「判断依据与待确认」。
+- 例如确认接口面时，可询问：`请选择接口范围：A. 对齐既有上传/列表/删除能力 / B. 仅实现本次明确涉及的接口（默认建议：<根据范围说明和相邻实现推导>；理由/依据：<证据位置>）`；这是接口契约边界，收到用户选择前不得把任何选项写成已确认事实。
 
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 完成的是 Plan Gate；输出必须说明产物路径、阻塞项/冲突/假设、VCS Gate、Verification Gate、Review Gate 和后续 code-reading / 人工 review 入口。
 
@@ -75,19 +89,19 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 2：确认任务类型、复杂度和归属（少问、先判断）
 
-**先从 `$task`、路径、已有代码、接口名、模块名、Step 1 上下文推断并预填。封闭选项只有在会影响文档结构或后续执行时才用 AskUserQuestion；自由文本问题只问阻塞项。**
+**先从 `$task`、路径、已有代码、接口名、模块名、Step 1 上下文推断并预填。封闭选项只有在会影响文档结构或后续执行时才使用当前模式实际提供的结构化单选工具；工具不可用时按“交互能力兼容与降级”处理。自由文本问题只问阻塞项。**
 
-任务类型可明显判断时直接记录并继续；不确定或会影响模板时再问（AskUserQuestion 单选）：
+任务类型可明显判断时直接记录并继续；不确定或会影响模板时再问（结构化单选工具可用则使用，否则按降级规则处理）：
 
 > 任务类型是？（新功能 / Bug 修复 / 重构 / 性能优化 / API 联调 / 配置变更）
 
-若用户选"Bug 修复"且目的是记录现象、分析根因 → 提示："这类任务建议改用 `/bug-fix`（专门的 Bug 记录与根因分析流程，会登记到看板的 Bug 区）。继续用 dev-doc 吗？" 用户确认继续才往下走。
+若用户选"Bug 修复"且目的是记录现象、分析根因 → 提示："这类任务建议改用 bug-fix skill（专门的 Bug 记录与根因分析流程，会登记到看板的 Bug 区）。继续用 dev-doc 吗？" 用户确认继续才往下走；调用写法按当前宿主生成，不把 `/bug-fix` 当成三端通用命令。
 
 复杂度可按改动范围、模块数量、接口数量和代码证据判断时直接记录；只有复杂度会改变拆分策略、模型建议或验收范围时才确认。
 
 > 复杂度我初步判断是「<建议值>」，对吗？（简单：改动一眼可见，约 ≤50 行 / 中等：50–500 行 / 复杂：>500 行、跨模块或方案不明确）
 
-若用户选"复杂"，追加提示："建议执行阶段输入 `/model opus` 切换更强的模型。"
+若用户选"复杂"，只在当前宿主确实支持模型切换时建议选择高推理档；Claude Code 可提示 `/model opus`，Cursor/Codex 使用当前宿主实际提供的模型入口，不虚构命令。
 
 归属优先从当前目录、包名、Controller、模块名推断；无法确定时再问（Step 5.5 写看板时直接使用，避免收尾时再打断）：
 
@@ -116,14 +130,27 @@ d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 
 命令输出即为日期字符串（如 `2026-05-31`），拼接为最终路径 `docs/<日期>/<任务名>.md`。
 
-**冲突处理**：用 Read 工具尝试读取目标文件：
-- 读取成功 → 用 AskUserQuestion 询问：
+**冲突处理**：先用确定性命令判断目标路径状态，不能用 Read 失败推断文件不存在。将 Step 4 得到的最终候选路径赋给 `target`：
+
+```bash
+if [ ! -e "$target" ]; then
+  echo MISSING
+elif [ -f "$target" ] && [ -r "$target" ]; then
+  echo EXISTS_READABLE
+else
+  echo EXISTS_UNREADABLE_OR_UNKNOWN
+fi
+```
+
+- `MISSING` → 直接生成。
+- `EXISTS_READABLE` → Read 现有内容后，使用当前可用的结构化单选工具询问；工具不可用时按交互降级规则处理：
   - `A` 覆盖（整个文件重写）
   - `B` 加时间戳后缀（`<任务名>-1530.md`）
   - `C` 加版本号后缀（`<任务名>-v2.md`）
   - `D` 取消
   - `E` 追加更新（保留现有内容，在文档末尾追加「变更记录」段落）
-- 读取失败 → 直接生成
+- `EXISTS_UNREADABLE_OR_UNKNOWN`，或确定存在但 Read 失败 → 记录 blocker，输出 `Plan Gate 未通过`，不得写目标文件、OpenAPI、看板或索引。
+- 非交互/无人值守运行遇到任何已存在或状态未知的目标路径 → 不自动选择覆盖/后缀/追加；记录 blocker 并停止所有落盘步骤。
 
 ### Step 5：生成文档
 
@@ -133,13 +160,14 @@ d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
 **核心规则**：
 - 只使用用户提供的信息和代码/文档证据；未确认的标 `待补充` 或明确假设，不能把猜测写成事实
 - **显式暴露需求冲突**：如果用户需求与现有代码路径、状态机、字典值、权限模型、数据归属或表复用方式冲突，按共享协议的冲突记录模板写入「判断依据与待确认」；不要静默折中
-- **停止规则**：存在阻塞型 `blockers` 或 `conflicts` 时，只生成待确认文档，不生成可直接粘贴执行的编码提示
+- **停止规则**：交互会话中已经安全确定新文件路径时，存在阻塞型 `blockers` 或 `conflicts` 可只生成待确认文档，不生成可直接粘贴执行的编码提示；非交互 blocker、目标路径不可读或路径冲突未选择时，在落盘前停止，不生成 md/OpenAPI/看板/索引，也不运行 build
 - **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
 - **AI 执行口径必须写实**：在技术方案里明确前置条件、执行顺序、验收标准、禁止改动；不要只写"按方案实现"
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
 - **接口文档仅在接口有变动时生成**：仅当本次新增接口、或修改既有接口的参数/返回结构时，才保留「三、API 设计」与「十三、Apifox 接口规范」；只是调用已有接口且签名无变化 → 两节都删除，看板 `apis` 填 `[]`，不生成 Apifox/OpenAPI 文件
 - **Apifox/OpenAPI 独立产物**：满足上一条时，必须把可导入 Apifox 的 OpenAPI 3.0 YAML 单独生成到 `docs/apifox/<日期>/<任务名>.openapi.yaml`，并更新 `docs/apifox/INDEX.md`；md 的「十三、Apifox 接口规范」只放文件位置、导入说明、接口索引和维护规则，不再内嵌完整 YAML
 - **OpenAPI 填写口径**：根据用户提供的接口信息填入 `paths` / `components.schemas`；未确认字段用 `# 待补充` 注释标记。后续接口变更优先更新同一个 `apiSpecPath` 文件，不要只改 md 接口表或另起新 YAML 文件
+- **数据库门禁**：数据库操作始终只读。新增库/表/字段/索引/约束等结构变化属于高风险未知，必须先取得用户明确同意；文档只能生成“DBA 变更申请草案 + 建议 DDL/回滚方案 + 影响评估 + 只读验证 SQL”，不得执行 DDL、数据修复或把“在 test/prod 执行 SQL”写成 AI Todo。未获同意时记为 blocker，不进入 Implementation Gate
 
 ### Step 5.1：生成 Apifox/OpenAPI 文件与索引（仅接口变更时）
 
@@ -166,12 +194,12 @@ mkdir -p "docs/apifox/$d"
 - 看板 entry 必须同步写入 `apiSpecPath`；生成索引时写入 `apiIndexPath: "docs/apifox/INDEX.md"`
 - `docs/INDEX.md` 只由 `node project-html/build.js` 覆盖生成，不手工编辑；它会从看板 `apiSpecPath` 生成 OpenAPI 链接列
 
-轻量校验（无第三方依赖）：
+轻量结构校验（无第三方依赖）：
 ```bash
 test -f "$apiSpecPath" && grep -q 'openapi: "3.0.3"' "$apiSpecPath" && grep -q '^paths:' "$apiSpecPath" && grep -q 'operationId:' "$apiSpecPath"
 test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && grep -q "$mdPath" docs/apifox/INDEX.md
 ```
-校验失败时不要在完成输出里宣称 Apifox/OpenAPI 已可导入；先修正 YAML 或索引。
+该命令只能证明关键结构和索引引用存在，不能证明 YAML 语法、`$ref`、`operationId` 唯一性或 Apifox 实际导入成功。有现成 YAML/OpenAPI validator 时继续运行并记录结果；没有时完成输出只能写“轻量结构校验通过，Apifox 实际导入未验证”。校验失败时先修正 YAML 或索引，不得宣称可导入。未确认字段只写 `# 待补充` 注释或文档待确认清单，不得创建 `pendingField` 等伪契约字段。
 
 ### Step 5.5：同步更新 HTML 看板
 
@@ -340,17 +368,18 @@ node project-html/build.js
 核心要素：
 1. 文件路径（可直接打开）
 2. 关键决策 3 句话摘要
-3. Claude/Cursor 执行提示（可直接粘贴给 AI）
+3. Codex / Cursor / Claude Code 执行提示（可直接粘贴给当前 AI 宿主）
 4. 当前门禁：`Plan Gate 已完成`；若存在 blocker/conflict，写 `Plan Gate 未通过` 并停止，不输出可执行编码提示
 5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项
 6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）
-7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再用 `/review-fix <dev-doc路径>` 生成 Review 任务包，分发 `/review-check <review-task路径>`，修复汇总后再运行 `/code-reading <dev-doc路径>`
+7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
 8. `【Workflow Brief】` 块（PlanGate 阶段，见 reference.md）：供下一位 AI 先读索引、再按 tokenHint 读取 md 方案与相关源码，不必粘贴文档全文
 
 ## 规则
 
 - **不污染主对话**：Step 1 的 git 检查结果不展示，仅作为内部上下文
 - **不编造内容**：未确认的章节统一标 `待补充`
+- **数据库只读**：结构变更只产出 DBA 申请材料和建议 SQL；未获用户明确同意不得进入执行 Todo，更不得执行 DDL/数据修复
 - **开闭原则优先**：方案设计偏向扩展新代码，而非修改现有
 - **可执行导向**：文档不是终点，是驱动后续工作的起点
 
@@ -359,18 +388,20 @@ node project-html/build.js
 ### 生成前检查
 - [ ] $task 已解析（不为空）
 - [ ] 任务类型和复杂度已判定；如影响执行策略，已向用户确认
+- [ ] 封闭选项已按“结构化工具 → 交互聊天 → 非交互 blocker”分流；默认建议有证据，高风险选项已获用户明确确认
 - [ ] 信息槽位已用于查漏；阻塞项已确认，非阻塞未知已标注假设或 `待补充`
 - [ ] 文件路径冲突已处理
 - [ ] 不相关章节已删除（避免大量"待补充"）
 - [ ] 最小影响分析已包含
 - [ ] AI 执行口径已写清前置条件、执行顺序、验收标准、禁止改动
+- [ ] 如涉及数据库结构变化，已取得用户明确同意并仅生成 DBA 申请草案；Todo 未要求 AI 执行 DDL/数据修复
 - [ ] 实现 Todo 均为"动词 + 对象 + 结果"，没有无法验收的泛化表述
 - [ ] 代码评审关注点已填写
 
 ### 生成后检查
 - [ ] 如存在新增接口或接口签名变更，已生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，已更新 `docs/apifox/INDEX.md`，且轻量校验通过
 - [ ] 如不存在接口变更，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
-- [ ] Claude/Cursor 执行提示已生成
+- [ ] Codex / Cursor / Claude Code 执行提示已按当前宿主能力生成，未混用不可用命令
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
 - [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6 第 8 项）
@@ -381,13 +412,14 @@ node project-html/build.js
 - 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
 - 看板模板（外壳 + 样式 + 逻辑 + 数据占位）：[assets/board/](assets/board/)
 - 中文文档规范：**必需背景：** `chinese-documentation` skill
-- 后续步骤：`/review-fix`（生成 Review 任务包并汇总修复）、`/review-check`（只读审查）、`/code-reading`（生成代码地图）、`/chinese-code-review`（PR 评论话术）
+- 后续步骤：`review-fix`（生成 Review 任务包并汇总修复）、`review-check`（只读审查）、`review-repair`（按 findings 直修）、`code-reading`（生成代码地图）；实际调用写法以共享 workflow-chain 为准
 
 ## 常见错误
 
 | 错误 | 原因 | 修复 |
 |------|------|------|
 | 文档生成后 AI 执行走偏 | 「六、代码变更清单」写得不够具体 | 每个条目加上「为何不能用扩展替代」说明 |
+| Cursor / Claude Code / Codex 当前模式没有结构化提问工具 | 按产品名猜工具，或把工具缺失误当成可以采用默认项 | 交互会话降级为聊天单选；非交互运行把高风险问题记为 blocker 并停止；默认建议必须有证据 |
 | 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
 | 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
 | Step 1 git 命令报 dubious ownership / safe.directory | 当前执行用户不是仓库拥有者 | 仍按 `.git` 判定为 Git；只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不要改全局配置 |
