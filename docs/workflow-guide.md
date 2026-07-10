@@ -46,6 +46,17 @@ dev-doc / bug-fix / biz-flow
 
 任何门禁失败都先停在当前阶段，不带病进入下一步。
 
+## 准确性硬规则
+
+- 方案文档不是实现证据；没有 diff/status/文件内容时，只能说“已形成方案”，不能说“已实现”。
+- `变更文件` 必须来自 `git status` / `svn status` / diff / patch / 实际读取文件，不能按任务名猜。
+- 验证必须写命令和结果；没跑就写“未运行 + 原因”，不要把建议命令写成已通过。
+- 构建/测试因 JDK、Node、Maven、npm、profile、环境变量或依赖下载失败时，标为 `environment-blocked`，写清工具链版本和失败命令；不要把环境问题当作代码逻辑失败。
+- Review 前先声明审查对象：审方案、审实现代码，还是审修复交接；没有实现证据时不得输出“代码无问题”。
+- Finding 必须带证据位置；没有文件/方法/接口/日志/配置/文档章节支撑时，写“材料不足”或“待确认”。
+- Critical / Important finding 必须逐条关闭、阻塞、拒绝或延期，不能只写“已处理”。
+- 测试必须证明目标逻辑：测试名、输入数据、被调用方法和断言对象要一致；只验证前置条件或 mock 自身，不能算风险已解除。
+
 ## 轻量交接，减少 Token
 
 > "每个 skill 完成后下一步跑什么 + 可复制命令"的单一权威表在 [skills/_shared/workflow-chain.md](../skills/_shared/workflow-chain.md)；下方的下一步提示都以它为准。
@@ -173,6 +184,8 @@ mvn -pl <module> -am test
 ```
 
 验证失败时先修复并重跑。不要把失败测试带入 Review。
+
+如果失败原因是工具链环境不匹配（例如项目要求 Java 21，但本机 `java -version` 是 Java 17），先停在 Verification Gate，记录为 `environment-blocked`，更换环境后重跑；不要让 review/repair 去猜业务代码问题。
 
 ### 6. Review Gate
 

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-check skill 审查 docs/review-fix/2026-07-09/order-review-task.md",
-      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出带 CR-/IM-/MI- ID 的结构化 findings 和 VerificationStatus；不修改任何代码或文档。"
+      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出 ReviewScopeType、VerificationStatus、TestEvidenceStatus，以及带 CR-/IM-/MI- ID 的结构化 findings；不修改任何代码或文档。"
     },
     {
       "id": 2,
@@ -14,17 +14,27 @@
     {
       "id": 3,
       "prompt": "review 一下 docs/2026-07-09/quote-tag.md 这个开发方案有没有问题",
-      "expected_output": "应触发 review-check；识别为文档模式；因只有 dev-doc、没有 diff/patch/status，只能审方案并明确说明未审实现代码，不得输出'实现无问题'。"
+      "expected_output": "应触发 review-check；识别为文档模式；因只有 dev-doc、没有 diff/patch/status，只能审方案，ReviewScopeType=PlanReview，并明确说明未审实现代码，不得输出'实现无问题'。"
     },
     {
       "id": 4,
       "prompt": "审查当前改动，但我只给你一段 patch，里面引用的新增文件内容没贴",
-      "expected_output": "应触发 review-check；关键新增文件内容缺失时结论状态给 InsufficientMaterial，列出缺失材料和受影响结论范围，不得写'未发现问题'。"
+      "expected_output": "应触发 review-check；关键新增文件内容缺失时结论状态给 InsufficientMaterial，列出缺失材料和受影响结论范围，TestEvidenceStatus 写 NotProvided/NotApplicable，不得写'未发现问题'。"
     },
     {
       "id": 5,
       "prompt": "使用 review-check skill 审查。【Workflow Brief】stage: ReviewGate source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java tokenHint: 先读 Brief -> changed 文件 -> review-task 证据包",
-      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/changed/tokenHint 控制读取范围，不要求粘贴全文；仍按审查清单核对原始 diff/源码后输出带 ID 的 findings。"
+      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/changed/tokenHint 控制读取范围，不要求粘贴全文；仍按审查清单核对原始 diff/源码后输出 ReviewScopeType、TestEvidenceStatus 和带 ID 的 findings。"
+    },
+    {
+      "id": 6,
+      "prompt": "使用 review-check skill 审查当前实现，但材料里只有 dev-doc，没有 git diff、patch、status 或变更文件",
+      "expected_output": "应触发 review-check；只能审方案并输出材料边界，ReviewScopeType=PlanReview，不能声称审过实现代码；若需要实现审查，应要求补充 diff/status/changed 文件，结论状态不得写'未发现代码问题'。"
+    },
+    {
+      "id": 7,
+      "prompt": "使用 review-check skill 审查一个新增单测：方法名叫 hasExistingOutputFalseWhenNoRegularFile，但测试体只创建临时目录并断言 walk.noneMatch(Files::isRegularFile)，没有调用被测的 hasExistingOutput 方法",
+      "expected_output": "应触发 review-check；输出 Important 或 Minor finding，TestEvidenceStatus 标为 Failed/Insufficient，指出测试名与断言对象不一致，测试没有调用目标逻辑，无法证明 hasExistingOutput 行为；给出修复建议：构造目标输出根或抽出可注入路径后断言被测方法返回值。"
     }
   ]
 }

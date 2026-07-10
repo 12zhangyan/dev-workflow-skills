@@ -167,6 +167,13 @@ mvn -pl <module> -am test
 - 如果失败明显来自既有环境/无关模块，记录命令、失败摘要和判断依据。
 - 不要把未运行或失败的验证写成通过。
 
+判定 `TestEvidenceStatus`：
+- 验证命令通过，且测试/检查实际调用并断言本次修复的目标逻辑 → `Passed`。
+- 验证命令失败，且失败与本次修复或目标逻辑相关 → `Failed`。
+- 因时间、缺少依赖信息、用户限制或项目无可用命令未运行 → `NotRun`，必须写明原因。
+- JDK/Node/Maven/npm/profile/env/dependency 等工具链或环境不满足导致无法验证 → `EnvironmentBlocked`，必须记录命令、失败摘要和工具链版本；不得把环境阻塞当业务代码缺陷修。
+- 只验证编译、mock 前置条件、临时目录存在性等，未调用或断言目标方法/接口/状态变更时，不得标为 `Passed`；应标为 `NotRun` 或 `Failed` 并说明测试证据不足。
+
 二次 review-check 触发条件：
 - Critical / Important 修复超过 2 个文件。
 - 修复改动了公共工具、公共 DTO、接口签名、权限、状态流转、事务边界。
@@ -189,6 +196,7 @@ mvn -pl <module> -am test
 
 按 [reference.md](reference.md#完成输出格式) 输出：
 - 修复结论：`Fixed` / `PartiallyFixed` / `Blocked`。
+- `TestEvidenceStatus`：`Passed` / `Failed` / `NotRun` / `EnvironmentBlocked`，并说明验证是否证明目标逻辑。
 - 每条 finding 的处理状态：fixed / deferred / rejected / blocked。
 - 未处理项的下一批建议：`deferred-next-batch` / `blocked` / `rejected`。
 - 修改文件。

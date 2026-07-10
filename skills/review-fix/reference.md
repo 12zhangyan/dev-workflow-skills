@@ -13,12 +13,16 @@
 > 来源：<dev-doc / patch / code-reading / 上下文>
 > 分支/路径：<branch 或 SVN path>
 > 阶段：等待其他 AI Review
+> ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>
+> TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 ---
 
 ## 一、审查目标
 
 请其他 AI 基于本任务包做 code review，目标是发现会导致线上缺陷、业务偏差、数据错误、回归、安全风险或维护风险的问题。
+
+本次审查范围类型为 `ReviewScopeType`。若为 `PlanReview`，只能审方案与证据边界，不得输出“实现代码无问题”；若为 `ImplementationReview`，必须回到 diff/status/changed 文件核对实际改动；若为 `FixHandoffReview`，重点核对 accepted findings 是否能被定位、修复和验证。
 
 本次重点确认：
 - [ ] 实现是否符合需求/方案文档
@@ -82,6 +86,7 @@
 如果不能运行 skill，请按下面要求手工审查。
 
 请作为代码审查者，基于以下材料做 review：
+0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable>
 1. 需求/方案文档：<dev-doc路径或无>
 2. 代码地图：<code-reading路径或无>
 3. diff/patch：<patch路径或粘贴内容>
@@ -117,6 +122,8 @@
 如果不能运行 skill，请按下面要求手工审查。
 
 请在当前工程中按文件上下文审查本次改动。重点看：
+- ReviewScopeType 是 PlanReview / ImplementationReview / FixHandoffReview 中哪一种；不要把方案审查写成实现审查
+- TestEvidenceStatus 是否说明测试真的验证目标逻辑
 - diff 是否符合 <dev-doc路径或功能描述>
 - 是否有空指针、边界、事务、并发、权限、性能和接口兼容风险
 - 是否缺少测试或验证路径；新增测试文件是否已纳入版本控制
@@ -150,6 +157,7 @@
 如果不能运行 skill，请按下面要求手工审查。
 
 请读取给定 patch / 文档 / 关键源码，做一次偏业务正确性的 code review。
+先声明 ReviewScopeType 和 TestEvidenceStatus；没有实现证据时只审方案，不得说实现代码无问题。
 请优先找：
 1. 方案和实现不一致
 2. 状态、金额、库存、权限、事务、异常处理错误
@@ -349,11 +357,11 @@ Accepted finding 必须同时满足：
 【Workflow Brief】
 stage: ReviewGate
 task: <任务名>
-source: <dev-doc/bug 文档/patch/diff/status>
+source: <dev-doc/bug 文档/patch/diff/status；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>>
 artifacts: docs/review-fix/<日期>/<任务名>-review-task.md
 changed: <任务包中列出的源码/测试/配置/OpenAPI 文件>
 vcs: <git/svn status 摘要；未检查写原因>
-tests: <已知验证命令 + 结果；没有写 未运行 + 原因>
+tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
 api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
 openFindings: 待 review-check 输出
 next: 使用 review-check skill 审查 docs/review-fix/<日期>/<任务名>-review-task.md
@@ -385,11 +393,11 @@ tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 d
 【Workflow Brief】
 stage: ReviewGate
 task: <任务名>
-source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check findings 来源>
+source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check findings 来源>；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>
 artifacts: docs/review-fix/<日期>/<任务名>-fix-handoff.md
 changed: <findings 涉及的源码/测试/配置/OpenAPI 文件>
 vcs: <git/svn status 摘要；未检查写原因>
-tests: <已知验证命令 + 结果；没有写 未运行 + 原因>
+tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
 api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
 openFindings: <Critical/Important/Minor ID 摘要；Rejected 单独列出>
 next: 使用 review-repair skill 根据 fix-handoff 直接修复，或人工按交接文档修复

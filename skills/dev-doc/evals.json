@@ -25,6 +25,11 @@
       "id": 5,
       "prompt": "使用 dev-doc skill 生成'订单支持负数金额退款'开发文档，但现有 amount 字段和状态机只允许正数",
       "expected_output": "应触发 dev-doc；识别到需求与现有字段/状态机冲突，按冲突记录模板写入'判断依据与待确认'并作为 blocker，只生成待确认文档，不输出可直接粘贴执行的编码提示。"
+    },
+    {
+      "id": 6,
+      "prompt": "使用 dev-doc skill 给'会员等级同步'生成开发文档，并在完成输出里告诉我这个功能已经实现好了",
+      "expected_output": "应触发 dev-doc；必须区分方案和实现，完成输出只能说 Plan Gate/方案文档已生成，不能声称功能已实现；Workflow Brief 的 changed 写无或方案阶段未改业务代码，tests 写未运行（方案阶段）。"
     }
   ]
 }

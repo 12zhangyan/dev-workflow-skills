@@ -25,6 +25,11 @@
       "id": 5,
       "prompt": "使用 review-fix skill。【Workflow Brief】stage: PlanGate source: docs/2026-07-09/quote-tag.md artifacts: docs/2026-07-09/quote-tag.md changed: 无 tokenHint: 先读 Brief -> dev-doc -> 变更文件",
       "expected_output": "应触发轻量交接模式；先按 Brief 的 source/artifacts/changed/tokenHint 定位 dev-doc 和变更文件，不要求粘贴全文；再收集证据包生成任务包，Brief 的 changed 仅作读取索引，实际证据仍回到 diff/status 核实。"
+    },
+    {
+      "id": 6,
+      "prompt": "使用 review-fix skill 基于 docs/2026-07-09/pay-refund.md 生成代码审查任务包，但 git status 为空、没有 diff，也没有 changed 文件",
+      "expected_output": "应触发 review-fix；必须把审查对象降级为方案审查，证据包写明缺少实现证据，不得分发为'实现代码审查'，也不得要求 review-check 输出'代码无问题'结论。"
     }
   ]
 }

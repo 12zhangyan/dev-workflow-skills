@@ -94,6 +94,12 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`；SVN 项目必须同时看 `svn status` 和 `svn diff --summarize`，避免漏掉未纳入版本控制的新增源码或测试文件。
 
+判定 `ReviewScopeType` 和 `TestEvidenceStatus`：
+- 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或已读取到明确 changed 文件 → `ReviewScopeType=ImplementationReview`。
+- 只有 dev-doc / bug-fix / biz-flow / 需求描述，没有实现证据 → `ReviewScopeType=PlanReview`，任务包必须写明未审实现代码。
+- 第二阶段汇总 findings / 生成修复交接 → `ReviewScopeType=FixHandoffReview`。
+- 测试命令有通过结果且测试断言目标逻辑 → `TestEvidenceStatus=Passed`；测试失败 → `Failed`；未提供 → `NotProvided`；工具链不满足 → `EnvironmentBlocked`；纯方案阶段无测试 → `NotApplicable`。
+
 按入口读取：
 - 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。
 - patch 模式：Read patch/diff 文件，提取文件列表、变更类型、关键 hunks。
@@ -118,6 +124,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 
 文档必须包含：
 1. **审查目标**：这次 review 要确认什么。
+   - 必须写 `ReviewScopeType` 和 `TestEvidenceStatus`，并说明是否审实现代码。
 2. **证据包**：其他 AI 需要读取/粘贴的文档、diff、源码、测试命令。
    - 必须包含 `assumptions`、`conflicts`、`blockers`、`openQuestions`：材料不足或语义冲突要直接暴露。
 3. **统一审查清单**：按风险类别列出检查项。
@@ -225,4 +232,3 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 - 示例：[examples.md](examples.md)
 - 工作流背景：仓库 `docs/workflow-guide.md`
 - 相邻 skill：`/dev-doc`、`/review-check`、`/review-repair`、`/code-reading`、`/bug-fix`
-

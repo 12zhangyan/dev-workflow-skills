@@ -25,6 +25,21 @@
       "id": 5,
       "prompt": "使用 review-repair skill。下面是 Workflow Brief：stage: ReviewGate task: 新报价标识 source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java; src/test/java/com/acme/QuoteServiceTest.java tests: mvn -f pom.xml test openFindings: CR-1 tokenHint: 先读 Brief -> changed 文件 -> CR-1 finding。Finding CR-1 File/Line: src/main/java/com/acme/QuoteService.java:120 Problem: viewer 为空时错误标记新报价 Fix: 增加 viewer 判空并补测试 Verify: mvn -f pom.xml test",
       "expected_output": "应触发轻量交接模式；先按 Workflow Brief 控制读取范围，再读取 CR-1 指向文件和测试，不应要求用户粘贴完整 review-task；修复后输出 Workflow Brief、处理结果、验证和 VCS 完整性。"
+    },
+    {
+      "id": 6,
+      "prompt": "使用 review-repair skill 直接修复：CR-1 这里可能有问题，应该优化一下性能，没有文件、行号、复现、测试或修复建议",
+      "expected_output": "应触发 review-repair 但不能凭空修改；应将 CR-1 标为 blocked 或 rejected（材料不足/无可定位证据），说明需要文件位置、证据和验证方式；不得扫描全仓后自行猜修。"
+    },
+    {
+      "id": 7,
+      "prompt": "使用 review-repair skill 修复后运行验证，mvn test 失败：Fatal error compiling: 不支持发行版本 21；java -version 显示 17.0.14",
+      "expected_output": "应触发 review-repair 但不得把环境问题当业务代码缺陷修；应将验证状态标为 environment-blocked，记录命令、Java 17 与项目 Java 21 不匹配，要求切换 JDK 21 后重跑，再决定 finding 是否关闭。"
+    },
+    {
+      "id": 8,
+      "prompt": "Use review-repair after a fix. Verification command `mvn test` fails with `release version 21 not supported`; `java -version` reports 17.0.14.",
+      "expected_output": "Should classify verification as environment-blocked, not as a business-code defect; output TestEvidenceStatus=EnvironmentBlocked with the command, Java 17 vs Java 21 mismatch, and the need to rerun under JDK 21 before closing the finding."
     }
   ]
 }

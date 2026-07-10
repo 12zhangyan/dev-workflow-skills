@@ -27,6 +27,21 @@
 | Understanding Gate | Review 修复和验证已完成 | code-reading 代码地图、关键调用链/状态/事务/风险位置 | 材料不足时只输出阅读边界，不补写问题结论 |
 | Submit Gate | 人工 review 通过 | 最终 status/diff/test/review/doc 检查清单与提交信息 | 任何 Critical/Important 未关闭、敏感信息或漏 add，停止提交 |
 
+## 准确性不变量
+
+这些规则优先于模板完整性；模板再完整，也不能牺牲证据准确性。
+
+- 区分 `计划`、`实际改动`、`验证结果`：dev-doc/biz-flow/bug-fix 只代表计划或分析；只有 diff/status/文件内容能证明实现已发生。
+- `changed` 文件列表必须来自 VCS status、diff、patch、用户给出的明确路径或实际读取到的文件；不能凭任务名猜文件。
+- 验证结论必须写命令和结果；未运行时写 `未运行 + 原因`，不能写成通过。
+- 构建/测试因 JDK、Node、Maven、npm、profile、环境变量或依赖下载问题失败时，标为 `environment-blocked`，写清工具链版本和失败命令；不要把环境问题当成业务代码缺陷。
+- Review 任务包必须声明审查对象是 `方案` 还是 `实现代码`；没有实现证据时不得输出“已审代码”。
+- Finding 必须带可复核证据：文件/行号、方法名、接口、日志、配置或文档章节；只有直觉时降级为材料不足或待确认。
+- 修复结果必须逐条回填 accepted finding 的状态：`fixed / blocked / rejected / deferred-next-batch`，并保留原 finding ID。
+- 测试结论必须证明目标逻辑：测试名、输入数据、被调用方法和断言对象要一致；只验证前置条件、临时目录或 mock 自身时，不能作为风险已解除的证据。
+- 新增文件、生成文件、OpenAPI、配置、SQL/XML、测试文件都要进入 VCS Gate 检查；未纳管不得进入 Review Gate。
+- 发现任务越界、跨模块扩散或一次处理过多 findings 时，先拆批并标 `deferred-next-batch`，不要用一次大改掩盖边界。
+
 ## 统一完成输出
 
 每个 skill 完成时都应尽量包含：

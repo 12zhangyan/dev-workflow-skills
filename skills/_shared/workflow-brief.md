@@ -20,7 +20,7 @@ source: <本轮依据的原始输入，如 docs/...md、review-task、fix-handof
 artifacts: <本轮生成或更新的文档、OpenAPI、看板、索引路径>
 changed: <本轮涉及的源码/测试/配置/SQL/XML/OpenAPI 文件；没有写 无>
 vcs: <git/svn status 摘要；未检查写 未检查 + 原因>
-tests: <验证命令 + 结果；未运行写 未运行 + 原因>
+tests: <验证命令 + 结果；未运行写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
 api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
 openFindings: <未关闭 finding/blocker/deferred-next-batch；没有写 无>
 next: <下一步应运行的 skill 或人工动作>

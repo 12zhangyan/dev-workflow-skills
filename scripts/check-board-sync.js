@@ -21,7 +21,8 @@ const CHECK_FILES = [
   'project-html/data/changes.js',
   'skills/dev-doc/assets/board/js/board.js',
   'skills/dev-doc/assets/board/build.js',
-  'skills/dev-doc/assets/board/board-add.js'
+  'skills/dev-doc/assets/board/board-add.js',
+  'skills/dev-doc/assets/board/data/changes.js'
 ];
 
 let failed = false;
@@ -51,6 +52,16 @@ for (const file of CHECK_FILES) {
 const boardJs = fs.readFileSync(path.join(ROOT, 'project-html/js/board.js'), 'utf8');
 const versionMatch = boardJs.match(/BOARD_VERSION\s*=\s*(\d+)/);
 if (!versionMatch) fail('x project-html/js/board.js is missing BOARD_VERSION');
+
+const projectData = fs.readFileSync(path.join(ROOT, 'project-html/data/changes.js'), 'utf8');
+const templateData = fs.readFileSync(path.join(ROOT, 'skills/dev-doc/assets/board/data/changes.js'), 'utf8');
+for (const marker of ['在此行上方追加变更日志', '在此行上方追加新记录']) {
+  if (!projectData.includes(marker)) fail(`x project-html/data/changes.js missing marker: ${marker}`);
+  if (!templateData.includes(marker)) fail(`x template data/changes.js missing marker: ${marker}`);
+}
+if (/^\s*service:\s*"/m.test(templateData) || /^\s*\{\s*date:\s*"/m.test(templateData)) {
+  fail('x template data/changes.js must stay empty; do not ship demo entries in the board template');
+}
 
 if (failed) process.exit(1);
 console.log(`ok board sync and syntax checks passed (${versionMatch ? `BOARD_VERSION = ${versionMatch[1]}` : 'BOARD_VERSION unknown'})`);

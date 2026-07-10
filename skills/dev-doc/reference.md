@@ -345,7 +345,7 @@ source: <用户原始需求 / 参考文档 / 代码线索>
 artifacts: docs/<日期>/<任务名>.md；docs/INDEX.md；project-html/data/changes.js；<如有 docs/apifox/<日期>/<任务名>.openapi.yaml；docs/apifox/INDEX.md>
 changed: 无（方案阶段未改业务代码）
 vcs: 未检查业务代码；文档和看板需纳入 VCS
-tests: 未运行（方案阶段）
+tests: 未运行（方案阶段；环境不满足时写 environment-blocked + 工具链版本）
 api: <无 / docs/apifox/<日期>/<任务名>.openapi.yaml；docs/apifox/INDEX.md>
 openFindings: <阻塞项/需求冲突/待确认；没有写 无>
 next: 交给 AI 或开发者按 docs/<日期>/<任务名>.md 实现；实现后进入 VCS Gate 和 Verification Gate

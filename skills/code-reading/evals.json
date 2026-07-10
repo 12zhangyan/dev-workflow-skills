@@ -20,6 +20,11 @@
       "id": 4,
       "prompt": "使用 code-reading skill。【Workflow Brief】stage: ReviewRepair source: docs/2026-07-09/quote-tag.md changed: src/main/java/com/acme/QuoteService.java tokenHint: 先读 Brief -> changed 文件",
       "expected_output": "应触发轻量交接模式；以 Brief 的 changed 文件为追踪起点、source 作方案对照，不重新全局搜索，再生成代码地图。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 code-reading skill 生成代码地图，并顺便判断 CR-1 是否已经修好",
+      "expected_output": "应触发 code-reading 但必须边界声明：代码地图只梳理调用链、状态和关键位置，不得关闭或判断 review finding；若要判断 CR-1 是否修好，应建议使用 review-check 或 review-repair 的验证结果。"
     }
   ]
 }

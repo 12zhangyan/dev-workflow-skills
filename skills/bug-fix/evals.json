@@ -20,6 +20,11 @@
       "id": 4,
       "prompt": "帮我把这个已经定位清楚的 NPE 直接改了：OrderService.java:88 customerId 判空",
       "expected_output": "bug-fix 面向记录现象/根因/修复边界，不直接改代码；若用户要直接修复应说明可用 review-repair，或按 bug-fix 文档由实现方修改后进入 VCS/验证。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 bug-fix skill 记录：支付回调偶发重复扣款，只有用户口述，没有日志、流水号、复现路径或代码定位",
+      "expected_output": "应触发 bug-fix；不能写确定根因或确定修复方案，只能输出材料不足/待分析和定位计划；把缺失的日志、流水号、幂等键、回调记录和相关代码入口列为 blocker 或待补充。"
     }
   ]
 }

@@ -132,7 +132,7 @@ source: <dev-doc / bug 文档 / review-repair Brief / 用户指定入口>
 artifacts: docs/code-reading/<日期>/<功能名>.md
 changed: <阅读中确认的关键源码/测试/配置/OpenAPI 文件>
 vcs: <git/svn status 摘要；未检查写原因>
-tests: <已知验证命令 + 结果；未提供写 未提供>
+tests: <已知验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
 api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
 openFindings: <代码地图发现的非阻塞待确认；没有写 无>
 next: 人工 Review / Submit Gate；如发现新风险则回到 review-check

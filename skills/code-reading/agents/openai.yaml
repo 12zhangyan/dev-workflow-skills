@@ -1,7 +1,7 @@
 interface:
   display_name: "Code Reading"
   short_description: "生成 Review 前的代码地图和调用链"
-  default_prompt: "Use code-reading skill to map code paths, call chains, and state transitions before review. Auto-select a unique high-confidence entry, record the basis, and ask only when candidates are ambiguous."
+  default_prompt: "Use code-reading skill to map code paths, call chains, and state transitions before review. Auto-select a unique high-confidence entry, record the basis, and ask only when candidates are ambiguous. Do not close findings or make review verdicts; route defect judgments to review-check or review-repair evidence."
 
 policy:
   allow_implicit_invocation: true

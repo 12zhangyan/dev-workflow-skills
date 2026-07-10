@@ -181,7 +181,14 @@ install-local.cmd claude cursor
 这个仓库没有传统 build。主要检查命令：
 
 ```bash
+node scripts/check-all.js
+node scripts/check-scripts.js
 node scripts/check-board-sync.js
+node scripts/check-agent-doc-sync.js
+node scripts/check-docs.js
+node scripts/check-skill-metadata.js
+node scripts/check-workflow-briefs.js
+node scripts/check-installers.js
 node scripts/check-interaction-policy-sync.js
 node scripts/check-evals.js
 node project-html/build.js
@@ -190,7 +197,13 @@ git diff --check
 
 维护规则：
 
+- 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
 - 改看板外壳时，同步 `project-html/` 和 `skills/dev-doc/assets/board/`。
+- 改仓库级 agent 指南时，先改 `AGENTS.md`，再同步 `CLAUDE.md`，并运行 `node scripts/check-agent-doc-sync.js`。
+- 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
+- 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
+- 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
+- 改安装脚本时，运行 `node scripts/check-installers.js`，确认三端目标和 Codex 去 BOM 逻辑仍在。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
