@@ -330,7 +330,7 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/biz-flow/<日期>/<业务名>.md
 3. 已有实现且需要审查：运行 `/review-fix docs/biz-flow/<日期>/<业务名>.md`，再分发 `/review-check <review-task路径>`。
 4. 需要开发理解调用链：运行 `/code-reading <入口类#方法>`。
 
-【Skill 反馈给 Codex】
+【Skill 维护反馈】
 - skill：biz-flow
 - 本次场景：<一句话描述入口形态，如接口/功能名/菜单/Job/MQ/回调>
 - 运行评价：<顺畅 / 有小问题 / 有阻塞>

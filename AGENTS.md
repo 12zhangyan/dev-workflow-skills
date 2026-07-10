@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What This Repo Is
 
-A collection of workflow skills for Java backend developers, targeting Claude Code, Cursor, and Codex. Skills are distributed via install scripts and land in user-level skill directories such as `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`. There is no build step; checks are `node scripts/check-board-sync.js` (board copy sync + JS syntax; `scripts/check-board-sync.sh` is the bash wrapper used by CI) and `node scripts/check-interaction-policy-sync.js` (shared interaction policy drift) — the "product" is the skill folders.
+A collection of workflow skills for Java backend developers, targeting Claude Code, Cursor, and Codex. Skills are distributed via install scripts and land in user-level skill directories such as `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`. There is no build step; checks are `node scripts/check-board-sync.js` (board copy sync + JS syntax; `scripts/check-board-sync.sh` is the bash wrapper used by CI), `node scripts/check-interaction-policy-sync.js` (shared interaction policy drift), and `node scripts/check-evals.js` (all skill eval files exist and parse) — the "product" is the skill folders.
 
 ## Skills
 

@@ -138,7 +138,7 @@ openFindings: <代码地图发现的非阻塞待确认；没有写 无>
 next: 人工 Review / Submit Gate；如发现新风险则回到 review-check
 tokenHint: 人工或下一位 AI 先读本 Brief -> 代码地图 -> changed 文件关键方法；不要把代码地图当作审查结论
 
-【Skill 反馈给 Codex】
+【Skill 维护反馈】
 - skill：code-reading
 - 本次场景：<一句话描述入口形态，如 dev-doc/类方法/自然语言描述>
 - 运行评价：<顺畅 / 有小问题 / 有阻塞>

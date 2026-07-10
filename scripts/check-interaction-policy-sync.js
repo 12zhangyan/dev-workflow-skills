@@ -22,7 +22,7 @@ if (!fs.existsSync(shared)) {
   fail('Missing shared interaction policy: skills/_shared/interaction-policy.md');
 } else {
   const text = fs.readFileSync(shared, 'utf8');
-  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', 'Skill 反馈块']) {
+  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', 'Skill 维护反馈块']) {
     if (!text.includes(needle)) fail(`Shared interaction policy missing required phrase: ${needle}`);
   }
 }
@@ -45,7 +45,8 @@ const feedbackReferences = [
   'code-reading/reference.md',
   'biz-flow/reference.md',
   'review-fix/reference.md',
-  'review-check/reference.md'
+  'review-check/reference.md',
+  'review-repair/reference.md'
 ];
 
 for (const rel of feedbackReferences) {
@@ -55,7 +56,7 @@ for (const rel of feedbackReferences) {
     continue;
   }
   const text = fs.readFileSync(file, 'utf8');
-  if (!text.includes('【Skill 反馈给 Codex】')) {
+  if (!text.includes('【Skill 维护反馈】')) {
     fail(`Reference output format missing skill feedback block: skills/${rel}`);
   }
 }

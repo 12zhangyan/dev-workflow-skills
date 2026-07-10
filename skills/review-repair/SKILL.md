@@ -197,7 +197,7 @@ mvn -pl <module> -am test
 - 修复前后 diff 范围摘要。
 - 是否建议二次 `review-check`。
 - 可复制回贴块：用于贴回 `review-fix`、提交给人工 reviewer 或记录到任务对话。
-- `【Skill 反馈给 Codex】` 反馈块。
+- `【Skill 维护反馈】` 反馈块。
 
 ## 禁止事项
 

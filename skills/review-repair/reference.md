@@ -120,7 +120,7 @@ VCS：<无未跟踪新增文件 / 需 git add / 需 svn add>
 二次 review-check：<建议 / 不需要，原因>
 ```
 
-【Skill 反馈给 Codex】
+【Skill 维护反馈】
 - skill：review-repair
 - 本次场景：<findings/fix-handoff/自然语言问题清单>
 - 运行评价：<顺畅 / 有小问题 / 有阻塞>

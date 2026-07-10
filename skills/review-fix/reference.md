@@ -365,7 +365,7 @@ tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 d
 否则请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
 等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
 
-【Skill 反馈给 Codex】
+【Skill 维护反馈】
 - skill：review-fix
 - 本次场景：<一句话描述输入材料，如 dev-doc/patch/上下文/findings>
 - 运行评价：<顺畅 / 有小问题 / 有阻塞>
@@ -404,7 +404,7 @@ tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -
 - 验证命令与结果：<命令 + 结果>
 - 是否需要二次 review-check：<是/否，原因>
 
-【Skill 反馈给 Codex】
+【Skill 维护反馈】
 - skill：review-fix
 - 本次场景：<一句话描述 findings 汇总和修复交接输入形态>
 - 运行评价：<顺畅 / 有小问题 / 有阻塞>
@@ -413,4 +413,3 @@ tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -
 - 证据：
   - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
-

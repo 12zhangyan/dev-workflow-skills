@@ -183,6 +183,7 @@ install-local.cmd claude cursor
 ```bash
 node scripts/check-board-sync.js
 node scripts/check-interaction-policy-sync.js
+node scripts/check-evals.js
 node project-html/build.js
 git diff --check
 ```
@@ -214,7 +215,7 @@ git diff --check
 - `examples.md`：示例输出。
 - `agents/openai.yaml`：Codex UI 展示名、短描述、默认提示。
 
-各文档/审查类 skill 的完成输出末尾会追加 `【Skill 反馈给 Codex】`。如果运行中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，复制这段反馈回来即可继续优化。
+各文档/审查类 skill 的完成输出末尾会追加 `【Skill 维护反馈】`。它写给维护这套 skill 的任一智能体；如果运行中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，复制这段反馈回来即可继续优化。
 
 ## 设计说明
 
