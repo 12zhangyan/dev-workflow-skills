@@ -120,6 +120,17 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 - 用户答"不知道"/"待定" → 记为 `待补充`，但不要继续追问同类非阻塞细节。
 必要信息足够后告知用户："信息足够，开始生成文档；未确认项会集中标注。"
 
+涉及接口时，对**每个接口**先分类，不能用“本任务涉及接口”笼统代替：
+
+| 分类 | 判定口径 | 文档与产物 |
+|------|----------|------------|
+| 新增接口 | 新 method/path | 进入 API 设计、OpenAPI、看板 `apis[]` |
+| 契约变更 | 修改 method/path、请求字段/类型/必填性、响应字段/类型、状态码/错误码结构、鉴权输入等调用方契约 | 进入 API 设计、OpenAPI、看板 `apis[]`，明确兼容影响 |
+| 行为变更 | method/path 和请求/响应契约不变，只收紧服务端校验、路由、过滤、状态判断或副作用 | 写入技术方案、接口影响分类、兼容性与测试；不重写该接口 OpenAPI，不登记到看板 `apis[]` |
+| 仅调用既有接口 | 调用方式和既有契约/行为均不修改 | 只写调用关系；不生成该接口 OpenAPI，不登记到看板 `apis[]` |
+
+用户说“原参数不动”时，先核对响应结构、状态码/错误码和鉴权输入是否也保持不变；只有这些契约面均不变，才能归为行为变更。一个任务同时包含原接口行为收紧和新接口时，OpenAPI 只包含新接口及真正发生契约变化的接口，禁止顺手全量重写原接口规范。
+
 ### Step 4：路径处理（跨平台）
 
 一条 bash 命令完成日期获取和目录创建：
@@ -164,14 +175,14 @@ fi
 - **开闭原则贯穿全文档**：方案优先扩展，必须修改的要在"最小影响分析"说明原因
 - **AI 执行口径必须写实**：在技术方案里明确前置条件、执行顺序、验收标准、禁止改动；不要只写"按方案实现"
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
-- **接口文档仅在接口有变动时生成**：仅当本次新增接口、或修改既有接口的参数/返回结构时，才保留「三、API 设计」与「十三、Apifox 接口规范」；只是调用已有接口且签名无变化 → 两节都删除，看板 `apis` 填 `[]`，不生成 Apifox/OpenAPI 文件
+- **接口文档仅由新增/契约变更触发**：仅当本次存在新增接口或契约变更时，才保留「三、API 设计」与「十三、Apifox 接口规范」。纯行为变更或仅调用既有接口不触发 OpenAPI；混合任务只把新增/契约变更接口写入两节和看板 `apis[]`，原接口行为收紧留在技术方案、接口影响分类、兼容性和测试中，不全量重写原接口规范
 - **Apifox/OpenAPI 独立产物**：满足上一条时，必须把可导入 Apifox 的 OpenAPI 3.0 YAML 单独生成到 `docs/apifox/<日期>/<任务名>.openapi.yaml`，并更新 `docs/apifox/INDEX.md`；md 的「十三、Apifox 接口规范」只放文件位置、导入说明、接口索引和维护规则，不再内嵌完整 YAML
 - **OpenAPI 填写口径**：根据用户提供的接口信息填入 `paths` / `components.schemas`；未确认字段用 `# 待补充` 注释标记。后续接口变更优先更新同一个 `apiSpecPath` 文件，不要只改 md 接口表或另起新 YAML 文件
 - **数据库门禁**：数据库操作始终只读。新增库/表/字段/索引/约束等结构变化属于高风险未知，必须先取得用户明确同意；文档只能生成“DBA 变更申请草案 + 建议 DDL/回滚方案 + 影响评估 + 只读验证 SQL”，不得执行 DDL、数据修复或把“在 test/prod 执行 SQL”写成 AI Todo。未获同意时记为 blocker，不进入 Implementation Gate
 
 ### Step 5.1：生成 Apifox/OpenAPI 文件与索引（仅接口变更时）
 
-当 Step 5 判定存在新增接口或接口签名变更时执行；无接口变更时跳过本步。
+当 Step 5 判定存在新增接口或契约变更时执行；只有行为变更或仅调用既有接口时跳过本步。
 
 ```bash
 mkdir -p "docs/apifox/$d"
@@ -182,7 +193,7 @@ mkdir -p "docs/apifox/$d"
 2. 创建或更新 `apiSpecPath`，写入可导入 Apifox 的 OpenAPI 3.0 YAML。
 3. 创建或更新 `docs/apifox/INDEX.md`，按 `源 md + OpenAPI 文件` 作为去重键；命中既有行就更新该行，不重复追加。
 4. 回填 md「十三、Apifox 接口规范」：只写文件位置、导入方式、接口索引和维护规则，不内嵌完整 YAML。
-5. 回填看板 entry：写入 `apiSpecPath`、`apiIndexPath`，并在 `apis[]` 中登记所有新增或签名变更接口。
+5. 回填看板 entry：写入 `apiSpecPath`、`apiIndexPath`，并在 `apis[]` 中只登记新增或契约变更接口；行为变更接口不得混入。
 
 产物规则：
 - OpenAPI 文件路径：`docs/apifox/<日期>/<任务名>.openapi.yaml`
@@ -235,7 +246,7 @@ project-html/
 | `goals` | md `### 目标` 的条目 → string[] |
 | `scopeIn` / `scopeOut` | md 范围条目 → string[] |
 | `flowchart` | md 流程图的 mermaid 代码（不含 ` ``` ` 标记） |
-| `apis` | md `## 三、API 设计` 表格 → `{method, url, operationId, desc, request?, response?, specPath?}[]`；**仅登记新增或参数有变动的接口**，无接口变更填 `[]`；有 `apiSpecPath` 时必须非空 |
+| `apis` | md `## 三、API 设计` 表格 → `{method, url, operationId, desc, request?, response?, specPath?}[]`；**仅登记新增或契约变更接口**，纯行为变更/仅调用不登记；有 `apiSpecPath` 时必须非空 |
 | `todos` | md `## 十一、实现 Todo` 条目 → string[] |
 
 **叙述字段（不要从 md 截取片段，基于已收集的信息面向人类重新撰写）：**
@@ -399,8 +410,9 @@ node project-html/build.js
 - [ ] 代码评审关注点已填写
 
 ### 生成后检查
-- [ ] 如存在新增接口或接口签名变更，已生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，已更新 `docs/apifox/INDEX.md`，且轻量校验通过
-- [ ] 如不存在接口变更，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
+- [ ] 已逐接口区分新增 / 契约变更 / 行为变更 / 仅调用；“原参数不动”已继续核对响应、状态码/错误码和鉴权输入
+- [ ] 如存在新增接口或契约变更，OpenAPI 与看板 `apis[]` 只包含这些接口，未全量重写行为收紧的原接口
+- [ ] 如只有行为变更或仅调用既有接口，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] Codex / Cursor / Claude Code 执行提示已按当前宿主能力生成，未混用不可用命令
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
@@ -427,6 +439,7 @@ node project-html/build.js
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
 | 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
 | Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
+| 原接口只收紧行为却被全量写入 OpenAPI | 没有逐接口区分行为变更与契约变更 | 保留原接口契约不动，只在方案/兼容性/测试记录行为收紧；OpenAPI 和 `apis[]` 仅收新增或契约变更接口 |
 | 接口索引没有接口但有 YAML 链接 | 生成了 `apiSpecPath`，但看板 `apis[]` 漏填 | 回填 `apis[]`，每条接口至少包含 `method`、`url`、`operationId`、`desc` |
 | Apifox 导入失败 | YAML 结构不合法或缺少 `paths` / `operationId` | 按 Step 5.1 轻量校验修正后再输出完成信息 |
 | 外壳 cp 失败 | skill 不在默认安装路径（`~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills`） | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |

@@ -91,6 +91,12 @@
       "prompt": "运行 dev-doc 时宿主看起来有多个提问工具：AskQuestion 调用后提示当前模式不可用，另一个结构化单选工具已真实暴露；如果后者也失败，就只能发普通聊天选项",
       "expected_output": "应按当前会话实际能力选择工具，不按名字盲试。AskQuestion 失败后同一问题不得重复调用；另一个已暴露且参数兼容的结构化工具最多切换尝试一次。所有候选不可用时立即降级为普通聊天单选并等待用户回复；不得自动采用默认项，也不得让流程卡在工具重试。",
       "tags": ["interaction", "multiple_question_tools", "tool_failure_fallback", "interactive_chat"]
+    },
+    {
+      "id": 17,
+      "prompt": "使用 dev-doc 规划 APP 收货后端拆成 BTH/SGL：原收货接口只收紧状态校验，用户强调原参数、响应结构和错误码都不动；另外新增一个 SGL 收货接口",
+      "expected_output": "应逐接口分类：原收货接口属于行为变更，写入技术方案、接口影响分类、兼容性和测试，但不进入 OpenAPI/看板 apis[]，不得全量重写原接口规范；新增 SGL 接口进入 API 设计、OpenAPI 和看板 apis[]。如果响应、状态码/错误码或鉴权输入实际变化，则应升级为契约变更并说明兼容影响。",
+      "tags": ["api_change_classification", "behavior_change", "contract_change", "mixed_api_scope"]
     }
   ]
 }

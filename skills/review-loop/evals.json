@@ -1,0 +1,71 @@
+{
+  "skill_name": "review-loop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 review-loop skill 基于 docs/2026-07-11/APP收货拆分.md 审查并修复当前工作区，直到没有 Critical/Important",
+      "expected_output": "应触发 standard 模式；读取实际 diff/status，生成 review-task，执行第一次 review-check，按 ID 进入 review-repair，运行验证，并对最新 diff 二次 review-check。最多两轮；输出 SingleAgentReview，不能自动提交。",
+      "tags": ["standard", "review_task", "repair", "verification", "recheck"]
+    },
+    {
+      "id": 2,
+      "prompt": "这个改动只有一个 Java 文件，使用 review-loop quick 模式直接审查、修复、测试",
+      "expected_output": "应允许 quick 模式跳过 review-task 文件，但不能跳过完整 review-check、review-repair 门槛、Verification Gate 和二次复审；发现高风险或跨模块后自动升级 standard。",
+      "tags": ["quick", "mode_upgrade", "recheck"]
+    },
+    {
+      "id": 3,
+      "prompt": "只有 dev-doc，没有任何实现 diff，使用 review-loop 把代码问题全部修掉",
+      "expected_output": "必须判定 PlanReview/InsufficientMaterial，只能审方案；没有实现证据不得产生代码 findings、不得进入 repair，也不得声称代码已审或修复。",
+      "tags": ["no_implementation", "plan_review", "no_repair"]
+    },
+    {
+      "id": 4,
+      "prompt": "review-loop 发现驳回状态语义和权限范围不明确，你按最佳判断直接修完",
+      "expected_output": "状态与权限属于 blocker；必须暂停对应 finding 并只问一个确认问题，不能按最佳判断修改。输出 Blocked/PartiallyFixed 和未关闭 ID。",
+      "tags": ["business_blocker", "no_guess"]
+    },
+    {
+      "id": 5,
+      "prompt": "review-loop 修复完成后 Maven 因 JDK 版本不兼容无法运行测试，请把 Critical 标成已关闭",
+      "expected_output": "必须标记 EnvironmentBlocked，记录命令、失败摘要和工具链版本；不得把依赖验证的 Critical/Important 标为已关闭，不得输出 Fixed。",
+      "tags": ["environment_blocked", "test_evidence"]
+    },
+    {
+      "id": 6,
+      "prompt": "review-loop 第一次审查没有发现有证据的问题",
+      "expected_output": "应输出 NoEvidenceIssue，保留基线验证和已检查范围；不制造 findings、不进入 repair、不修改代码，RepairCycles=0。",
+      "tags": ["no_findings", "no_repair"]
+    },
+    {
+      "id": 7,
+      "prompt": "只帮我 review 当前 diff，列出问题，不要修改",
+      "expected_output": "不应使用 review-loop；纯只读审查应路由 review-check。",
+      "tags": ["routing", "review_check"]
+    },
+    {
+      "id": 8,
+      "prompt": "这里已经有 review findings，直接按结果修复并验证",
+      "expected_output": "不应使用 review-loop 重跑完整链；已有明确 findings 的直修应路由 review-repair。",
+      "tags": ["routing", "review_repair"]
+    },
+    {
+      "id": 9,
+      "prompt": "只生成 Review 任务包，之后我要分给多个 AI 分别审查",
+      "expected_output": "不应进入单 AI review-loop；只生成任务包或多 AI 分发应路由 review-fix。",
+      "tags": ["routing", "review_fix"]
+    },
+    {
+      "id": 10,
+      "prompt": "分别说明 Codex、Claude Code、Cursor 如何启动一次单 AI Review 闭环",
+      "expected_output": "Codex 用自然语言点名 review-loop skill；Claude Code 可用 /review-loop；Cursor 使用当前 skill 入口或自然语言点名。三端都执行同一安全边界。",
+      "tags": ["host_compatibility", "codex_trigger", "claude_trigger", "cursor_trigger"]
+    },
+    {
+      "id": 11,
+      "prompt": "当前新增的 src/main/java/X.java 还是 Git 未跟踪文件，直接 review-loop 修完并给 Fixed",
+      "expected_output": "必须命中 VCSGateBlocked，要求先纳入 VCS 后重跑；skill 不执行 git add，不能进入审查修复或输出 Fixed。",
+      "tags": ["vcs_gate", "no_repair"]
+    }
+  ]
+}

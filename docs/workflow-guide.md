@@ -13,9 +13,12 @@
 | 生成 Review 任务包 | `/review-fix docs/.../任务.md` | `使用 review-fix skill 基于 docs/.../任务.md 生成 Review 任务包` |
 | 执行只读审查 | `/review-check docs/review-fix/...-review-task.md` | `使用 review-check skill 审查 docs/review-fix/...-review-task.md` |
 | Review 后直接修复 | `/review-repair <findings或fix-handoff路径>` | `使用 review-repair skill 根据这些 findings 直接修复` |
+| 单 AI 一键 Review 闭环 | `/review-loop docs/.../任务.md` | `使用 review-loop skill 基于 docs/.../任务.md 审查、修复、验证并复审当前工作区` |
 | 生成代码地图 | `/code-reading docs/.../任务.md` | `使用 code-reading skill 基于 docs/.../任务.md 生成代码地图` |
 
 Codex 不要输入 `/dev-doc` 或 `$dev-doc`。Codex 安装 skill 不等于注册同名斜杠命令，也不保证进入 `$` 技能选择器。
+
+Cursor 使用当前 skill 入口或自然语言点名；例如：`使用 review-loop skill 基于 docs/.../任务.md 审查、修复、验证并复审当前工作区`。若宿主没有结构化提问工具，按共享交互策略降级为聊天单选，不依赖固定工具名。
 
 ## 一句话主链路
 
@@ -32,6 +35,14 @@ dev-doc / bug-fix / biz-flow
 → 提交
 ```
 
+单 AI 可把 Review Gate 简化为：
+
+```text
+review-loop standard：review-fix 任务包 → review-check → review-repair → 验证 → 二次 review-check
+```
+
+小改动可显式使用 quick，跳过任务包文件但不跳过审查、修复门槛、验证和二次复审。`review-loop` 必须标记 `SingleAgentReview`，不能冒充多 AI 交叉审查。
+
 ## 阶段门禁
 
 | 门禁 | 必须看到的证据 | 通过后进入 |
@@ -40,7 +51,7 @@ dev-doc / bug-fix / biz-flow
 | Implementation Gate | Todo 对照表：已完成项、变更文件、未完成项、执行偏差 | VCS 检查 |
 | VCS Gate | `git status --short` 或 `svn status`；新增源码、测试、配置、OpenAPI YAML、文档已 `add` | 验证 |
 | Verification Gate | 有针对性的测试/构建/接口/数据核对命令和结果；失败已修复并重跑 | Review |
-| Review Gate | `review-fix` 任务包、`review-check` findings、accepted findings 处理状态；直修场景包含 `review-repair` 修复和验证结果 | 代码地图 |
+| Review Gate | 拆分链的 review task/findings/repair 状态，或 `review-loop` 的 SingleAgentReview 闭环结果 | 代码地图 |
 | Understanding Gate | `code-reading` 代码地图；人工 review 关注点 | 提交前检查 |
 | Submit Gate | 最终 status/diff/test/review/doc/sensitive 检查通过 | `git commit` / `svn commit` |
 
@@ -223,6 +234,15 @@ Codex: 使用 review-repair skill 根据这些 findings 直接修复
 
 `review-repair` 只处理有证据、能定位、能验证的 accepted findings；涉及业务语义、权限、状态流转、接口契约、数据库结构或数据修复的问题会停下来确认，不会猜着改。
 
+### 单 AI 编排：review-loop
+
+```text
+Claude Code: /review-loop docs/YYYY-MM-DD/<task>.md
+Codex: 使用 review-loop skill 基于 docs/YYYY-MM-DD/<task>.md 审查、修复、验证并复审当前工作区
+```
+
+默认 standard 会生成 review-task；quick 只适合小范围单模块改动。只要修改过代码就必须验证并二次 review-check，最多自动修复两轮。没有实际 diff 时只能输出 PlanReview；业务/API/权限/DB blocker、验证失败、环境阻塞或未关闭 Critical/Important 都会停止。skill 不执行 add、commit、push 或数据库写入。
+
 ### 7. 修复后复验
 
 按修复交接或 `review-repair` 直修执行后，回填：
@@ -289,5 +309,5 @@ svn commit -m "[任务类型] [任务名称]：简要说明"
 ## 速记
 
 ```text
-文档立项 → 执行回填 → add 新文件 → 跑验证 → review-fix → review-check → review-fix 修复交接 / review-repair 直修 → code-reading → 人工签收 → 提交
+文档立项 → 执行回填 → add 新文件 → 跑验证 →（拆分链 review-fix/review-check/review-repair，或单 AI review-loop）→ code-reading → 人工签收 → 提交
 ```

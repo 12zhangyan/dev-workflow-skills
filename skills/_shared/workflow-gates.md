@@ -1,6 +1,6 @@
 ﻿# 开发工作流门禁协议
 
-本协议供 `dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`review-repair`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
+本协议供 `dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`review-repair`、`review-loop`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
 
 ## 主链路
 
@@ -10,7 +10,7 @@
 → Implementation Gate：AI 或开发者按文档实现，并回填执行结果
 → VCS Gate：确认新增源码、测试、配置、OpenAPI、文档已进入 Git/SVN 可见范围
 → Verification Gate：运行有针对性的构建/测试/接口/数据核对
-→ Review Gate：review-fix 生成任务包，review-check 输出 findings，review-fix 汇总修复或 review-repair 直接修复
+→ Review Gate：完整拆分链为 review-fix → review-check → review-fix/review-repair；单 AI 可用 review-loop 编排审查、修复、验证和二次复审
 → Understanding Gate：code-reading 生成代码地图，辅助人工 review
 → Submit Gate：人工签收，最终 status/diff/test/review/document 检查后提交
 ```
@@ -23,7 +23,7 @@
 | Implementation Gate | Plan Gate 无阻塞项 | 执行结果对照表：Todo 完成情况、变更文件、未完成项、验证命令 | Todo 无法执行时回到文档补充，不静默扩大范围 |
 | VCS Gate | 已有本地改动 | `git status --short` 或 `svn status` 摘要；新增源码/测试/配置/OpenAPI/docs 已纳入 VCS | 先补 `git add` / `svn add`，否则不进入 Review |
 | Verification Gate | VCS Gate 已确认范围 | 测试/构建/接口/数据核对命令与结果；失败项与修复状态 | 验证失败先修复并重跑，不进入 Review |
-| Review Gate | 有 dev-doc/bug 文档和实际 diff/patch/status | review task、review-check findings、review-fix 修复交接或 review-repair 修复结果、accepted findings 处理状态 | 没有实际实现证据时不生成“已审代码”结论 |
+| Review Gate | 有 dev-doc/bug 文档和实际 diff/patch/status | review task、review-check findings、review-fix/review-repair 结果，或 review-loop 的 SingleAgentReview 闭环结果；accepted findings 处理状态 | 没有实际实现证据时不生成“已审代码”结论 |
 | Understanding Gate | Review 修复和验证已完成 | code-reading 代码地图、关键调用链/状态/事务/风险位置 | 材料不足时只输出阅读边界，不补写问题结论 |
 | Submit Gate | 人工 review 通过 | 最终 status/diff/test/review/doc 检查清单与提交信息 | 任何 Critical/Important 未关闭、敏感信息或漏 add，停止提交 |
 
@@ -70,4 +70,5 @@
 - Review 前必须有实际代码证据：diff、patch、VCS status 或明确的变更文件。只有需求文档时只能审方案，不能宣称审过实现。
 - 新增测试文件、OpenAPI YAML、配置、SQL/XML、前端资源、本地生成文档都属于提交完整性检查范围。
 - 修复交接或 review-repair 直修后需要回填每条 accepted finding 的处理结果、验证结果和未采纳原因；Critical / Important 未关闭不得进入 Submit Gate。
+- review-loop 只代表单 AI 编排，必须标记 `SingleAgentReview`；最多自动修复两轮，不得冒充多 AI 独立审查或无限循环。
 - Codex 使用自然语言触发 skill；Claude Code 可以使用斜杠命令。文档中同时给两种写法时，要明确区分。

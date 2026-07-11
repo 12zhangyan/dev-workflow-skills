@@ -1,0 +1,8 @@
+interface:
+  display_name: "Review Loop"
+  short_description: "单 AI 一键完成审查、修复、验证与复审"
+  default_prompt: "Use review-loop to orchestrate a single-agent review-fix evidence package, review-check findings pass, review-repair implementation, targeted verification, and a second review of the latest diff. Stop on missing implementation evidence, business/API/permission/DB blockers, failed verification, or unresolved Critical/Important findings. Never present SingleAgentReview as multi-agent review and never commit or push automatically."
+
+policy:
+  allow_implicit_invocation: true
+

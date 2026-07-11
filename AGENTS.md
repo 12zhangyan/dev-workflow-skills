@@ -15,6 +15,7 @@ A collection of workflow skills for Java backend developers, targeting Claude Co
 | `code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
 | `review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
 | `review-repair` | `skills/review-repair/SKILL.md` | `reference.md` (direct repair workflow + output format), `examples.md` |
+| `review-loop` | `skills/review-loop/SKILL.md` | `reference.md` (single-agent orchestration + output format), `examples.md` |
 | `biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
 | `review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
 
@@ -87,7 +88,7 @@ Two copies must stay in sync: `project-html/` (the live demo / a real project's 
 ## Workflow the Skills Support
 
 ```
-dev-doc → AI executes → svn add → mvn test → review-fix review task → review-check multi-AI findings → review-fix fix handoff or review-repair direct fix → code-reading → human review → svn commit
+dev-doc → AI executes → svn add → mvn test → review-fix/review-check/review-repair split chain or review-loop single-agent loop → code-reading → human review → svn commit
 ```
 
 - `dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
@@ -95,12 +96,13 @@ dev-doc → AI executes → svn add → mvn test → review-fix review task → 
 - `code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
 - `review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
 - `review-repair` directly fixes accepted review findings in the working copy, preserves unrelated local changes, runs targeted verification, and reports fixed/blocked/rejected/deferred status; it does not create review tasks or perform read-only review
+- `review-loop` orchestrates standard (`review-fix → review-check → review-repair → verify → recheck`) or explicit quick mode in one AI run; it labels results `SingleAgentReview`, stops after at most two repair cycles, and never auto-commits
 - `biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
 - `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
-- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review skill should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended chain is `dev-doc / bug-fix / biz-flow -> implementation result -> VCS gate -> verification gate -> review-fix -> review-check -> review-fix fix handoff or review-repair direct fix -> code-reading -> human review -> submit`.
+- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review skill should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use the split chain `review-fix -> review-check -> review-fix/review-repair` or `review-loop` for a single-agent closed loop before code-reading and human review.
 - Lightweight handoff policy lives in `skills/_shared/workflow-brief.md`: every skill that produces a next action should output a copyable `Workflow Brief` with source/artifact/changed/test/finding pointers so the next AI reads indexed evidence instead of pasted full documents.
 - Chain map lives in `skills/_shared/workflow-chain.md`: the single source of truth for "after skill X, run which skill next + copyable command" and finding-ID traceability (review-check emits CR/IM/MI IDs, review-fix preserves them on merge, review-repair backfills status by the same ID). Skills point here via workflow-gates.md instead of each re-listing the chain.
 - Closed-choice questions are not automatically asked: infer first, and use AskUserQuestion only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Free-text questions stay conversational.
