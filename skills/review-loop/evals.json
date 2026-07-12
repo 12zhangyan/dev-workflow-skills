@@ -66,6 +66,12 @@
       "prompt": "当前新增的 src/main/java/X.java 还是 Git 未跟踪文件，直接 review-loop 修完并给 Fixed",
       "expected_output": "必须命中 VCSGateBlocked，要求先纳入 VCS 后重跑；skill 不执行 git add，不能进入审查修复或输出 Fixed。",
       "tags": ["vcs_gate", "no_repair"]
+    },
+    {
+      "id": 12,
+      "prompt": "在 monorepo 根运行 review-loop：根目录是 Git，git status 把整个 hlcloud-eam 显示为 ??；实际业务文件位于 hlcloud-eam 子目录，那里有 .svn，svn status 显示新增测试目录为 ?",
+      "expected_output": "必须按变更文件向上寻找最近控制标记，将 hlcloud-eam 内文件归属到内层 SVN；外层 Git 的 ?? hlcloud-eam/ 只作为嵌套仓库提示，不能据此判定业务文件门禁。真实 VCSGate 应由内层 svn status 的 ? 测试目录触发，并输出对应 SVN 工作副本证据。",
+      "tags": ["vcs_gate", "nested_vcs", "monorepo", "svn_owner"]
     }
   ]
 }

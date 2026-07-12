@@ -97,6 +97,12 @@
       "prompt": "使用 dev-doc 规划 APP 收货后端拆成 BTH/SGL：原收货接口只收紧状态校验，用户强调原参数、响应结构和错误码都不动；另外新增一个 SGL 收货接口",
       "expected_output": "应逐接口分类：原收货接口属于行为变更，写入技术方案、接口影响分类、兼容性和测试，但不进入 OpenAPI/看板 apis[]，不得全量重写原接口规范；新增 SGL 接口进入 API 设计、OpenAPI 和看板 apis[]。如果响应、状态码/错误码或鉴权输入实际变化，则应升级为契约变更并说明兼容影响。",
       "tags": ["api_change_classification", "behavior_change", "contract_change", "mixed_api_scope"]
+    },
+    {
+      "id": 18,
+      "prompt": "基于 docs/2026-07-01/既有收货方案.md 做增量修订：来源字段现在可能多值，后端只取第一个值，其他范围不变",
+      "expected_output": "应先确认旧 md 可读并启用 IncrementalRevision；新文档自动写前置文档相对链接，只描述多值取首的增量边界、最小改动、兼容性、Todo、验证和评审点，不重复完整旧方案。核对 method/path、请求、响应、状态码/错误码和鉴权输入均不变后归为行为变更，删除 API/OpenAPI 章节且看板 apis[] 为空；若发现任一契约变化则升级分类并恢复对应章节。",
+      "tags": ["incremental_revision", "existing_doc", "behavior_change", "skip_api_sections"]
     }
   ]
 }

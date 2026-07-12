@@ -40,6 +40,8 @@
 > 状态：草稿
 > 关联分支/路径：<Git: branch 名 | SVN: 路径如 trunk / branches/feature-xxx>
 > 关联版本：<Git: commit hash | SVN: revision 号如 r1234 | 暂无>
+> 前置文档：<无 | [既有 dev-doc](仓库相对路径)>
+> 文档模式：<Standard | IncrementalRevision>
 
 ---
 
@@ -47,6 +49,8 @@
 
 ### 背景
 [需求来源、触发原因、解决的问题]
+
+> `IncrementalRevision`：这里只写相对前置文档的增量原因与边界，未变化背景由前置文档承接。
 
 ### 目标
 - [ ] [明确的目标 1]

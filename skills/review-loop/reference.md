@@ -55,7 +55,7 @@ task: <任务名>
 source: <dev-doc / review-task / 当前 diff>
 artifacts: <review-task；本次审查输出；无文件写入则写 无>
 changed: <实际修改的源码/测试/配置；没有写 无>
-vcs: <git/svn status 摘要；未跟踪文件状态>
+vcs: <按 VCS_OWNER 分组的 git/svn 根、status 摘要与未跟踪文件状态；嵌套工作副本说明>
 tests: <验证命令 + 结果；环境阻塞写 environment-blocked + 工具链版本>
 api: <OpenAPI 路径；无契约变更写 无>
 openFindings: <未关闭 ID；没有写 无>

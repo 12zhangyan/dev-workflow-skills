@@ -37,6 +37,9 @@ const devDocRequiredTags = new Set([
   'behavior_change',
   'contract_change',
   'mixed_api_scope',
+  'incremental_revision',
+  'existing_doc',
+  'skip_api_sections',
 ]);
 const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
@@ -54,6 +57,8 @@ const reviewLoopRequiredTags = new Set([
   'claude_trigger',
   'cursor_trigger',
   'vcs_gate',
+  'nested_vcs',
+  'monorepo',
 ]);
 const reviewLoopSeenTags = new Set();
 
@@ -145,8 +150,8 @@ const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
 const devDocReferencePath = path.join(skillsDir, 'dev-doc', 'reference.md');
 const devDocExamplesPath = path.join(skillsDir, 'dev-doc', 'examples.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
-  [devDocReferencePath, ['接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', '轻量结构校验通过，Apifox 实际导入未验证']],
+  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', '前置文档', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
+  [devDocReferencePath, ['文档模式：<Standard | IncrementalRevision>', '前置文档：<无 | [既有 dev-doc]', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', '轻量结构校验通过，Apifox 实际导入未验证']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
@@ -158,7 +163,7 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCSGateBlocked', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '不自动 commit、push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'RepairCycles:', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
