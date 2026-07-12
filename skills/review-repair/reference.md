@@ -76,12 +76,13 @@ task: <任务名或 findings 来源>
 source: <review-check findings / fix-handoff / Workflow Brief / 用户问题清单>
 artifacts: 本次直接修改代码；如生成测试或文档列出路径
 changed: <本次修改的源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；新增文件是否已纳入 VCS>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无>
 tests: <验证命令 + 结果；未运行写原因；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <未关闭/blocked/rejected/deferred-next-batch ID；没有写 无>
 next: <二次 review-check / code-reading / 人工 review / 继续下一批 review-repair>
-tokenHint: 下一位 AI 先读本 Brief -> changed 文件 -> 未关闭 finding 证据；不要重复读取已关闭 finding 的全文
+nextCommand: <无未关闭 CR/IM：使用 code-reading skill 基于 source 和当前实现生成代码地图；仍有 finding：使用 review-repair skill 继续处理 openFindings>
+tokenHint: 下一位 AI 先读本 Brief -> changed 文件 -> 未关闭 finding 证据；不要重复读取已关闭 finding 的全文；首轮最多 5 个文件
 
 处理结果：
 | ID | 来源 | 状态 | 文件/位置 | 处理说明 | 验证 |

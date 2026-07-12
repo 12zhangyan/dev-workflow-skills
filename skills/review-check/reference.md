@@ -46,12 +46,13 @@ task: <任务名或审查对象>
 source: <review-task/dev-doc/patch/diff 路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要，如 CR-1, IM-2；没有写 无>
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-tokenHint: 下一位 AI 先读本 Brief -> finding 指向文件 -> review-task 中证据包；只在冲突时扩展读取全文
+nextCommand: 使用 review-repair skill 根据 openFindings 直接修复并验证
+tokenHint: 下一位 AI 先读本 Brief -> finding 指向文件 -> review-task 中证据包；只在冲突时扩展读取全文；首轮最多 5 个文件
 
 Critical:
 CR-1. Severity: Critical
@@ -116,12 +117,13 @@ task: <任务名或审查对象>
 source: <review-task/dev-doc/patch/diff 路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: 无
 next: 可进入 code-reading / 人工 review；若后续改动扩大则重新 review-check
-tokenHint: 下一位 AI 先读本 Brief -> review-task -> changed 文件；无须重复粘贴 findings
+nextCommand: 使用 code-reading skill 基于 source 和当前实现生成代码地图
+tokenHint: 下一位 AI 先读本 Brief -> review-task -> changed 文件；无须重复粘贴 findings；首轮最多 5 个文件
 
 未发现有证据的阻塞问题。
 
@@ -160,12 +162,13 @@ task: <任务名或审查对象>
 source: <已提供材料路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <已读取文件；未知写 未确认>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无 / 未确认>
+api: spec=<OpenAPI YAML 路径或 无/未确认>; index=<API 索引路径或 无/未确认>; operationIds=<新增/变更接口 ID 或 无/未确认>
 openFindings: 无（材料不足，未下结论）；阻塞：缺失材料待补齐
 next: 补齐缺失材料后重新 review-check；不要进入 review-repair
-tokenHint: 下一位 AI 先读本 Brief -> 缺失材料清单 -> 补齐后的 review-task，再重新审查
+nextCommand: 补齐缺失材料后，使用 review-check skill 基于 source 重新执行只读审查
+tokenHint: 下一位 AI 先读本 Brief -> 缺失材料清单 -> 补齐后的 review-task，再重新审查；首轮最多 5 个文件
 
 材料不足，无法对以下范围下结论：
 - <范围 1，如状态流转正确性>

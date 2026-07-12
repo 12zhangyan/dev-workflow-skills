@@ -23,12 +23,13 @@ task: sms-login 短信登录
 source: docs/review-fix/2026-07-02/sms-login-review-task.md
 artifacts: 本次只读审查输出；无文件写入
 changed: SmsLoginService.java, AuthController.java, SmsLoginRequest.java
-vcs: git，工作区有上述 3 文件改动
-tests: 未提供
-api: 无
+vcs: owner=Git 仓库根; tracked=上述 3 个修改文件; untracked=无
+tests: 未提供；环境阻塞时写 environment-blocked + 工具链版本
+api: spec=无; index=无; operationIds=无
 openFindings: CR-1
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-tokenHint: 下一位 AI 先读本 Brief -> SmsLoginService.sendCode() -> review-task 证据包
+nextCommand: 使用 review-repair skill 根据 CR-1 直接修复并验证
+tokenHint: 下一位 AI 先读本 Brief -> SmsLoginService.sendCode() -> review-task 证据包；首轮最多 5 个文件
 
 Critical:
 CR-1. Severity: Critical
@@ -76,12 +77,13 @@ task: app-chat SSE 会话
 source: docs/review-fix/2026-07-02/app-chat-review-task.md
 artifacts: 本次只读审查输出；无文件写入
 changed: AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
-vcs: git，工作区含上述改动
-tests: 未提供
-api: 无
+vcs: owner=Git 仓库根; tracked=上述 4 个修改文件; untracked=无
+tests: 未提供；环境阻塞时写 environment-blocked + 工具链版本
+api: spec=无; index=无; operationIds=无
 openFindings: IM-1
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-tokenHint: 下一位 AI 先读本 Brief -> AppChatView.vue 的 error 事件处理 -> review-task 证据包
+nextCommand: 使用 review-repair skill 根据 IM-1 直接修复并验证
+tokenHint: 下一位 AI 先读本 Brief -> AppChatView.vue 的 error 事件处理 -> review-task 证据包；首轮最多 5 个文件
 
 Important:
 IM-1. Severity: Important
@@ -95,4 +97,3 @@ IM-1. Severity: Important
 Notes:
 - 已检查 EventSource 不支持自定义 Header 的限制，使用一次性 sseToken 是合理方案。
 ```
-

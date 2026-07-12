@@ -374,12 +374,13 @@ task: <任务名>
 source: <用户原始需求 / 参考文档 / 代码线索>
 artifacts: <只列真实生成并检查过的路径；没有写 无>
 changed: 无（方案阶段未改业务代码）
-vcs: 未检查业务代码；文档和看板需纳入 VCS
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管文件>; untracked=<开发文档、OpenAPI、看板/索引待纳管或 无>
 tests: 未运行（方案阶段；环境不满足时写 environment-blocked + 工具链版本）
-api: <无 / docs/apifox/<日期>/<任务名>.openapi.yaml；docs/apifox/INDEX.md>
+api: spec=<docs/apifox/<日期>/<任务名>.openapi.yaml 或 无>; index=<docs/apifox/INDEX.md 或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <阻塞项/需求冲突/待确认；没有写 无>
 next: <Passed：交给 AI/开发者实现并进入 VCS/Verification Gate；Blocked：回答 blocker 后重新运行；EnvironmentBlocked：补齐环境后生成缺失派生产物>
-tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技术方案、变更清单、Todo、验收标准 -> 只读取相关源码
+nextCommand: <Passed：读取 docs/<日期>/<任务名>.md 按 Todo 实现并执行验证；Blocked：补充 blocker 答案后重新运行 dev-doc skill>
+tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技术方案、变更清单、Todo、验收标准 -> 只读取相关源码；首轮最多 5 个文件
 
 📌 关键决策：
 1. <一句话>

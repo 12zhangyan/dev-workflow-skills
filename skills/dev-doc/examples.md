@@ -268,12 +268,13 @@ task: 用户登录优化
 source: 用户明确范围；analytics/login-funnel-2026-05.md；AuthController.login()
 artifacts: docs/2026-05-31/用户登录优化.md；docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md；project-html/data/changes.js
 changed: 无（方案阶段未改业务代码）
-vcs: 文档、OpenAPI 和看板待纳入 VCS
-tests: OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）
-api: docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md
+vcs: owner=Git 仓库根; tracked=已有业务代码; untracked=开发文档、OpenAPI、看板和索引待纳管
+tests: OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）；环境阻塞时写 environment-blocked + 工具链版本
+api: spec=docs/apifox/2026-05-31/用户登录优化.openapi.yaml; index=docs/apifox/INDEX.md; operationIds=login
 openFindings: 无；DBA 审批与授权执行属于 Implementation Gate 前置依赖
 next: DBA 审批完成后，交给 AI/开发者按文档实现并进入 VCS/Verification Gate
-tokenHint: 下一位 AI 先读本 Brief -> 开发文档中的判断依据、技术方案、变更清单和 Todo -> 仅按需读取相关源码
+nextCommand: DBA 审批完成后，读取 docs/2026-05-31/用户登录优化.md 按 Todo 实现并执行文档内验证
+tokenHint: 下一位 AI 先读本 Brief -> 开发文档中的判断依据、技术方案、变更清单和 Todo -> 仅按需读取相关源码；首轮最多 5 个文件
 ```
 
 > 本例因用户已明确确认数据库方案，所以可以完成 Plan Gate；若未确认或在非交互运行中发现该 blocker，应保持工作区零写入，而不是生成上述产物。

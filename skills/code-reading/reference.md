@@ -131,12 +131,13 @@ task: <功能名>
 source: <dev-doc / bug 文档 / review-repair Brief / 用户指定入口>
 artifacts: docs/code-reading/<日期>/<功能名>.md
 changed: <阅读中确认的关键源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；未检查写原因>
 tests: <已知验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <代码地图发现的非阻塞待确认；没有写 无>
 next: 人工 Review / Submit Gate；如发现新风险则回到 review-check
-tokenHint: 人工或下一位 AI 先读本 Brief -> 代码地图 -> changed 文件关键方法；不要把代码地图当作审查结论
+nextCommand: 人工：按代码地图完成 Review 和 Submit Gate 检查；发现新风险时使用 review-check skill 重新审查
+tokenHint: 人工或下一位 AI 先读本 Brief -> 代码地图 -> changed 文件关键方法；不要把代码地图当作审查结论；首轮最多 5 个文件
 
 【Skill 维护反馈】
 - skill：code-reading

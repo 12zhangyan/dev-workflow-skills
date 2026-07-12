@@ -143,10 +143,11 @@ task: 订单导出500错误
 source: 用户描述 + 堆栈 OrderExportServiceImpl.java:87
 artifacts: docs/bugs/2026-06-10/订单导出500错误.md；project-html/data/changes.js；docs/INDEX.md
 changed: 无（Bug 记录阶段未改业务代码）
-vcs: 文档和看板需纳入 VCS；业务代码未检查
-tests: 未运行（Bug 记录阶段）
-api: 无
+vcs: owner=Git 仓库根; tracked=已有业务代码; untracked=Bug 文档、看板和索引待纳管
+tests: 未运行（Bug 记录阶段；环境阻塞时写 environment-blocked + 工具链版本）
+api: spec=无; index=无; operationIds=无
 openFindings: 无
 next: 按文档修复 buildRow() 判空 → VCS Gate → mvn -pl order-service test → review-fix
-tokenHint: 下一位 AI 先读本 Brief -> 文档的根因/变更清单/验证步骤 -> 只读 OrderExportServiceImpl.buildRow()
+nextCommand: 读取 docs/bugs/2026-06-10/订单导出500错误.md，修复 buildRow() 判空并运行 mvn -pl order-service test
+tokenHint: 下一位 AI 先读本 Brief -> 文档的根因/变更清单/验证步骤 -> 只读 OrderExportServiceImpl.buildRow()；首轮最多 5 个文件
 ```

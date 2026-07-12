@@ -360,12 +360,13 @@ task: <任务名>
 source: <dev-doc/bug 文档/patch/diff/status；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>>
 artifacts: docs/review-fix/<日期>/<任务名>-review-task.md
 changed: <任务包中列出的源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: 待 review-check 输出
 next: 使用 review-check skill 审查 docs/review-fix/<日期>/<任务名>-review-task.md
-tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 diff/测试输出
+nextCommand: 使用 review-check skill 审查 docs/review-fix/<日期>/<任务名>-review-task.md
+tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 diff/测试输出；首轮最多 5 个文件
 
 如果目标 AI 已安装本仓库 skill，直接让它运行：
 /review-check docs/review-fix/<日期>/<任务名>-review-task.md
@@ -396,12 +397,13 @@ task: <任务名>
 source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check findings 来源>；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>
 artifacts: docs/review-fix/<日期>/<任务名>-fix-handoff.md
 changed: <findings 涉及的源码/测试/配置/OpenAPI 文件>
-vcs: <git/svn status 摘要；未检查写原因>
+vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
-api: <OpenAPI YAML/INDEX 路径；无接口变更写 无>
+api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要；Rejected 单独列出>
 next: 使用 review-repair skill 根据 fix-handoff 直接修复，或人工按交接文档修复
-tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -> finding 指向的 changed 文件
+nextCommand: 使用 review-repair skill 根据 docs/review-fix/<日期>/<任务名>-fix-handoff.md 直接修复并验证
+tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -> finding 指向的 changed 文件；首轮最多 5 个文件
 
 🤖 AI 修复操作码：
 <可直接粘贴给 Codex / Cursor / Claude 的文本>

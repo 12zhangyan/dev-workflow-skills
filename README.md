@@ -96,7 +96,9 @@ dev-doc / bug-fix → AI 实现并验证 → review-loop（任务包 + 审查 + 
 
 `review-loop` 默认 standard，保留 review-task；小改动可显式 quick。它必须标记 `SingleAgentReview`，最多自动修复两轮，不自动 commit/push，也不替代高风险改动的多 AI 独立审查。
 
-跨 AI / 跨 skill 交接时，优先复制上一轮输出里的 `【Workflow Brief】`、产物路径和 finding ID。不要反复粘贴完整 dev-doc、review-task、fix-handoff 或大段 diff；下一位 AI 应按 Brief 里的 `tokenHint` 读取必要文件。
+跨 AI / 跨 skill 交接时，直接复制上一轮输出里的 `【Workflow Brief】`。其中 `nextCommand` 是可直接交给下一位 AI 的完整命令，`tokenHint` 把首轮读取限制在最多 5 个文件；不要反复粘贴完整 dev-doc、review-task、fix-handoff 或大段 diff。
+
+Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operationIds=<接口 ID>`，方便直接导入 Apifox，并在后续接口变更时定位和更新原文件。VCS 状态固定写成 `owner / tracked / untracked`，测试、OpenAPI、文档等新增文件未纳管时会明确暴露。
 
 关键门禁见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)：
 
