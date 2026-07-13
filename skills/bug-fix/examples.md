@@ -144,7 +144,7 @@ source: 用户描述 + 堆栈 OrderExportServiceImpl.java:87
 artifacts: docs/bugs/2026-06-10/订单导出500错误.md；project-html/data/changes.js；docs/INDEX.md
 changed: 无（Bug 记录阶段未改业务代码）
 vcs: owner=Git 仓库根; tracked=已有业务代码; untracked=Bug 文档、看板和索引待纳管
-tests: 未运行（Bug 记录阶段；环境阻塞时写 environment-blocked + 工具链版本）
+tests: class=NotApplicable; command/result=未运行（Bug 记录阶段）
 api: spec=无; index=无; operationIds=无
 openFindings: 无
 next: 按文档修复 buildRow() 判空 → VCS Gate → mvn -pl order-service test → review-fix

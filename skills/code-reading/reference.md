@@ -132,7 +132,7 @@ source: <dev-doc / bug 文档 / review-repair Brief / 用户指定入口>
 artifacts: docs/code-reading/<日期>/<功能名>.md
 changed: <阅读中确认的关键源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；未检查写原因>
-tests: <已知验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<已知验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <代码地图发现的非阻塞待确认；没有写 无>
 next: 人工 Review / Submit Gate；如发现新风险则回到 review-check

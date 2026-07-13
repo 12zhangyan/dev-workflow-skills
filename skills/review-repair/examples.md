@@ -14,7 +14,7 @@ source: review-check findings CR-1 / IM-1
 artifacts: 本次直接修改代码；无新增文档
 changed: src/main/java/com/acme/order/OrderService.java；src/test/java/com/acme/order/OrderServiceTest.java
 vcs: owner=Git 仓库根; tracked=OrderService.java、OrderServiceTest.java; untracked=无
-tests: mvn -pl order-service test：通过；环境阻塞时写 environment-blocked + 工具链版本
+tests: class=Hermetic; command/result=mvn -pl order-service test：通过
 api: spec=无; index=无; operationIds=无
 openFindings: 无
 next: 二次 review-check 后进入 code-reading / 人工 Review

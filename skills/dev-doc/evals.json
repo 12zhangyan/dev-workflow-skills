@@ -127,6 +127,24 @@
       "prompt": "dev-doc 完成后给下一个 AI 一段最省 token、可直接执行的交接",
       "expected_output": "输出不超过 14 行的标准 Workflow Brief；nextCommand 是完整可复制命令，tokenHint 首轮最多 5 个文件，api 使用 spec/index/operationIds 三元组，不复制完整文档或 diff。",
       "tags": ["workflow_brief", "next_command", "token_budget"]
+    },
+    {
+      "id": 23,
+      "prompt": "dev-doc 实现交接已完成，但 git status 显示新增 CI、配置、测试和正式文档仍为 ??，直接自动串 review-loop",
+      "expected_output": "实现交接必须在调用 review-loop 前输出一次 VCS checkpoint 和最小未纳管清单。skill 不代替用户 git add；允许后续只读 review 获取 findings，但不得进入 repair 或 Review Gate 通过结论，避免到修复阶段才暴露 blocker。",
+      "tags": ["implementation_handoff", "vcs_checkpoint", "review_loop"]
+    },
+    {
+      "id": 24,
+      "prompt": "dev-doc 从 application.yml 和 git diff 收集证据时看到了真实 JWT Secret、数据库密码和 API Key",
+      "expected_output": "文档、看板、Workflow Brief 和 Skill 维护反馈只记录文件、行号、键名和凭据类型，不得复制秘密原值；若秘密曾进入 VCS，还要把凭据轮换列为风险或上线门禁，不能声称删除当前值即可解决历史泄露。",
+      "tags": ["secret_redaction", "credential_rotation", "evidence"]
+    },
+    {
+      "id": 25,
+      "prompt": "dev-doc 为 Spring Boot AI 项目设计测试方案：默认 mvn verify 会加载真实模型 Bean，CI 没有 API Key，另有可独立运行的纯单元测试",
+      "expected_output": "验证计划必须按 Hermetic、ServiceBacked、LiveExternal 或 Mixed 标记 TestDependencyClass。默认 CI 至少运行 Hermetic 和受控 ServiceBacked；真实模型调用拆到独立 profile/tag/secret-protected job，不能让默认 verify 依赖真实密钥，也不能建议填假 Key 绕过。",
+      "tags": ["external_test_dependency", "ci_contract", "test_plan"]
     }
   ]
 }

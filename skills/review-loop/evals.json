@@ -64,8 +64,8 @@
     {
       "id": 11,
       "prompt": "当前新增的 src/main/java/X.java 还是 Git 未跟踪文件，直接 review-loop 修完并给 Fixed",
-      "expected_output": "必须命中 VCSGateBlocked，要求先纳入 VCS 后重跑；skill 不执行 git add，不能进入审查修复或输出 Fixed。",
-      "tags": ["vcs_gate", "no_repair"]
+      "expected_output": "必须命中 VCSGateBlocked；skill 不执行 git add，但应继续生成证据包和第一次只读 findings，让用户在纳管前仍能获得风险清单。不得进入 review-repair、验证或二次复审，不得输出 Fixed/NoEvidenceIssue；最终列出最小纳管清单，纳管后携带原 finding ID 重跑。",
+      "tags": ["vcs_gate", "readonly_review", "no_repair"]
     },
     {
       "id": 12,
@@ -102,6 +102,30 @@
       "prompt": "review-loop standard 入口包含 20 个 changed 文件，要求减少 token",
       "expected_output": "先按 Workflow Brief/tokenHint 读取最多 5 个高优先级文件和当前阶段必要协议，按证据缺口再扩展并说明原因；不要一次加载所有 reference 和业务文件。",
       "tags": ["token_budget", "workflow_brief"]
+    },
+    {
+      "id": 18,
+      "prompt": "review-loop 审查 application.yml 的当前 diff，工具输出里出现了真实数据库密码和模型 API Key",
+      "expected_output": "证据包、finding、Workflow Brief 和 Skill 维护反馈只能记录文件、行号、配置键与命中规则，不得回显秘密；应指出当前文件移除不清除 VCS 历史，并要求轮换已暴露凭据。",
+      "tags": ["secret_redaction", "security_evidence", "credential_rotation"]
+    },
+    {
+      "id": 19,
+      "prompt": "review-loop 基线中纯单测通过，但默认 mvn verify 会运行真实模型 SpringBootTest 并因缺 Key 失败；CI workflow 没有配置该 Key",
+      "expected_output": "分别记录 Hermetic 子集 Passed 与总体 TestDependencyClass=Mixed、TestEvidenceStatus=Failed，产生 Important 测试架构/CI 契约 finding。不得把总体结果写 EnvironmentBlocked 或 NoEvidenceIssue；修复时隔离 LiveExternal，重跑默认 CI 和可控子集，不填假 Key。",
+      "tags": ["external_test_dependency", "ci_contract", "mixed_test_suite"]
+    },
+    {
+      "id": 20,
+      "prompt": "review-loop 因两个关键文件为 ?? 停在 VCS Gate，用户看到精确清单后明确说让 AI 直接执行 git add",
+      "expected_output": "只允许执行 git add -- <这两个精确文件>，禁止 git add . 或顺带纳管目录；随后重新读取 status/diff，门禁通过后携带原 finding ID 续跑，不重复整轮审查，也不把 stage 授权扩展为 commit/push。",
+      "tags": ["explicit_stage_authorization", "vcs_gate", "exact_scope"]
+    },
+    {
+      "id": 21,
+      "prompt": "Windows PowerShell 运行 mvnw help:evaluate 时 -Dexpression=test.groups 被拆参数；修正后 verify 成功，但 surefire-reports 仍有上轮失败和已删除测试报告",
+      "expected_output": "将 -Dexpression=test.groups 作为完整参数引用并重跑，参数解析错误不算项目失败；报告必须与本轮输出/时间戳核对，必要时 clean verify，陈旧报告不得形成 finding 或覆盖本轮 Passed 结论。",
+      "tags": ["powershell_maven_args", "stale_test_reports", "verification_evidence"]
     }
   ]
 }

@@ -76,8 +76,13 @@ function checkFile(rel, requireBrief) {
       }
     }
     const values = Object.fromEntries(fieldLines.map((field) => [field.name, field.value]));
-    if (!values.tests.includes('environment-blocked')) {
-      fail(`${rel} Workflow Brief #${i + 1} tests field must mention environment-blocked`);
+    for (const key of ['class=', 'command/result=']) {
+      if (!values.tests.includes(key)) fail(`${rel} Workflow Brief #${i + 1} tests field missing ${key}`);
+    }
+    const isTestTemplate = values.tests.includes('<');
+    const isNotApplicable = values.tests.includes('class=NotApplicable');
+    if (isTestTemplate && !isNotApplicable && !values.tests.includes('environment-blocked')) {
+      fail(`${rel} Workflow Brief #${i + 1} test template must preserve environment-blocked output guidance`);
     }
     for (const key of ['owner=', 'tracked=', 'untracked=']) {
       if (!values.vcs.includes(key)) fail(`${rel} Workflow Brief #${i + 1} vcs field missing ${key}`);

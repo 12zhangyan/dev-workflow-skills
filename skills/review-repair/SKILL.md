@@ -167,17 +167,23 @@ mvn -f <module-pom> test
 mvn -pl <module> -am test
 ```
 
+Windows PowerShell 使用 Maven Wrapper 时，把 `-Dkey=value` 参数作为一个完整字符串传入，例如 `.\mvnw.cmd '-Dtest=OrderServiceTest' test`；若 Maven 报告属性后半段是未知 lifecycle phase，先修正参数引用，不把命令解析错误归因于代码。
+
 验证失败时：
 - 如果失败与本次修复相关，继续修到通过。
 - 如果失败明显来自既有环境/无关模块，记录命令、失败摘要和判断依据。
 - 不要把未运行或失败的验证写成通过。
 
+先根据测试注解/tag/profile、配置和 CI workflow 判定 `TestDependencyClass`：`Hermetic / ServiceBacked / LiveExternal / Mixed`；无法取证时写 `Unknown`。默认 CI 应运行 Hermetic 与受控 ServiceBacked，LiveExternal 必须拆到独立 profile、tag 或 secret-protected job。
+
 判定 `TestEvidenceStatus`：
 - 验证命令通过，且测试/检查实际调用并断言本次修复的目标逻辑 → `Passed`。
 - 验证命令失败，且失败与本次修复或目标逻辑相关 → `Failed`。
 - 因时间、缺少依赖信息、用户限制或项目无可用命令未运行 → `NotRun`，必须写明原因。
-- JDK/Node/Maven/npm/profile/env/dependency 等工具链或环境不满足导致无法验证 → `EnvironmentBlocked`，必须记录命令、失败摘要和工具链版本；不得把环境阻塞当业务代码缺陷修。
+- JDK/Node/Maven/npm/依赖下载等工具链不满足，或显式执行 LiveExternal 测试时网络不可用导致无法启动 → `EnvironmentBlocked`，必须记录命令、失败摘要和工具链版本；不得把环境阻塞当业务代码缺陷修。
+- 默认 `test/verify` 自身强依赖真实 API key/外部服务，且 CI 未声明对应 secret/service → `Failed`，作为测试架构/CI 契约问题修复；不得用伪造密钥绕过，也不得标为 `EnvironmentBlocked`。修复方向是隔离 LiveExternal，并重跑 Hermetic/受控 ServiceBacked 子集。
 - 只验证编译、mock 前置条件、临时目录存在性等，未调用或断言目标方法/接口/状态变更时，不得标为 `Passed`；应标为 `NotRun` 或 `Failed` 并说明测试证据不足。
+- Surefire/JUnit/覆盖率报告必须确认来自本轮命令；若报告目录含旧失败、已删除测试或时间早于本轮运行的文件，先执行有针对性的 `clean` 或按时间戳过滤，再形成验证结论。
 
 二次 review-check 触发条件：
 - Critical / Important 修复超过 2 个文件。
@@ -201,6 +207,7 @@ mvn -pl <module> -am test
 
 按 [reference.md](reference.md#完成输出格式) 输出：
 - 修复结论：`Fixed` / `PartiallyFixed` / `Blocked`。
+- `TestDependencyClass`：`Hermetic` / `ServiceBacked` / `LiveExternal` / `Mixed` / `Unknown`，并说明默认 CI 与外部测试边界。
 - `TestEvidenceStatus`：`Passed` / `Failed` / `NotRun` / `EnvironmentBlocked`，并说明验证是否证明目标逻辑。
 - 每条 finding 的处理状态：fixed / deferred / rejected / blocked。
 - 未处理项的下一批建议：`deferred-next-batch` / `blocked` / `rejected`。

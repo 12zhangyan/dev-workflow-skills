@@ -400,9 +400,9 @@ node project-html/build.js
 2. 关键决策 3 句话摘要
 3. Codex / Cursor / Claude Code 执行提示（可直接粘贴给当前 AI 宿主）
 4. 当前门禁：`Plan Gate 已完成`；若存在 blocker/conflict，写 `Plan Gate 未通过` 并停止，不输出可执行编码提示
-5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项
-6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）
-7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
+5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项；实现结束立即读取 `git status --short` / `svn status`，把新增源码、测试、配置、OpenAPI 和正式 docs 的未纳管清单显式交给用户，不得直接跳到 review-loop 后才暴露 VCS blocker
+6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）。每条命令标记 `TestDependencyClass`（`Hermetic / ServiceBacked / LiveExternal / Mixed`）和所需依赖；默认本地/CI 命令只能包含 Hermetic 与受控 ServiceBacked 测试，真实 AI/SaaS 调用必须拆到独立 profile、tag 或 secret-protected job，不能让默认 `test/verify` 依赖真实密钥
+7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；存在未纳管关键文件时先输出一次 VCS checkpoint，review-loop 仅可做只读 findings、不得 repair；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
 8. `【Workflow Brief】` 块（PlanGate 阶段，见 reference.md）：供下一位 AI 先读索引、再按 tokenHint 读取 md 方案与相关源码，不必粘贴文档全文
 
 ## 规则

@@ -24,7 +24,7 @@ source: docs/review-fix/2026-07-02/sms-login-review-task.md
 artifacts: 本次只读审查输出；无文件写入
 changed: SmsLoginService.java, AuthController.java, SmsLoginRequest.java
 vcs: owner=Git 仓库根; tracked=上述 3 个修改文件; untracked=无
-tests: 未提供；环境阻塞时写 environment-blocked + 工具链版本
+tests: class=Unknown; command/result=未提供
 api: spec=无; index=无; operationIds=无
 openFindings: CR-1
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
@@ -78,7 +78,7 @@ source: docs/review-fix/2026-07-02/app-chat-review-task.md
 artifacts: 本次只读审查输出；无文件写入
 changed: AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
 vcs: owner=Git 仓库根; tracked=上述 4 个修改文件; untracked=无
-tests: 未提供；环境阻塞时写 environment-blocked + 工具链版本
+tests: class=Unknown; command/result=未提供
 api: spec=无; index=无; operationIds=无
 openFindings: IM-1
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复

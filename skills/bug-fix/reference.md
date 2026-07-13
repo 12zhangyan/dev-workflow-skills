@@ -175,7 +175,7 @@ source: <Bug 现象/堆栈/复现步骤/日志/代码线索>
 artifacts: docs/bugs/{date}/{task}.md；project-html/data/changes.js；docs/INDEX.md
 changed: 无（Bug 记录阶段未改业务代码）
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管文件>; untracked=<docs/bugs/{date}/{task}.md、看板/索引待纳管或 无>
-tests: 未运行（Bug 记录阶段；环境不满足时写 environment-blocked + 工具链版本）
+tests: class=NotApplicable; command/result=未运行（Bug 记录阶段）
 api: spec=无; index=无; operationIds=无
 openFindings: <blocker/根因未证实/待确认；没有写 无>
 next: 根因确认后按文档修复，进入 VCS Gate 和 Verification Gate

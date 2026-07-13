@@ -22,7 +22,7 @@
 | 性能 | 循环内 DB/远程调用、N+1、全表扫描、大对象加载、缺少批量查询 | for 循环、Mapper 调用、分页、查询条件 |
 | 兼容 | 接口签名、响应字段、枚举值、配置默认值、老数据兼容 | DTO、Controller、OpenAPI、配置读取 |
 | 配置部署 | CORS、JWT、Redis、LLM profile、Docker、CI 是否和运行文档一致 | yml/env/Dockerfile/workflow/README |
-| 测试 | 是否覆盖主流程、异常、边界、回归；测试是否真的调用目标逻辑并断言结果，而不是只验证前置条件；验证命令是否能证明风险已解除 | 测试类、用例数据、断言对象、mvn/gradle 命令 |
+| 测试 | 是否覆盖主流程、异常、边界、回归；测试是否真的调用目标逻辑并断言结果；测试属于 Hermetic、ServiceBacked、LiveExternal 还是 Mixed；默认 CI 是否错误依赖真实凭据/外部服务 | 测试类、注解/tag/profile、配置、CI workflow、断言对象、mvn/gradle 命令 |
 | 提交完整性 | 新增/修改的源码、测试、配置、SQL/XML、前端资源是否已纳入 Git/SVN；是否存在本地测试能跑但提交后缺文件 | `git status --short`、`svn status`、diff 文件列表、测试类路径 |
 
 ---
@@ -38,6 +38,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<已读取的关键文件/文档>
 结论状态：Findings
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
+TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 【Workflow Brief】
@@ -47,7 +48,7 @@ source: <review-task/dev-doc/patch/diff 路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要，如 CR-1, IM-2；没有写 无>
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
@@ -109,6 +110,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<...>
 结论状态：NoEvidenceIssue
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
+TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 【Workflow Brief】
@@ -118,7 +120,7 @@ source: <review-task/dev-doc/patch/diff 路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: 无
 next: 可进入 code-reading / 人工 review；若后续改动扩大则重新 review-check
@@ -154,6 +156,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<已读取的材料>
 结论状态：InsufficientMaterial
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
+TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；缺失或阻塞原因>
 
 【Workflow Brief】
@@ -163,7 +166,7 @@ source: <已提供材料路径>
 artifacts: 本次只读审查输出；无文件写入
 changed: <已读取文件；未知写 未确认>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无/未确认>; index=<API 索引路径或 无/未确认>; operationIds=<新增/变更接口 ID 或 无/未确认>
 openFindings: 无（材料不足，未下结论）；阻塞：缺失材料待补齐
 next: 补齐缺失材料后重新 review-check；不要进入 review-repair

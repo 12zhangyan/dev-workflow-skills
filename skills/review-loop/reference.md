@@ -20,7 +20,7 @@
 | 业务/API/权限/DB blocker | 暂停对应项 | 仅复审已修部分 | Blocked / PartiallyFixed |
 | 验证失败或环境阻塞 | 不关闭相关 CR/IM | 可做只读复审 | 已修复：PartiallyFixed；未能修复：Blocked（验证状态另记 Failed / EnvironmentBlocked） |
 | 两轮后仍有 CR/IM | 停止 | 已完成最终复审 | PartiallyFixed |
-| 范围内关键文件未纳入 VCS | 否 | 否 | Blocked / VCSGateBlocked；纳管后重跑 |
+| 范围内关键文件未纳入 VCS | 只生成证据包和第一次只读 findings，不修复 | 否 | Blocked / VCSGateBlocked；输出最小纳管清单，纳管后带 finding ID 重跑 |
 | 无 findings 但验证非 Passed | 否 | 否 | Blocked；补验证或修环境后重验 |
 
 ## 完成输出格式
@@ -32,6 +32,7 @@ ReviewAgentMode: SingleAgentReview
 ReviewScopeType: <PlanReview / ImplementationReview>
 修复结论：<NoEvidenceIssue / Fixed / PartiallyFixed / Blocked / InsufficientMaterial>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
+TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>
 TestEvidenceStatus: <Passed / Failed / NotRun / EnvironmentBlocked / NotProvided>
 RepairCycles: <0 / 1 / 2>
 
@@ -56,7 +57,7 @@ source: <dev-doc / review-task / 当前 diff>
 artifacts: <review-task；本次审查输出；无文件写入则写 无>
 changed: <实际修改的源码/测试/配置；没有写 无>
 vcs: owner=<按 VCS_OWNER 分组的 Git/SVN 根>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；嵌套工作副本说明>
-tests: <验证命令 + 结果；环境阻塞写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <未关闭 ID；没有写 无>
 next: <人工 review / 补 blocker / 修环境后重验 / 下一批 review-loop>

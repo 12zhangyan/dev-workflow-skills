@@ -20,7 +20,7 @@ source: <本轮依据的原始输入，如 docs/...md、review-task、fix-handof
 artifacts: <本轮生成或更新的文档、OpenAPI、看板、索引路径>
 changed: <本轮涉及的源码/测试/配置/SQL/XML/OpenAPI 文件；没有写 无>
 vcs: owner=<VCS 根或 none>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；未检查写原因>
-tests: <验证命令 + 结果；未运行写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未运行写原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<本次新增/变更接口 ID 或 无>
 openFindings: <未关闭 finding/blocker/deferred-next-batch；没有写 无>
 next: <下一步应运行的 skill 或人工动作>
@@ -37,6 +37,7 @@ Brief 是索引，不是第二份文档。避免它反噬 token 收益：
 - 不在 Brief 里复述问题正文、方案细节或源码；`openFindings` 只写 ID 摘要（如 `CR-1, IM-2`），正文在 findings 里。
 - `changed` / `artifacts` 只列路径，不加描述；`tokenHint` 给读取顺序，不复述内容。
 - `vcs` 固定拆成 `owner / tracked / untracked`，新增测试、OpenAPI 或文档仍未纳管时必须出现在 `untracked`。
+- `tests` 固定拆成 `class / command/result`；Mixed 要分别写可控子集和外部子集，默认 CI 依赖真实密钥时写 Failed，不写 environment-blocked。
 - `api` 固定拆成 `spec / index / operationIds`；生成 YAML 时三项都要填写，后续接口变更直接更新 `spec` 指向的文件并同步 `index`。
 - `next` 说明意图，`nextCommand` 给出可直接复制的命令；不要让下一位 AI 再从描述中拼命令。
 

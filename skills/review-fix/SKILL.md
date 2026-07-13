@@ -98,11 +98,13 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 判断规则：上述 `$PWD` 扫描只用于初始发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
 
-判定 `ReviewScopeType` 和 `TestEvidenceStatus`：
+判定 `ReviewScopeType`、`TestDependencyClass` 和 `TestEvidenceStatus`：
 - 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或已读取到明确 changed 文件 → `ReviewScopeType=ImplementationReview`。
 - 只有 dev-doc / bug-fix / biz-flow / 需求描述，没有实现证据 → `ReviewScopeType=PlanReview`，任务包必须写明未审实现代码。
 - 第二阶段汇总 findings / 生成修复交接 → `ReviewScopeType=FixHandoffReview`。
+- 读取测试注解/tag/profile、配置和 CI workflow，将验证命令分类为 `Hermetic / ServiceBacked / LiveExternal / Mixed`；材料不足时写 `TestDependencyClass=Unknown`，不得按错误文本猜测。
 - 测试命令有通过结果且测试断言目标逻辑 → `TestEvidenceStatus=Passed`；测试失败 → `Failed`；材料未提供测试 → `NotProvided`；明确未执行且有原因 → `NotRun`；工具链不满足 → `EnvironmentBlocked`；纯方案阶段无测试 → `NotApplicable`。
+- 默认 `test/verify` 混入真实 AI/SaaS 调用并因 CI 未提供密钥而失败时，写 `TestDependencyClass=Mixed` 或 `LiveExternal`、`TestEvidenceStatus=Failed`，并要求 reviewer 检查测试架构/CI 契约；不得降级为普通环境阻塞，也不得用伪造密钥绕过。
 
 按入口读取：
 - 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。
@@ -128,7 +130,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 
 文档必须包含：
 1. **审查目标**：这次 review 要确认什么。
-   - 必须写 `ReviewScopeType` 和 `TestEvidenceStatus`，并说明是否审实现代码。
+   - 必须写 `ReviewScopeType`、`TestDependencyClass` 和 `TestEvidenceStatus`，并说明是否审实现代码。
 2. **证据包**：其他 AI 需要读取/粘贴的文档、diff、源码、测试命令。
    - 必须包含 `assumptions`、`conflicts`、`blockers`、`openQuestions`：材料不足或语义冲突要直接暴露。
 3. **统一审查清单**：按风险类别列出检查项。

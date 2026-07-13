@@ -20,7 +20,7 @@ if (!fs.existsSync(shared)) {
   fail('Missing shared interaction policy: skills/_shared/interaction-policy.md');
 } else {
   const text = fs.readFileSync(shared, 'utf8');
-  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', 'Skill 维护反馈块', '非交互运行', '推荐项不是授权', 'InsufficientMaterial']) {
+  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', '敏感证据脱敏', 'Skill 维护反馈块', '非交互运行', '推荐项不是授权', 'InsufficientMaterial']) {
     if (!text.includes(needle)) fail(`Shared interaction policy missing required phrase: ${needle}`);
   }
 }

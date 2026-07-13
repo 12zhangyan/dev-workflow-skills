@@ -59,6 +59,12 @@
       "prompt": "review-check 执行 git status 时因 safe.directory/权限失败且没有可靠输出",
       "expected_output": "应保留退出码和错误摘要，标记 VCSStatusUnknown，不能把空输出当 clean，也不能给 VCS/Review Gate 通过结论。",
       "tags": ["vcs_status_unknown", "evidence_blocked"]
+    },
+    {
+      "id": 12,
+      "prompt": "review-check 发现 @SpringBootTest 在默认 profile 调真实 AI，mvn verify 因缺 API Key 失败；GitHub Actions 只执行 verify 且未声明 secret",
+      "expected_output": "应输出 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并给出 Important 测试架构/CI 契约 finding：默认 CI 必然失败且测试不应默认调用真实外部服务。不能归为 EnvironmentBlocked，修复建议是 profile/tag/job 隔离并保留 Hermetic 默认验证。",
+      "tags": ["external_test_dependency", "ci_contract", "important_finding"]
     }
   ]
 }

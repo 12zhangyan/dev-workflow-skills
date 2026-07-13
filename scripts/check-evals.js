@@ -67,11 +67,11 @@ const additionalRequiredTags = {
   'biz-flow': ['routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
   'bug-fix': ['routing_review_check', 'routing_dev_doc', 'non_interactive_blocker', 'path_conflict'],
   'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget'],
-  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command'],
-  'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown'],
-  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive'],
-  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget'],
-  'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings'],
+  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency'],
+  'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency'],
+  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency'],
+  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency'],
+  'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency'],
 };
 
 function fail(message) {
@@ -188,8 +188,8 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '不自动 commit、push', '数据库始终只读']],
-  [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'RepairCycles:', 'EnvironmentBlocked', '自动提交：未执行']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '明确要求 AI 执行', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'RepairCycles:', 'TestDependencyClass:', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of needles) {
@@ -199,13 +199,15 @@ for (const [file, needles] of [
 
 const contractNeedles = [
   ['skills/_shared/interaction-policy.md', ['非交互/无人值守运行中', '推荐项不是授权', 'InsufficientMaterial']],
-  ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked']],
-  ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证']],
+  ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
+  ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
   ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
-  ['skills/review-fix/SKILL.md', ['TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
+  ['skills/review-fix/SKILL.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
+  ['skills/review-check/SKILL.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
   ['skills/review-fix/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
   ['skills/review-loop/SKILL.md', ['首轮最大序号', '控制在 5 个文件内']],
-  ['skills/review-repair/reference.md', ['归一化前检查 ID 唯一性']],
+  ['skills/review-repair/SKILL.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
+  ['skills/review-repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
   ['skills/review-repair/examples.md', ['TestEvidenceStatus: Passed']],
 ];
 for (const [rel, needles] of contractNeedles) {

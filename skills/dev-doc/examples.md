@@ -269,7 +269,7 @@ source: 用户明确范围；analytics/login-funnel-2026-05.md；AuthController.
 artifacts: docs/2026-05-31/用户登录优化.md；docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md；project-html/data/changes.js
 changed: 无（方案阶段未改业务代码）
 vcs: owner=Git 仓库根; tracked=已有业务代码; untracked=开发文档、OpenAPI、看板和索引待纳管
-tests: OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）；环境阻塞时写 environment-blocked + 工具链版本
+tests: class=NotApplicable; command/result=OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）
 api: spec=docs/apifox/2026-05-31/用户登录优化.openapi.yaml; index=docs/apifox/INDEX.md; operationIds=sendSmsCode,smsLogin
 openFindings: 无；DBA 审批与授权执行属于 Implementation Gate 前置依赖
 next: DBA 审批完成后，交给 AI/开发者按文档实现并进入 VCS/Verification Gate

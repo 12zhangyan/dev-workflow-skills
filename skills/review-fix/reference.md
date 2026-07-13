@@ -14,6 +14,7 @@
 > 分支/路径：<branch 或 SVN path>
 > 阶段：等待其他 AI Review
 > ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>
+> TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 > TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 ---
@@ -41,7 +42,7 @@
 | diff/patch | <path 或粘贴位置> | 审查实际改动 |
 | VCS 状态 | <git status --short / svn status 摘要> | 检查新增源码、测试、配置是否已纳入版本控制 |
 | 关键源码 | <文件路径列表> | 定位风险和证据 |
-| 测试命令 | <mvn test / ./gradlew test / npm test / 待补充> | 判断验证方式 |
+| 测试命令 | <mvn test / ./gradlew test / npm test / 待补充> | 判断验证方式，并标记 TestDependencyClass 与外部依赖 |
 
 ### 判断依据、冲突与待确认
 
@@ -87,7 +88,7 @@
 
 请作为代码审查者，基于以下材料做 review：
 请独立完成本次审查；返回结果前不要读取或参考其他 reviewer 的 findings。
-0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable>
+0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>；TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable>
 1. 需求/方案文档：<dev-doc路径或无>
 2. 代码地图：<code-reading路径或无>
 3. diff/patch：<patch路径或粘贴内容>
@@ -370,7 +371,7 @@ source: <dev-doc/bug 文档/patch/diff/status；ReviewScopeType=<PlanReview / Im
 artifacts: docs/review-fix/<日期>/<任务名>-review-task.md
 changed: <任务包中列出的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<已知验证命令 + 结果；没有写未运行原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: 待 review-check 输出
 next: 使用 review-check skill 审查 docs/review-fix/<日期>/<任务名>-review-task.md
@@ -407,7 +408,7 @@ source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check find
 artifacts: docs/review-fix/<日期>/<任务名>-fix-handoff.md
 changed: <findings 涉及的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: <已知验证命令 + 结果；没有写 未运行 + 原因；环境不满足写 environment-blocked + 工具链版本>
+tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<已知验证命令 + 结果；没有写未运行原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要；Rejected 单独列出>
 next: 使用 review-repair skill 根据 fix-handoff 直接修复，或人工按交接文档修复

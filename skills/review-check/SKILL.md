@@ -110,7 +110,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 6. **前端交互**：路由守卫、token 刷新、SSE 错误事件、XSS/iframe、loading 状态。
 7. **AI 文件沙箱**：路径穿越、覆盖写、读取截断、生成/修改模式误判、部署回滚。
 8. **性能与兼容**：N+1、循环远程调用、接口签名/响应结构变更、OpenAPI 生成兼容。
-9. **测试与验证**：测试是否覆盖正常、异常、边界、回归；测试名、测试数据和断言对象是否真的调用并验证目标逻辑，避免只验证前置条件或临时目录自证；新增/修改的测试文件是否已纳入 VCS。
+9. **测试与验证**：测试是否覆盖正常、异常、边界、回归；测试名、测试数据和断言对象是否真的调用并验证目标逻辑，避免只验证前置条件或临时目录自证；新增/修改的测试文件是否已纳入 VCS。读取测试注解/tag/profile、配置和 CI workflow，输出 `TestDependencyClass`；默认 `test/verify` 混入真实 AI/SaaS 调用、要求未提供的真实密钥或不可控外部服务时，输出 `Important` 测试架构/CI 契约 finding，`TestEvidenceStatus=Failed`，不得写成 `EnvironmentBlocked`。
 10. **提交完整性**：关键源码、测试、配置、SQL/XML、前端资源等是否存在"本地有文件但未被 Git/SVN 跟踪"的问题；这类问题即使本地测试通过，也会导致提交后缺文件。
 
 ### Step 3：判定 finding
@@ -144,6 +144,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 要求：
 - findings 按 `Critical / Important / Minor` 分组。
 - 固定输出 `VerificationStatus`：已运行/未运行/未提供；命令、结果或未运行原因。
+- 固定输出 `TestDependencyClass`：`Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable`，说明默认命令与独立外部测试的边界。
 - 每条包含 `File/Line`、`Problem`、`Evidence`、`Impact`、`Fix`、`Verify`。
 - 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
 - 不输出大段源码，不复述全部 diff。

@@ -54,6 +54,12 @@
       "prompt": "非交互运行 review-fix，目标 review-task 已存在且不能确认覆盖",
       "expected_output": "应输出 Blocked/path conflict 并停止，不采用默认覆盖、不生成第二份猜测文件、不更新看板。",
       "tags": ["non_interactive", "path_conflict", "no_write"]
+    },
+    {
+      "id": 11,
+      "prompt": "为默认 mvn verify 因模型 API Key 缺失而失败的项目生成 review 任务包，CI workflow 也未提供该密钥",
+      "expected_output": "任务包必须读取测试注解/profile、配置和 CI workflow，记录 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并要求审查默认 CI 契约；不得仅写 EnvironmentBlocked，也不得建议伪造密钥。",
+      "tags": ["external_test_dependency", "ci_contract", "test_evidence"]
     }
   ]
 }
