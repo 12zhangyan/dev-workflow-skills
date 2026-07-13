@@ -126,6 +126,12 @@
       "prompt": "Windows PowerShell 运行 mvnw help:evaluate 时 -Dexpression=test.groups 被拆参数；修正后 verify 成功，但 surefire-reports 仍有上轮失败和已删除测试报告",
       "expected_output": "将 -Dexpression=test.groups 作为完整参数引用并重跑，参数解析错误不算项目失败；报告必须与本轮输出/时间戳核对，必要时 clean verify，陈旧报告不得形成 finding 或覆盖本轮 Passed 结论。",
       "tags": ["powershell_maven_args", "stale_test_reports", "verification_evidence"]
+    },
+    {
+      "id": 22,
+      "prompt": "Windows 下 SVN 工作区同时存在 src/test/java/com/hl/eam.test/contract/MaintContractWordServiceItemImporterTest.java 和正常 com/hl/eam/test；普通路径 API 按包路径读不到 eam.test 下文件，但 mvn testCompile 的 javac 报错指向 eam.test/contract",
+      "expected_output": "必须用 walk/rglob 从测试源根枚举真实 *Test.java 源列表，识别字面目录 eam.test 与包路径 eam/test 不一致，记录 WindowsTestSourcePathMismatch、真实文件路径、VCS_OWNER/SVN status 和 javac/Maven 报错路径。不能因常规包路径读取失败就排除该幽灵测试；应修复或排除错误目录后重跑 testCompile。",
+      "tags": ["windows_test_source_walk", "testcompile_source_list", "svn_owner", "verification_evidence"]
     }
   ]
 }

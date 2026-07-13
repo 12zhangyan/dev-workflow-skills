@@ -34,6 +34,7 @@ ReviewScopeType: <PlanReview / ImplementationReview>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>
 TestEvidenceStatus: <Passed / Failed / NotRun / EnvironmentBlocked / NotProvided>
+TestSourcePathCheck: <NotApplicable / Checked / WindowsTestSourcePathMismatch；Windows Java testCompile 时写测试源根、真实文件路径与 javac/Maven 报错路径>
 RepairCycles: <0 / 1 / 2>
 
 阶段结果：
@@ -67,6 +68,7 @@ tokenHint: 下一位 AI 先读本 Brief -> 未关闭 finding -> 最新 diff -> �
 VCS 完整性：
 - <status/diff 摘要>
 - 新增文件纳管：<无 / 需 git add / 需 svn add>
+- 测试源路径核对：<NotApplicable / 已 walk-rglob 核对 / WindowsTestSourcePathMismatch + 证据>
 - 自动提交：未执行
 
 边界说明：
