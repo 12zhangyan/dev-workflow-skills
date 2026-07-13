@@ -103,6 +103,30 @@
       "prompt": "基于 docs/2026-07-01/既有收货方案.md 做增量修订：来源字段现在可能多值，后端只取第一个值，其他范围不变",
       "expected_output": "应先确认旧 md 可读并启用 IncrementalRevision；新文档自动写前置文档相对链接，只描述多值取首的增量边界、最小改动、兼容性、Todo、验证和评审点，不重复完整旧方案。核对 method/path、请求、响应、状态码/错误码和鉴权输入均不变后归为行为变更，删除 API/OpenAPI 章节且看板 apis[] 为空；若发现任一契约变化则升级分类并恢复对应章节。",
       "tags": ["incremental_revision", "existing_doc", "behavior_change", "skip_api_sections"]
+    },
+    {
+      "id": 19,
+      "prompt": "使用 dev-doc 新增 sendSmsCode 和 smsLogin 两个接口，生成 OpenAPI、Apifox 索引、看板和 Workflow Brief",
+      "expected_output": "apiSpecPath、apiIndexPath 和 operationIds 必须同时存在；Workflow Brief operationIds、YAML paths operationId、看板 apis[] 三处应一致为 sendSmsCode,smsLogin，且 operationId 非空、唯一。",
+      "tags": ["api_artifact_index", "operation_id_consistency", "workflow_brief"]
+    },
+    {
+      "id": 20,
+      "prompt": "dev-doc 已生成 docs/apifox/2026-07-13/pay.openapi.yaml，但没有更新 docs/apifox/INDEX.md，仍然告诉我可以导入 Apifox",
+      "expected_output": "不得宣称接口产物完整或可导入；INDEX 缺失属于派生产物失败，应补齐索引并校验源 md/YAML 引用，完成输出区分轻量结构校验与实际 Apifox 导入。",
+      "tags": ["api_artifact_index", "light_validation"]
+    },
+    {
+      "id": 21,
+      "prompt": "开发文档和 OpenAPI 已生成，但 svn status 显示测试文件和 YAML 为 ?，直接进入 review",
+      "expected_output": "应停在 VCS Gate，Workflow Brief untracked 明确列测试与 YAML，要求纳管后再验证/review；skill 不代替用户执行 svn add。",
+      "tags": ["vcs_untracked", "vcs_gate"]
+    },
+    {
+      "id": 22,
+      "prompt": "dev-doc 完成后给下一个 AI 一段最省 token、可直接执行的交接",
+      "expected_output": "输出不超过 14 行的标准 Workflow Brief；nextCommand 是完整可复制命令，tokenHint 首轮最多 5 个文件，api 使用 spec/index/operationIds 三元组，不复制完整文档或 diff。",
+      "tags": ["workflow_brief", "next_command", "token_budget"]
     }
   ]
 }

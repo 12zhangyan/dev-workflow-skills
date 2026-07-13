@@ -5,6 +5,7 @@
 ```text
 修复结论：Fixed
 工作流阶段：Review Repair 已完成；下一步回到 Verification Gate，通过后可进入 code-reading / 人工 Review
+TestEvidenceStatus: Passed；mvn -pl order-service test 实际调用并断言目标逻辑
 
 【Workflow Brief】
 stage: ReviewRepair

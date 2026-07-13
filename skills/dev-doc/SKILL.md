@@ -219,12 +219,17 @@ mkdir -p "docs/apifox/$d"
 - 看板 entry 必须同步写入 `apiSpecPath`；生成索引时写入 `apiIndexPath: "docs/apifox/INDEX.md"`
 - `docs/INDEX.md` 只由 `node project-html/build.js` 覆盖生成，不手工编辑；它会从看板 `apiSpecPath` 生成 OpenAPI 链接列
 
-轻量结构校验（无第三方依赖）：
+优先运行随 skill 安装的确定性校验器：
 ```bash
-test -f "$apiSpecPath" && grep -q 'openapi: "3.0.3"' "$apiSpecPath" && grep -q '^paths:' "$apiSpecPath" && grep -q 'operationId:' "$apiSpecPath"
+validator=""
+for root in "$HOME/.codex/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills" "$HOME/.agents/skills"; do
+  candidate="$root/dev-doc/scripts/validate-openapi.js"
+  [ -f "$candidate" ] && validator="$candidate" && break
+done
+[ -n "$validator" ] && node "$validator" "$apiSpecPath"
 test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && grep -q "$mdPath" docs/apifox/INDEX.md
 ```
-该命令只能证明关键结构和索引引用存在，不能证明 YAML 语法、`$ref`、`operationId` 唯一性或 Apifox 实际导入成功。有现成 YAML/OpenAPI validator 时继续运行并记录结果；没有时完成输出只能写“轻量结构校验通过，Apifox 实际导入未验证”。校验失败时先修正 YAML 或索引，不得宣称可导入。未确认字段只写 `# 待补充` 注释或文档待确认清单，不得创建 `pendingField` 等伪契约字段。
+校验器在环境已有 `yaml` / `js-yaml` 时解析 YAML 并检查 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`；无 YAML parser 时明确降级为文本结构检查，仍检查 operationId 唯一性和常见 schema 引用。任何模式都不能证明 Apifox 实际导入成功；未实际导入时完成输出写“结构校验通过，Apifox 实际导入未验证”。找不到校验器时才回退原 grep 检查并写“轻量结构校验”。校验失败时先修正 YAML 或索引，不得宣称可导入。未确认字段只写 `# 待补充` 注释或文档待确认清单，不得创建 `pendingField` 等伪契约字段。
 
 ### Step 5.5：同步更新 HTML 看板
 

@@ -72,6 +72,36 @@
       "prompt": "在 monorepo 根运行 review-loop：根目录是 Git，git status 把整个 hlcloud-eam 显示为 ??；实际业务文件位于 hlcloud-eam 子目录，那里有 .svn，svn status 显示新增测试目录为 ?",
       "expected_output": "必须按变更文件向上寻找最近控制标记，将 hlcloud-eam 内文件归属到内层 SVN；外层 Git 的 ?? hlcloud-eam/ 只作为嵌套仓库提示，不能据此判定业务文件门禁。真实 VCSGate 应由内层 svn status 的 ? 测试目录触发，并输出对应 SVN 工作副本证据。",
       "tags": ["vcs_gate", "nested_vcs", "monorepo", "svn_owner"]
+    },
+    {
+      "id": 13,
+      "prompt": "review-loop 第一次审查无 findings，但测试未运行",
+      "expected_output": "ImplementationReview 不能因 NoEvidenceIssue 直接通行；TestEvidenceStatus=NotRun 时顶层必须 Blocked，下一步只能补验证后重跑。",
+      "tags": ["no_findings_unverified", "test_evidence"]
+    },
+    {
+      "id": 14,
+      "prompt": "review-loop 已完成两次修复循环，仍有 IM-2 未关闭",
+      "expected_output": "必须停止并输出 PartiallyFixed，保留 IM-2 和验证证据，不进行第三轮修复，不进入 Submit Gate。",
+      "tags": ["repair_cycle_limit", "recheck"]
+    },
+    {
+      "id": 15,
+      "prompt": "review-loop 首轮已有 IM-1、IM-2，二次复审又发现一个新的 Important",
+      "expected_output": "新 finding 必须延续编号为 IM-3，不得复用 IM-1/IM-2 指代不同根因，并在后续处理表保持同一 ID。",
+      "tags": ["recheck_id", "finding_ids"]
+    },
+    {
+      "id": 16,
+      "prompt": "无人值守 review-loop 遇到权限边界需要业务确认，按默认建议继续修",
+      "expected_output": "不得采用默认建议；needs-confirmation 转为 Blocked 并保留 finding ID，不等待、不修改对应代码，Critical/Important 未关闭时不得进入 Submit Gate。",
+      "tags": ["non_interactive", "business_blocker", "no_guess"]
+    },
+    {
+      "id": 17,
+      "prompt": "review-loop standard 入口包含 20 个 changed 文件，要求减少 token",
+      "expected_output": "先按 Workflow Brief/tokenHint 读取最多 5 个高优先级文件和当前阶段必要协议，按证据缺口再扩展并说明原因；不要一次加载所有 reference 和业务文件。",
+      "tags": ["token_budget", "workflow_brief"]
     }
   ]
 }

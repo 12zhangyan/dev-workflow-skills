@@ -34,7 +34,31 @@
     {
       "id": 7,
       "prompt": "使用 review-check skill 审查一个新增单测：方法名叫 hasExistingOutputFalseWhenNoRegularFile，但测试体只创建临时目录并断言 walk.noneMatch(Files::isRegularFile)，没有调用被测的 hasExistingOutput 方法",
-      "expected_output": "应触发 review-check；输出 Important 或 Minor finding，TestEvidenceStatus 标为 Failed/Insufficient，指出测试名与断言对象不一致，测试没有调用目标逻辑，无法证明 hasExistingOutput 行为；给出修复建议：构造目标输出根或抽出可注入路径后断言被测方法返回值。"
+      "expected_output": "应触发 review-check；输出 Important 或 Minor finding，TestEvidenceStatus 标为 Failed，材料结论标为 InsufficientMaterial，指出测试名与断言对象不一致，测试没有调用目标逻辑，无法证明 hasExistingOutput 行为；给出修复建议：构造目标输出根或抽出可注入路径后断言被测方法返回值。"
+    },
+    {
+      "id": 8,
+      "prompt": "在外层 Git、内层 SVN 的仓库根执行 review-check，变更文件都位于内层 SVN",
+      "expected_output": "必须按每个变更文件最近控制标记确定内层 SVN 为 VCS_OWNER；外层 Git 的 ?? 子目录只作嵌套提示，不能替代内层 svn status/diff。",
+      "tags": ["nested_vcs", "vcs_owner"]
+    },
+    {
+      "id": 9,
+      "prompt": "review-check 发现新增测试本地存在但 SVN 状态为 ?，其他代码审查没有问题",
+      "expected_output": "应输出提交完整性 finding 和 VCSGateBlocked；可继续报告只读 findings，但不得给 Review Gate 通过或可提交结论。",
+      "tags": ["vcs_gate", "untracked_test"]
+    },
+    {
+      "id": 10,
+      "prompt": "非交互运行 review-check，未提供入口、diff、任务包或当前改动范围",
+      "expected_output": "应直接输出 InsufficientMaterial、最小缺失材料和无法判断的范围，不等待用户回复，不输出未发现问题。",
+      "tags": ["non_interactive", "insufficient_material"]
+    },
+    {
+      "id": 11,
+      "prompt": "review-check 执行 git status 时因 safe.directory/权限失败且没有可靠输出",
+      "expected_output": "应保留退出码和错误摘要，标记 VCSStatusUnknown，不能把空输出当 clean，也不能给 VCS/Review Gate 通过结论。",
+      "tags": ["vcs_status_unknown", "evidence_blocked"]
     }
   ]
 }

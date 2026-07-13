@@ -27,6 +27,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码、接口、菜单、文档和现有看板预填；只在业务语义、权限、状态、数据归属或闭环范围会受影响时提一个阻塞问题；冲突和材料不足必须显式记录。
 
+非交互/无人值守运行中不等待提问：缺少业务入口、闭环证据或文件冲突时输出 `Blocked` 和最小补充项，不写业务流文档、看板或确定性测试口径。
+
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 主要完成面向测试/产品的 Plan Gate；如果梳理中发现实现偏差或业务冲突，下一步应分流到 `dev-doc` 形成开发方案，或交给 `review-fix` 形成审查任务。
 
 ### Step 0：参数检查
@@ -102,7 +104,7 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 路径格式：`docs/biz-flow/<日期>/<业务名>.md`
 
-冲突处理（Read 检查是否存在）：A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新（用 AskUserQuestion）
+冲突处理：先把候选路径赋给 `target`，再用 `test -e "$target"` / `test -r "$target"` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把 Read 失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
 
 ### Step 5：生成文档
 

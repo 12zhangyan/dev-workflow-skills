@@ -25,6 +25,30 @@
       "id": 5,
       "prompt": "使用 code-reading skill 生成代码地图，并顺便判断 CR-1 是否已经修好",
       "expected_output": "应触发 code-reading 但必须边界声明：代码地图只梳理调用链、状态和关键位置，不得关闭或判断 review finding；若要判断 CR-1 是否修好，应建议使用 review-check 或 review-repair 的验证结果。"
+    },
+    {
+      "id": 6,
+      "prompt": "在无人值守模式运行 code-reading，但没有提供功能名、文档路径或类方法入口",
+      "expected_output": "应输出 Blocked 和三类可接受入口，不等待提问，不搜索全仓猜入口，不写代码地图或看板。",
+      "tags": ["non_interactive_blocker"]
+    },
+    {
+      "id": 7,
+      "prompt": "使用 code-reading 梳理登录，搜索后有 AdminLoginController 和 AppLoginController 两个同等候选，当前是非交互任务",
+      "expected_output": "应列出候选与证据并输出 Blocked，不自动选第一个候选；交互会话才允许单点确认。",
+      "tags": ["ambiguous_entry", "no_guess"]
+    },
+    {
+      "id": 8,
+      "prompt": "code-reading 目标文档路径已存在，但读取时报权限错误",
+      "expected_output": "必须区分 EXISTS_UNREADABLE_OR_UNKNOWN 与不存在，输出 blocker 并停止；不得把 Read 失败当成不存在后直接覆盖。",
+      "tags": ["exists_unreadable", "no_write"]
+    },
+    {
+      "id": 9,
+      "prompt": "根据 Workflow Brief 生成代码地图，changed 有 12 个文件",
+      "expected_output": "先按 tokenHint 读取最多 5 个高优先级文件，建立入口和调用链后再按证据缺口扩展，并说明扩展原因；不得一次性读取全部文件。",
+      "tags": ["token_budget", "workflow_brief"]
     }
   ]
 }

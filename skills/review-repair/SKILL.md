@@ -32,6 +32,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填、只问阻塞问题、显式记录需求/实现/状态/权限/数据归属冲突。
 
+非交互/无人值守运行中，`needs-confirmation` 转为 `Blocked` 并保留 finding ID；不等待回复、不修改对应代码，继续处理与其独立且证据充分的 accepted finding。
+
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 位于 Review Gate 之后、Verification Gate 之前；修完必须回到 Verification Gate，并输出每条 accepted finding 的处理结果。
 
 若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先把 Brief 当作读取索引，按 `tokenHint` 读取 source、artifacts、changed 文件，再核对原始 findings；不要只凭 Brief 改业务逻辑。
@@ -76,13 +78,15 @@ done
 case "$vcs_type" in
   git)
     echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff
     ;;
   svn)
     echo "VCS_TYPE=svn"
-    svn status "$vcs_root" 2>/dev/null
-    svn diff --summarize "$vcs_root" 2>/dev/null
+    svn status "$vcs_root"
+    svn diff --summarize "$vcs_root"
+    svn diff "$vcs_root"
     ;;
   *) echo "VCS_TYPE=none" ;;
 esac
@@ -90,7 +94,8 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 ```
 
 判断规则：
-- 先按目录结构识别 Git/SVN，不要用命令失败推断 VCS 类型。
+- 上述 `$PWD` 扫描只用于初始发现；最终按 workflow-gates 的“VCS 证据归属”对 finding/Brief 指向的文件逐个确定最近 `VCS_OWNER`，按 owner 分组读取 status 和实际 diff。
+- 命令失败保留退出码和错误摘要，写 `VCSStatusUnknown`；不得用空输出冒充 clean。任一范围内 owner 有未纳管源码、测试、配置、OpenAPI 或正式文档时写 `VCSGateBlocked`。
 - Git dubious ownership 时只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不改全局配置。
 - 修复前记录当前已改文件、变更文件列表和关键 diff 摘要；不要回滚、覆盖或格式化与本次 finding 无关的本地改动。
 - 如果输入提到新增测试/配置/OpenAPI 文件，主动检查这些文件是否已纳入 Git/SVN 可见范围。

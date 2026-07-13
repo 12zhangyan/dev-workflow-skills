@@ -1,6 +1,6 @@
 ﻿---
 name: bug-fix
-description: 记录和分析 Bug，生成修复文档并追加到 HTML 看板——发现需要完整记录分析的 Bug 时使用。Codex 中用户可说"使用 bug-fix skill 记录 Bug"；Claude Code 可兼容 /bug-fix。
+description: 记录和分析 Bug，生成诊断/修复边界文档并追加到 HTML 看板——需要沉淀现象、复现、根因证据和修复范围时使用。已明确 findings 并要求直接改代码用 review-repair，要求只读找问题用 review-check，新功能或改造方案用 dev-doc。Codex 中用户可说"使用 bug-fix skill 记录 Bug"；Claude Code 可兼容 /bug-fix。
 argument-hint: [bug 名称]
 arguments: task
 disable-model-invocation: true
@@ -22,6 +22,8 @@ effort: high
 ### 共享交互协议
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填、按风险分级、一次只问一个阻塞问题；发现业务/修复口径冲突时显式记录，不用猜测静默折中。
+
+非交互/无人值守运行中不等待提问：缺少任务入口、文件冲突或高风险口径时输出 `Blocked` 和最小补充项，不写 Bug 文档、看板或执行型修复 Todo。
 
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 完成 Bug 场景的 Plan Gate；根因未证实时不得进入 Implementation Gate，修复验证后优先交给 `review-fix` / `review-check` 闭环。
 
@@ -95,7 +97,7 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 
 路径格式：`docs/bugs/<日期>/<任务名>.md`
 
-冲突处理（Read 检查是否存在）：A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新
+冲突处理：先把候选路径赋给 `target`，再用 `test -e "$target"` / `test -r "$target"` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把 Read 失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
 
 ### Step 5：生成文档
 

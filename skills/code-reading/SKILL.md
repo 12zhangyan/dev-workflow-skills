@@ -1,6 +1,6 @@
 ﻿---
 name: code-reading
-description: 当需要在 Code Review 前理解代码结构时使用——AI 修改代码后心智模型不清晰、不知调用链从何开始、或需要梳理状态跳转时。Codex 中用户可说"使用 code-reading skill 生成代码地图"；Claude Code 可兼容 /code-reading。
+description: 在 Code Review 前生成开发者代码地图，梳理入口、调用链、状态跳转和代码位置；只做结构理解，不判断缺陷或关闭 findings。要求找问题用 review-check，已有 findings 要修复用 review-repair，面向测试/产品的业务流用 biz-flow。Codex 中用户可说"使用 code-reading skill 生成代码地图"；Claude Code 可兼容 /code-reading。
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
@@ -25,13 +25,15 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：从代码和文档证据预填，少问；候选入口唯一且高置信时直接使用并记录依据，低置信或多候选才向用户确认。
 
+非交互/无人值守运行中不等待提问：输入为空、入口无候选/多候选或文件冲突时输出 `Blocked` 与候选/最小补充项，不猜入口、不覆盖文件、不登记看板。
+
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 服务 Understanding Gate；输出当前阶段、代码地图产物、人工 review 入口，以及如需 AI 审查时回到 `review-fix` / `review-check` 的路径。
 
 若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先按 Brief 的 `source` / `changed` / `tokenHint` 锁定阅读入口和范围，把 `changed` 文件作为追踪起点，不重新全局搜索；随后按对应源模式生成代码地图。
 
 ### Step 0：入口检测与参数检查
 
-`$entry` 为空 → 用 AskUserQuestion 询问（三选一，候选入口确认同样用 AskUserQuestion）：
+`$entry` 为空且当前为交互会话 → 使用当前实际可用的结构化提问能力；没有时用普通聊天询问（三选一，候选入口确认同样降级处理）：
 > "请选择入口方式：
 > ① 功能描述（如：用户短信登录）
 > ② dev-doc 文档路径（如：docs/2026-06-01/sms-login.md）
@@ -103,9 +105,10 @@ effort: high
 d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 ```
 
-**冲突处理**：Write 前先用 Read 检查 `docs/code-reading/<日期>/<功能名>.md` 是否已存在：
-- 读取成功 → 用 AskUserQuestion 询问：`A` 覆盖（重新生成地图）/ `B` 时间戳后缀（`<功能名>-1530.md`）/ `C` 取消。默认建议 A（代码地图本就是当前代码的快照，重跑即刷新）。
-- 读取失败 → 直接 Write 到 `docs/code-reading/<日期>/<功能名>.md`。
+**冲突处理**：Write 前把候选路径赋给 `target`，用 `test -e "$target"` / `test -r "$target"` 区分目标不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`：
+- 不存在 → Write 到 `docs/code-reading/<日期>/<功能名>.md`。
+- 可读且已存在 → 交互会话询问 `A` 覆盖（重新生成地图）/ `B` 时间戳后缀（`<功能名>-1530.md`）/ `C` 取消。默认建议 A 只是推荐，不代表授权。
+- 不可读/状态未知，或非交互运行遇到已存在文件 → 标 blocker 并停止，不猜测覆盖。
 
 > 看板登记（Step 4.5）按 `docPath` 查重：选 A 覆盖时命中既有条目改为更新，不会产生重复看板记录。
 

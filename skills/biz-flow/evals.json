@@ -25,6 +25,30 @@
       "id": 5,
       "prompt": "使用 biz-flow skill 梳理'退款审批'，用户只说有 App 和 PC 两个入口，但没有给回调、定时任务或终态接口",
       "expected_output": "应触发 biz-flow；必须列出已确认入口、缺失入口和本次排除入口；闭环证据不足时文档状态为草稿/待确认，终态、字段和分支写待补充，不得为了成图编造回调或终态。"
+    },
+    {
+      "id": 6,
+      "prompt": "请给退款审批做一个可执行的前后端改造方案，列出代码文件、Todo 和验收标准",
+      "expected_output": "不应使用 biz-flow；这是编码前开发方案，应路由到 dev-doc。biz-flow 只在需要给测试/产品解释业务状态、数据流和接口顺序时使用。",
+      "tags": ["routing_dev_doc"]
+    },
+    {
+      "id": 7,
+      "prompt": "帮我审查退款审批状态流实现是否正确，只列问题不要改代码",
+      "expected_output": "不应使用 biz-flow；这是只读实现审查，应路由到 review-check，并要求实际 diff/status/changed 文件作为实现证据。",
+      "tags": ["routing_review_check"]
+    },
+    {
+      "id": 8,
+      "prompt": "在无人值守任务中运行 biz-flow，但没有业务名、入口或接口路径",
+      "expected_output": "应按非交互规则输出 Blocked 和最小缺失入口，不等待提问，不猜业务名，不写业务流文档、看板或确定性测试口径。",
+      "tags": ["non_interactive_blocker"]
+    },
+    {
+      "id": 9,
+      "prompt": "使用 biz-flow skill，并把结果通过 Workflow Brief 交给 dev-doc；只允许下一位 AI 首轮读取 5 个文件",
+      "expected_output": "应输出标准 Workflow Brief，nextCommand 明确指向 dev-doc，tokenHint 首轮最多 5 个文件；Brief 只列 source/artifacts/changed 路径，不粘贴完整业务流正文。",
+      "tags": ["workflow_brief", "token_budget"]
     }
   ]
 }

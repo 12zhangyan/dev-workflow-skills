@@ -30,6 +30,30 @@
       "id": 6,
       "prompt": "使用 review-fix skill 基于 docs/2026-07-09/pay-refund.md 生成代码审查任务包，但 git status 为空、没有 diff，也没有 changed 文件",
       "expected_output": "应触发 review-fix；必须把审查对象降级为方案审查，证据包写明缺少实现证据，不得分发为'实现代码审查'，也不得要求 review-check 输出'代码无问题'结论。"
+    },
+    {
+      "id": 7,
+      "prompt": "生成给 Codex、Cursor、Claude 的三份独立 Review 提示",
+      "expected_output": "每份提示必须要求 reviewer 独立完成、返回前不得读取其他 reviewer findings；Codex 使用自然语言点名 review-check skill，Claude 可用 /review-check。",
+      "tags": ["independent_review", "cross_host_output"]
+    },
+    {
+      "id": 8,
+      "prompt": "汇总 findings：一条误报、一条业务口径待确认、一条 Critical",
+      "expected_output": "修复交接分别分配 RJ-n、BK-n、CR-n；Rejected 和 Blockers 表都保留来源、证据/原因，Critical 有修复与验证，不能用无 ID 的散文代替。",
+      "tags": ["finding_ids", "blocker_ids"]
+    },
+    {
+      "id": 9,
+      "prompt": "在外层 Git、内层 SVN 的工程生成 review 任务包，业务改动属于内层 SVN",
+      "expected_output": "必须按变更文件最近控制标记确定 VCS_OWNER 并分组收集 status/实际 diff；外层 Git 只记录嵌套提示。",
+      "tags": ["nested_vcs", "vcs_owner"]
+    },
+    {
+      "id": 10,
+      "prompt": "非交互运行 review-fix，目标 review-task 已存在且不能确认覆盖",
+      "expected_output": "应输出 Blocked/path conflict 并停止，不采用默认覆盖、不生成第二份猜测文件、不更新看板。",
+      "tags": ["non_interactive", "path_conflict", "no_write"]
     }
   ]
 }

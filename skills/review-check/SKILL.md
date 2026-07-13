@@ -27,6 +27,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：只基于已读取材料下结论；材料不足时输出"材料不足，无法下结论"，不要伪装成未发现问题；需求/实现/状态/权限/数据归属冲突要作为重点审查项。
 
+非交互/无人值守运行中不等待提问：入口或关键材料缺失时直接输出 `InsufficientMaterial`、最小缺失材料和受影响范围；不修改文件，也不给 Review Gate 通过结论。
+
 同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 只执行 Review Gate 的只读审查；输出必须包含 `ReviewScopeType`、`VerificationStatus` 和 `TestEvidenceStatus`，说明本次审的是方案/实现/修复交接、已看到或未看到哪些验证命令/结果、测试是否真的验证目标逻辑；材料不足时不能给通过结论。
 
 若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先把 Brief 当读取索引，按 `tokenHint` 依次读取 `source`（review-task/dev-doc）与 `changed` 文件，再按审查清单核对；不要因为已有 Brief 就跳过原始 diff/源码证据，也不要要求用户重新粘贴全文。
@@ -63,23 +65,24 @@ done
 case "$vcs_type" in
   git)
     echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --stat 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff
     ;;
   svn)
     echo "VCS_TYPE=svn"
-    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
-    svn status "$vcs_root" 2>/dev/null
-    svn diff --summarize "$vcs_root" 2>/dev/null
+    svn info "$vcs_root" | grep -E "^(Relative URL|Revision):"
+    svn status "$vcs_root"
+    svn diff --summarize "$vcs_root"
+    svn diff "$vcs_root"
     ;;
   *) echo "VCS_TYPE=none" ;;
 esac
 find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`；SVN 项目必须同时看 `svn status` 和 `svn diff --summarize`，避免漏掉未纳入版本控制的新增源码或测试文件。
+判断规则：上述 `$PWD` 扫描只用于初始发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
 
 按模式读取：
 - 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。

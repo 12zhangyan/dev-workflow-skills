@@ -42,6 +42,18 @@
 - 新增文件、生成文件、OpenAPI、配置、SQL/XML、测试文件都要进入 VCS Gate 检查；未纳管不得进入 Review Gate。
 - 发现任务越界、跨模块扩散或一次处理过多 findings 时，先拆批并标 `deferred-next-batch`，不要用一次大改掩盖边界。
 
+## VCS 证据归属
+
+Review、修复和提交完整性检查必须按变更文件所属工作副本取证，不能只使用当前目录向上的第一个或最外层 VCS 根：
+
+1. 从用户路径、Workflow Brief、dev-doc、review-task、patch 和当前 status/diff 得到候选变更文件。
+2. 对每个候选文件，从文件所在目录逐级向上查找 `.svn` 或 `.git`（`.git` 可以是目录或 worktree 文件）；最先遇到的控制标记就是该文件的 `VCS_OWNER`。
+3. 按 `VCS_OWNER` 分组读取 status 和实际 diff。外层 Git 显示 `?? <内层 SVN 目录>/` 时，只记录嵌套工作副本提示，不能替代内层 SVN 证据。
+4. 命令失败时保留退出码和短错误摘要，写 `VCSStatusUnknown`；不得用空输出冒充 clean，也不得继续通过 VCS Gate。
+5. 任一范围内 owner 存在未纳管源码、测试、配置、OpenAPI 或正式文档时，写 `VCSGateBlocked`。只读 review 可继续报告已发现问题，但不得给出 Review Gate 已通过或可提交结论。
+
+Git 至少读取 `status --short`、`diff --name-status` 和范围内实际 `diff`；SVN 至少读取 `status`、`diff --summarize` 和范围内实际 `diff`。无法确定 owner 时写 `VCSOwnerUnknown`，不得猜用外层仓库。
+
 ## 统一完成输出
 
 每个 skill 完成时都应尽量包含：

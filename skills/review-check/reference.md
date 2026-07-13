@@ -38,7 +38,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<已读取的关键文件/文档>
 结论状态：Findings
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
-TestEvidenceStatus: <Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
+TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 【Workflow Brief】
 stage: ReviewGate
@@ -51,7 +51,7 @@ tests: <验证命令 + 结果；未提供写 未提供；环境不满足写 envi
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要，如 CR-1, IM-2；没有写 无>
 next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-nextCommand: 使用 review-repair skill 根据 openFindings 直接修复并验证
+nextCommand: 使用 review-repair skill 根据本输出 openFindings 中的 <CR/IM/MI ID> 直接修复并验证
 tokenHint: 下一位 AI 先读本 Brief -> finding 指向文件 -> review-task 中证据包；只在冲突时扩展读取全文；首轮最多 5 个文件
 
 Critical:
@@ -109,7 +109,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<...>
 结论状态：NoEvidenceIssue
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
-TestEvidenceStatus: <Passed / NotProvided / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
+TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 【Workflow Brief】
 stage: ReviewGate
@@ -154,7 +154,7 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 审查范围：<已读取的材料>
 结论状态：InsufficientMaterial
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
-TestEvidenceStatus: <NotProvided / EnvironmentBlocked / NotApplicable；缺失或阻塞原因>
+TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；缺失或阻塞原因>
 
 【Workflow Brief】
 stage: ReviewGate

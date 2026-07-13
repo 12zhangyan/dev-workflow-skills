@@ -10,7 +10,7 @@ A collection of workflow skills for Java backend developers, targeting Claude Co
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `assets/board/` (HTML board template) |
+| `dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `scripts/validate-openapi.js`, `assets/board/` (HTML board template) |
 | `bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
 | `code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template) |
 | `review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
@@ -48,6 +48,7 @@ skills/<name>/
   SKILL.md       ← skill definition (frontmatter + execution instructions)
   reference.md   ← question sets and document templates loaded by the skill at runtime
   examples.md    ← filled-in examples the skill references during generation
+  scripts/       ← deterministic helpers executed by the skill when needed
   assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
 ```
 

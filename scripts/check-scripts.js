@@ -6,10 +6,20 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const scriptsDir = path.join(root, 'scripts');
-const files = fs.readdirSync(scriptsDir)
-  .filter((name) => name.endsWith('.js'))
-  .sort();
+function listJs(dir) {
+  const result = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) result.push(...listJs(full));
+    else if (entry.name.endsWith('.js')) result.push(path.relative(root, full).replace(/\\/g, '/'));
+  }
+  return result;
+}
+
+const files = [
+  ...listJs(path.join(root, 'scripts')),
+  ...listJs(path.join(root, 'skills')).filter((rel) => rel.includes('/scripts/')),
+].sort();
 
 let failed = false;
 
@@ -19,7 +29,7 @@ function fail(message) {
 }
 
 for (const file of files) {
-  const rel = `scripts/${file}`;
+  const rel = file;
   const full = path.join(root, rel);
   const text = fs.readFileSync(full, 'utf8');
   if (!text.startsWith('#!/usr/bin/env node\n')) fail(`${rel} must start with a node shebang`);
@@ -31,6 +41,14 @@ for (const file of files) {
     if (result.stdout) process.stderr.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
   }
+}
+
+const validator = 'skills/dev-doc/scripts/validate-openapi.js';
+const selfTest = spawnSync('node', [validator, '--self-test'], { cwd: root, encoding: 'utf8' });
+if (selfTest.status !== 0) {
+  fail(`${validator} self-test failed`);
+  if (selfTest.stdout) process.stderr.write(selfTest.stdout);
+  if (selfTest.stderr) process.stderr.write(selfTest.stderr);
 }
 
 if (failed) process.exit(1);

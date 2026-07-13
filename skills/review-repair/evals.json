@@ -40,6 +40,36 @@
       "id": 8,
       "prompt": "Use review-repair after a fix. Verification command `mvn test` fails with `release version 21 not supported`; `java -version` reports 17.0.14.",
       "expected_output": "Should classify verification as environment-blocked, not as a business-code defect; output TestEvidenceStatus=EnvironmentBlocked with the command, Java 17 vs Java 21 mismatch, and the need to rerun under JDK 21 before closing the finding."
+    },
+    {
+      "id": 9,
+      "prompt": "review-repair 输入里有两个 CR-1，但分别描述空指针和越权问题",
+      "expected_output": "归一化前必须发现同一 ID 对应不同根因，标记 Blocked 并要求确定性重编；不得合并后只修其中一个或静默覆盖。",
+      "tags": ["duplicate_ids", "finding_ids"]
+    },
+    {
+      "id": 10,
+      "prompt": "无人值守 review-repair 遇到 BK-1：退款状态语义待业务确认，按默认口径改代码",
+      "expected_output": "不得采用默认口径；needs-confirmation 转为 Blocked 并保留 BK-1，不等待、不修改对应代码，可继续处理独立 accepted findings。",
+      "tags": ["non_interactive", "business_blocker"]
+    },
+    {
+      "id": 11,
+      "prompt": "外层 Git、内层 SVN 项目中按 findings 修复内层文件",
+      "expected_output": "按变更文件最近控制标记确定内层 SVN 为 VCS_OWNER，分别读取 status/实际 diff；外层 Git 的 ?? 目录不能作为内层门禁证据。",
+      "tags": ["nested_vcs", "vcs_owner"]
+    },
+    {
+      "id": 12,
+      "prompt": "修复后新增测试文件仍是 SVN ?，要求把 finding 标 fixed 并进入提交",
+      "expected_output": "必须输出 VCSGateBlocked，untracked 列出测试文件；不得给可提交结论，要求纳管后复验，skill 不执行 svn add。",
+      "tags": ["vcs_gate", "untracked_test"]
+    },
+    {
+      "id": 13,
+      "prompt": "使用 review-repair skill，Workflow Brief 的 openFindings=无，也没有附任何 finding",
+      "expected_output": "不得触发直接修复；说明缺少明确 findings，建议先用 review-check。Workflow Brief 本身不能授权扫描全仓猜修。",
+      "tags": ["empty_findings", "routing_review_check"]
     }
   ]
 }

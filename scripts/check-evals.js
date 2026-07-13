@@ -61,6 +61,18 @@ const reviewLoopRequiredTags = new Set([
   'monorepo',
 ]);
 const reviewLoopSeenTags = new Set();
+const evalCounts = new Map();
+const seenTagsBySkill = new Map(requiredSkills.map((skill) => [skill, new Set()]));
+const additionalRequiredTags = {
+  'biz-flow': ['routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
+  'bug-fix': ['routing_review_check', 'routing_dev_doc', 'non_interactive_blocker', 'path_conflict'],
+  'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget'],
+  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command'],
+  'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown'],
+  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive'],
+  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget'],
+  'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings'],
+};
 
 function fail(message) {
   console.error('FAIL: ' + message);
@@ -92,6 +104,7 @@ for (const skill of requiredSkills) {
     fail(`evals must be a non-empty array: skills/${skill}/evals.json`);
     continue;
   }
+  evalCounts.set(skill, data.evals.length);
   const seenIds = new Set();
   let hasAccuracyBoundary = false;
   data.evals.forEach((ev, idx) => {
@@ -127,6 +140,10 @@ for (const skill of requiredSkills) {
     if (skill === 'review-loop') {
       for (const tag of ev.tags || []) reviewLoopSeenTags.add(tag);
     }
+    for (const tag of ev.tags || []) seenTagsBySkill.get(skill).add(tag);
+    if (/TestEvidenceStatus\s*(?:=|:|标为)\s*Insufficient\b/.test(expected)) {
+      fail(`${where} uses invalid TestEvidenceStatus=Insufficient; use Failed/NotProvided plus InsufficientMaterial`);
+    }
   });
   if (!hasAccuracyBoundary) {
     fail(`skills/${skill}/evals.json must include at least one evidence/accuracy boundary eval`);
@@ -144,6 +161,14 @@ for (const tag of devDocRequiredTags) {
 }
 for (const tag of reviewLoopRequiredTags) {
   if (!reviewLoopSeenTags.has(tag)) fail(`review-loop evals missing required scenario tag: ${tag}`);
+}
+const totalEvalCount = [...evalCounts.values()].reduce((sum, count) => sum + count, 0);
+if (totalEvalCount < 100) fail(`eval suite must contain at least 100 scenarios; got ${totalEvalCount}`);
+for (const skill of requiredSkills) {
+  if ((evalCounts.get(skill) || 0) < 9) fail(`skills/${skill}/evals.json must contain at least 9 scenarios`);
+  for (const tag of additionalRequiredTags[skill] || []) {
+    if (!seenTagsBySkill.get(skill).has(tag)) fail(`${skill} evals missing required scenario tag: ${tag}`);
+  }
 }
 
 const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
@@ -172,8 +197,26 @@ for (const [file, needles] of [
   }
 }
 
+const contractNeedles = [
+  ['skills/_shared/interaction-policy.md', ['非交互/无人值守运行中', '推荐项不是授权', 'InsufficientMaterial']],
+  ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked']],
+  ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证']],
+  ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
+  ['skills/review-fix/SKILL.md', ['TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
+  ['skills/review-fix/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
+  ['skills/review-loop/SKILL.md', ['首轮最大序号', '控制在 5 个文件内']],
+  ['skills/review-repair/reference.md', ['归一化前检查 ID 唯一性']],
+  ['skills/review-repair/examples.md', ['TestEvidenceStatus: Passed']],
+];
+for (const [rel, needles] of contractNeedles) {
+  const text = fs.readFileSync(path.join(root, rel), 'utf8');
+  for (const needle of needles) {
+    if (!text.includes(needle)) fail(`${rel} missing cross-skill contract text: ${needle}`);
+  }
+}
+
 if (process.exitCode) {
   console.error('evals check failed.');
 } else {
-  console.log(`ok evals checks passed (${requiredSkills.length} skills)`);
+  console.log(`ok evals checks passed (${requiredSkills.length} skills, ${totalEvalCount} scenarios)`);
 }

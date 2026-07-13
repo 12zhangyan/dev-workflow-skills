@@ -1,7 +1,7 @@
 interface:
   display_name: "Bug Fix"
   short_description: "记录 Bug 根因、修复方案并登记看板"
-  default_prompt: "Use bug-fix skill to record a bug and create a fix/diagnosis document. Prefill from logs, stack traces, code, and diffs; ask only blocking questions; mark unverified root causes, missing reproduction evidence, and conflicts explicitly. Do not turn an unproven root cause into a confirmed fix plan."
+  default_prompt: "Use bug-fix skill to record a bug and create a fix/diagnosis boundary document. Prefill from logs, stack traces, code, and diffs; ask only blocking questions; mark unverified root causes, missing reproduction evidence, and conflicts explicitly. Do not turn an unproven root cause into a confirmed fix plan. Route read-only defect discovery to review-check, direct findings repair to review-repair, and new-feature planning to dev-doc."
 
 policy:
   allow_implicit_invocation: true

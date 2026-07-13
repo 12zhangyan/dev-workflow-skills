@@ -81,11 +81,12 @@
 
 ```text
 如果当前环境已安装 dev-workflow-skills，请优先直接运行：
-/review-check <当前 Review 任务包路径>
+使用 review-check skill 审查 <当前 Review 任务包路径>
 
 如果不能运行 skill，请按下面要求手工审查。
 
 请作为代码审查者，基于以下材料做 review：
+请独立完成本次审查；返回结果前不要读取或参考其他 reviewer 的 findings。
 0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable>
 1. 需求/方案文档：<dev-doc路径或无>
 2. 代码地图：<code-reading路径或无>
@@ -122,6 +123,7 @@
 如果不能运行 skill，请按下面要求手工审查。
 
 请在当前工程中按文件上下文审查本次改动。重点看：
+- 独立完成本次审查；返回结果前不要读取或参考其他 reviewer 的 findings
 - ReviewScopeType 是 PlanReview / ImplementationReview / FixHandoffReview 中哪一种；不要把方案审查写成实现审查
 - TestEvidenceStatus 是否说明测试真的验证目标逻辑
 - diff 是否符合 <dev-doc路径或功能描述>
@@ -157,6 +159,7 @@
 如果不能运行 skill，请按下面要求手工审查。
 
 请读取给定 patch / 文档 / 关键源码，做一次偏业务正确性的 code review。
+请独立完成本次审查；返回结果前不要读取或参考其他 reviewer 的 findings。
 先声明 ReviewScopeType 和 TestEvidenceStatus；没有实现证据时只审方案，不得说实现代码无问题。
 请优先找：
 1. 方案和实现不一致
@@ -273,9 +276,15 @@ Accepted finding 必须同时满足：
 
 ### Rejected（不采纳）
 
-| 来源 | 原建议 | 拒绝原因 |
-|------|--------|----------|
-| | | |
+| ID | 来源 | 原建议 | 拒绝原因 |
+|----|------|--------|----------|
+| RJ-1 | | | |
+
+### Blockers（待确认）
+
+| ID | 来源 | 证据 | 阻塞原因 | 最小确认问题 |
+|----|------|------|----------|--------------|
+| BK-1 | | | | |
 
 ---
 
@@ -285,7 +294,7 @@ Accepted finding 必须同时满足：
 - **修改边界**：只修改 accepted findings 涉及的文件和必要测试；不重构无关代码。
 - **禁止改动**：<接口签名 / 数据结构 / 公共工具 / 无关本地改动>
 - **数据库限制**：只允许只读查询；DDL / 数据修复只输出建议，不执行。
-- **待确认阻塞项**：<若存在 blocker/需求冲突，先确认；确认前不执行代码修改>
+- **待确认阻塞项**：见 `BK-n` 表；确认前不执行对应代码修改。
 
 ---
 

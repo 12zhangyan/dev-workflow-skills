@@ -1,6 +1,6 @@
 ﻿---
 name: review-fix
-description: 根据当前上下文生成可分发给 Codex/Cursor/Claude 等 AI 的代码审查清单、证据包和 review 提示；当用户说"使用 review-fix skill"、Claude Code 输入 /review-fix，或要求"列出 code-review 清单/让其他 AI review/生成 AI 审查提示"时使用。仅在用户贴回 review 结果或明确要求汇总修复时，才继续生成修复交接文档和修复操作码
+description: 根据当前上下文生成可分发给多个 AI 的统一代码审查任务包、证据包和 review 提示；当用户要求“生成 Review 任务包”“让多个 AI 独立 review”“汇总返回的 findings 形成修复交接”时使用。普通一次只读审查用 review-check，已有 findings 要直接改代码用 review-repair。仅在用户贴回 review 结果或明确要求汇总 findings 时，才生成 fix-handoff 和修复操作码。Codex 可自然语言点名 review-fix skill；Claude Code 可用 /review-fix。
 argument-hint: [dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true
@@ -44,6 +44,8 @@ effort: high
 
 先遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据包不足时先补材料，不把缺证据包装成审查结论；发现需求/实现/状态机/权限/数据归属冲突时写入任务包的阻塞项。
 
+非交互/无人值守运行中不等待提问：入口、实现证据或文件冲突缺失时输出 `Blocked`/`InsufficientMaterial` 和最小补充项，不生成或覆盖 review-task/fix-handoff。
+
 ### Step 0：入口检测
 
 `$entry` 为空时询问：
@@ -77,28 +79,30 @@ done
 case "$vcs_type" in
   git)
     echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status 2>/dev/null
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status
+    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff
     ;;
   svn)
     echo "VCS_TYPE=svn"
-    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
-    svn status "$vcs_root" 2>/dev/null
-    svn diff --summarize "$vcs_root" 2>/dev/null
+    svn info "$vcs_root" | grep -E "^(Relative URL|Revision):"
+    svn status "$vcs_root"
+    svn diff --summarize "$vcs_root"
+    svn diff "$vcs_root"
     ;;
   *) echo "VCS_TYPE=none" ;;
 esac
 find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
 ```
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为 SVN 或无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。Git 项目必须同时看 `status --short` 和 `diff`；SVN 项目必须同时看 `svn status` 和 `svn diff --summarize`，避免漏掉未纳入版本控制的新增源码或测试文件。
+判断规则：上述 `$PWD` 扫描只用于初始发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
 
 判定 `ReviewScopeType` 和 `TestEvidenceStatus`：
 - 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或已读取到明确 changed 文件 → `ReviewScopeType=ImplementationReview`。
 - 只有 dev-doc / bug-fix / biz-flow / 需求描述，没有实现证据 → `ReviewScopeType=PlanReview`，任务包必须写明未审实现代码。
 - 第二阶段汇总 findings / 生成修复交接 → `ReviewScopeType=FixHandoffReview`。
-- 测试命令有通过结果且测试断言目标逻辑 → `TestEvidenceStatus=Passed`；测试失败 → `Failed`；未提供 → `NotProvided`；工具链不满足 → `EnvironmentBlocked`；纯方案阶段无测试 → `NotApplicable`。
+- 测试命令有通过结果且测试断言目标逻辑 → `TestEvidenceStatus=Passed`；测试失败 → `Failed`；材料未提供测试 → `NotProvided`；明确未执行且有原因 → `NotRun`；工具链不满足 → `EnvironmentBlocked`；纯方案阶段无测试 → `NotApplicable`。
 
 按入口读取：
 - 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。
@@ -132,9 +136,7 @@ d=$(date +%F) && mkdir -p "docs/review-fix/$d" && echo "$d"
 5. **技能化审查入口**：提示安装了本仓库 skill 的 AI 可直接运行 `/review-check <任务包路径>`。
 6. **回收格式**：要求其他 AI 按统一 JSON-like findings 返回。
 
-冲突处理：Read 检查目标文件是否存在。
-- 存在 → AskUserQuestion：A 覆盖 / B 时间戳后缀 / C 取消。默认建议 A。
-- 不存在 → 直接 Write。
+冲突处理：把候选任务包路径赋给 `target` 后，用 `test -e "$target"` / `test -r "$target"` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`。可读且已存在时，交互会话选择 A 覆盖 / B 时间戳后缀 / C 取消；非交互或状态未知时标 blocker 并停止，不采用默认覆盖。
 
 ### Step 2.5：输出并停住
 

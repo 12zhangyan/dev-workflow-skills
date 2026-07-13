@@ -20,7 +20,7 @@ if (!fs.existsSync(shared)) {
   fail('Missing shared interaction policy: skills/_shared/interaction-policy.md');
 } else {
   const text = fs.readFileSync(shared, 'utf8');
-  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', 'Skill 维护反馈块']) {
+  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', 'Skill 维护反馈块', '非交互运行', '推荐项不是授权', 'InsufficientMaterial']) {
     if (!text.includes(needle)) fail(`Shared interaction policy missing required phrase: ${needle}`);
   }
 }
@@ -111,7 +111,7 @@ if (fs.existsSync(gatesFile)) {
   const gates = fs.readFileSync(gatesFile, 'utf8');
   if (!gates.includes('workflow-brief.md')) fail('workflow-gates.md does not reference workflow-brief.md');
   if (!gates.includes('workflow-chain.md')) fail('workflow-gates.md does not reference workflow-chain.md');
-  for (const needle of ['准确性不变量', '计划', '实际改动', '验证结果', 'deferred-next-batch', 'environment-blocked', '测试结论必须证明目标逻辑']) {
+  for (const needle of ['准确性不变量', '计划', '实际改动', '验证结果', 'deferred-next-batch', 'environment-blocked', '测试结论必须证明目标逻辑', 'VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked']) {
     if (!gates.includes(needle)) fail(`workflow-gates.md missing accuracy invariant text: ${needle}`);
   }
 } else {
