@@ -18,6 +18,7 @@ A collection of workflow skills for Java backend developers, targeting Claude Co
 | `review-loop` | `skills/review-loop/SKILL.md` | `reference.md` (single-agent orchestration + output format), `examples.md` |
 | `biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
 | `review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
+| `conversation-handoff` | `skills/conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template) |
 
 ## Installation
 
@@ -100,6 +101,7 @@ dev-doc → AI executes → svn add → mvn test → review-fix/review-check/rev
 - `review-loop` orchestrates standard (`review-fix → review-check → review-repair → verify → recheck`) or explicit quick mode in one AI run; it labels results `SingleAgentReview`, stops after at most two repair cycles, and never auto-commits
 - `biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
 - `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
+- `conversation-handoff` produces `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` from current-conversation evidence for a new AI conversation; it is not a board entry and does not replace the smaller `Workflow Brief`
 - `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh per-entry single pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
