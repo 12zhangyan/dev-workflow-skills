@@ -91,14 +91,14 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 #### 既有文档增量修订快捷路径
 
-当用户同时给出一个**可读的既有 dev-doc md 路径**和一段边界明确的增量描述时，先读取旧文档并启用 `IncrementalRevision`，无需重新走完整新需求问答：
+当用户同时给出**一篇或多篇可读的既有 dev-doc md 路径**和一段边界明确的增量描述时，先逐篇读取旧文档并启用 `IncrementalRevision`，无需重新走完整新需求问答：
 
-1. 将旧文档记录为 `前置文档`，新文档必须使用仓库相对链接引用它；旧文档只作证据，不默认覆盖或追加。
-2. 从旧文档继承服务/模块、背景、既有接口契约、禁止改动和验证口径，只围绕增量差异补槽位；非阻塞信息不重复确认。
+1. 将全部旧文档记录为 `前置文档`。只有一篇时使用单链接；有多篇时使用“文档名称 + 仓库相对链接 + 承接主题/范围”的逐项必读清单，不得只保留或只读取日期最近的一篇；旧文档只作证据，不默认覆盖或追加。
+2. 从全部旧文档继承服务/模块、背景、既有接口契约、禁止改动和验证口径，只围绕增量差异补槽位；非阻塞信息不重复确认。多篇文档口径冲突时按证据优先级显式记录 `conflicts`，不得按文档时间新旧静默覆盖。
 3. 若增量只是多值取首、校验/路由/过滤/状态判断或副作用调整，且 method/path、请求、响应、状态码/错误码和鉴权输入均无变化，暂归为 `行为变更`。
 4. “默认行为变更”只是有证据的预分类，不是跳过核验：发现新增接口或任一契约面变化时立即升级为 `新增接口 / 契约变更`，恢复对应 API/OpenAPI 章节。
 5. 纯行为变更或仅调用既有接口时，生成精简增量文档，删除「三、API 设计」和「十三、Apifox 接口规范」，不生成 OpenAPI，且看板 `apis[]` 为空。
-6. 新文档只写增量背景、与前置文档关系、变更边界、最小技术改动、兼容性、Todo、验证和评审点；未变化的大段内容用前置文档链接承接，不复制全文。
+6. 新文档只写增量背景、与前置文档关系、变更边界、最小技术改动、兼容性、Todo、验证和评审点；未变化的大段内容用前置文档链接承接，不复制全文。AI 执行口径的前置条件必须要求执行方逐篇读取清单中的全部前置文档，并说明每篇承接的约束。
 
 旧文档不存在、不可读、不是 dev-doc，或增量描述会改变业务/API/权限/DB 决策时，不启用快捷路径，回到标准流程并按阻塞规则处理。
 
@@ -189,7 +189,7 @@ fi
 - **AI 执行口径必须写实**：在技术方案里明确前置条件、执行顺序、验收标准、禁止改动；不要只写"按方案实现"
 - **不相关章节直接删除**：纯后端任务不留前端章节，简单 Bug 不写复杂流程图
 - **接口文档仅由新增/契约变更触发**：仅当本次存在新增接口或契约变更时，才保留「三、API 设计」与「十三、Apifox 接口规范」。纯行为变更或仅调用既有接口不触发 OpenAPI；混合任务只把新增/契约变更接口写入两节和看板 `apis[]`，原接口行为收紧留在技术方案、接口影响分类、兼容性和测试中，不全量重写原接口规范
-- **增量修订保持短小**：`IncrementalRevision` 只描述相对前置文档的变化，并在文首写可点击的仓库相对链接；不复制未变化章节。快捷路径的行为变更预分类必须经过契约面核验，不能凭“一句话边界”掩盖真实接口变化
+- **增量修订保持短小**：`IncrementalRevision` 只描述相对前置文档的变化，并在文首写可点击的仓库相对链接；多篇前置文档必须逐项写名称、链接和承接范围，并要求执行方全部读取，不得只读最近一篇；不复制未变化章节。快捷路径的行为变更预分类必须经过契约面核验，不能凭“一句话边界”掩盖真实接口变化
 - **Apifox/OpenAPI 独立产物**：满足上一条时，必须把可导入 Apifox 的 OpenAPI 3.0 YAML 单独生成到 `docs/apifox/<日期>/<任务名>.openapi.yaml`，并更新 `docs/apifox/INDEX.md`；md 的「十三、Apifox 接口规范」只放文件位置、导入说明、接口索引和维护规则，不再内嵌完整 YAML
 - **OpenAPI 填写口径**：根据用户提供的接口信息填入 `paths` / `components.schemas`；未确认字段用 `# 待补充` 注释标记。后续接口变更优先更新同一个 `apiSpecPath` 文件，不要只改 md 接口表或另起新 YAML 文件
 - **数据库门禁**：数据库操作始终只读。新增库/表/字段/索引/约束等结构变化属于高风险未知，必须先取得用户明确同意；文档只能生成“DBA 变更申请草案 + 建议 DDL/回滚方案 + 影响评估 + 只读验证 SQL”，不得执行 DDL、数据修复或把“在 test/prod 执行 SQL”写成 AI Todo。未获同意时记为 blocker，不进入 Implementation Gate
@@ -229,7 +229,14 @@ done
 [ -n "$validator" ] && node "$validator" "$apiSpecPath"
 test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && grep -q "$mdPath" docs/apifox/INDEX.md
 ```
-校验器在环境已有 `yaml` / `js-yaml` 时解析 YAML 并检查 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`；无 YAML parser 时明确降级为文本结构检查，仍检查 operationId 唯一性和常见 schema 引用。任何模式都不能证明 Apifox 实际导入成功；未实际导入时完成输出写“结构校验通过，Apifox 实际导入未验证”。找不到校验器时才回退原 grep 检查并写“轻量结构校验”。校验失败时先修正 YAML 或索引，不得宣称可导入。未确认字段只写 `# 待补充` 注释或文档待确认清单，不得创建 `pendingField` 等伪契约字段。
+
+按以下结果分流，禁止把 YAML 校验失败误判成环境受限：
+1. 校验器成功并输出 `OPENAPI_VALIDATION_MODE=full:<parser>` → 记录“完整解析校验通过，Apifox 实际导入未验证”。
+2. 校验器成功并输出 `OPENAPI_VALIDATION_MODE=light:no-yaml-parser` → 记录“静态结构校验通过（无 YAML parser），Apifox 实际导入未验证”。
+3. 找不到校验器，或宿主明确报告工作区外 skill 路径被沙箱/权限/访问策略阻止、脚本无法启动 → 运行 [reference.md 的工作区内 OpenAPI 静态校验降级](reference.md#工作区内-openapi-静态校验降级)，只读取 `apiSpecPath`，输出 `OPENAPI_VALIDATION_MODE=light:workspace-inline`。不得要求放宽用户目录权限，也不得仅凭人工目测判定通过。
+4. 校验器已经启动并报告 `FAIL:`、YAML 解析错误、缺少 operationId、重复 operationId 或未解析 `$ref` → 这是产物失败；先修正 YAML，再重跑原校验器。此分支不得切到轻量校验规避失败。
+
+完整校验器在环境已有 `yaml` / `js-yaml` 时解析 YAML 并检查 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`；无 YAML parser 或工作区内降级时仍检查这些静态结构。任何模式都不能证明 Apifox 实际导入成功。未确认字段只写 `# 待补充` 注释或文档待确认清单，不得创建 `pendingField` 等伪契约字段。
 
 ### Step 5.5：同步更新 HTML 看板
 
@@ -420,7 +427,7 @@ node project-html/build.js
 - [ ] 任务类型和复杂度已判定；如影响执行策略，已向用户确认
 - [ ] 封闭选项已按“结构化工具 → 交互聊天 → 非交互 blocker”分流；默认建议有证据，高风险选项已获用户明确确认
 - [ ] 信息槽位已用于查漏；阻塞项已确认，非阻塞未知已标注假设或 `待补充`
-- [ ] 如启用 `IncrementalRevision`，前置文档可读且已链接；只写增量差异，未把预分类当成已确认契约
+- [ ] 如启用 `IncrementalRevision`，全部前置文档可读且已链接；多篇时已逐项标注承接范围并要求执行方全部读取；只写增量差异，未把预分类当成已确认契约
 - [ ] 文件路径冲突已处理
 - [ ] 不相关章节已删除（避免大量"待补充"）
 - [ ] 最小影响分析已包含
@@ -432,6 +439,7 @@ node project-html/build.js
 ### 生成后检查
 - [ ] 已逐接口区分新增 / 契约变更 / 行为变更 / 仅调用；“原参数不动”已继续核对响应、状态码/错误码和鉴权输入
 - [ ] 如存在新增接口或契约变更，OpenAPI 与看板 `apis[]` 只包含这些接口，未全量重写行为收紧的原接口
+- [ ] OpenAPI 校验已记录 `OPENAPI_VALIDATION_MODE`；工作区外 skill 路径受限时已使用 `light:workspace-inline`，真实校验失败未被降级掩盖
 - [ ] 如只有行为变更或仅调用既有接口，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] Codex / Cursor / Claude Code 执行提示已按当前宿主能力生成，未混用不可用命令
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
@@ -461,8 +469,10 @@ node project-html/build.js
 | Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
 | 原接口只收紧行为却被全量写入 OpenAPI | 没有逐接口区分行为变更与契约变更 | 保留原接口契约不动，只在方案/兼容性/测试记录行为收紧；OpenAPI 和 `apis[]` 仅收新增或契约变更接口 |
 | 给了旧 md 和一句增量仍重走完整新文档 | 未识别 `IncrementalRevision` | 读取旧文档并继承证据，只补增量槽位；纯行为变更跳过 API/OpenAPI 章节，契约有变化则自动恢复 |
+| 引用多篇旧 md 时执行方只读最近一篇 | 模板仍按单前置文档表达，未标明各文档承接范围 | 在文首列出全部前置文档的名称、相对链接和承接范围，并在 AI 执行口径中要求逐篇读取；冲突口径进入 `conflicts`，不按时间静默覆盖 |
 | 接口索引没有接口但有 YAML 链接 | 生成了 `apiSpecPath`，但看板 `apis[]` 漏填 | 回填 `apis[]`，每条接口至少包含 `method`、`url`、`operationId`、`desc` |
 | Apifox 导入失败 | YAML 结构不合法或缺少 `paths` / `operationId` | 按 Step 5.1 轻量校验修正后再输出完成信息 |
+| 工作区外 `validate-openapi.js` 被宿主禁止启动 | skill 位于用户目录，当前沙箱只允许执行工作区内代码 | 运行 reference.md 的工作区内无依赖静态校验，记录 `light:workspace-inline`；只在明确的路径访问受限时降级，YAML 内容失败仍须修复 |
 | 外壳 cp 失败 | skill 不在默认安装路径（`~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills`） | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
 | `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
 | `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |

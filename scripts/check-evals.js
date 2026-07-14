@@ -39,7 +39,9 @@ const devDocRequiredTags = new Set([
   'mixed_api_scope',
   'incremental_revision',
   'existing_doc',
+  'multiple_predecessor_docs',
   'skip_api_sections',
+  'workspace_external_validator',
 ]);
 const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
@@ -175,8 +177,8 @@ const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
 const devDocReferencePath = path.join(skillsDir, 'dev-doc', 'reference.md');
 const devDocExamplesPath = path.join(skillsDir, 'dev-doc', 'examples.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', '前置文档', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
-  [devDocReferencePath, ['文档模式：<Standard | IncrementalRevision>', '前置文档：<无 | [既有 dev-doc]', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', '轻量结构校验通过，Apifox 实际导入未验证']],
+  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', '前置文档', '不得只保留或只读取日期最近的一篇', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', 'YAML 校验失败误判成环境受限', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
+  [devDocReferencePath, ['文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');

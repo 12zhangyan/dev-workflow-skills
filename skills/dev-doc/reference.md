@@ -8,6 +8,7 @@
 - [Step 3 查漏槽位](#step-3-查漏槽位)
 - [文档模板](#文档模板)
 - [Apifox OpenAPI 文件模板](#apifox-openapi-文件模板)
+- [工作区内 OpenAPI 静态校验降级](#工作区内-openapi-静态校验降级)
 - [Apifox 索引模板](#apifox-索引模板)
 - [完成后输出格式](#完成后输出格式)
 - [HTML 看板模板](#html-看板模板)
@@ -40,7 +41,11 @@
 > 状态：草稿
 > 关联分支/路径：<Git: branch 名 | SVN: 路径如 trunk / branches/feature-xxx>
 > 关联版本：<Git: commit hash | SVN: revision 号如 r1234 | 暂无>
-> 前置文档：<无 | [既有 dev-doc](仓库相对路径)>
+> 前置文档：<Standard 填“无”；IncrementalRevision 单篇填 [文档名称](仓库相对路径) — 承接：<主题/约束范围>；多篇删除本行并使用下方清单>
+>
+> **前置文档（全部必读；仅多篇时保留，不得只列最近一篇）：**
+> - [文档名称 A](仓库相对路径) — 承接：<业务背景/模块/接口/禁止改动/验证口径>
+> - [文档名称 B](仓库相对路径) — 承接：<业务背景/模块/接口/禁止改动/验证口径>
 > 文档模式：<Standard | IncrementalRevision>
 
 ---
@@ -50,7 +55,7 @@
 ### 背景
 [需求来源、触发原因、解决的问题]
 
-> `IncrementalRevision`：这里只写相对前置文档的增量原因与边界，未变化背景由前置文档承接。
+> `IncrementalRevision`：这里只写相对前置文档的增量原因与边界，未变化背景由前置文档承接。存在多篇时必须逐篇读取“前置文档（全部必读）”清单；若口径冲突，在“判断依据、明确假设与待确认”中记录，不按文档日期静默覆盖。
 
 ### 目标
 - [ ] [明确的目标 1]
@@ -84,7 +89,7 @@
 
 > 写给后续执行代码的 AI / 开发者：必须具体到可照做，避免"理解后自行发挥"。
 
-- **前置条件**：[执行前必须确认的配置、表结构、接口契约、依赖服务]
+- **前置条件**：[执行前必须确认的配置、表结构、接口契约、依赖服务；IncrementalRevision 有多篇前置文档时，逐篇列出文档名称、链接及其承接约束，并要求全部读完后再实施]
 - **执行顺序**：[先改什么，再改什么；跨模块时说明顺序原因]
 - **验收标准**：[做到什么算完成，最好能对应命令、接口响应、页面/日志/数据结果]
 - **禁止改动**：[明确不能碰的文件、接口签名、历史逻辑或数据结构]
@@ -335,7 +340,87 @@ components:
 > - 数组示例：`type: array` + `items: { type: string }`
 > - 引用公共响应体：`$ref: "#/components/schemas/CommonResponse"`
 > - 未确认字段只保留 `# 待补充` 注释或写入文档待确认清单；确认前不加入 `paths` / `components` 的实际契约节点
-> - 只运行 grep 等关键字检查时，完成输出必须写“轻量结构校验通过，Apifox 实际导入未验证”；只有 validator 或实际导入成功才能升级结论
+> - 完整解析、无 YAML parser 静态校验和工作区内静态降级必须分别记录 `OPENAPI_VALIDATION_MODE`；只有 `full:<parser>` 或 Apifox 实际导入成功才能升级结论
+
+---
+
+## 工作区内 OpenAPI 静态校验降级
+
+仅在宿主明确禁止启动工作区外 `validate-openapi.js`，或该脚本确实不可访问时使用。把下面脚本通过当前宿主的 Node `-e` / stdin 方式执行，并把工作区内的 `apiSpecPath` 作为唯一参数；脚本不依赖 `yaml` / `js-yaml`，不读取用户目录，也不落临时文件。若完整校验器已经输出 `FAIL:` 或具体 YAML 内容错误，禁止使用本降级脚本覆盖失败结论。
+
+<!-- OPENAPI_WORKSPACE_FALLBACK_START -->
+```javascript
+const fs = require("fs");
+try {
+const file = process.argv[1];
+const raw = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+const fail = (message) => { throw new Error(message); };
+const methods = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
+if (!/^openapi:\s*["']?3\./m.test(raw)) fail("missing OpenAPI 3.x declaration");
+const lines = raw.split(/\r?\n/);
+const indentOf = (line) => (line.match(/^\s*/) || [""])[0].length;
+const pathsAt = lines.findIndex((line) => /^\s*paths:\s*$/.test(line));
+if (pathsAt < 0) fail("missing paths mapping");
+const pathsIndent = indentOf(lines[pathsAt]);
+let currentPath = null;
+let currentPathIndent = -1;
+const operationIds = [];
+for (let i = pathsAt + 1; i < lines.length; i += 1) {
+  const line = lines[i];
+  if (!line.trim() || line.trimStart().startsWith("#")) continue;
+  const indent = indentOf(line);
+  if (indent <= pathsIndent) break;
+  const pathMatch = line.match(/^\s*(\/[^:]*):\s*$/);
+  if (pathMatch) {
+    currentPath = pathMatch[1];
+    currentPathIndent = indent;
+    continue;
+  }
+  const keyMatch = line.match(/^\s*([A-Za-z]+):\s*$/);
+  if (!currentPath || !keyMatch || indent <= currentPathIndent || !methods.has(keyMatch[1].toLowerCase())) continue;
+  let operationId = "";
+  for (let j = i + 1; j < lines.length; j += 1) {
+    const child = lines[j];
+    if (!child.trim() || child.trimStart().startsWith("#")) continue;
+    if (indentOf(child) <= indent) break;
+    const idMatch = child.match(/^\s*operationId:\s*["']?([^\s"'#]+)["']?\s*$/);
+    if (idMatch) operationId = idMatch[1];
+  }
+  if (!operationId) fail(`${keyMatch[1].toUpperCase()} ${currentPath} missing operationId`);
+  operationIds.push(operationId);
+}
+if (operationIds.length === 0) fail("paths contains no HTTP operations");
+const duplicates = operationIds.filter((id, index) => operationIds.indexOf(id) !== index);
+if (duplicates.length) fail(`duplicate operationId: ${[...new Set(duplicates)].join(",")}`);
+const schemasAt = lines.findIndex((line) => /^\s*schemas:\s*$/.test(line));
+const schemaNames = new Set();
+if (schemasAt >= 0) {
+  const baseIndent = indentOf(lines[schemasAt]);
+  let itemIndent = null;
+  for (let i = schemasAt + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const indent = indentOf(line);
+    if (indent <= baseIndent) break;
+    if (itemIndent === null) itemIndent = indent;
+    const match = indent === itemIndent && line.match(/^\s*([^:#]+):\s*$/);
+    if (match) schemaNames.add(match[1].trim());
+  }
+}
+for (const match of raw.matchAll(/\$ref:\s*["']?(#\/components\/schemas\/([^\s"']+))["']?/g)) {
+  if (!schemaNames.has(match[2])) fail(`unresolved local $ref: ${match[1]}`);
+}
+console.log("OPENAPI_VALIDATION_MODE=light:workspace-inline");
+console.log(`ok OpenAPI static validation passed; operationIds=${operationIds.join(",")}`);
+console.log("note: YAML parser and actual Apifox import were not verified");
+} catch (error) {
+  console.error(`FAIL: ${error.message}`);
+  process.exit(1);
+}
+```
+<!-- OPENAPI_WORKSPACE_FALLBACK_END -->
+
+执行失败时输出 `FAIL: <原因>` 并修正 YAML；成功时保留脚本输出的 `OPENAPI_VALIDATION_MODE=light:workspace-inline` 作为验证证据，并明确写“Apifox 实际导入未验证”。该模式只证明 OpenAPI 3.x 声明、HTTP operation、`operationId` 非空/唯一和常见本地 schema `$ref` 的静态结构，不证明 YAML 完整语法或 Apifox 实际导入。
 
 ---
 

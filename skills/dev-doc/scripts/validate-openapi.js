@@ -169,6 +169,7 @@ try {
     const file = path.resolve(input);
     if (!fs.existsSync(file)) fail(`file not found: ${file}`);
     const result = validateFile(file);
+    console.log(`OPENAPI_VALIDATION_MODE=${result.mode}`);
     console.log(`ok OpenAPI validation passed (${result.mode}); operationIds=${result.operationIds.join(',')}`);
     if (result.mode.startsWith('light:')) console.log('note: YAML parser and actual Apifox import were not verified');
   }

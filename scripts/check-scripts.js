@@ -51,5 +51,33 @@ if (selfTest.status !== 0) {
   if (selfTest.stderr) process.stderr.write(selfTest.stderr);
 }
 
+const devDocReference = fs.readFileSync(path.join(root, 'skills/dev-doc/reference.md'), 'utf8');
+const fallbackMatch = devDocReference.match(/<!-- OPENAPI_WORKSPACE_FALLBACK_START -->\s*```javascript\r?\n([\s\S]*?)\r?\n```\s*<!-- OPENAPI_WORKSPACE_FALLBACK_END -->/);
+if (!fallbackMatch) {
+  fail('skills/dev-doc/reference.md missing executable OpenAPI workspace fallback block');
+} else {
+  const tempDir = fs.mkdtempSync(path.join(root, '.openapi-fallback-test-'));
+  const validFile = path.join(tempDir, 'valid.openapi.yaml');
+  const invalidFile = path.join(tempDir, 'duplicate.openapi.yaml');
+  try {
+    const valid = 'openapi: 3.0.3\npaths:\n  /compensate:\n    post:\n      operationId: compensate\n      responses:\n        "200":\n          description: ok\n';
+    const invalid = `${valid}  /retry:\n    post:\n      operationId: compensate\n`;
+    fs.writeFileSync(validFile, valid, 'utf8');
+    fs.writeFileSync(invalidFile, invalid, 'utf8');
+    const fallbackOk = spawnSync('node', ['-e', fallbackMatch[1], validFile], { cwd: root, encoding: 'utf8' });
+    if (fallbackOk.status !== 0 || !fallbackOk.stdout.includes('OPENAPI_VALIDATION_MODE=light:workspace-inline')) {
+      fail('OpenAPI workspace fallback rejected a valid fixture or omitted its validation mode');
+      if (fallbackOk.stdout) process.stderr.write(fallbackOk.stdout);
+      if (fallbackOk.stderr) process.stderr.write(fallbackOk.stderr);
+    }
+    const fallbackReject = spawnSync('node', ['-e', fallbackMatch[1], invalidFile], { cwd: root, encoding: 'utf8' });
+    if (fallbackReject.status === 0 || !fallbackReject.stderr.includes('duplicate operationId')) {
+      fail('OpenAPI workspace fallback did not reject duplicate operationId');
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
 if (failed) process.exit(1);
 console.log(`ok script checks passed (${files.length} scripts)`);

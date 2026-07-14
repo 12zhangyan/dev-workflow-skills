@@ -145,6 +145,18 @@
       "prompt": "dev-doc 为 Spring Boot AI 项目设计测试方案：默认 mvn verify 会加载真实模型 Bean，CI 没有 API Key，另有可独立运行的纯单元测试",
       "expected_output": "验证计划必须按 Hermetic、ServiceBacked、LiveExternal 或 Mixed 标记 TestDependencyClass。默认 CI 至少运行 Hermetic 和受控 ServiceBacked；真实模型调用拆到独立 profile/tag/secret-protected job，不能让默认 verify 依赖真实密钥，也不能建议填假 Key 绕过。",
       "tags": ["external_test_dependency", "ci_contract", "test_plan"]
+    },
+    {
+      "id": 26,
+      "prompt": "基于 docs/保养质保方案.md 和 docs/采购质保方案.md 做 IncrementalRevision：新增一个字典刷新脚本，并统一两条业务线的增量行为；接口契约不变",
+      "expected_output": "必须先逐篇读取两份可读的前置文档。新文档文首使用“前置文档（全部必读）”清单，逐项写文档名称、仓库相对链接和各自承接的主题/约束；AI 执行口径要求执行方全部读完后再实施，不得只读日期最近的一篇。两篇口径冲突时记录 conflicts 并按证据优先级处理，不能按时间静默覆盖；契约面核验不变后按行为变更生成精简增量文档并跳过 API/OpenAPI。",
+      "tags": ["incremental_revision", "multiple_predecessor_docs", "behavior_change", "skip_api_sections"]
+    },
+    {
+      "id": 27,
+      "prompt": "使用 dev-doc 为新增补偿接口生成独立 Apifox OpenAPI YAML；validate-openapi.js 安装在工作区外的用户 skill 目录，当前 Codex/Claude Code/Cursor 宿主因沙箱访问限制无法启动该脚本",
+      "expected_output": "应先确认失败原因是工作区外 skill 路径被宿主访问策略阻止，而不是 YAML 内容校验失败；随后运行 reference.md 中仅读取工作区 apiSpecPath 的无依赖 Node 静态校验，检查 OpenAPI 3.x、HTTP operation、operationId 非空/唯一和常见本地 schema $ref，并记录 OPENAPI_VALIDATION_MODE=light:workspace-inline 以及“Apifox 实际导入未验证”。不得要求放宽用户目录权限，也不得仅人工目测或用降级掩盖完整校验器已报告的 FAIL/YAML 错误。",
+      "tags": ["openapi", "workspace_external_validator", "light_validation", "cross_host_output"]
     }
   ]
 }
