@@ -132,6 +132,12 @@
       "prompt": "Windows 下 SVN 工作区同时存在 src/test/java/com/hl/eam.test/contract/MaintContractWordServiceItemImporterTest.java 和正常 com/hl/eam/test；普通路径 API 按包路径读不到 eam.test 下文件，但 mvn testCompile 的 javac 报错指向 eam.test/contract",
       "expected_output": "必须用 walk/rglob 从测试源根枚举真实 *Test.java 源列表，识别字面目录 eam.test 与包路径 eam/test 不一致，记录 WindowsTestSourcePathMismatch、真实文件路径、VCS_OWNER/SVN status 和 javac/Maven 报错路径。不能因常规包路径读取失败就排除该幽灵测试；应修复或排除错误目录后重跑 testCompile。",
       "tags": ["windows_test_source_walk", "testcompile_source_list", "svn_owner", "verification_evidence"]
+    },
+    {
+      "id": 23,
+      "prompt": "在 Cursor 中运行 review-loop standard 审查本会话实现 diff；当前安装包的 review-fix 不可读，但项目里已有唯一匹配的 docs/review-form/2026-07-15/eam-fix-review-task.md。Cursor 尝试读取 Claude 用户目录下的 review-form SKILL.md 时提示 File not found",
+      "expected_output": "不得继续探测 Claude Code 或其他宿主的用户级 skill 目录，也不得要求切换到 Claude。应确认 review-form 不是当前正式依赖；校验项目内旧 review-task 是否包含 review 范围、status/diff、需求约束、测试证据、审查轴和回收格式，合格后作为兼容模板/证据继续 standard 流程，并输出 ReviewTaskTemplateSource: legacy-docs-review-form、CompatibilityFlags: review-form-skill-missing。若存在多个同等候选，交互时单点确认、非交互 Blocked；无合格模板则 review-task-template-missing，不能伪造 review-form skill 已执行。",
+      "tags": ["legacy_review_form_fallback", "host_isolation", "cursor_trigger", "review_task"]
     }
   ]
 }

@@ -5,6 +5,63 @@
 
 ---
 
+## 只读影响分析输出格式
+
+`ImpactAnalysis` 只在聊天中输出下列结构，不创建 md、看板、单页、索引或临时文件：
+
+```markdown
+AnalysisMode: ImpactAnalysis
+WritePolicy: NoWorkspaceWrites
+
+# <功能/接口> 只读影响分析
+
+## 结论
+
+<用 1-3 句话说明新契约是否影响现有调用链；区分明确结论与待确认项，不定性为 Bug>
+
+## 契约对比
+
+| 维度 | 新契约证据 | 现有实现证据 | 影响判断 |
+|------|------------|--------------|----------|
+| method/path | <PDF/OpenAPI 页码或字段> | <Controller 路径:行号> | <明确受影响/不受影响/待确认> |
+| 请求字段与约束 |  |  |  |
+| 响应结构 |  |  |  |
+| 状态码/错误码 |  |  |  |
+| 鉴权输入 |  |  |  |
+| 副作用 |  |  |  |
+
+## 现有调用链
+
+`入口类.方法()` → `调用类.方法()` → `外部接口/持久层`
+
+## 影响清单
+
+| 对象 | 影响级别 | 原因 | 证据 | 后续动作 |
+|------|----------|------|------|----------|
+| <直接调用方/适配层/测试/接口文档> | <明确受影响/不受影响/待确认> |  | <文件:行号/契约页码> | <需要设计确认/补证据/无需动作> |
+
+## 边界与待确认
+
+- <未读取到的契约页、动态路由、运行时配置等证据缺口；没有写“无”>
+- 本分析只判断结构与兼容性影响，不判断缺陷、不关闭 findings。
+
+【Workflow Brief】
+stage: UnderstandingGate
+task: <功能/接口>
+source: <PDF/OpenAPI/接口说明 + 当前代码入口>
+artifacts: 无（ImpactAnalysis 聊天只读分析）
+changed: 无（未修改仓库；影响候选=<文件列表>）
+vcs: owner=<Git/SVN 根或 none>; tracked=NotApplicable; untracked=NotApplicable
+tests: class=NotApplicable; command/result=未运行（只读影响分析）
+api: spec=<契约文件路径或 无>; index=<索引路径或 无>; operationIds=<接口 ID 或 无>
+openFindings: <待确认影响；没有写 无>
+next: <需要落方案则进入 dev-doc；需要缺陷判断则进入 review-check；否则人工确认影响结论>
+nextCommand: <对应的自然语言 skill 调用；无需后续动作写 无>
+tokenHint: 下一位 AI 先读本 Brief -> 契约证据 -> 影响清单中的代码位置；首轮最多 5 个文件
+```
+
+---
+
 ## 文档模板
 
 ````markdown

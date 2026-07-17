@@ -30,6 +30,8 @@
 ReviewMode: <standard / quick>
 ReviewAgentMode: SingleAgentReview
 ReviewScopeType: <PlanReview / ImplementationReview>
+ReviewTaskTemplateSource: <review-fix / legacy-docs-review-form / quick-in-memory>
+CompatibilityFlags: <none / review-form-skill-missing>
 修复结论：<NoEvidenceIssue / Fixed / PartiallyFixed / Blocked / InsufficientMaterial>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>

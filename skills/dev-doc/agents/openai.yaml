@@ -1,7 +1,7 @@
 interface:
   display_name: "Dev Doc"
-  short_description: "编码前生成有证据、可执行的改造方案并登记看板"
-  default_prompt: "Use dev-doc before implementation to turn a new feature, front-end/back-end change, API signature change, refactor, performance task, or configuration change into an evidence-backed executable plan and board entry. Route bug root-cause records to bug-fix and tester-facing business flows to biz-flow; route review-task/fix-handoff creation to review-fix, read-only implementation review to review-check, and direct findings repair to review-repair. Infer from existing code/docs first, ask only blocking questions through capabilities actually available in the current host, and stop without writing artifacts when a non-interactive run has a high-risk blocker. Distinguish plan output from implementation evidence. If APIs are added or signatures change, generate the standalone OpenAPI artifact and index."
+  short_description: "编码前生成标准、增量或精简的可执行改造方案"
+  default_prompt: "Use dev-doc before implementation to produce an evidence-backed executable plan. Select Compact only for a same-module, low-risk, backward-compatible task with at most two production touchpoints and one focused test; Compact creates one short md and skips OpenAPI, board, pages, and indexes. Upgrade to Standard for contract, database, permission, state, transaction, cross-module, or blocker risk; prefer IncrementalRevision when prior dev-docs are supplied. Route bug root-cause records to bug-fix, tester-facing flows to biz-flow, implementation review to review-check, and accepted findings repair to review-repair."
 
 policy:
   allow_implicit_invocation: true

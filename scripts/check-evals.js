@@ -42,6 +42,9 @@ const devDocRequiredTags = new Set([
   'multiple_predecessor_docs',
   'skip_api_sections',
   'workspace_external_validator',
+  'compact_mode',
+  'compact_upgrade_guard',
+  'resolved_conflict',
 ]);
 const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
@@ -68,11 +71,12 @@ const seenTagsBySkill = new Map(requiredSkills.map((skill) => [skill, new Set()]
 const additionalRequiredTags = {
   'biz-flow': ['routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
   'bug-fix': ['routing_review_check', 'routing_dev_doc', 'non_interactive_blocker', 'path_conflict'],
-  'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget'],
+  'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget', 'impact_analysis', 'chat_only'],
+  'conversation-handoff': ['template_path'],
   'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency'],
   'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency'],
   'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency'],
-  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk'],
+  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_fallback', 'host_isolation'],
   'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency'],
 };
 
@@ -177,8 +181,8 @@ const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
 const devDocReferencePath = path.join(skillsDir, 'dev-doc', 'reference.md');
 const devDocExamplesPath = path.join(skillsDir, 'dev-doc', 'examples.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', '前置文档', '不得只保留或只读取日期最近的一篇', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', 'YAML 校验失败误判成环境受限', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
-  [devDocReferencePath, ['文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
+  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', 'conflicts(status=resolved)', '旧口径、否决证据、最终口径和实现禁令', '不得把它继续算作 blocker', '`Compact`', '最多 2 个生产代码切点', '跳过 Step 5.1、5.5、5.6', '升级为 `Standard`', '前置文档', '不得只保留或只读取日期最近的一篇', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', 'YAML 校验失败误判成环境受限', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
+  [devDocReferencePath, ['精简文档模板', '文档模式：Compact', 'NotApplicable (Compact)', '最多两个生产代码切点', '文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '已裁决冲突不进入', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
@@ -190,8 +194,8 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '明确要求 AI 执行', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', '不自动 commit、push', '数据库始终只读']],
-  [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '明确要求 AI 执行', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'legacy-docs-review-form', 'review-form-skill-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', 'review-task-template-missing', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'CompatibilityFlags:', 'review-form-skill-missing', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of needles) {
@@ -204,6 +208,9 @@ const contractNeedles = [
   ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
   ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
   ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
+  ['skills/code-reading/SKILL.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
+  ['skills/code-reading/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
+  ['skills/conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
   ['skills/review-fix/SKILL.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
   ['skills/review-check/SKILL.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
   ['skills/review-fix/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
@@ -217,6 +224,16 @@ for (const [rel, needles] of contractNeedles) {
   for (const needle of needles) {
     if (!text.includes(needle)) fail(`${rel} missing cross-skill contract text: ${needle}`);
   }
+}
+
+const conversationHandoffSkill = fs.readFileSync(path.join(root, 'skills/conversation-handoff/SKILL.md'), 'utf8');
+if (conversationHandoffSkill.includes('references/template.md')) {
+  fail('skills/conversation-handoff/SKILL.md must not reference missing references/template.md');
+}
+
+const reviewLoopSkillText = fs.readFileSync(reviewLoopSkillPath, 'utf8');
+if (/([~$][^\n]*|[A-Za-z]:\\[^\n]*)\.claude[\\/]skills[\\/]review-form/i.test(reviewLoopSkillText)) {
+  fail('skills/review-loop/SKILL.md must not hardcode a Claude review-form skill path');
 }
 
 if (process.exitCode) {

@@ -157,6 +157,18 @@
       "prompt": "使用 dev-doc 为新增补偿接口生成独立 Apifox OpenAPI YAML；validate-openapi.js 安装在工作区外的用户 skill 目录，当前 Codex/Claude Code/Cursor 宿主因沙箱访问限制无法启动该脚本",
       "expected_output": "应先确认失败原因是工作区外 skill 路径被宿主访问策略阻止，而不是 YAML 内容校验失败；随后运行 reference.md 中仅读取工作区 apiSpecPath 的无依赖 Node 静态校验，检查 OpenAPI 3.x、HTTP operation、operationId 非空/唯一和常见本地 schema $ref，并记录 OPENAPI_VALIDATION_MODE=light:workspace-inline 以及“Apifox 实际导入未验证”。不得要求放宽用户目录权限，也不得仅人工目测或用降级掩盖完整校验器已报告的 FAIL/YAML 错误。",
       "tags": ["openapi", "workspace_external_validator", "light_validation", "cross_host_output"]
+    },
+    {
+      "id": 28,
+      "prompt": "使用 dev-doc 规划并直接实现一个小范围后端接口兼容扩展：同一模块仅新增一个解析支持类、修改一个 Service 接入点并补一个聚焦测试；method/path、请求响应、错误码和鉴权都不变",
+      "expected_output": "应基于代码证据自动选择 Compact，无需为文档模式再提问。只生成一份 docs/<日期>/<任务>.md 精简文档，保留范围/非目标、现有行为证据、契约不变核对、最多两个生产改动点、聚焦测试、验证、回滚、Todo 和评审点；跳过 OpenAPI、Apifox 索引、看板、单页、docs/INDEX 和 build.js，Workflow Brief 对这些产物写 NotApplicable (Compact)。若发现新接口/契约变化、DB、权限、状态流转、事务、外部副作用、跨模块或 blocker/conflict，必须停止 Compact 并升级 Standard。",
+      "tags": ["compact_mode", "simple_implementation", "backward_compatible", "compact_upgrade_guard", "skip_board"]
+    },
+    {
+      "id": 29,
+      "prompt": "基于前置 dev-doc 做 IncrementalRevision。对话早先提出按“上架时间 + 24h”处理，但用户本轮明确否决，最终确认改用合同生效时间；生成文档时不要让实现方捡回旧口径",
+      "expected_output": "必须把“上架时间 + 24h”保留为需求冲突（已裁决），记录旧口径、用户本轮否决证据、最终合同生效时间口径和“禁止恢复上架+24h”的实现禁令，并标记 conflicts(status=resolved)。该项不再阻塞 Plan Gate，也不进入 Workflow Brief openFindings；AI 执行提示明确只采用最终口径，即使回读聊天或前置文档也不得复活旧方案。未裁决冲突仍按原 blocker 规则处理。",
+      "tags": ["incremental_revision", "resolved_conflict", "conversation_scope_change", "implementation_guard"]
     }
   ]
 }

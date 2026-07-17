@@ -1,6 +1,6 @@
 ﻿---
 name: code-reading
-description: 在 Code Review 前生成开发者代码地图，梳理入口、调用链、状态跳转和代码位置；只做结构理解，不判断缺陷或关闭 findings。要求找问题用 review-check，已有 findings 要修复用 review-repair，面向测试/产品的业务流用 biz-flow。Codex 中用户可说"使用 code-reading skill 生成代码地图"；Claude Code 可兼容 /code-reading。
+description: 在 Code Review 前生成开发者代码地图，或只读分析新旧接口契约、现有调用链和兼容性影响；代码地图模式会生成 md 并登记看板，只读影响分析模式仅在聊天中输出、仓库零写入。只做结构与影响理解，不判断缺陷或关闭 findings。要求找问题用 review-check，已有 findings 要修复用 review-repair，面向测试/产品的业务流用 biz-flow。Codex 中用户可说"使用 code-reading skill 生成代码地图/只读分析影响"；Claude Code 可兼容 /code-reading。
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
@@ -14,7 +14,7 @@ effort: high
 
 ## 任务定位
 
-在 Code Review 之前运行。把陌生代码转化为可阅读的「地图文档」：调用链流程图 + 状态机 + 代码位置索引。
+在 Code Review 之前运行。支持两种模式：把陌生代码转化为可阅读的「地图文档」，或仅在聊天中比较契约与现有调用链影响。
 **只做结构梳理，不做问题判断。**
 
 通常放在 `review-fix -> review-check -> review-fix 修复交接 -> 验证` 之后、人工 review 之前。若用户在 Review 前运行，也要明确说明代码地图可作为 `review-fix` 证据包补充，但不能替代只读审查。
@@ -27,11 +27,17 @@ effort: high
 
 非交互/无人值守运行中不等待提问：输入为空、入口无候选/多候选或文件冲突时输出 `Blocked` 与候选/最小补充项，不猜入口、不覆盖文件、不登记看板。
 
-同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 服务 Understanding Gate；输出当前阶段、代码地图产物、人工 review 入口，以及如需 AI 审查时回到 `review-fix` / `review-check` 的路径。
+同时遵循 [../_shared/workflow-gates.md](../_shared/workflow-gates.md)：本 skill 服务 Understanding Gate；`CodeMap` 输出代码地图产物，`ImpactAnalysis` 明确写 `artifacts: 无（聊天只读分析）`；两者都给出人工 review 入口，以及如需 AI 审查时回到 `review-fix` / `review-check` 的路径。
 
 若输入包含 `【Workflow Brief】`，同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)：先按 Brief 的 `source` / `changed` / `tokenHint` 锁定阅读入口和范围，把 `changed` 文件作为追踪起点，不重新全局搜索；随后按对应源模式生成代码地图。
 
 ### Step 0：入口检测与参数检查
+
+先判定输出模式：
+- **`CodeMap`（默认）**：用户明确要求“生成代码地图/调用链文档/登记看板”，或需要可持久化的 Review 阅读产物。
+- **`ImpactAnalysis`（只读影响分析）**：用户只要求“判断影响/比较新旧接口契约/哪些调用方受影响/兼容性分析”，或明确要求不生成文档、看板。即使用户点名 code-reading，只要交付目标只是影响结论，也直接选此模式，无需为是否落盘再提问。
+
+`ImpactAnalysis` 是严格零写入模式：只允许 Read/Glob/Grep 和只读 shell 命令；禁止 Write/Edit、创建目录或临时文件、修改看板、运行 `board-add.js` / `build.js`。证据不足时输出 `Blocked` 与最小补充项，仍保持零写入。
 
 `$entry` 为空且当前为交互会话 → 使用当前实际可用的结构化提问能力；没有时用普通聊天询问（三选一，候选入口确认同样降级处理）：
 > "请选择入口方式：
@@ -45,7 +51,9 @@ effort: high
 - `$entry` 含 `#` 或 `.java` → **入口代码模式**
 - 其他自然语言描述 → **功能描述模式**
 
-告知用户："检测到入口模式：[模式名]，开始静默分析..."
+若 `ImpactAnalysis` 输入包含 PDF、OpenAPI、接口说明或其他契约文件，先用当前宿主实际可用的只读文件能力提取契约；文件不可读时列为 blocker，不凭文件名猜契约，也不为转换格式在仓库落盘。
+
+告知用户："检测到输出模式：[CodeMap / ImpactAnalysis]；入口模式：[模式名]，开始静默分析..."
 
 ### Step 1：代码发现（按模式）
 
@@ -87,9 +95,13 @@ effort: high
 - **事务边界**：@Transactional 注解位置及传播级别
 - **异常分支**：主要 catch 块处理逻辑、重要的 if/else 判断分支
 
+`ImpactAnalysis` 还要逐项对比契约的 method/path、请求字段与约束、响应结构、状态码/错误码、鉴权输入和副作用，并沿现有调用链定位直接调用方、适配/封装层、测试与接口文档。影响结论分为“明确受影响 / 证据显示不受影响 / 待确认”，每项附文件路径、行号或契约页码；兼容性影响不是 Bug 定性。
+
 ### Step 3：生成文档
 
-加载完整模板：[reference.md](reference.md#文档模板)
+`CodeMap` 加载完整模板：[reference.md](reference.md#文档模板)。
+
+`ImpactAnalysis` 使用 [只读影响分析输出格式](reference.md#只读影响分析输出格式) 直接回复用户，然后结束 skill；不得进入 Step 4/4.5，不生成代码地图、看板、单页或索引。若用户后续明确要求持久化，再作为新的 `CodeMap` 请求处理。
 
 核心规则：
 - 只记录代码里实际存在的内容，未确认的不写
@@ -99,7 +111,7 @@ effort: high
 - 关键变量追踪仅在变量被 3 处以上读写时记录
 - dev-doc 模式必须生成「六、方案 vs 实现对照」章节
 
-### Step 4：保存文件
+### Step 4：保存文件（仅 `CodeMap`）
 
 ```bash
 d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
@@ -112,7 +124,7 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 
 > 看板登记（Step 4.5）按 `docPath` 查重：选 A 覆盖时命中既有条目改为更新，不会产生重复看板记录。
 
-### Step 4.5：登记到 HTML 看板
+### Step 4.5：登记到 HTML 看板（仅 `CodeMap`）
 
 代码地图也是项目知识资产，登记为看板的「阅读」类条目（kind:"reading"）。
 
@@ -175,10 +187,12 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 - **不编造**：只记录代码里实际存在的调用/状态/注释
 - **不越界**：不提修改建议，不标记问题，那是 `/review-check` 的职责
 - **偏差只记录，不定性**：dev-doc 模式下发现方案与实现不一致，只写"偏差/观察，Review 时关注"，不把它定为 Bug
+- **影响分析零写入**：`ImpactAnalysis` 只在聊天中输出，禁止生成 md、看板、单页、索引或临时转换文件
 
 ## 检查清单（生成前确认）
 
 - [ ] `$entry` 已确认（不为空），入口模式已识别
+- [ ] 输出模式已识别；`ImpactAnalysis` 已确认仓库零写入并跳过 Step 4/4.5
 - [ ] Step 1-2 静默分析完成，调用链/状态/关键位置已收集
 - [ ] 文件路径冲突已处理（Step 4）
 - [ ] 只记录代码里实际存在的内容，无修改建议、无问题标记
@@ -201,3 +215,4 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 | 流程图节点太多看不清 | 追踪层级过深 | 只追踪 3 层以内，更深的用「...」省略 |
 | 状态机图没有生成 | 代码里没有找到明确状态跳转 | 正常，只有发现 setStatus/枚举赋值时才生成 |
 | Step 4.5 找不到看板模板 | dev-doc 未安装 | 跳过看板登记，提示安装 dev-doc |
+| 用户只问接口/调用链影响却生成代码地图和看板 | 未区分 `ImpactAnalysis` 与 `CodeMap` | 切换为只读影响分析，聊天输出契约差异、受影响调用方和证据；`artifacts: 无`，仓库零写入 |
