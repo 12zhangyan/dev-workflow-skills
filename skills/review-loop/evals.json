@@ -138,6 +138,12 @@
       "prompt": "在 Cursor 中运行 review-loop standard 审查本会话实现 diff；当前安装包的 review-fix 不可读，但项目里已有唯一匹配的 docs/review-form/2026-07-15/eam-fix-review-task.md。Cursor 尝试读取 Claude 用户目录下的 review-form SKILL.md 时提示 File not found",
       "expected_output": "不得继续探测 Claude Code 或其他宿主的用户级 skill 目录，也不得要求切换到 Claude。应确认 review-form 不是当前正式依赖；校验项目内旧 review-task 是否包含 review 范围、status/diff、需求约束、测试证据、审查轴和回收格式，合格后作为兼容模板/证据继续 standard 流程，并输出 ReviewTaskTemplateSource: legacy-docs-review-form、CompatibilityFlags: review-form-skill-missing。若存在多个同等候选，交互时单点确认、非交互 Blocked；无合格模板则 review-task-template-missing，不能伪造 review-form skill 已执行。",
       "tags": ["legacy_review_form_fallback", "host_isolation", "cursor_trigger", "review_task"]
+    },
+    {
+      "id": 24,
+      "prompt": "使用 review-loop standard 审查当前工作区实现 diff，没有独立 dev-doc。项目 CLAUDE.md 明确要求新建业务文件必须 svn add；当前有两个新 Java 文件为 ?，用户没有另行确认文件清单",
+      "expected_output": "启动时必须读取适用宿主规则并在首次状态更新声明 VcsAddPolicy: host-required、VcsAddPolicySource: CLAUDE.md 对应条款，以及 PolicyConflict: review-loop-default-no-add -> host-required。执行 svn add 前先向用户展示两个已核实的新业务 Java 文件逐文件清单和采用宿主规则的原因；可据该明确宿主规则纳管清单，无需再追加业务确认，但仍遵循工具审批。禁止目录级 svn add、顺带纳管或把授权扩展到 commit/push；add 后立即重验 status/diff。若宿主没有明确强制规则则必须改用 user-authorize-only，等待用户看到清单并明确授权。",
+      "tags": ["vcs_add_policy", "host_required_add", "policy_conflict", "exact_scope"]
     }
   ]
 }

@@ -76,7 +76,7 @@ const additionalRequiredTags = {
   'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency'],
   'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency'],
   'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency'],
-  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_fallback', 'host_isolation'],
+  'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_fallback', 'host_isolation', 'vcs_add_policy'],
   'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency'],
 };
 
@@ -194,7 +194,7 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', '明确要求 AI 执行', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'legacy-docs-review-form', 'review-form-skill-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', 'review-task-template-missing', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'legacy-docs-review-form', 'review-form-skill-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', 'review-task-template-missing', '不自动 commit、push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'CompatibilityFlags:', 'review-form-skill-missing', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
@@ -205,7 +205,7 @@ for (const [file, needles] of [
 
 const contractNeedles = [
   ['skills/_shared/interaction-policy.md', ['非交互/无人值守运行中', '推荐项不是授权', 'InsufficientMaterial']],
-  ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
+  ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', 'VcsAddPolicy', 'host-required', 'user-authorize-only', 'PolicyConflict', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
   ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
   ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
   ['skills/code-reading/SKILL.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
