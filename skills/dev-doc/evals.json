@@ -169,6 +169,12 @@
       "prompt": "基于前置 dev-doc 做 IncrementalRevision。对话早先提出按“上架时间 + 24h”处理，但用户本轮明确否决，最终确认改用合同生效时间；生成文档时不要让实现方捡回旧口径",
       "expected_output": "必须把“上架时间 + 24h”保留为需求冲突（已裁决），记录旧口径、用户本轮否决证据、最终合同生效时间口径和“禁止恢复上架+24h”的实现禁令，并标记 conflicts(status=resolved)。该项不再阻塞 Plan Gate，也不进入 Workflow Brief openFindings；AI 执行提示明确只采用最终口径，即使回读聊天或前置文档也不得复活旧方案。未裁决冲突仍按原 blocker 规则处理。",
       "tags": ["incremental_revision", "resolved_conflict", "conversation_scope_change", "implementation_guard"]
+    },
+    {
+      "id": 30,
+      "prompt": "用户先用 superpowers-zh 的 brainstorming 收敛了三版方案，现在要求 dev-doc 基于最终版生成开发文档；聊天里还保留两版被否决的旧方案",
+      "expected_output": "应把 superpowers brainstorming 输出当作需求来源而不是交付产物。最终文档必须记录采用范围、非目标、待确认项，并把两版被否决方案写入 conflicts(status=resolved) 或非目标；不得因为已 brainstorming 就跳过 Plan Gate、blockers/conflicts/assumptions 或 Workflow Brief。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
+      "tags": ["superpowers_bridge", "brainstorming_input", "resolved_conflict", "cross_host_output"]
     }
   ]
 }

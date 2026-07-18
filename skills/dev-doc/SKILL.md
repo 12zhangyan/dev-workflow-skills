@@ -462,6 +462,7 @@ node project-html/build.js
 - 已填示例（新功能 / Bug 修复）：[examples.md](examples.md)
 - 看板模板（外壳 + 样式 + 逻辑 + 数据占位）：[assets/board/](assets/board/)
 - 中文文档规范：**必需背景：** `chinese-documentation` skill
+- 可选前置：需求仍混沌时，可先用 `superpowers:brainstorming` 收敛范围；其输出必须回填到本 skill 的范围、非目标、blockers、conflicts 或 assumptions，不能代替 Plan Gate
 - 后续步骤：`review-fix`（生成 Review 任务包并汇总修复）、`review-check`（只读审查）、`review-repair`（按 findings 直修）、`code-reading`（生成代码地图）；实际调用写法以共享 workflow-chain 为准
 
 ## 常见错误
@@ -470,7 +471,7 @@ node project-html/build.js
 |------|------|------|
 | 文档生成后 AI 执行走偏 | 「六、代码变更清单」写得不够具体 | 每个条目加上「为何不能用扩展替代」说明 |
 | Cursor / Claude Code / Codex 当前模式没有结构化提问工具 | 按产品名猜工具，或把工具缺失误当成可以采用默认项 | 交互会话降级为聊天单选；非交互运行把高风险问题记为 blocker 并停止；默认建议必须有证据 |
-| 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `/brainstorming` 理清需求再运行 dev-doc |
+| 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `superpowers:brainstorming`（或宿主显示的同名入口）理清需求；结论回填到范围/非目标/blockers/conflicts/assumptions 后再运行 dev-doc |
 | 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
 | Step 1 git 命令报 dubious ownership / safe.directory | 当前执行用户不是仓库拥有者 | 仍按 `.git` 判定为 Git；只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不要改全局配置 |
 | 看板写入后打不开 | 手工降级时字段含未转义的双引号/换行/反引号 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |

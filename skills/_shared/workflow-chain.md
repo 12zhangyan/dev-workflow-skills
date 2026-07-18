@@ -2,6 +2,10 @@
 
 本表是"当前 skill 完成后，下一步跑什么"的唯一权威来源。各 skill 的完成输出、`Workflow Brief` 的 `next` 字段、workflow-guide 的下一步提示都以本表为准，避免各处叙述漂移。改动串联关系时只改这里。
 
+`superpowers-zh` 是推荐的外部方法论层，不进入本表的强制主链路。可在主链路前后插入，但它的输出必须回填到本仓库的门禁字段、`Workflow Brief` 或 finding ID 链路，不能形成第二套交付结论。
+
+表中的 `superpowers:<skill>` 是能力名写法；真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准。跨 Claude Code / Cursor / Codex 时不得硬编码某个宿主的斜杠命令。
+
 ## skill 一句话职责
 
 | skill | 阶段 | 做什么 | 会改代码吗 |
@@ -28,6 +32,18 @@
 | `review-repair`（修复完） | 验证通过 → `code-reading` → 人工 review；改动大则二次 `review-check` | `/code-reading docs/<日期>/<任务>.md` | `使用 code-reading skill 基于 docs/<日期>/<任务>.md 生成代码地图` |
 | `review-loop`（单 AI 闭环） | 无未关闭 CR/IM 且验证通过 → `code-reading` → 人工 review | `/code-reading docs/<日期>/<任务>.md` | `使用 code-reading skill 基于 docs/<日期>/<任务>.md 和当前实现生成代码地图` |
 | `code-reading` | 人工 review → 提交 | 人工 | 人工 |
+
+## superpowers-zh 插入点（可选增强）
+
+| 插入点 | 推荐使用 | 回填到本仓库的证据 |
+|--------|----------|-------------------|
+| `dev-doc` 前，需求仍混沌 | `superpowers:brainstorming` | 把已确认范围、被否决方案、待确认项写入 `dev-doc` 的 blockers/conflicts/assumptions |
+| 实现阶段，复杂逻辑或需要先写测试 | `superpowers:test-driven-development` | 回填 dev-doc Todo 对照表、changed 文件、验证命令和 TestDependencyClass |
+| 实现阶段，问题定位不清 | `superpowers:systematic-debugging` | 若要沉淀问题，进入 `bug-fix`；否则把根因证据写入执行回填 |
+| Review Gate 前 | `superpowers:verification-before-completion` | 回填 Verification Gate：命令、结果、TestEvidenceStatus、未验证风险 |
+| 多视角 review | `superpowers:requesting-code-review` 或宿主同名 code review 入口 | 作为额外 reviewer 来源；有效问题必须归并为 `CR/IM/MI`，再进入 `review-fix` 或 `review-repair` |
+
+边界：`superpowers-zh` 的 code review 结论不能直接关闭本仓库 Critical/Important finding；完成前验证也不能代替 Verification Gate，除非它记录了可复跑命令、退出结果和目标逻辑断言证据。
 
 ## Finding ID 命名体系（全链路统一）
 

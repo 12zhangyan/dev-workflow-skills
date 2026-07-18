@@ -28,7 +28,7 @@ effort: high
 - `/code-reading`：只生成代码地图，不判断问题。
 - `/review-check`：根据本 skill 生成的任务包执行一次只读审查，输出可回收 findings。
 - `/review-repair`：根据 findings 或 fix-handoff 直接修改代码并验证，适合不需要再生成交接文档、希望立即修复的场景。
-- `/requesting-code-review`：可作为额外 review 来源（Git 项目），但本仓库主路径是 `review-fix` 任务包 + `review-check` findings 回收。
+- `superpowers:requesting-code-review`（或宿主显示的同名 code review 入口）：可作为额外 review 来源，但本仓库主路径是 `review-fix` 任务包 + `review-check` findings 回收；有效问题必须归并为 `CR/IM/MI`，误报写 `RJ`，待确认写 `BK`，不能直接替代本 skill 的 finding ID 链路。
 - `/review-fix`：先生成 review 任务包；可选地汇总 review 结果并交接修复。
 - `/bug-fix`：面向线上/测试 Bug 的现象、根因、修复记录。
 

@@ -60,6 +60,12 @@
       "prompt": "为默认 mvn verify 因模型 API Key 缺失而失败的项目生成 review 任务包，CI workflow 也未提供该密钥",
       "expected_output": "任务包必须读取测试注解/profile、配置和 CI workflow，记录 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并要求审查默认 CI 契约；不得仅写 EnvironmentBlocked，也不得建议伪造密钥。",
       "tags": ["external_test_dependency", "ci_contract", "test_evidence"]
+    },
+    {
+      "id": 12,
+      "prompt": "我已经用 superpowers-zh 的 requesting-code-review 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接",
+      "expected_output": "应把 superpowers code review 结果作为额外 reviewer 来源，而不是替代本仓库链路。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能直接把外部 review 结论当作已关闭或已验证。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
+      "tags": ["superpowers_review_bridge", "finding_ids", "external_review_source"]
     }
   ]
 }

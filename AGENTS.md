@@ -34,11 +34,21 @@ The scripts download the repo archive (tarball/zip) and copy the `skills/` subtr
 
 `install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading, and targets the user-level **skills** dir of three tools — `~/.claude/skills`, `~/.cursor/skills` (Cursor ≥1.6), `~/.codex/skills` — copying each skill dir whole. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. It iterates `skills/*` (no hardcoded list) and per-skill removes+recopies, leaving other skills untouched; Codex copies get `SKILL.md` BOM normalization after copy. Kept **pure ASCII on purpose**: cmd.exe parses batch files per the OEM code page, so non-ASCII comments/echo break parsing (and can execute stray tokens).
 
-The full workflow also requires `superpowers-zh` (provides `/brainstorming`, `/requesting-code-review`, etc.):
+Recommended companion workflow layer: [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh). It provides general engineering-method skills such as brainstorming, test-driven development, systematic debugging, requesting code review, and verification before completion. This repository remains the Java delivery workflow layer: dev docs, bug/business-flow docs, review-task packages, structured finding IDs, repair handoff, code maps, board entries, Apifox/OpenAPI artifacts, and Workflow Briefs.
+
+Install `superpowers-zh` from the concrete project directory, not from the user home directory:
 
 ```bash
 npx superpowers-zh
 ```
+
+If auto-detection cannot identify the host tool, follow `superpowers-zh` documentation and use `npx superpowers-zh --tool <name>` such as `codex`, `cursor`, or `claude`.
+
+Integration policy:
+- Use `superpowers-zh` before this repo's workflow when the requirement is still fuzzy (`brainstorming`), during implementation when TDD/debugging discipline is useful, or right before Review Gate for general verification discipline.
+- Use this repo's skills for authoritative Java delivery artifacts and gates: `dev-doc`, `bug-fix`, `biz-flow`, `review-fix`, `review-check`, `review-repair`, `review-loop`, `code-reading`, and `conversation-handoff`.
+- Do not let a `superpowers-zh` code-review result replace this repo's finding-ID chain. Convert useful findings into `review-check` / `review-fix` / `review-repair` IDs before repair or handoff.
+- When documenting the combined workflow, use `skills/_shared/workflow-chain.md` as the source of truth: `superpowers-zh` may be inserted as optional preflight/TDD/debugging/verification/reviewer input, but its output must be recorded in this repo's blockers/conflicts, Verification Gate fields, `Workflow Brief`, or `CR/IM/MI/RJ/BK` IDs.
 
 ## Architecture
 

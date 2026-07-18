@@ -45,6 +45,7 @@ const devDocRequiredTags = new Set([
   'compact_mode',
   'compact_upgrade_guard',
   'resolved_conflict',
+  'superpowers_bridge',
 ]);
 const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
@@ -75,7 +76,7 @@ const additionalRequiredTags = {
   'conversation-handoff': ['template_path'],
   'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency'],
   'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency'],
-  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency'],
+  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency', 'superpowers_review_bridge'],
   'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_input', 'host_isolation', 'vcs_add_policy', 'review_fix_path_canonical'],
   'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency'],
 };
