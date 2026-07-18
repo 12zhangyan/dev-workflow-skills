@@ -33,8 +33,9 @@ ReviewScopeType: <PlanReview / ImplementationReview>
 VcsAddPolicy: <host-required / user-authorize-only>
 VcsAddPolicySource: <适用仓库规则路径与条款 / review-loop-default>
 PolicyConflict: <none / review-loop-default-no-add -> host-required；采用原因>
-ReviewTaskTemplateSource: <review-fix / legacy-docs-review-form / quick-in-memory>
-CompatibilityFlags: <none / review-form-skill-missing>
+ReviewTaskTemplateSource: <review-fix / quick-in-memory>
+LegacyReviewTaskInput: <无 / 用户显式提供的 docs/review-form/...>
+CompatibilityFlags: <none / legacy-review-form-input>
 修复结论：<NoEvidenceIssue / Fixed / PartiallyFixed / Blocked / InsufficientMaterial>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>

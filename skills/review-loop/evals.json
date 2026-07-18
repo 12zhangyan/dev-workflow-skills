@@ -136,8 +136,8 @@
     {
       "id": 23,
       "prompt": "在 Cursor 中运行 review-loop standard 审查本会话实现 diff；当前安装包的 review-fix 不可读，但项目里已有唯一匹配的 docs/review-form/2026-07-15/eam-fix-review-task.md。Cursor 尝试读取 Claude 用户目录下的 review-form SKILL.md 时提示 File not found",
-      "expected_output": "不得继续探测 Claude Code 或其他宿主的用户级 skill 目录，也不得要求切换到 Claude。应确认 review-form 不是当前正式依赖；校验项目内旧 review-task 是否包含 review 范围、status/diff、需求约束、测试证据、审查轴和回收格式，合格后作为兼容模板/证据继续 standard 流程，并输出 ReviewTaskTemplateSource: legacy-docs-review-form、CompatibilityFlags: review-form-skill-missing。若存在多个同等候选，交互时单点确认、非交互 Blocked；无合格模板则 review-task-template-missing，不能伪造 review-form skill 已执行。",
-      "tags": ["legacy_review_form_fallback", "host_isolation", "cursor_trigger", "review_task"]
+      "expected_output": "不得继续探测 Claude Code 或其他宿主的用户级 skill 目录，也不得要求切换到 Claude。应确认 review-form 不是当前正式依赖；项目内旧 review-task 只有在用户显式提供时才可作为输入证据，不能自动扫描 docs/review-form，也不能作为 Step2 生成模板或输出目录。若用户显式提供且校验合格，必须把必要证据迁移/归并到 docs/review-fix/<日期>/<任务>-review-task.md，并输出 ReviewTaskTemplateSource: review-fix、LegacyReviewTaskInput: docs/review-form/...、CompatibilityFlags: legacy-review-form-input。若 sibling review-fix 不可读，应 Blocked / review-fix-sibling-missing，不能降级到 review-form。",
+      "tags": ["legacy_review_form_input", "host_isolation", "cursor_trigger", "review_task", "review_fix_path_canonical"]
     },
     {
       "id": 24,
