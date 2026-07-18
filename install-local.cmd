@@ -68,6 +68,7 @@ if defined DO_CODEX  call :install "%USERPROFILE%\.codex\skills"  "Codex CLI"
 echo.
 if "%FAIL%"=="0" (
   echo Done. Restart Cursor / Claude Code / Codex to load the skills.
+  echo Optional companion: run "npx superpowers-zh" from each concrete project directory.
 ) else (
   echo Done, but %FAIL% skill^(s^) failed to copy - see the log above.
 )

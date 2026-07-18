@@ -64,3 +64,4 @@ try {
 Write-Host ""
 Write-Host "Done! Restart Claude Code / Cursor / Codex to load the skills."
 Write-Host "Claude Code usually uses slash names like /dev-doc; Codex should use natural language such as '使用 dev-doc skill 生成开发文档'."
+Write-Host "Optional companion: run 'npx superpowers-zh' from each concrete project directory for brainstorming/TDD/debugging/review helpers."

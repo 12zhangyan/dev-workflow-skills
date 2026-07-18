@@ -78,3 +78,4 @@ done
 echo ""
 echo "Done! Restart Claude Code / Cursor / Codex to load the skills."
 echo "Claude Code usually uses slash names like /dev-doc; Codex should use natural language such as '使用 dev-doc skill 生成开发文档'."
+echo "Optional companion: run 'npx superpowers-zh' from each concrete project directory for brainstorming/TDD/debugging/review helpers."

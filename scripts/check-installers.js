@@ -28,7 +28,8 @@ requireText('install.sh', [
   'normalize_codex_skill',
   'if [ "$target" = "codex" ]',
   'SKILL.md',
-  '\\xef\\xbb\\xbf'
+  '\\xef\\xbb\\xbf',
+  'npx superpowers-zh'
 ]);
 
 requireText('install.ps1', [
@@ -36,7 +37,8 @@ requireText('install.ps1', [
   'Remove-SkillMarkdownBom',
   '"codex"',
   'SKILL.md',
-  '0xEF'
+  '0xEF',
+  'npx superpowers-zh'
 ]);
 
 requireText('install-local.cmd', [
@@ -44,7 +46,8 @@ requireText('install-local.cmd', [
   ':codex_normalize',
   'Codex CLI',
   'SKILL.md',
-  '0xEF'
+  '0xEF',
+  'npx superpowers-zh'
 ]);
 
 const cmdBytes = fs.readFileSync(path.join(root, 'install-local.cmd'));
