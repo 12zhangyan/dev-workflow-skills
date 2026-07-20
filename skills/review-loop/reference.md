@@ -76,6 +76,7 @@ VCS 完整性：
 - 纳管策略：<VcsAddPolicy + 来源；存在冲突时写采用口径及其优先级依据>
 - add 前精确清单：<逐文件路径 / 无>；授权依据：<host-required 规则 / 用户本轮明确授权 / 未授权>
 - 新增文件纳管：<无 / 需 git add / 需 svn add>
+- SVN 树冲突恢复模板：<NotApplicable / 已输出 SVNTreeConflictAddRecovery：resolve working -> revert --depth empty 被标记 D 的父目录 -> svn add --parents 精确新增文件；ExcludedUntracked=...>
 - 测试源路径核对：<NotApplicable / 已 walk-rglob 核对 / WindowsTestSourcePathMismatch + 证据>
 - 自动提交：未执行
 

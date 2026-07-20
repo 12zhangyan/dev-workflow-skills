@@ -121,6 +121,18 @@ Windows + Java/SVN 工作区额外执行一次真实文件系统探测：对 `sr
 
 若范围内源码、测试、配置、OpenAPI 或正式 docs 在其实际 `VCS_OWNER` 中仍是 Git `??` / SVN `?`，记录 `VCSGateBlocked` 并输出逐文件最小纳管清单。`host-required` 在执行前声明策略来源、冲突采用口径和清单后，只纳管清单中的本次新建业务文件；`user-authorize-only` 必须等待用户看到清单并明确授权。两者都禁止 `git add .` 和目录级兜底，执行后立即重验 status/diff。普通临时文件或明确标记的 AI 工作流临时产物不属于实现范围时可排除，但必须写明依据。门禁仍未通过时可继续 Step 2-3 的证据包与第一次**只读审查**，但不得进入 Step 4-7 的修复、验证和修复后复审，不得输出 `Fixed / NoEvidenceIssue` 或 Review Gate 已通过；最终结论固定为 `Blocked / VCSGateBlocked`，列出 findings 与最小纳管清单，纳管后可携带原 finding ID 续跑，不要求从头重做已验证证据。
 
+SVN 纳管失败且 `svn status` 出现树冲突、父目录 `D`（schedule delete）并夹带本次新增 `?` 子文件时，先输出 `SVNTreeConflictAddRecovery`，把“恢复删除调度”和“纳管精确子文件”拆开处理；不得用 `svn add <父目录>` 或 `svn add .` 兜底。推荐命令模板按实际路径替换：
+
+```bash
+svn status <父目录或冲突路径>
+svn resolve --accept working <冲突路径>
+svn revert --depth empty <被标记为 D 的父目录>
+svn add --parents <本次范围内的精确新增文件1> <本次范围内的精确新增文件2>
+svn status <父目录或精确新增文件>
+```
+
+若 `D` 状态下还有非本次范围的未跟踪子文件，必须把它们列为 `ExcludedUntracked` 并说明不纳管；只有清单内文件可进入 `svn add --parents`。如果 `svn revert --depth empty` 后仍有子项删除调度或冲突，停止为 `Blocked / VCSGateBlocked`，输出剩余 `svn status`，不得扩大到递归 revert 或目录级 add，除非用户基于逐项清单明确授权。
+
 记录 `ReviewScopeType`：
 
 - 有实际 diff/status/源码 → `ImplementationReview`。

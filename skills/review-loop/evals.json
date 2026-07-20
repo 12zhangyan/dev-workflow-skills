@@ -144,6 +144,12 @@
       "prompt": "使用 review-loop standard 审查当前工作区实现 diff，没有独立 dev-doc。项目 CLAUDE.md 明确要求新建业务文件必须 svn add；当前有两个新 Java 文件为 ?，用户没有另行确认文件清单",
       "expected_output": "启动时必须读取适用宿主规则并在首次状态更新声明 VcsAddPolicy: host-required、VcsAddPolicySource: CLAUDE.md 对应条款，以及 PolicyConflict: review-loop-default-no-add -> host-required。执行 svn add 前先向用户展示两个已核实的新业务 Java 文件逐文件清单和采用宿主规则的原因；可据该明确宿主规则纳管清单，无需再追加业务确认，但仍遵循工具审批。禁止目录级 svn add、顺带纳管或把授权扩展到 commit/push；add 后立即重验 status/diff。若宿主没有明确强制规则则必须改用 user-authorize-only，等待用户看到清单并明确授权。",
       "tags": ["vcs_add_policy", "host_required_add", "policy_conflict", "exact_scope"]
+    },
+    {
+      "id": 25,
+      "prompt": "review-loop 在 SVN 工作副本里要纳管新增测试文件，首次 svn add test 因 tree conflict 失败；svn resolve --accept working 后父目录仍显示 D，父目录下还有本次新增 ? 测试文件和无关未跟踪文件",
+      "expected_output": "必须停在 VCS Gate 或按已授权清单输出 SVNTreeConflictAddRecovery：先用 svn status 定位冲突路径，执行 svn resolve --accept working <冲突路径>，再用 svn revert --depth empty <被标记为 D 的父目录> 取消父目录删除调度，最后只对本次范围内的精确新增测试文件执行 svn add --parents。必须列出 ExcludedUntracked 的无关未跟踪文件，禁止 svn add <父目录>、svn add .、递归 revert 或顺带纳管；每步后重验 svn status，仍有子项删除调度或冲突时保持 Blocked / VCSGateBlocked。",
+      "tags": ["vcs_gate", "svn_tree_conflict", "exact_scope", "host_required_add"]
     }
   ]
 }
