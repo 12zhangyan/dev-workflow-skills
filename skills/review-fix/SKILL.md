@@ -1,6 +1,6 @@
 ﻿---
 name: review-fix
-description: 根据当前上下文生成可分发给多个 AI 的统一代码审查任务包、证据包和 review 提示；当用户要求“生成 Review 任务包”“让多个 AI 独立 review”“汇总返回的 findings 形成修复交接”时使用。普通一次只读审查用 review-check，已有 findings 要直接改代码用 review-repair。仅在用户贴回 review 结果或明确要求汇总 findings 时，才生成 fix-handoff 和修复操作码。Codex 可自然语言点名 review-fix skill；Claude Code 可用 /review-fix。
+description: 根据当前上下文生成可分发给多个 AI 的统一代码审查任务包、证据包和 review 提示；当用户要求“生成 Review 任务包”“让多个 AI 独立 review”“汇总返回的 findings 形成修复交接”时使用。普通一次只读审查用 review-check，已有 findings 要直接改代码用 review-repair，同一 AI 要审查、修复、验证并复审闭环用 review-loop。仅在用户贴回 review 结果或明确要求汇总 findings 时，才生成 fix-handoff 和修复操作码。Codex 可自然语言点名 review-fix skill；Claude Code 可用 /review-fix。
 argument-hint: [dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true
@@ -28,6 +28,7 @@ effort: high
 - `/code-reading`：只生成代码地图，不判断问题。
 - `/review-check`：根据本 skill 生成的任务包执行一次只读审查，输出可回收 findings。
 - `/review-repair`：根据 findings 或 fix-handoff 直接修改代码并验证，适合不需要再生成交接文档、希望立即修复的场景。
+- `/review-loop`：同一 AI 编排审查、修复、验证和复审，适合不需要分发多 AI 任务包的闭环场景。
 - `superpowers:requesting-code-review`（或宿主显示的同名 code review 入口）：可作为额外 review 来源，但本仓库主路径是 `review-fix` 任务包 + `review-check` findings 回收；有效问题必须归并为 `CR/IM/MI`，误报写 `RJ`，待确认写 `BK`，不能直接替代本 skill 的 finding ID 链路。
 - `/review-fix`：先生成 review 任务包；可选地汇总 review 结果并交接修复。
 - `/bug-fix`：面向线上/测试 Bug 的现象、根因、修复记录。

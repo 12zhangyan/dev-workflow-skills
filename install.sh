@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARBALL="https://github.com/12zhangyan/dev-workflow-skills/archive/refs/heads/main.tar.gz"
+TARBALL="${DEV_WORKFLOW_SKILLS_TARBALL:-https://github.com/12zhangyan/dev-workflow-skills/archive/refs/heads/main.tar.gz}"
 
 if [ "$#" -eq 0 ]; then
   TARGETS="claude cursor codex"

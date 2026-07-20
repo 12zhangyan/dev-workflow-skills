@@ -17,6 +17,12 @@
     <div class="sidebar-title">📚 AI 变更记录</div>
     <div class="sidebar-sub" id="sub"></div>
     <input class="search" id="q" placeholder="🔍 搜索标题 / 服务 / 模块 / 内容" oninput="onSearch(this.value)">
+    <div class="scope-filters" aria-label="记录范围">
+      <span class="fpill" data-scope="workspace" onclick="setScope('workspace')">工作台</span>
+      <span class="fpill" data-scope="backlog" onclick="setScope('backlog')">待办库</span>
+      <span class="fpill" data-scope="archive" onclick="setScope('archive')">档案库</span>
+      <span class="fpill" data-scope="all" onclick="setScope('all')">全部</span>
+    </div>
     <div class="filters">
       <span class="fpill" data-k="all" onclick="setKind('all')">全部</span>
       <span class="fpill" data-k="doc" onclick="setKind('doc')">📄 文档</span>

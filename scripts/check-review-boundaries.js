@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const root = path.resolve(__dirname, '..');
+
+let failed = false;
+
+function fail(message) {
+  failed = true;
+  console.error('FAIL: ' + message);
+}
+
+function read(rel) {
+  const file = path.join(root, rel);
+  if (!fs.existsSync(file)) {
+    fail(`missing file: ${rel}`);
+    return '';
+  }
+  return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+}
+
+function requireText(rel, needles) {
+  const text = read(rel);
+  for (const needle of needles) {
+    if (!text.includes(needle)) {
+      fail(`${rel} missing behavior guardrail text: ${needle} (keep an equivalent rule, or update this check when wording changes)`);
+    }
+  }
+}
+
+requireText('skills/review-check/SKILL.md', [
+  '只读 code review',
+  '不得修改代码',
+  '不执行数据库写操作',
+  'InsufficientMaterial',
+  '可将以上 findings 原样贴回 /review-fix',
+  '如果希望直接修复，可将 findings 交给 /review-repair',
+]);
+
+requireText('skills/review-repair/SKILL.md', [
+  '已有 findings',
+  '用户要“审查/Review/找问题” → 使用 `review-check`',
+  '用户要“一个 AI 审查并修复/一键 review 并修复”且还没有 findings → 使用 `review-loop`',
+  '如果输入只有 review task、dev-doc、patch 或 diff，且没有明确 finding，不进入修复',
+  '不会提交代码',
+  '不得要求执行数据库写操作、DDL、数据修复 SQL',
+  '单轮默认最多处理 5 条 accepted findings',
+]);
+
+requireText('skills/review-fix/SKILL.md', [
+  '默认只生成 review 任务包',
+  '如果用户没有贴回 review 结果，到这里停止',
+  '普通一次只读审查用 review-check',
+  '已有 findings 要直接改代码用 review-repair',
+  '阻塞项不下发修复',
+]);
+
+requireText('skills/review-loop/SKILL.md', [
+  'SingleAgentReview',
+  '最多 2 个修复循环',
+  '`review-check` 阶段保持只读',
+  '没有 findings 时不制造修复动作',
+  '不会提交代码或执行数据库写操作',
+]);
+
+requireText('skills/_shared/workflow-chain.md', [
+  'review-check / review-fix / review-repair 共用同一套 ID 前缀',
+  '没有明确 findings / fix-handoff / 问题清单 → `review-repair` 不凭空修复',
+  '`review-loop` 最多自动修复 2 轮',
+  '需要 DDL / 数据修复 → 停止直接执行',
+  '`Passed` / `Failed` / `NotProvided` / `NotRun` / `EnvironmentBlocked` / `NotApplicable`',
+  '一旦修改代码，必须重新判定为 `Passed / Failed / NotRun / EnvironmentBlocked` 之一',
+]);
+
+const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';
+requireText('skills/review-fix/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/review-check/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/review-loop/reference.md', [allTestEvidenceStatuses]);
+
+requireText('skills/review-repair/SKILL.md', [
+  '`Passed` / `Failed` / `NotRun` / `EnvironmentBlocked`',
+]);
+
+if (failed) process.exit(1);
+console.log('ok review boundary checks passed');

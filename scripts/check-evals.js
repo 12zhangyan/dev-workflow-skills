@@ -70,20 +70,135 @@ const reviewLoopSeenTags = new Set();
 const evalCounts = new Map();
 const seenTagsBySkill = new Map(requiredSkills.map((skill) => [skill, new Set()]));
 const additionalRequiredTags = {
-  'biz-flow': ['routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
-  'bug-fix': ['routing_review_check', 'routing_dev_doc', 'non_interactive_blocker', 'path_conflict'],
-  'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget', 'impact_analysis', 'chat_only'],
-  'conversation-handoff': ['template_path'],
-  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency'],
-  'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency'],
-  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency', 'superpowers_review_bridge'],
+  'biz-flow': ['routing_bug_fix', 'routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
+  'bug-fix': ['routing_review_check', 'routing_dev_doc', 'routing_biz_flow', 'non_interactive_blocker', 'path_conflict'],
+  'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget', 'impact_analysis', 'chat_only', 'routing_dev_doc', 'routing_review_check', 'routing_review_repair', 'routing_biz_flow'],
+  'conversation-handoff': ['template_path', 'non_interactive_blocker'],
+  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency', 'routing_code_reading'],
+  'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency', 'routing_review_repair', 'routing_review_loop'],
+  'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency', 'superpowers_review_bridge', 'routing_review_check', 'routing_review_repair', 'routing_review_loop'],
   'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_input', 'host_isolation', 'vcs_add_policy', 'review_fix_path_canonical'],
-  'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency'],
+  'review-repair': ['duplicate_ids', 'non_interactive', 'nested_vcs', 'vcs_gate', 'empty_findings', 'external_test_dependency', 'routing_review_loop'],
 };
 
 function fail(message) {
   console.error('FAIL: ' + message);
   process.exitCode = 1;
+}
+
+function isJsonObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateDocumentShape(data, where) {
+  return isJsonObject(data) ? [] : [`${where} root must be an object`];
+}
+
+function usableTags(ev) {
+  if (!isJsonObject(ev) || !Array.isArray(ev.tags)) return [];
+  return ev.tags.filter((tag) => typeof tag === 'string' && tag.trim());
+}
+
+function normalizeEvalPrompt(value) {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+}
+
+function validateEvalShape(ev, where, seenIds, seenPrompts) {
+  const errors = [];
+  if (!isJsonObject(ev)) {
+    errors.push(`${where} must be an object`);
+    return errors;
+  }
+  if (typeof ev.id === 'undefined') errors.push(`${where} missing id`);
+  else if (!Number.isInteger(ev.id) || ev.id <= 0) errors.push(`${where} id must be a positive integer`);
+  else if (seenIds.has(ev.id)) errors.push(`${where} duplicate id ${ev.id}`);
+  else seenIds.add(ev.id);
+  const normalizedPrompt = normalizeEvalPrompt(ev.prompt);
+  if (!normalizedPrompt) {
+    errors.push(`${where} missing prompt`);
+  } else if (seenPrompts.has(normalizedPrompt)) {
+    errors.push(`${where} duplicates prompt from ${seenPrompts.get(normalizedPrompt)}`);
+  } else {
+    seenPrompts.set(normalizedPrompt, where);
+  }
+  if (!ev.expected_output || typeof ev.expected_output !== 'string' || !ev.expected_output.trim()) {
+    errors.push(`${where} missing expected_output`);
+  }
+  if (typeof ev.tags !== 'undefined' && (
+    !Array.isArray(ev.tags)
+    || ev.tags.length === 0
+    || ev.tags.some((tag) => typeof tag !== 'string' || !tag.trim())
+    || new Set(ev.tags).size !== ev.tags.length
+  )) {
+    errors.push(`${where} tags must be a non-empty string array when provided`);
+  }
+  return errors;
+}
+
+function runSelfTest() {
+  const failures = [];
+  if (!validateDocumentShape(null, 'fixture document').includes('fixture document root must be an object')) {
+    failures.push('null document fixture did not produce a root object diagnostic');
+  }
+  for (const [value, label] of [[null, 'null'], ['bad', 'string'], [[], 'array']]) {
+    const errors = validateEvalShape(value, `fixture ${label}`, new Set(), new Map());
+    if (!errors.includes(`fixture ${label} must be an object`)) {
+      failures.push(`${label} fixture did not produce an object-shape diagnostic`);
+    }
+  }
+
+  const valid = { id: 1, prompt: 'review this change', expected_output: 'return findings', tags: ['routing'] };
+  const seenIds = new Set();
+  const seenPrompts = new Map();
+  if (validateEvalShape(valid, 'fixture valid', seenIds, seenPrompts).length !== 0) {
+    failures.push('valid fixture was rejected');
+  }
+  const duplicateErrors = validateEvalShape(
+    { ...valid, prompt: 'different review prompt' },
+    'fixture duplicate',
+    seenIds,
+    seenPrompts,
+  );
+  if (!duplicateErrors.includes('fixture duplicate duplicate id 1')) {
+    failures.push('duplicate id fixture was not rejected');
+  }
+  const duplicatePromptErrors = validateEvalShape(
+    { ...valid, id: 2, prompt: '  review   this change  ' },
+    'fixture duplicate-prompt',
+    seenIds,
+    seenPrompts,
+  );
+  if (!duplicatePromptErrors.includes('fixture duplicate-prompt duplicates prompt from fixture valid')) {
+    failures.push('whitespace-normalized duplicate prompt fixture was not rejected');
+  }
+  const blankTagErrors = validateEvalShape(
+    { id: 2, prompt: 'review this change', expected_output: 'return findings', tags: ['   '] },
+    'fixture blank-tag',
+    new Set(),
+    new Map(),
+  );
+  if (!blankTagErrors.includes('fixture blank-tag tags must be a non-empty string array when provided')) {
+    failures.push('blank tag fixture was not rejected');
+  }
+  const scalarTagFixture = { id: 3, prompt: 'review this change', expected_output: 'return findings', tags: 42 };
+  const scalarTagErrors = validateEvalShape(scalarTagFixture, 'fixture scalar-tag', new Set(), new Map());
+  if (!scalarTagErrors.includes('fixture scalar-tag tags must be a non-empty string array when provided')) {
+    failures.push('scalar tag fixture was not rejected');
+  }
+  if (usableTags(scalarTagFixture).length !== 0) {
+    failures.push('scalar tag fixture was not normalized to an empty safe tag list');
+  }
+
+  if (failures.length > 0) {
+    for (const message of failures) console.error('FAIL: ' + message);
+    return false;
+  }
+  console.log('ok eval structure self-test passed');
+  return true;
+}
+
+if (process.argv.includes('--self-test')) {
+  process.exit(runSelfTest() ? 0 : 1);
 }
 
 for (const skill of requiredSkills) {
@@ -104,6 +219,8 @@ for (const skill of requiredSkills) {
     fail(`Invalid JSON in skills/${skill}/evals.json: ${e.message}`);
     continue;
   }
+  for (const error of validateDocumentShape(data, `skills/${skill}/evals.json`)) fail(error);
+  if (!isJsonObject(data)) continue;
   if (data.skill_name !== skill) {
     fail(`skill_name mismatch in skills/${skill}/evals.json: got "${data.skill_name}", want "${skill}"`);
   }
@@ -113,25 +230,13 @@ for (const skill of requiredSkills) {
   }
   evalCounts.set(skill, data.evals.length);
   const seenIds = new Set();
+  const seenPrompts = new Map();
   let hasAccuracyBoundary = false;
   data.evals.forEach((ev, idx) => {
     const where = `skills/${skill}/evals.json evals[${idx}]`;
-    if (typeof ev.id === 'undefined') fail(`${where} missing id`);
-    else if (!Number.isInteger(ev.id) || ev.id <= 0) fail(`${where} id must be a positive integer`);
-    else if (seenIds.has(ev.id)) fail(`${where} duplicate id ${ev.id}`);
-    else seenIds.add(ev.id);
-    if (!ev.prompt || typeof ev.prompt !== 'string' || !ev.prompt.trim()) fail(`${where} missing prompt`);
-    if (!ev.expected_output || typeof ev.expected_output !== 'string' || !ev.expected_output.trim()) {
-      fail(`${where} missing expected_output`);
-    }
-    if (typeof ev.tags !== 'undefined' && (
-      !Array.isArray(ev.tags)
-      || ev.tags.length === 0
-      || ev.tags.some((tag) => typeof tag !== 'string' || !tag)
-      || new Set(ev.tags).size !== ev.tags.length
-    )) {
-      fail(`${where} tags must be a non-empty string array when provided`);
-    }
+    for (const error of validateEvalShape(ev, where, seenIds, seenPrompts)) fail(error);
+    if (!isJsonObject(ev)) return;
+    const tags = usableTags(ev);
     const expected = typeof ev.expected_output === 'string' ? ev.expected_output : '';
     const joined = `${typeof ev.prompt === 'string' ? ev.prompt : ''}\n${expected}`;
     if (/(证据|材料不足|待确认|blocker|不得|不能|不应|未运行|未检查)/.test(expected)) {
@@ -142,12 +247,12 @@ for (const skill of requiredSkills) {
       globalCoverage.testAssertionTarget = true;
     }
     if (skill === 'dev-doc') {
-      for (const tag of ev.tags || []) devDocSeenTags.add(tag);
+      for (const tag of tags) devDocSeenTags.add(tag);
     }
     if (skill === 'review-loop') {
-      for (const tag of ev.tags || []) reviewLoopSeenTags.add(tag);
+      for (const tag of tags) reviewLoopSeenTags.add(tag);
     }
-    for (const tag of ev.tags || []) seenTagsBySkill.get(skill).add(tag);
+    for (const tag of tags) seenTagsBySkill.get(skill).add(tag);
     if (/TestEvidenceStatus\s*(?:=|:|标为)\s*Insufficient\b/.test(expected)) {
       fail(`${where} uses invalid TestEvidenceStatus=Insufficient; use Failed/NotProvided plus InsufficientMaterial`);
     }

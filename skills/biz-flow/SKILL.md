@@ -1,6 +1,6 @@
 ﻿---
 name: biz-flow
-description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出角色入口、上下文前置条件、业务流转图、数据流图、时序图、状态机、阶段数据变动、校验规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流、状态和表字段怎么变时使用，尤其适合 App+PC、审批/审核、扫码/回调、多表状态流转类功能。Codex 中用户可说"使用 biz-flow skill 生成业务流方案"；Claude Code 可兼容 /biz-flow。
+description: 把一组接口/功能捋成面向测试人员的业务逻辑方案——给出角色入口、上下文前置条件、业务流转图、数据流图、时序图、状态机、阶段数据变动、校验规则与测试关注点。当需要让测试/产品看懂一条业务怎么走、数据怎么流、状态和表字段怎么变时使用，尤其适合 App+PC、审批/审核、扫码/回调、多表状态流转类功能。需要沉淀单次故障的现象、复现、根因证据和修复边界用 bug-fix；需要开发实现方案用 dev-doc，只需开发者代码地图或调用链影响用 code-reading，只读找问题用 review-check，生成多 AI 审查任务包用 review-fix。Codex 中用户可说"使用 biz-flow skill 生成业务流方案"；Claude Code 可兼容 /biz-flow。
 argument-hint: [业务/功能名称]
 arguments: feature
 disable-model-invocation: true
@@ -126,7 +126,7 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 ### Step 5.5：登记到 HTML 看板（kind:"biz"）
 
-**定位：看板条目面向人类阅读**——让没碰过这条业务的业务/测试/开发同事看完就懂整体怎么走。md 是完整方案，看板是浓缩的业务地图：业务人员看主线和规则，开发人员看接口、数据、联调点。
+**定位：看板条目面向人类阅读**——让没碰过这条业务的业务/测试/开发同事看完就懂整体怎么走。md 给 Agent 提供完整证据、精确执行与测试口径；看板是独立撰写的业务方案地图，不从 md 截取段落：业务人员看主线和规则，开发人员看接口、数据、联调边界。
 
 > **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用 Write 重写整个文件**。判断看板"是否存在"用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——历史上误判"不存在"走 Write 模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
 
@@ -161,31 +161,7 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 **字符串转义**（否则看板 JS 语法错误）：含双引号 → `\"`，含换行 → `\n`；Mermaid 字段用反引号模板字面量包裹，内容含反引号时改双引号 + `\n`。
 
-**外壳复制命令**（创建和升级共用；外壳含 ~3MB 的 `js/vendor/mermaid.min.js`，**禁止用 Read+Write 复制外壳**，必须用 bash cp；模板在 dev-doc 的资产目录）：
-
-```bash
-src=""
-for candidate in \
-  "$HOME/.codex/skills/dev-doc/assets/board" \
-  "$HOME/.claude/skills/dev-doc/assets/board" \
-  "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board"
-do
-  if [ -d "$candidate" ]; then src="$candidate"; break; fi
-done
-[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
-mkdir -p project-html/css project-html/js/vendor project-html/data
-cp "$src/index.html" project-html/index.html
-cp "$src/css/board.css" project-html/css/board.css
-cp "$src/js/board.js" project-html/js/board.js
-cp "$src/js/vendor/mermaid.min.js" project-html/js/vendor/mermaid.min.js
-cp "$src/build.js" project-html/build.js
-cp "$src/board-add.js" project-html/board-add.js
-# 仅 MISSING 时补一份空数据模板；EXISTS 时绝不覆盖 data/
-test -f project-html/data/changes.js || cp "$src/data/changes.js" project-html/data/changes.js
-```
-
-> cp 失败（skill 不在默认安装路径）→ 降级：从 [../dev-doc/assets/board/](../dev-doc/assets/board/) Read+Write 文本外壳文件（index.html/css/js/build.js/board-add.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
+创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，不能依赖前一次 shell 调用留下的 `$src`。
 
 **① 确保看板文件存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
@@ -195,9 +171,9 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 
 - **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行上方「外壳复制命令」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
+  2. 否则执行共享引导的「定位并复制或升级外壳」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
   3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：`if [ -d .svn ]; then echo "💡 建议: svn add project-html --depth=infinity"; elif [ -d .git ]; then echo "💡 建议: git add project-html"; fi`
-- **EXISTS** → 先做 **外壳版本检查**：`grep -m1 "BOARD_VERSION" project-html/js/board.js` 与 `grep -m1 "BOARD_VERSION" "$src/js/board.js"` 比较；项目侧缺失或小于模板 → 执行外壳复制命令（`data/` 不动），输出 `🔄 看板外壳已升级到 v<N>`。
+- **EXISTS** → 执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再复制外壳（`data/` 不动）；升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录，输出 `🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
 
 **② 用 board-add.js 写入业务流条目（确定性脚本，替代手工 Edit）**
 
@@ -224,7 +200,7 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 - **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（记录数 X → Y）`；校验失败会放弃写入并保持原文件不动，按提示排查后重试，不要手改文件。
 - **`node` 不存在** → 降级手工：用 Edit 在 `// ─── 在此行上方追加新记录 ───` 上方插入同一对象（注意 JS 转义），并在变更日志标记行上方插入 `{ date: "<date>", desc: "新增业务流：<title>" }`，提示用户手动打开看板确认。
 
-**③ 生成单页 + 文档总索引（构建）**：写入成功后运行 `node project-html/build.js`，为每条记录生成自包含单页 `project-html/pages/<slug>.html`（可单独发给测试）、重新生成 `docs/INDEX.md` 文档总索引，首次运行时把项目根散落历史资料复制归档到 `docs/archive/`（不删原件）。`node` 不存在 → 跳过。
+**③ 生成轻量详情页 + 文档总索引（构建）**：写入成功后运行 `node project-html/build.js`，增量维护共享资源详情页 `project-html/pages/<slug>.html`、重新生成 `docs/INDEX.md` 文档总索引，首次运行时把项目根散落历史资料复制归档到 `docs/archive/`（不删原件）。需要给测试发送单个 HTML 时再运行 `node project-html/build.js --standalone "<docPath 或 slug>"` 生成 `project-html/exports/<slug>.html`。`node` 不存在 → 跳过。
 
 **跳过条件**：dev-doc 未安装（模板目录不存在）且项目中也无 `project-html/` → 跳过本步，提示用户安装 dev-doc 后可启用看板。
 

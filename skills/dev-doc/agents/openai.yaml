@@ -1,7 +1,7 @@
 interface:
   display_name: "Dev Doc"
   short_description: "编码前生成标准、增量或精简的可执行改造方案"
-  default_prompt: "Use dev-doc before implementation to produce an evidence-backed executable plan. Select Compact only for a same-module, low-risk, backward-compatible task with at most two production touchpoints and one focused test; Compact creates one short md and skips OpenAPI, board, pages, and indexes. Upgrade to Standard for contract, database, permission, state, transaction, cross-module, or blocker risk; prefer IncrementalRevision when prior dev-docs are supplied. Route bug root-cause records to bug-fix, tester-facing flows to biz-flow, implementation review to review-check, and accepted findings repair to review-repair."
+  default_prompt: "Use dev-doc before implementation to produce an evidence-backed executable plan. Select Compact only for a same-module, low-risk, backward-compatible task with at most two production touchpoints and one focused test; Compact creates one short md and skips OpenAPI, board, pages, and indexes. Upgrade to Standard for contract, database, permission, state, transaction, cross-module, or blocker risk; prefer IncrementalRevision when prior dev-docs are supplied. Route bug root-cause records to bug-fix, tester-facing flows to biz-flow, read-only code maps/call-chain/compatibility analysis with no plan output to code-reading, multi-agent review packages or fix handoffs to review-fix, implementation review to review-check, and accepted findings repair to review-repair."
 
 policy:
   allow_implicit_invocation: true

@@ -14,7 +14,8 @@
     {
       "id": 3,
       "prompt": "帮我 review 一下这段代码有没有 bug",
-      "expected_output": "本 skill 侧重生成可分发任务包/汇总修复；若用户只是想要一次只读审查结论，应说明可用 review-check 执行审查，review-fix 负责组织任务包与汇总。"
+      "expected_output": "本 skill 侧重生成可分发任务包/汇总修复；若用户只是想要一次只读审查结论，应说明可用 review-check 执行审查，review-fix 负责组织任务包与汇总。",
+      "tags": ["routing_review_check"]
     },
     {
       "id": 4,
@@ -66,6 +67,18 @@
       "prompt": "我已经用 superpowers-zh 的 requesting-code-review 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接",
       "expected_output": "应把 superpowers code review 结果作为额外 reviewer 来源，而不是替代本仓库链路。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能直接把外部 review 结论当作已关闭或已验证。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
       "tags": ["superpowers_review_bridge", "finding_ids", "external_review_source"]
+    },
+    {
+      "id": 13,
+      "prompt": "这些 CR/IM findings 已经归一化好了，不需要再生成任务包或交接文档，直接修改代码并跑验证",
+      "expected_output": "不应使用 review-fix；已有 findings 且用户要求立即修改和验证、不需要汇总交接，应路由到 review-repair。",
+      "tags": ["routing_review_repair"]
+    },
+    {
+      "id": 14,
+      "prompt": "请用同一个 AI 审查当前改动，发现问题就修复、跑测试，再复审确认 Critical/Important 关闭",
+      "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并遵守其修复轮次上限。",
+      "tags": ["routing_review_loop"]
     }
   ]
 }

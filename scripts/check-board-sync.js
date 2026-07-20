@@ -49,6 +49,19 @@ for (const file of CHECK_FILES) {
   }
 }
 
+const detailsDir = path.join(ROOT, 'project-html/data/details');
+if (!fs.existsSync(detailsDir)) fail('x project-html/data/details is missing');
+else {
+  for (const name of fs.readdirSync(detailsDir).filter(name => name.endsWith('.js'))) {
+    const file = path.join(detailsDir, name);
+    const result = spawnSync('node', ['--check', file], { cwd: ROOT, encoding: 'utf8' });
+    if (result.status !== 0) fail(`x syntax error: project-html/data/details/${name}`);
+  }
+}
+if (!fs.existsSync(path.join(ROOT, 'skills/dev-doc/assets/board/data/details/.gitkeep'))) {
+  fail('x template data/details/.gitkeep is missing');
+}
+
 const boardJs = fs.readFileSync(path.join(ROOT, 'project-html/js/board.js'), 'utf8');
 const versionMatch = boardJs.match(/BOARD_VERSION\s*=\s*(\d+)/);
 if (!versionMatch) fail('x project-html/js/board.js is missing BOARD_VERSION');

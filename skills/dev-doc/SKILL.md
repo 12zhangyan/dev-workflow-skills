@@ -1,6 +1,6 @@
 ﻿---
 name: dev-doc
-description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案，并登记看板；用户要求“开发方案/改造方案/实施文档/先设计再编码”、需求仍是口头描述或范围容易走偏时必须使用。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
+description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案，并登记看板；用户要求“开发方案/改造方案/实施文档/先设计再编码”、需求仍是口头描述或范围容易走偏时必须使用。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow，只读代码地图/调用链/兼容影响分析且不输出方案改用 code-reading；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true
@@ -15,6 +15,8 @@ effort: high
 ## 任务定位
 
 本 Skill 是开发工作流的第一步：把需求落成文档，驱动后续编码、自测、Code Review、上线。
+
+用户只要求理解现有代码结构、调用链、接口契约或兼容性影响，且明确不要实施方案时，使用 `code-reading`，不生成 dev-doc 或看板条目。若这些只读结论是开发方案的前置证据，可先运行 `code-reading`，再把证据交给本 Skill 产出方案。
 
 **一次运行产出两份各有分工的文档：**
 - **md 文件 = AI 执行文档**：精确的文件路径、变更清单、约束条件、可执行 Todo，写给 Codex / Cursor / Claude Code 或开发者照着执行
@@ -246,7 +248,7 @@ test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && g
 
 ### Step 5.5：同步更新 HTML 看板
 
-看板为多文件结构，**skill 默认只通过 `board-add.js` 更新数据文件，不手改外壳/样式/逻辑**。外壳版本较低时只按下方升级命令复制模板外壳，绝不覆盖 `data/`。
+看板为多文件结构，**skill 默认只通过 `board-add.js` 更新轻量目录与人类方案详情，不手改外壳/样式/逻辑**。外壳版本较低时只按下方升级命令复制模板外壳，绝不覆盖 `data/`。
 
 > **⚠️ 强制规则**：修改 `data/changes.js` 的主路径只能是 `node project-html/board-add.js project-html/data/_entry.json`，**禁止用 Write 整体重写**。只有 `node` 不存在时，才允许用 Edit 在标记行降级追加/更新。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
 
@@ -255,11 +257,11 @@ project-html/
   index.html        ← 外壳（加载 css/js/data）
   css/board.css     ← 样式
   js/board.js       ← 渲染逻辑（服务→模块两级树 / 浏览索引 / 接口索引 / Bug 视图）
-  data/changes.js   ← 数据（唯一需要追加的文件）
+  data/changes.js   ← 轻量目录（首页 / 搜索 / 筛选）
+  data/details/     ← 独立的人类方案详情（点击条目后按需加载）
 ```
 
-**定位：看板条目不是 md 的摘录，而是一篇独立的、给人看的技术说明。** md 写给 AI 执行（精确路径、指令式），看板写给「没参与本次开发的同事」阅读——Reviewer、接手的人、三个月后的自己。
-
+**定位：看板条目不是 md 的摘录，而是一篇独立的、给人看的技术说明。** md 写给 AI 执行（精确路径、指令式），看板写给「没参与本次开发的同事」阅读——Reviewer、接手的人、三个月后的自己。输入 entry 是一篇完整的人类方案，`board-add.js` 会确定性拆成轻量目录与详情文件。**不得读取 md 后截取段落充当看板内容**；两份产物只通过 `docPath` 等结构元数据关联。
 字段分两类：
 
 **结构字段（照搬，不加工）：**
@@ -275,53 +277,26 @@ project-html/
 | `docPath` | 本次生成的 md 路径（看板用它链接源文档） |
 | `apiSpecPath` | Apifox/OpenAPI YAML 路径；仅接口变更时填写 |
 | `apiIndexPath` | Apifox/OpenAPI 索引路径；生成 YAML 时固定为 `docs/apifox/INDEX.md` |
-| `goals` | md `### 目标` 的条目 → string[] |
-| `scopeIn` / `scopeOut` | md 范围条目 → string[] |
-| `flowchart` | md 流程图的 mermaid 代码（不含 ` ``` ` 标记） |
 | `apis` | md `## 三、API 设计` 表格 → `{method, url, operationId, desc, request?, response?, specPath?}[]`；**仅登记新增或契约变更接口**，纯行为变更/仅调用不登记；有 `apiSpecPath` 时必须非空 |
-| `todos` | md `## 十一、实现 Todo` 条目 → string[] |
 
 **叙述字段（不要从 md 截取片段，基于已收集的信息面向人类重新撰写）：**
-
 写作要求：完整句子、讲清楚"为什么"、不留模板腔、不写"详见 md"。可用 `\n` 分段，看板按段落渲染。必须同时照顾两类读者：业务人员读完能知道影响、目标、验收口径；开发人员读完能知道方案、改动边界、下一步动作。检验标准：一个不了解这个任务的同事读完，能在站会上转述这次改动。
 
 | JS 字段 | 写什么 |
 |---------|--------|
 | `background` | 为什么做这件事：业务痛点 + 触发契机，3–5 句。不要复述任务名 |
+| `goals` / `scopeIn` / `scopeOut` | 用业务和方案边界表达目标、包含范围与非目标，不写 Agent 操作步骤 |
 | `solution` | 用大白话讲整体怎么实现的：数据怎么流、新增了什么、动了什么，1–2 段 |
 | `coreDesign` | 关键技术取舍：选了什么方案、放弃了什么备选、为什么，1–2 段；没有真正的取舍就省略此字段 |
 | `keyImpl` | 3–6 条决策点 → `{title: 决策名, desc: 问题→做法→原因，2–3 句}`；不是代码清单的复读 |
-| `changeList` | `file` / `action` 照搬 md；`desc` 重写成人话：这个文件在整个方案里承担什么角色 |
+| `flowchart` | 让人快速理解方案流转的 Mermaid 图（不含 ` ``` ` 标记） |
 
+**Agent 专属字段禁止写入看板 entry**：`changeList`、`todos`、`stackTrace`、`codeLocation`。精确文件路径、修改动作、实现顺序、验证命令、行号和原始诊断证据只写 md；`board-add.js` 也会在写入时丢弃这些字段，作为最后一道防线。
 **字符串转义**（否则看板 JS 语法错误，整页打不开）：
 - 字段值含双引号 → 转义为 `\"`；含换行 → 合并为一段或用 `\n`
 - `flowchart` 用反引号模板字面量包裹；内容本身含反引号时改用双引号 + `\n` 转义
 
-**外壳复制命令**（创建和升级共用；外壳含 ~3MB 的 `js/vendor/mermaid.min.js`，**禁止用 Read+Write 复制外壳**，必须用 bash cp）：
-
-```bash
-src=""
-for candidate in \
-  "$HOME/.codex/skills/dev-doc/assets/board" \
-  "$HOME/.claude/skills/dev-doc/assets/board" \
-  "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board"
-do
-  if [ -d "$candidate" ]; then src="$candidate"; break; fi
-done
-[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
-mkdir -p project-html/css project-html/js/vendor project-html/data
-cp "$src/index.html" project-html/index.html
-cp "$src/css/board.css" project-html/css/board.css
-cp "$src/js/board.js" project-html/js/board.js
-cp "$src/js/vendor/mermaid.min.js" project-html/js/vendor/mermaid.min.js
-cp "$src/build.js" project-html/build.js
-cp "$src/board-add.js" project-html/board-add.js
-# 仅 MISSING 时补一份空数据模板；EXISTS 时绝不覆盖 data/
-test -f project-html/data/changes.js || cp "$src/data/changes.js" project-html/data/changes.js
-```
-
-> cp 失败（skill 不在默认安装路径）→ 降级：Read+Write 文本外壳文件（index.html/css/js/build.js/board-add.js），跳过 vendor（看板自动走 mermaid CDN 兜底）。
+创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，复制时只在缺失状态初始化 `data/changes.js`，不会覆盖既有数据。
 
 **判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
 
@@ -331,27 +306,12 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 
 - **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行上方「外壳复制命令」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 的 `board-add.js` 统一写入（首次创建同样要进入 Step 5.6 构建）。
+  2. 否则执行共享引导的「定位并复制或升级外壳」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 的 `board-add.js` 统一写入（首次创建同样要进入 Step 5.6 构建）。
   3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：
      ```bash
      if [ -d .svn ]; then echo "💡 检测到 SVN 工作副本，建议执行: svn add project-html --depth=infinity，把看板数据纳入版本管理"; elif [ -d .git ]; then echo "💡 检测到 Git 仓库，建议把 project-html/ 加入版本管理: git add project-html"; fi
      ```
-- **EXISTS** → 先做 **⓪ 外壳版本检查**：
-  ```bash
-  src=""
-  for candidate in \
-    "$HOME/.codex/skills/dev-doc/assets/board" \
-    "$HOME/.claude/skills/dev-doc/assets/board" \
-    "$HOME/.cursor/skills/dev-doc/assets/board" \
-    "$HOME/.agents/skills/dev-doc/assets/board"
-  do
-    if [ -d "$candidate" ]; then src="$candidate"; break; fi
-  done
-  [ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
-  grep -m1 "BOARD_VERSION" project-html/js/board.js
-  grep -m1 "BOARD_VERSION" "$src/js/board.js"
-  ```
-  项目侧无 `BOARD_VERSION` 或数字小于模板 → 执行外壳复制命令（`data/` 不动），并输出一行：`🔄 看板外壳已升级到 v<N>`。然后进入 ②。
+- **EXISTS** → 先执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再执行「定位并复制或升级外壳」（`data/` 不动）；升级目标为 v23 或更高时，再运行 `node project-html/board-add.js --migrate`，把旧富记录拆为目录 + 人类方案详情，并输出一行：`🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
 
 **② 用 board-add.js 写入条目（确定性脚本，替代手工 Edit）**
 
@@ -373,7 +333,7 @@ cat > project-html/data/_entry.json <<'JSON'
     "apis": [{"method":"POST","url":"/api/v1/example","operationId":"createExample","desc":"新增示例资源"}],
     "solution": "<solution>", "coreDesign": "<coreDesign>",
     "flowchart": "<flowchart>",
-    "keyImpl": [<keyImpl>], "changeList": [<changeList>], "todos": [<todos>]
+    "keyImpl": [<keyImpl>]
   }
 }
 JSON
@@ -382,13 +342,14 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 写 entry 的规则：
 - **标准 JSON**：字符串值用双引号，内部换行写成 `\n`，**不要用反引号**；`flowchart` 也是普通 JSON 字符串（用 `\n` 分行，不含 ` ``` ` 标记）。非空字段才写，空数组可省略。
-- **查重自动处理**：脚本按 `docPath` 命中既有条目时**就地更新并保留原 status**，否则追加。Step 4 选了 A 覆盖 / E 追加更新时无需特殊操作，只把 `changelog` 文案改成 `更新文档：<title>` 即可。
-- **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（记录数 X → Y）`；若校验失败（语法错误或记录数下降）脚本会**放弃写入并保持原文件不动**，按提示排查后重试，不要去手改文件。
+- **查重自动处理**：脚本按 `docPath` 命中既有条目时**就地更新并保留原 status，以及输入中省略的 lifecycle/pinned 治理字段**，同时维护 `updatedAt`；否则追加。Step 4 选了 A 覆盖 / E 追加更新时无需特殊操作，只把 `changelog` 文案改成 `更新文档：<title>` 即可。
+- **职责拆分**：脚本把 entry 拆为 `data/changes.js` 轻量目录和 `data/details/<detailId>.js` 人类方案详情；目录不携带正文，详情不携带 Agent 专属字段。升级到 v23 时先运行一次 `node project-html/board-add.js --migrate` 拆分旧富记录。
+- **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（目录 X → Y，详情 …）`；若校验失败（语法错误或记录数下降）脚本会**放弃写入并保持原文件不动**，按提示排查后重试，不要去手改文件。
 - **`node` 不存在** → 跳过脚本，降级手工：用 Edit 在 `// ─── 在此行上方追加新记录 ───` 上方插入同一个对象（注意 JS 转义：双引号 `\"`、换行 `\n`），并在 `// ─── 在此行上方追加变更日志 ───` 上方插入 `{ date: "<date>", desc: "新增文档：<title>" }`；改完提示用户手动打开看板确认页面正常。
 
-输出一行提示：`📄 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）`
+输出一行提示：`📄 HTML 看板已更新：project-html/data/changes.js + project-html/data/details/（浏览器打开 project-html/index.html 查看）`
 
-### Step 5.6：生成单页 + 文档总索引（构建）
+### Step 5.6：生成轻量详情页 + 文档总索引（构建）
 
 `data/changes.js` 通过 `node --check` 后，运行构建脚本（一条命令完成单页与索引）：
 
@@ -397,12 +358,20 @@ node project-html/build.js
 ```
 
 它会：
-1. 为**每条**记录生成自包含单文件 `project-html/pages/<slug>.html`（内联 CSS + 渲染逻辑 + 本地 mermaid，单个文件即可直接发给别人，无需整个文件夹）
-2. 由 `data/changes.js` 重新生成 `docs/INDEX.md` 文档总索引（按服务/模块归类，含 md 源文档与单页链接）
+1. 为**每条**记录增量维护轻量详情页 `project-html/pages/<slug>.html`（共享 CSS + 渲染逻辑 + 本地 mermaid；内容未变化时不重写，只清理孤儿页）
+2. 构建时合并轻量目录与对应人类方案详情，并由目录重新生成 `docs/INDEX.md` 文档总索引（按服务/模块归类，含 md 源文档与单页链接）
 3. **首次运行**（`docs/archive/` 不存在）扫描项目根目录，把散落的旧 md 文档、旧看板 HTML、接口文档**复制**（不删原件）到 `docs/archive/` 统一归档，并登记进 `INDEX.md`
 
+需要把某一条记录作为单个 HTML 文件外发时，显式运行：
+
+```bash
+node project-html/build.js --standalone "<docPath 或 slug>"
+```
+
+产物写入 `project-html/exports/<slug>.html`，其中才会内联 CSS、渲染逻辑和 Mermaid。不要在常规构建中为全部记录生成自包含文件。
+
 - `node` 不存在 → 跳过本步，提示用户："未检测到 node，无法生成单页与索引，请安装 node 后运行 `node project-html/build.js`"
-- 输出脚本回显（含生成数量），并提示：`📑 已生成单页 pages/ 与文档总索引 docs/INDEX.md`
+- 输出脚本回显（含总数、实际写入数和孤儿清理数），并提示：`📑 已生成轻量详情页 pages/ 与文档总索引 docs/INDEX.md`
 
 ### Step 6：输出 Next Steps
 
@@ -453,6 +422,7 @@ node project-html/build.js
 - [ ] 如只有行为变更或仅调用既有接口，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] Codex / Cursor / Claude Code 执行提示已按当前宿主能力生成，未混用不可用命令
 - [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
+- [ ] 看板 entry 未包含 `changeList` / `todos` / `stackTrace` / `codeLocation`，精确执行信息只保留在 md
 - [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
 - [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6 第 8 项）
 
@@ -465,27 +435,6 @@ node project-html/build.js
 - 可选前置：需求仍混沌时，可先用 `superpowers:brainstorming` 收敛范围；其输出必须回填到本 skill 的范围、非目标、blockers、conflicts 或 assumptions，不能代替 Plan Gate
 - 后续步骤：`review-fix`（生成 Review 任务包并汇总修复）、`review-check`（只读审查）、`review-repair`（按 findings 直修）、`code-reading`（生成代码地图）；实际调用写法以共享 workflow-chain 为准
 
-## 常见错误
+## 失败处理
 
-| 错误 | 原因 | 修复 |
-|------|------|------|
-| 文档生成后 AI 执行走偏 | 「六、代码变更清单」写得不够具体 | 每个条目加上「为何不能用扩展替代」说明 |
-| Cursor / Claude Code / Codex 当前模式没有结构化提问工具 | 按产品名猜工具，或把工具缺失误当成可以采用默认项 | 交互会话降级为聊天单选；非交互运行把高风险问题记为 blocker 并停止；默认建议必须有证据 |
-| 问答时用户回答"待定"太多 | 需求本身还不成熟 | 先用 `superpowers:brainstorming`（或宿主显示的同名入口）理清需求；结论回填到范围/非目标/blockers/conflicts/assumptions 后再运行 dev-doc |
-| 文档文件名冲突 | 同天同任务名重复运行 | 按提示选择 A/B/C/D/E 处理冲突 |
-| Step 1 git 命令报 dubious ownership / safe.directory | 当前执行用户不是仓库拥有者 | 仍按 `.git` 判定为 Git；只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不要改全局配置 |
-| 看板写入后打不开 | 手工降级时字段含未转义的双引号/换行/反引号 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
-| 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
-| 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
-| Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
-| 原接口只收紧行为却被全量写入 OpenAPI | 没有逐接口区分行为变更与契约变更 | 保留原接口契约不动，只在方案/兼容性/测试记录行为收紧；OpenAPI 和 `apis[]` 仅收新增或契约变更接口 |
-| 给了旧 md 和一句增量仍重走完整新文档 | 未识别 `IncrementalRevision` | 读取旧文档并继承证据，只补增量槽位；纯行为变更跳过 API/OpenAPI 章节，契约有变化则自动恢复 |
-| 两个小改动点仍生成完整方案、看板和索引 | 未识别低风险兼容扩展 | 满足全部资格条件时使用 `Compact`，只生成精简 md；发现契约/DB/权限/状态/跨模块风险则升级 `Standard` |
-| 引用多篇旧 md 时执行方只读最近一篇 | 模板仍按单前置文档表达，未标明各文档承接范围 | 在文首列出全部前置文档的名称、相对链接和承接范围，并在 AI 执行口径中要求逐篇读取；冲突口径进入 `conflicts`，不按时间静默覆盖 |
-| 用户中途否决旧口径，但实现方回读聊天后又采用 | 已裁决冲突从最终文档中消失 | 记录旧口径、用户否决证据、最终口径和实现禁令，标记 `conflicts(status=resolved)`；只按最终口径实施 |
-| 接口索引没有接口但有 YAML 链接 | 生成了 `apiSpecPath`，但看板 `apis[]` 漏填 | 回填 `apis[]`，每条接口至少包含 `method`、`url`、`operationId`、`desc` |
-| Apifox 导入失败 | YAML 结构不合法或缺少 `paths` / `operationId` | 按 Step 5.1 轻量校验修正后再输出完成信息 |
-| 工作区外 `validate-openapi.js` 被宿主禁止启动 | skill 位于用户目录，当前沙箱只允许执行工作区内代码 | 运行 reference.md 的工作区内无依赖静态校验，记录 `light:workspace-inline`；只在明确的路径访问受限时降级，YAML 内容失败仍须修复 |
-| 外壳 cp 失败 | skill 不在默认安装路径（`~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills`） | 降级 Read+Write 文本外壳（含 board-add.js），vendor 跳过走 CDN |
-| `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
-| `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |
+执行失败、产物异常或行为偏离预期时，按需加载 [reference.md 的常见错误与恢复](reference.md#常见错误与恢复)，匹配现象后再重试；正常流程不预加载该表。未命中已知项时显式报告失败与保留状态，不猜测原因，也不得绕过 Plan/VCS/Verification Gate。

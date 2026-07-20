@@ -121,7 +121,7 @@
 
 ## html-追加格式
 
-追加到 `project-html/data/changes.js` 的 `changes` 数组时的 JS 对象格式（空值字段可省略）：
+交给 `board-add.js` 的人类复盘 entry 格式（空值字段可省略；脚本自动拆成轻量目录与详情）：
 
 ```js
   {
@@ -135,18 +135,14 @@
     branch: "<branch>",
     docPath: "<docPath>",
     symptom: "<symptom>",
-    stackTrace: `<stackTrace>`,
     reproSteps: [<reproSteps>],
     trigger: "<trigger>",
     expected: "<expected>",
     actual: "<actual>",
     impact: "<impact>",
-    codeLocation: "<codeLocation>",
     rootCause: "<rootCause>",
     fixPlan: "<fixPlan>",
-    changeList: [<changeList>],
     verifySteps: [<verifySteps>],
-    todos: [<todos>],
     assumptions: ["<低风险假设或推断>"],
     conflicts: [
       { point: "<冲突点>", user: "<用户说法>", evidence: "<现有证据>", risk: "<风险>", suggestion: "<建议口径>", blocking: true }
@@ -157,7 +153,7 @@
   // ─── 在此行上方追加新记录 ───
 ```
 
-**注意**：`stackTrace` 含换行时用模板字面量（反引号）；含反引号时改用双引号并将换行转为 `\n`。其余字符串字段含双引号 → `\"`，含换行 → `\n`。
+**注意**：看板 entry 禁止 `stackTrace`、`codeLocation`、`changeList`、`todos`；这些 Agent 执行/诊断字段只写 Bug md。字符串含双引号 → `\"`，含换行 → `\n`。
 
 ---
 
@@ -165,14 +161,14 @@
 
 ```
 ✅ Bug 文档已生成：docs/bugs/{date}/{task}.md
-🐛 HTML 看板已更新：project-html/data/changes.js（浏览器打开 project-html/index.html 查看）
+🐛 HTML 看板已更新：project-html/data/changes.js + project-html/data/details/（浏览器打开 project-html/index.html 查看）
 🧭 工作流阶段：Bug Plan Gate 已完成；根因确认后进入 Implementation Gate
 
 【Workflow Brief】
 stage: PlanGate
 task: {task}
 source: <Bug 现象/堆栈/复现步骤/日志/代码线索>
-artifacts: docs/bugs/{date}/{task}.md；project-html/data/changes.js；docs/INDEX.md
+artifacts: docs/bugs/{date}/{task}.md；project-html/data/changes.js；project-html/data/details/<detailId>.js；docs/INDEX.md
 changed: 无（Bug 记录阶段未改业务代码）
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管文件>; untracked=<docs/bugs/{date}/{task}.md、看板/索引待纳管或 无>
 tests: class=NotApplicable; command/result=未运行（Bug 记录阶段）

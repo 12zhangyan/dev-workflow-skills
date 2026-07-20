@@ -56,7 +56,7 @@ tests: class=NotApplicable; command/result=未运行（只读影响分析）
 api: spec=<契约文件路径或 无>; index=<索引路径或 无>; operationIds=<接口 ID 或 无>
 openFindings: <待确认影响；没有写 无>
 next: <需要落方案则进入 dev-doc；需要缺陷判断则进入 review-check；否则人工确认影响结论>
-nextCommand: <对应的自然语言 skill 调用；无需后续动作写 无>
+nextCommand: <需要落方案：使用 dev-doc skill 基于本影响分析生成开发方案；需要缺陷判断：使用 review-check skill 基于本影响分析执行只读审查；否则人工：确认影响结论>
 tokenHint: 下一位 AI 先读本 Brief -> 契约证据 -> 影响清单中的代码位置；首轮最多 5 个文件
 ```
 

@@ -1,7 +1,7 @@
 interface:
   display_name: "Review Loop"
   short_description: "单 AI 一键完成审查、修复、验证与复审"
-  default_prompt: "Use review-loop to orchestrate a single-agent review-fix evidence package, review-check findings pass, review-repair implementation, targeted verification, and a second review of the latest diff. In standard mode, write review tasks under docs/review-fix; user-provided docs/review-form files are legacy input evidence only, not templates or output paths. Before VCS add, declare VcsAddPolicy: use host-required only when an applicable repository rule explicitly requires new business files to be added; otherwise use user-authorize-only. Always show the exact file list first, explain policy conflicts before acting, and never extend add authority to commit or push."
+  default_prompt: "Use review-loop to orchestrate a single-agent review-fix evidence package, review-check findings pass, review-repair implementation, targeted verification, and a second review of the latest diff. Stop after at most two repair cycles; if Critical/Important findings remain or verification is Failed/EnvironmentBlocked, preserve their IDs, report PartiallyFixed or Blocked, and do not enter Submit Gate. In standard mode, write review tasks under docs/review-fix; user-provided docs/review-form files are legacy input evidence only, not templates or output paths. Before VCS add, declare VcsAddPolicy: use host-required only when an applicable repository rule explicitly requires new business files to be added; otherwise use user-authorize-only. Always show the exact file list first and explain policy conflicts before acting. Never commit or push, and never extend add authority beyond the exact approved or host-required list."
 
 policy:
   allow_implicit_invocation: true

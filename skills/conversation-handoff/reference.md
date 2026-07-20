@@ -1,6 +1,6 @@
 ﻿# 对话移交文档模板
 
-```markdown
+````markdown
 # <任务名> 对话移交
 
 - 移交状态：<Ready / PartiallyComplete / Blocked / NeedsConfirmation>
@@ -65,11 +65,11 @@ changed: <本轮涉及的源码/测试/配置/文档；没有写 无或未检查
 vcs: owner=<VCS 根或 none>; tracked=<已纳管范围或未检查 + 原因>; untracked=<未纳管文件或 无；未检查写原因>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<命令 + 结果；未运行写原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<本次新增/变更接口 ID 或 无>
-openFindings: <未关闭 finding/blocker/deferred-next-batch；没有写 无>
+openFindings: <未关闭 finding/blocker/deferred/deferred-next-batch；没有写 无>
 next: <下一步应运行的 skill 或人工动作>
 nextCommand: <可直接复制给下一位 AI 的完整命令；纯人工动作写 人工：<动作>>
 tokenHint: <先读本 Brief -> 移交文档 -> 原始证据；首轮最多 5 个文件>
-```
+````
 
 ## 填写规则
 

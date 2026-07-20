@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /* 看板构建脚本 — 各 skill 在更新 data/changes.js 后调用：node project-html/build.js
- *   1) 为每条记录生成自包含单文件 pages/<slug>.html（内联 css + board.js + 本地 mermaid，
- *      单个文件即可直接发给别人，无需整个文件夹；mermaid 内联失败时走 CDN 兜底）
+ *   1) 为每条记录生成轻量详情页 pages/<slug>.html（共享 css / board.js / mermaid，内容未变不重写）
  *   2) 由 data/changes.js 重新生成 docs/INDEX.md 文档总索引（每次运行覆盖刷新）
  *   3) 首次运行（docs/archive 不存在）扫描项目根，复制散落的旧 md / 旧看板 / 接口文档
  *      到 docs/archive/（只复制不删除原件，便于后续统一归档）
+ *   4) 需要单文件外发时显式执行：node project-html/build.js --standalone <docPath|slug>
  * 纯 Node，无第三方依赖。与 skills/dev-doc/assets/board/build.js 保持一致，修改时两处同步。 */
 'use strict';
 const fs = require('fs');
@@ -19,12 +19,43 @@ function exists(p) { try { fs.accessSync(p); return true; } catch (e) { return f
 function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 // <script> 文本内联进 <script> 标签时，转义闭合序列，避免提前结束标签
 function safeScript(s) { return s.replace(/<\/script/gi, '<\\/script'); }
+function writeIfChanged(file, content) {
+  if (exists(file) && read(file) === content) return false;
+  fs.writeFileSync(file, content);
+  return true;
+}
 
 // ── 解析 data/changes.js 中的 changes / htmlChangelog 数组 ──
 function loadData() {
   const src = read(path.join(BOARD_DIR, 'data', 'changes.js'));
   const fn = new Function(src + '\n;return { changes: typeof changes !== "undefined" ? changes : [], htmlChangelog: typeof htmlChangelog !== "undefined" ? htmlChangelog : [] };');
   return fn();
+}
+
+function loadHumanDetail(catalog) {
+  if (!catalog.detailId && !catalog.detailPath) return null; // legacy rich entry
+  if (!catalog.detailId || !catalog.detailPath) throw new Error(`目录记录缺少详情定位字段：${catalog.docPath || catalog.title || 'unknown'}`);
+  const detailsDir = path.resolve(BOARD_DIR, 'data', 'details');
+  const detailFile = path.resolve(BOARD_DIR, catalog.detailPath);
+  if (detailFile !== detailsDir && !detailFile.startsWith(detailsDir + path.sep)) {
+    throw new Error(`详情路径越界：${catalog.detailPath}`);
+  }
+  if (!exists(detailFile)) throw new Error(`找不到看板详情：${catalog.detailPath}`);
+  const holder = {};
+  const fn = new Function('window', read(detailFile) + '\n;return window.BOARD_DETAILS || {};');
+  const details = fn(holder);
+  if (!details[catalog.detailId]) throw new Error(`详情文件未声明 ${catalog.detailId}：${catalog.detailPath}`);
+  return details[catalog.detailId];
+}
+
+function hydratedEntry(catalog) {
+  const detail = loadHumanDetail(catalog);
+  if (!detail) return catalog;
+  const merged = Object.assign({}, catalog, detail);
+  delete merged.detailId;
+  delete merged.detailPath;
+  delete merged.searchText;
+  return merged;
 }
 
 function svcOf(d) { return d.service || '通用'; }
@@ -49,16 +80,9 @@ function kindOf(d) { return d.kind === 'bug' ? 'bug' : d.kind === 'reading' ? 'r
 function icoOf(d) { return d.kind === 'bug' ? '🐛' : d.kind === 'reading' ? '📖' : d.kind === 'biz' ? '🔀' : '📄'; }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1) 自包含单页 pages/<slug>.html
+// 1) 轻量详情页 pages/<slug>.html（共享资源，保持原链接稳定）
 // ════════════════════════════════════════════════════════════════════════════
 function buildPages(data) {
-  const css = read(path.join(BOARD_DIR, 'css', 'board.css'));
-  const boardJs = read(path.join(BOARD_DIR, 'js', 'board.js'));
-  const vendor = path.join(BOARD_DIR, 'js', 'vendor', 'mermaid.min.js');
-  const mermaidTag = exists(vendor)
-    ? `<script>${safeScript(read(vendor))}</script>`
-    : `<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>`;
-
   const pagesDir = path.join(BOARD_DIR, 'pages');
   fs.mkdirSync(pagesDir, { recursive: true });
   const oldPages = fs.readdirSync(pagesDir).filter(f => f.endsWith('.html'));
@@ -69,15 +93,16 @@ function buildPages(data) {
     console.error('  确认是有意删除条目的话，设置 BOARD_FORCE_BUILD=1 后重新运行可强制继续。');
     process.exit(1);
   }
-  // 清掉旧页面（标题改名后避免残留孤儿文件）
-  for (const f of oldPages) {
-    fs.unlinkSync(path.join(pagesDir, f));
-  }
-
   const slugMap = buildSlugMap(data.changes);
-  let n = 0;
-  for (const d of data.changes) {
-    const slug = slugMap.get(d);
+  const expected = new Set([...slugMap.values()].map(slug => slug + '.html'));
+  let written = 0, removed = 0;
+  // 只清理已无对应记录的孤儿页面；保留有效页面后再按内容增量更新。
+  for (const f of oldPages) {
+    if (!expected.has(f)) { fs.unlinkSync(path.join(pagesDir, f)); removed++; }
+  }
+  for (const catalog of data.changes) {
+    const d = hydratedEntry(catalog);
+    const slug = slugMap.get(catalog);
     const entryJs = 'const changes = [' + JSON.stringify(d) + '];\nconst htmlChangelog = [];';
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -87,6 +112,45 @@ function buildPages(data) {
 <title>${escHtml(d.title || '')}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="../js/vendor/mermaid.min.js"></script>
+<script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
+<link rel="stylesheet" href="../css/board.css">
+<style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
+</head>
+<body>
+<aside class="sidebar"><div class="sidebar-header"><div class="sidebar-sub" id="sub"></div><span class="fpill toggle" id="openPill"></span></div><div id="sb"></div><div class="sidebar-footer"><div id="home-btn"></div><div id="api-btn"></div><div id="log-btn"></div></div></aside>
+<main class="main" id="main"></main>
+<script>window.DETAIL_PAGE = true;</script>
+<script>${entryJs}</script>
+<script src="../js/board.js"></script>
+<script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
+</body>
+</html>`;
+    if (writeIfChanged(path.join(pagesDir, slug + '.html'), html)) written++;
+  }
+  return { total: data.changes.length, written, removed };
+}
+
+// 显式按需导出真正自包含的单文件；不参与日常全量构建，避免重复内嵌 3MB+ Mermaid。
+function exportStandalone(data, selector) {
+  if (!selector) throw new Error('缺少导出选择器；用法：node project-html/build.js --standalone <docPath|slug>');
+  const slugMap = buildSlugMap(data.changes);
+  const matches = data.changes.filter(d => d.docPath === selector || slugMap.get(d) === selector);
+  if (matches.length !== 1) throw new Error(matches.length ? `导出选择器不唯一：${selector}` : `找不到导出记录：${selector}`);
+  const catalog = matches[0], d = hydratedEntry(catalog), slug = slugMap.get(catalog);
+  const css = read(path.join(BOARD_DIR, 'css', 'board.css'));
+  const boardJs = read(path.join(BOARD_DIR, 'js', 'board.js'));
+  const vendor = path.join(BOARD_DIR, 'js', 'vendor', 'mermaid.min.js');
+  const mermaidTag = exists(vendor)
+    ? `<script>${safeScript(read(vendor))}</script>`
+    : `<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>`;
+  const entryJs = 'const changes = [' + JSON.stringify(d) + '];\nconst htmlChangelog = [];';
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(d.title || '')}</title>
 ${mermaidTag}
 <style>${css}</style>
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
@@ -100,10 +164,11 @@ ${mermaidTag}
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;
-    fs.writeFileSync(path.join(pagesDir, slug + '.html'), html);
-    n++;
-  }
-  return n;
+  const outDir = path.join(BOARD_DIR, 'exports');
+  fs.mkdirSync(outDir, { recursive: true });
+  const out = path.join(outDir, slug + '.html');
+  writeIfChanged(out, html);
+  return out;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -252,10 +317,20 @@ function main() {
     console.error('✗ 无法解析 project-html/data/changes.js：' + e.message);
     process.exit(1);
   }
+  if (process.argv[2] === '--standalone') {
+    try {
+      const out = exportStandalone(data, process.argv[3]);
+      console.log(`✓ 已导出自包含页面：${path.relative(ROOT, out).replace(/\\/g, '/')}`);
+    } catch (e) {
+      console.error('✗ ' + e.message);
+      process.exit(1);
+    }
+    return;
+  }
   const archiveSummary = archiveLegacy();
   const pages = buildPages(data);
   buildIndex(data, archiveSummary);
-  let msg = `✓ build.js 完成：生成 ${pages} 个单页（project-html/pages/）+ docs/INDEX.md`;
+  let msg = `✓ build.js 完成：详情页 ${pages.total} 个（写入 ${pages.written}，清理孤儿 ${pages.removed}）+ docs/INDEX.md`;
   if (archiveSummary && archiveSummary.total) msg += `；首次归档 ${archiveSummary.total} 个历史文件到 docs/archive/`;
   console.log(msg);
 }

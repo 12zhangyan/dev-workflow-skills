@@ -22,7 +22,7 @@ changed: <本轮涉及的源码/测试/配置/SQL/XML/OpenAPI 文件；没有写
 vcs: owner=<VCS 根或 none>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；未检查写原因>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未运行写原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<本次新增/变更接口 ID 或 无>
-openFindings: <未关闭 finding/blocker/deferred-next-batch；没有写 无>
+openFindings: <未关闭 finding/blocker/deferred/deferred-next-batch；没有写 无>
 next: <下一步应运行的 skill 或人工动作>
 nextCommand: <可直接复制给下一位 AI 的完整命令；纯人工动作写 人工：<动作>>
 tokenHint: <下一位 AI 的最小读取顺序；首轮最多 5 个文件，例如 先读本 Brief -> docs/... -> changed 文件>
@@ -34,7 +34,7 @@ Brief 是索引，不是第二份文档。避免它反噬 token 收益：
 
 - 只填标准格式里的固定字段，一字段一行；整块控制在 14 行内。
 - 字段无内容写 `无` / `未运行 + 原因` / `未检查 + 原因`，不要留空、不要展开解释。
-- 不在 Brief 里复述问题正文、方案细节或源码；`openFindings` 只写 ID 摘要（如 `CR-1, IM-2`），正文在 findings 里。
+- 不在 Brief 里复述问题正文、方案细节或源码；`openFindings` 只写未关闭 ID 摘要（如 `CR-1, BK-1, MI-2(deferred)`），正文和 rejected 终态留在 findings/处理表里。
 - `changed` / `artifacts` 只列路径，不加描述；`tokenHint` 给读取顺序，不复述内容。
 - `vcs` 固定拆成 `owner / tracked / untracked`，新增测试、OpenAPI 或文档仍未纳管时必须出现在 `untracked`。
 - `tests` 固定拆成 `class / command/result`；Mixed 要分别写可控子集和外部子集，默认 CI 依赖真实密钥时写 Failed，不写 environment-blocked。

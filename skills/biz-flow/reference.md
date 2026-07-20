@@ -312,7 +312,7 @@ stateDiagram-v2
 stage: PlanGate
 task: <业务名>
 source: <用户描述/接口/菜单/Job/MQ/回调/现有代码线索>
-artifacts: docs/biz-flow/<日期>/<业务名>.md；project-html/data/changes.js；project-html/pages/<slug>.html；docs/INDEX.md
+artifacts: docs/biz-flow/<日期>/<业务名>.md；project-html/data/changes.js；project-html/data/details/<detailId>.js；project-html/pages/<slug>.html；docs/INDEX.md
 changed: 无（业务流梳理阶段未改业务代码）
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管文件>; untracked=<业务流文档、看板/索引待纳管或 无>
 tests: class=NotApplicable; command/result=未运行（业务流梳理阶段）

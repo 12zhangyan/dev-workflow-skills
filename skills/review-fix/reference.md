@@ -15,7 +15,7 @@
 > 阶段：等待其他 AI Review
 > ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>
 > TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
-> TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
+> TestEvidenceStatus：<Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
 
 ---
 
@@ -88,7 +88,7 @@
 
 请作为代码审查者，基于以下材料做 review：
 请独立完成本次审查；返回结果前不要读取或参考其他 reviewer 的 findings。
-0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>；TestEvidenceStatus：<Passed / Failed / NotProvided / EnvironmentBlocked / NotApplicable>
+0. ReviewScopeType：<PlanReview / ImplementationReview / FixHandoffReview>；TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>；TestEvidenceStatus：<Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable>
 1. 需求/方案文档：<dev-doc路径或无>
 2. 代码地图：<code-reading路径或无>
 3. diff/patch：<patch路径或粘贴内容>
@@ -225,7 +225,7 @@ OpenQuestions:
 Finding ID 规则（保证发现→修复→关闭全链路追溯；前缀语义见 [../_shared/workflow-chain.md](../_shared/workflow-chain.md#finding-id-命名体系全链路统一)）：
 - 汇总后按最终严重度统一重编 `CR-n` / `IM-n` / `MI-n`，拒绝项标 `RJ-n`、阻塞项标 `BK-n`；在该条 finding 的「来源」里保留各 AI 的原始编号（如 `Codex#2 / Cursor#1`），便于回溯是谁提的。
 - 多 AI 对同一问题给了不同 ID 时合并为一个最终 ID，不要产生两条。
-- 修复交接、AI 修复操作码、回填表都用同一套最终 ID；`review-repair` 按此 ID 回填 fixed/deferred/rejected/blocked，不得另起编号。
+- 修复交接、AI 修复操作码、回填表都用同一套最终 ID；`review-repair` 按此 ID 回填 fixed/deferred/deferred-next-batch/blocked/rejected，不得另起编号。
 
 ### 接受标准
 

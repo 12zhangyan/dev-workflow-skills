@@ -81,9 +81,9 @@ changed: <本次修改的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown>; command/result=<验证命令 + 结果；未运行写原因；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
-openFindings: <未关闭/blocked/rejected/deferred-next-batch ID；没有写 无>
+openFindings: <未关闭/blocked/deferred/deferred-next-batch ID；rejected 只留处理表，不进入 openFindings；没有写 无>
 next: <二次 review-check / code-reading / 人工 review / 继续下一批 review-repair>
-nextCommand: <无未关闭 CR/IM：使用 code-reading skill 基于 source 和当前实现生成代码地图；仍有 finding：使用 review-repair skill 继续处理 openFindings>
+nextCommand: <有 blocked：人工确认；有 deferred-next-batch：使用 review-repair skill 继续下一批；只有普通 deferred 或无未关闭 CR/IM：使用 code-reading skill 继续，普通 deferred 不自动重跑>
 tokenHint: 下一位 AI 先读本 Brief -> changed 文件 -> 未关闭 finding 证据；不要重复读取已关闭 finding 的全文；首轮最多 5 个文件
 
 处理结果：
@@ -119,7 +119,7 @@ VCS 完整性：
 【Review Repair 回填】
 修复结论：<Fixed / PartiallyFixed / Blocked>
 已关闭：<CR-1, IM-1>
-未关闭：<BK-1 / deferred-next-batch / rejected>
+未关闭：<BK-1 / deferred / deferred-next-batch；rejected 另列，不算未关闭>
 验证：<命令 + 结果>
 TestDependencyClass：<Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown>
 TestEvidenceStatus：<Passed / Failed / NotRun / EnvironmentBlocked>

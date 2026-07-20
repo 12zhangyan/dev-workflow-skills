@@ -51,6 +51,15 @@ if (selfTest.status !== 0) {
   if (selfTest.stderr) process.stderr.write(selfTest.stderr);
 }
 
+for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js', 'scripts/check-skill-metadata.js', 'scripts/check-skill-inventory.js', 'scripts/check-workflow-briefs.js']) {
+  const result = spawnSync('node', [scriptSelfTest, '--self-test'], { cwd: root, encoding: 'utf8' });
+  if (result.status !== 0) {
+    fail(`${scriptSelfTest} self-test failed`);
+    if (result.stdout) process.stderr.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+  }
+}
+
 const devDocReference = fs.readFileSync(path.join(root, 'skills/dev-doc/reference.md'), 'utf8');
 const fallbackMatch = devDocReference.match(/<!-- OPENAPI_WORKSPACE_FALLBACK_START -->\s*```javascript\r?\n([\s\S]*?)\r?\n```\s*<!-- OPENAPI_WORKSPACE_FALLBACK_END -->/);
 if (!fallbackMatch) {

@@ -155,12 +155,14 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 | Apifox/OpenAPI 索引 | `docs/apifox/INDEX.md` |
 | 文档总索引 | `docs/INDEX.md` |
 | HTML 看板 | `project-html/index.html` |
-| 看板数据 | `project-html/data/changes.js` |
-| 可单独分享的页面 | `project-html/pages/<slug>.html` |
+| 看板轻量目录 | `project-html/data/changes.js` |
+| 看板人类方案详情 | `project-html/data/details/<detailId>.js` |
+| 轻量详情页面 | `project-html/pages/<slug>.html` |
+| 按需导出的单文件 | `project-html/exports/<slug>.html` |
 
 ## HTML 看板
 
-`dev-doc` 的 Standard/Incremental、`bug-fix`、`biz-flow` 和 `code-reading` 的 `CodeMap` 模式会自动登记到项目内 `project-html/data/changes.js`，并运行；`dev-doc Compact` 只生成精简 md，`code-reading ImpactAnalysis` 只在聊天中输出，两者都不写看板：
+`dev-doc` 的 Standard/Incremental、`bug-fix`、`biz-flow` 和 `code-reading` 的 `CodeMap` 模式会自动登记看板。MD 是 Agent 执行文档；看板是独立的人类方案说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
@@ -169,9 +171,10 @@ node project-html/build.js
 看板能力：
 
 - 按服务 / 模块组织开发文档、Bug、代码地图、业务流。
-- 支持搜索、类型筛选、未完成筛选。
+- 默认按工作台 / 待办库 / 档案库分层，支持搜索、类型和未完成筛选。
+- 首页只加载轻量目录，点击记录后才加载对应的人类方案详情；旧富记录可执行 `node project-html/board-add.js --migrate` 迁移。
 - 接口索引会聚合新增或签名变更的接口，并链接 OpenAPI YAML。
-- 每条记录可生成独立 HTML 单页，方便发给测试、产品或同事。
+- 每条记录生成引用共享资源的轻量详情页；需要单文件发送时运行 `node project-html/build.js --standalone <docPath|slug>` 按需导出。
 - 状态标签可在浏览器本地点击切换；要让团队都看到，需要修改 `data/changes.js` 中的 `status`。
 
 看板结构：
@@ -185,7 +188,9 @@ project-html/
   build.js
   board-add.js
   data/changes.js
+  data/details/<detailId>.js
   pages/<slug>.html
+  exports/<slug>.html  # 仅 --standalone 时生成
 ```
 
 示例入口：[project-html/index.html](project-html/index.html)
@@ -218,7 +223,7 @@ install-local.cmd claude cursor
 
 - 安装脚本复制整个 `skills/` 子树，不维护硬编码 skill 列表。
 - Codex 目标会移除安装副本 `SKILL.md` 文件头 BOM，避免 frontmatter 发现失败。
-- 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文。
+- 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文；Windows PowerShell 5.1 读取其他无 BOM 的 UTF-8 文档时，请显式使用 `Get-Content -Encoding UTF8`。
 - Cursor 可能同时读取 `~/.cursor/skills`、`~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills`，多处安装会导致同名 skill 重复出现。
 
 ## 维护这个仓库
@@ -229,10 +234,14 @@ install-local.cmd claude cursor
 node scripts/check-all.js
 node scripts/check-scripts.js
 node scripts/check-board-sync.js
+node scripts/check-board-behavior.js
 node scripts/check-agent-doc-sync.js
 node scripts/check-docs.js
+node scripts/check-skill-inventory.js
 node scripts/check-skill-metadata.js
 node scripts/check-workflow-briefs.js
+node scripts/check-review-boundaries.js
+node scripts/check-document-boundaries.js
 node scripts/check-installers.js
 node scripts/check-interaction-policy-sync.js
 node scripts/check-evals.js
@@ -240,16 +249,18 @@ node project-html/build.js
 git diff --check
 ```
 
+`check-review-boundaries.js` 和 `check-document-boundaries.js` 校验的是高风险行为护栏，不是普通文案 lint；如果 Skill 正文等价改写了相关规则，要在同一轮同步更新脚本里的关键短语。
+
 维护规则：
 
 - 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
-- 行为回归套件固定至少 100 个场景，覆盖 8 个 skill 的触发边界、非交互阻塞、VCS/API/Review/token 关键分支；新增规则时同步补 `evals.json` 标签和契约断言。
+- 行为回归套件固定至少 100 个场景，覆盖全部正式 Skill 的触发边界、非交互阻塞、VCS/API/Review/token 关键分支；新增规则时同步补 `evals.json` 标签和契约断言。
 - 改看板外壳时，同步 `project-html/` 和 `skills/dev-doc/assets/board/`。
 - 改仓库级 agent 指南时，先改 `AGENTS.md`，再同步 `CLAUDE.md`，并运行 `node scripts/check-agent-doc-sync.js`。
 - 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
 - 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
-- 改安装脚本时，运行 `node scripts/check-installers.js`，确认三端目标和 Codex 去 BOM 逻辑仍在。
+- 改安装脚本时，运行 `node scripts/check-installers.js`；它会检查三端目标，并在隔离 HOME 中实际安装 Codex 副本，逐文件验证完整复制、同名替换、无关 Skill 保留和仅 `SKILL.md` 去 BOM。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。

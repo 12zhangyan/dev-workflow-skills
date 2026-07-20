@@ -14,7 +14,8 @@
     {
       "id": 3,
       "prompt": "读一下这段登录代码，看看有没有安全问题",
-      "expected_output": "判断问题属于 review-check 的职责；code-reading 只做结构梳理不判定问题，应说明可用 review-check 做只读审查。"
+      "expected_output": "判断问题属于 review-check 的职责；code-reading 只做结构梳理不判定问题，应说明可用 review-check 做只读审查。",
+      "tags": ["routing_review_check"]
     },
     {
       "id": 4,
@@ -55,6 +56,24 @@
       "prompt": "使用 code-reading 对比新增 PDF 接口契约与现有调用链，只判断哪些调用方受影响，不要生成代码地图或看板文件",
       "expected_output": "应选择 ImpactAnalysis 而不是 CodeMap；只读提取 PDF 契约并追踪现有调用链，按 method/path、请求、响应、状态码/错误码、鉴权输入和副作用输出证据化对比，将调用方/适配层/测试/接口文档分为明确受影响、不受影响或待确认。只在聊天中输出，Workflow Brief 写 artifacts: 无（ImpactAnalysis 聊天只读分析）、changed 明确未修改仓库；不得 Write/Edit、创建临时转换文件、生成 docs/code-reading md、写看板或运行 build.js，也不得把兼容性影响定性为 Bug。",
       "tags": ["impact_analysis", "chat_only", "no_write", "contract_comparison"]
+    },
+    {
+      "id": 11,
+      "prompt": "先读现有订单调用链，再给我一份可执行的幂等改造方案、代码变更清单和验收标准",
+      "expected_output": "最终交付物是编码前改造方案，应路由到 dev-doc；如现有调用链证据不足，可先用 code-reading 做只读分析并把证据交给 dev-doc，但 code-reading 自身不得输出实施方案。",
+      "tags": ["routing_dev_doc"]
+    },
+    {
+      "id": 12,
+      "prompt": "CR-3 已经确认是 OrderService.java:88 的空指针，直接修改代码并跑测试",
+      "expected_output": "不应使用 code-reading；已有 finding 的直接代码修复与验证应路由到 review-repair。",
+      "tags": ["routing_review_repair"]
+    },
+    {
+      "id": 13,
+      "prompt": "给测试人员梳理扫码审批从 App 到 PC 的业务流、数据流、时序和状态变化",
+      "expected_output": "不应使用 code-reading；面向测试人员的业务流、数据流、时序和状态说明应路由到 biz-flow。",
+      "tags": ["routing_biz_flow"]
     }
   ]
 }

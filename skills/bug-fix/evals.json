@@ -49,6 +49,12 @@
       "prompt": "非交互运行 bug-fix，目标 docs/bugs/2026-07-13/order.md 已存在",
       "expected_output": "应先确定性判断文件存在状态；因覆盖需要授权，输出 path blocker 并停止，不采用默认覆盖、不另猜文件名、不更新看板。",
       "tags": ["path_conflict", "no_write"]
+    },
+    {
+      "id": 10,
+      "prompt": "给测试人员梳理正常退款审批从 App 到 PC 的业务流、数据流、状态变化和测试关注点，不分析某次线上故障",
+      "expected_output": "不应使用 bug-fix；主交付物是面向测试的正常业务流说明，且明确不诊断单次故障，应路由到 biz-flow。",
+      "tags": ["routing_biz_flow"]
     }
   ]
 }

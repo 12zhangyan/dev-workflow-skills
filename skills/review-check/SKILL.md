@@ -1,6 +1,6 @@
 ﻿---
 name: review-check
-description: 根据 review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。当用户说"使用 review-check skill"、Claude Code 输入 /review-check，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档
+description: 根据 review-fix 生成的 Review 任务包、dev-doc、patch/diff 或当前工作区变更执行一次只读代码审查，按统一清单输出结构化 findings。当用户说"使用 review-check skill"、Claude Code 输入 /review-check，或要求"按审查清单 review/执行 review/输出 findings 给 review-fix 汇总"时使用；不得修改代码或生成修复交接文档。已有 findings 要直接修复用 review-repair；要求同一 AI 审查、修复、验证并复审用 review-loop；生成多 AI 任务包或汇总 findings 用 review-fix。
 argument-hint: [review-task路径 | dev-doc路径 | diff/patch路径 | 功能描述]
 arguments: entry
 disable-model-invocation: true
@@ -19,6 +19,8 @@ effort: high
 与相邻 skill 的分工：
 - `/review-fix`：生成 Review 任务包，回收多方 findings，并产出修复交接。
 - `/review-check`：拿任务包或 diff 执行一次审查，只输出 findings，不修代码。
+- `/review-repair`：已有 findings 后直接修改代码并验证。
+- `/review-loop`：同一 AI 编排审查、修复、验证和复审闭环。
 - `/code-reading`：生成代码地图，只梳理结构，不判断问题。
 
 ## 执行流程

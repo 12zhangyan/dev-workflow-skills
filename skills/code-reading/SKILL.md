@@ -1,6 +1,6 @@
 ﻿---
 name: code-reading
-description: 在 Code Review 前生成开发者代码地图，或只读分析新旧接口契约、现有调用链和兼容性影响；代码地图模式会生成 md 并登记看板，只读影响分析模式仅在聊天中输出、仓库零写入。只做结构与影响理解，不判断缺陷或关闭 findings。要求找问题用 review-check，已有 findings 要修复用 review-repair，面向测试/产品的业务流用 biz-flow。Codex 中用户可说"使用 code-reading skill 生成代码地图/只读分析影响"；Claude Code 可兼容 /code-reading。
+description: 在 Code Review 前生成开发者代码地图，或只读分析新旧接口契约、现有调用链和兼容性影响；代码地图模式会生成 md 并登记看板，只读影响分析模式仅在聊天中输出、仓库零写入。只做结构与影响理解，不输出实施方案，不判断缺陷或关闭 findings。需要开发/改造方案用 dev-doc，要求找问题用 review-check，已有 findings 要修复用 review-repair，面向测试/产品的业务流用 biz-flow。Codex 中用户可说"使用 code-reading skill 生成代码地图/只读分析影响"；Claude Code 可兼容 /code-reading。
 argument-hint: [功能描述 | dev-doc路径 | ClassName#method]
 arguments: entry
 disable-model-invocation: true
@@ -103,6 +103,8 @@ effort: high
 
 `ImpactAnalysis` 使用 [只读影响分析输出格式](reference.md#只读影响分析输出格式) 直接回复用户，然后结束 skill；不得进入 Step 4/4.5，不生成代码地图、看板、单页或索引。若用户后续明确要求持久化，再作为新的 `CodeMap` 请求处理。
 
+首次执行或两种模式边界容易混淆时，只按当前模式读取一个最小已填示例：[CodeMap 示例](examples.md#示例-1codemap-代码地图片段) / [ImpactAnalysis 示例](examples.md#示例-2impactanalysis-只读影响分析)。示例用于校准证据与产物边界，不替代 reference 模板。
+
 核心规则：
 - 只记录代码里实际存在的内容，未确认的不写
 - 记录入口选择依据，尤其是功能描述模式下自动选中的候选
@@ -150,7 +152,7 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 - dev-doc 模式 → Read `project-html/data/changes.js`，按源 dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
 - 其他模式 → 问一次："属于哪个微服务/模块？格式 `服务/模块`（不确定填 `通用/通用`）"
 
-**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**：先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳。模板目录按 `~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills` 依次查找。
+**看板操作与 `/dev-doc` Step 5.5 / 5.6 完全相同**：md 是供 Agent 后续理解调用链的精确代码地图；看板 entry 是给人独立理解方案/实现结构的说明，不截取 md。先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳，升级到 v23+ 时运行 `node project-html/board-add.js --migrate`。模板目录按 `~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills` 依次查找。
 
 **写入条目同样走 `board-add.js`**（确定性脚本：备份、按 `docPath` 查重、转义、记录数回归全自动，不手改 `data/changes.js`）：
 
@@ -166,7 +168,7 @@ JSON
 node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
 
-entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`flowchart` 是带 `\n` 的普通字符串）。脚本打印 `✓` 即成功，命中 `docPath` 会就地更新；校验失败则原文件不动。写入后运行 `node project-html/build.js` 刷新单页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`。`node` 不存在 → 降级手工 Edit 标记行（注意 JS 转义）并提示用户打开看板确认。
+entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`flowchart` 是带 `\n` 的普通字符串）。脚本打印 `✓` 即成功，命中 `docPath` 会就地更新；校验失败则原文件不动。写入后运行 `node project-html/build.js` 刷新轻量详情页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`；需要单文件外发时再运行 `node project-html/build.js --standalone "<docPath 或 slug>"`。`node` 不存在 → 降级手工 Edit 标记行（注意 JS 转义）并提示用户打开看板确认。
 
 **跳过条件**：dev-doc 未安装（模板目录不存在）且项目中也无 `project-html/` → 跳过本步，提示用户安装 dev-doc 后可启用看板。
 
@@ -174,7 +176,7 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 ```
 ✅ 代码地图已生成：docs/code-reading/<日期>/<功能名>.md
 📖 已登记到 HTML 看板（浏览器打开 project-html/index.html，筛选「📖 阅读」查看）
-📑 已刷新单页 pages/ 与文档总索引 docs/INDEX.md
+📑 已刷新轻量详情页 pages/ 与文档总索引 docs/INDEX.md
 
 工作流阶段：Understanding Gate 已完成。
 可以进入人工 Review / 提交前检查。
@@ -202,6 +204,7 @@ entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`
 ## 相关资源
 
 - 完整文档模板：[reference.md](reference.md)
+- 双模式最小示例：[examples.md](examples.md)（按当前模式只读对应章节）
 - **必需背景：** `dev-doc` skill（了解 dev-doc 模式入口的文档结构）
 - AI 代码审查：`/review-fix` 生成任务包，`/review-check` 执行只读审查；code-reading 可作为证据包补充
 - 完整工作流参考：仓库内 `docs/workflow-guide.md`（dev-workflow-skills 项目文档，非安装后的同级文件）

@@ -9,7 +9,8 @@
     {
       "id": 2,
       "prompt": "帮我按这些 findings 直接把代码改好：CR-1 OrderService.java:88 customerId 为空 NPE",
-      "expected_output": "不应使用 review-check；应建议改用 review-repair 直接修复，因为本 skill 只读不改代码。"
+      "expected_output": "不应使用 review-check；应建议改用 review-repair 直接修复，因为本 skill 只读不改代码。",
+      "tags": ["routing_review_repair"]
     },
     {
       "id": 3,
@@ -65,6 +66,12 @@
       "prompt": "review-check 发现 @SpringBootTest 在默认 profile 调真实 AI，mvn verify 因缺 API Key 失败；GitHub Actions 只执行 verify 且未声明 secret",
       "expected_output": "应输出 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并给出 Important 测试架构/CI 契约 finding：默认 CI 必然失败且测试不应默认调用真实外部服务。不能归为 EnvironmentBlocked，修复建议是 profile/tag/job 隔离并保留 Hermetic 默认验证。",
       "tags": ["external_test_dependency", "ci_contract", "important_finding"]
+    },
+    {
+      "id": 13,
+      "prompt": "请用一个 AI 审查当前改动，发现问题就直接修复、跑验证，再复审一遍直到关闭 Critical/Important",
+      "expected_output": "不应使用只读的 review-check；应路由到 review-loop，由同一 AI 按最多两轮的上限完成审查、修复、验证和复审闭环。",
+      "tags": ["routing_review_loop"]
     }
   ]
 }

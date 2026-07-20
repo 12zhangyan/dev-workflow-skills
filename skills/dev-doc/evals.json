@@ -175,6 +175,12 @@
       "prompt": "用户先用 superpowers-zh 的 brainstorming 收敛了三版方案，现在要求 dev-doc 基于最终版生成开发文档；聊天里还保留两版被否决的旧方案",
       "expected_output": "应把 superpowers brainstorming 输出当作需求来源而不是交付产物。最终文档必须记录采用范围、非目标、待确认项，并把两版被否决方案写入 conflicts(status=resolved) 或非目标；不得因为已 brainstorming 就跳过 Plan Gate、blockers/conflicts/assumptions 或 Workflow Brief。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
       "tags": ["superpowers_bridge", "brainstorming_input", "resolved_conflict", "cross_host_output"]
+    },
+    {
+      "id": 31,
+      "prompt": "只读梳理现有退款接口的 Controller 到 DAO 调用链、当前契约和兼容性影响，聊天里给代码地图即可，不要开发方案、Todo、OpenAPI 或看板",
+      "expected_output": "不应使用 dev-doc 或创建任何方案产物；这是只读结构与影响理解，应路由 code-reading 的 ImpactAnalysis/代码地图模式。只有用户随后要求基于这些证据产出实施方案时，才把结果交回 dev-doc。",
+      "tags": ["routing_code_reading", "chat_only", "no_plan_artifact"]
     }
   ]
 }

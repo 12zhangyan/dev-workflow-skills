@@ -39,7 +39,7 @@ CompatibilityFlags: <none / legacy-review-form-input>
 修复结论：<NoEvidenceIssue / Fixed / PartiallyFixed / Blocked / InsufficientMaterial>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>
-TestEvidenceStatus: <Passed / Failed / NotRun / EnvironmentBlocked / NotProvided>
+TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable>
 TestSourcePathCheck: <NotApplicable / Checked / WindowsTestSourcePathMismatch；Windows Java testCompile 时写测试源根、真实文件路径与 javac/Maven 报错路径>
 RepairCycles: <0 / 1 / 2>
 
@@ -55,7 +55,7 @@ RepairCycles: <0 / 1 / 2>
 finding 处理：
 | ID | 级别 | 状态 | 文件/位置 | 处理说明 | 验证 |
 |----|------|------|-----------|----------|------|
-| <ID> | <Critical/Important/Minor> | <fixed/blocked/rejected/deferred-next-batch> | <path:line> | <说明> | <命令/结果> |
+| <ID> | <Critical/Important/Minor> | <fixed/deferred/deferred-next-batch/blocked/rejected> | <path:line> | <说明> | <命令/结果> |
 
 【Workflow Brief】
 stage: <ReviewGate / ReviewRepair，按实际停止阶段填写>
@@ -67,8 +67,8 @@ vcs: owner=<按 VCS_OWNER 分组的 Git/SVN 根>; tracked=<已纳管范围>; unt
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <未关闭 ID；没有写 无>
-next: <人工 review / 补 blocker / 修环境后重验 / 下一批 review-loop>
-nextCommand: <无未关闭 CR/IM：使用 code-reading skill 基于 source 和当前实现生成代码地图；有 blocker：补齐 blocker 后重新运行 review-loop skill>
+next: <Passed 且无未关闭 CR/IM：code-reading 后人工 review；Blocked：补 blocker；EnvironmentBlocked：修环境后重验；deferred-next-batch：继续下一批 review-loop>
+nextCommand: <Passed 且无未关闭 CR/IM：使用 code-reading skill 基于 source 和当前实现生成代码地图后人工 review；Blocked：人工：补齐 blocker 后重新运行 review-loop skill；EnvironmentBlocked：修复环境后重新运行 review-loop skill；deferred-next-batch：使用 review-loop skill 继续下一批>
 tokenHint: 下一位 AI 先读本 Brief -> 未关闭 finding -> 最新 diff -> 验证输出；不要重读已关闭 finding 全文；首轮最多 5 个文件
 
 VCS 完整性：
@@ -96,7 +96,7 @@ VCS 完整性：
 ## 结论口径
 
 - `Fixed`：所有 accepted Critical/Important 已关闭，验证证明目标逻辑，二次复审没有新的阻塞问题。
-- `PartiallyFixed`：至少一项已修，但仍有 blocker、deferred-next-batch、验证不足或未关闭 finding。
+- `PartiallyFixed`：至少一项已修，但仍有 blocker、deferred、deferred-next-batch、验证不足或未关闭 finding。
 - `Blocked`：业务/权限/API/DB 或材料问题使修复无法开始。
 - `NoEvidenceIssue`：材料足够，第一次审查未发现有证据问题；没有修代码。
 - `InsufficientMaterial`：缺少实际 diff/源码/测试或关键契约，无法下实现结论。
