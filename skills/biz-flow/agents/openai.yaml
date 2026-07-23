@@ -1,7 +1,0 @@
-interface:
-  display_name: "Biz Flow"
-  short_description: "生成面向测试和产品的业务流、状态与数据变动方案"
-  default_prompt: "Use biz-flow skill to turn APIs or features into tester-facing business flow documentation. Route single-incident symptom, reproduction, root-cause, and repair-boundary records to bug-fix; developer implementation plans to dev-doc; code maps to code-reading; and review findings or review tasks to review-check or review-fix. Infer entries from code/docs first, ask only blocking questions, and surface logic conflicts or missing closure evidence instead of guessing. Mark missing entries, terminal states, callbacks, fields, and branches as pending instead of inventing a closed flow."
-
-policy:
-  allow_implicit_invocation: true

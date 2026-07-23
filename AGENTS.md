@@ -13,13 +13,8 @@ The boundary checks guard high-risk behavior invariants, not prose style; if a s
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
 | `dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `scripts/validate-openapi.js`, `assets/board/` (HTML board template) |
-| `bug-fix` | `skills/bug-fix/SKILL.md` | `reference.md` (question sets + doc template), `examples.md` |
-| `code-reading` | `skills/code-reading/SKILL.md` | `reference.md` (doc template), `examples.md` |
-| `review-check` | `skills/review-check/SKILL.md` | `reference.md` (review checklist + output format), `examples.md` |
-| `review-repair` | `skills/review-repair/SKILL.md` | `reference.md` (direct repair workflow + output format), `examples.md` |
-| `review-loop` | `skills/review-loop/SKILL.md` | `reference.md` (single-agent orchestration + output format), `examples.md` |
-| `biz-flow` | `skills/biz-flow/SKILL.md` | `reference.md` (question set + doc template), `examples.md` |
-| `review-fix` | `skills/review-fix/SKILL.md` | `reference.md` (review checklist + fix handoff templates), `examples.md` |
+| `project-analysis` | `skills/project-analysis/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing understanding, incident, business |
+| `code-review` | `skills/code-review/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing package, check, repair, loop |
 | `conversation-handoff` | `skills/conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template), `examples.md` |
 
 ## Installation
@@ -48,8 +43,8 @@ If auto-detection cannot identify the host tool, follow `superpowers-zh` documen
 
 Integration policy:
 - Use `superpowers-zh` before this repo's workflow when the requirement is still fuzzy (`brainstorming`), during implementation when TDD/debugging discipline is useful, or right before Review Gate for general verification discipline.
-- Use this repo's skills for authoritative Java delivery artifacts and gates: `dev-doc`, `bug-fix`, `biz-flow`, `review-fix`, `review-check`, `review-repair`, `review-loop`, `code-reading`, and `conversation-handoff`.
-- Do not let a `superpowers-zh` code-review result replace this repo's finding-ID chain. Convert useful findings into `review-check` / `review-fix` / `review-repair` IDs before repair or handoff.
+- Use this repo's four public skills for authoritative Java delivery artifacts and gates: `dev-doc`, `project-analysis`, `code-review`, and `conversation-handoff`.
+- Do not let a `superpowers-zh` code-review result replace this repo's finding-ID chain. Convert useful findings into `code-review` package/check/repair mode IDs before repair or handoff.
 - When documenting the combined workflow, use `skills/_shared/workflow-chain.md` as the source of truth: `superpowers-zh` may be inserted as optional preflight/TDD/debugging/verification/reviewer input, but its output must be recorded in this repo's blockers/conflicts, Verification Gate fields, `Workflow Brief`, or `CR/IM/MI/RJ/BK` IDs.
 
 ## Architecture
@@ -69,7 +64,7 @@ SKILL.md frontmatter `name` and `description` are the portable discovery surface
 
 Each skill may include `agents/openai.yaml` for Codex UI metadata (display name, short description, default prompt). Keep it in sync with SKILL.md when changing a skill's purpose or invocation wording.
 
-Skills reference their sibling files with relative paths (e.g., `[reference.md](reference.md#step-3-查漏槽位)`). `bug-fix` and `code-reading` reuse the board template from `../dev-doc/assets/board/` (sibling dir after install), and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
+Skills reference their sibling files with relative paths. `project-analysis` and `code-review` are thin routers: choose one mode first, then load only `modes/<mode>/mode.md` and the references that mode explicitly needs. Project-analysis modes reuse the board template from `../../../dev-doc/assets/board/`, and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
 
 ### HTML board
 
@@ -104,22 +99,22 @@ Two copies must stay in sync: `project-html/` and `skills/dev-doc/assets/board/`
 ## Workflow the Skills Support
 
 ```
-dev-doc → AI executes → svn add → mvn test → review-fix/review-check/review-repair split chain or review-loop single-agent loop → code-reading → human review → svn commit
+dev-doc/project-analysis → AI executes → svn add → mvn test → code-review package/check/repair split chain or loop mode → project-analysis understanding mode → human review → svn commit
 ```
 
 - `dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
-- `bug-fix` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
-- `code-reading` produces `docs/code-reading/YYYY-MM-DD/<feature>.md`
+- `project-analysis mode=incident` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
+- `project-analysis mode=understanding` produces `docs/code-reading/YYYY-MM-DD/<feature>.md` in CodeMap mode, or zero-write chat output in ImpactAnalysis
 - `review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
 - `review-repair` directly fixes accepted review findings in the working copy, preserves unrelated local changes, runs targeted verification, and reports fixed/blocked/rejected/deferred status; it does not create review tasks or perform read-only review
-- `review-loop` defaults to quick for clearly scoped, low-risk single-module changes and uses standard (`review-fix → review-check → review-repair → verify → recheck`) when an audit task package or higher-risk review is needed; it labels results `SingleAgentReview`, includes untracked files in repair/verification while blocking Review/Submit approval until they are tracked, stops after at most two repair cycles, and never auto-commits
-- `biz-flow` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
-- `review-fix` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` for Codex/Cursor/Claude review; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
+- `code-review mode=loop` defaults to quick for clearly scoped, low-risk single-module changes and uses standard (package → check → repair → verify → recheck) when an audit task package or higher-risk review is needed; it labels results `SingleAgentReview`, includes untracked files in repair/verification while blocking Review/Submit approval until they are tracked, stops after at most two repair cycles, and never auto-commits
+- `project-analysis mode=business` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
+- `code-review mode=package` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md`; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `conversation-handoff` produces `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` from current-conversation evidence for a new AI conversation; it is not a board entry and does not replace the smaller `Workflow Brief`
 - `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh lightweight detail pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
-- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review skill should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use the split chain `review-fix -> review-check -> review-fix/review-repair` or `review-loop` for a single-agent closed loop before code-reading and human review.
+- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review mode should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use `code-review` package → check → package/repair or loop mode before project-analysis understanding and human review.
 - Lightweight handoff policy lives in `skills/_shared/workflow-brief.md`: every skill that produces a next action should output a copyable `Workflow Brief` with source/artifact/changed/test/finding pointers so the next AI reads indexed evidence instead of pasted full documents.
 - Chain map lives in `skills/_shared/workflow-chain.md`: the single source of truth for "after skill X, run which skill next + copyable command" and finding-ID traceability (review-check emits CR/IM/MI IDs, review-fix preserves them on merge, review-repair backfills status by the same ID). Skills point here via workflow-gates.md instead of each re-listing the chain.
 - Closed-choice questions are not automatically asked: infer first, and use AskUserQuestion only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Free-text questions stay conversational.

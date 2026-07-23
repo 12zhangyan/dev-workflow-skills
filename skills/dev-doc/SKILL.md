@@ -1,6 +1,6 @@
 ﻿---
 name: dev-doc
-description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案。仅当用户明确要求“开发方案/改造方案/实施文档/先设计再编码”，或存在尚未裁决的接口、权限、状态、DB、事务、跨模块高风险决策而必须先形成可审核方案时使用；用户已经明确要求直接实现且范围与验收口径足够清楚时不要触发。HTML 看板仅在用户明确要求或适用项目规则要求发布时登记。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow，只读代码地图/调用链/兼容影响分析且不输出方案改用 code-reading；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
+description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案。仅当用户明确要求“开发方案/改造方案/实施文档/先设计再编码”，或存在尚未裁决的接口、权限、状态、DB、事务、跨模块高风险决策而必须先形成可审核方案时使用；用户已经明确要求直接实现且范围与验收口径足够清楚时不要触发。HTML 看板仅在用户明确要求或适用项目规则要求发布时登记。Bug/业务流/代码影响分析改用 project-analysis 的 incident/business/understanding；审查任务包、只读审查、findings 修复或单 AI 闭环改用 code-review 的 package/check/repair/loop。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true
@@ -116,7 +116,7 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 > 任务类型是？（新功能 / Bug 修复 / 重构 / 性能优化 / API 联调 / 配置变更）
 
-若用户选"Bug 修复"且目的是记录现象、分析根因 → 提示："这类任务建议改用 bug-fix skill（专门的 Bug 记录与根因分析流程，会登记到看板的 Bug 区）。继续用 dev-doc 吗？" 用户确认继续才往下走；调用写法按当前宿主生成，不把 `/bug-fix` 当成三端通用命令。
+若用户选"Bug 修复"且目的是记录现象、分析根因 → 提示："这类任务建议改用 project-analysis skill，mode=incident（专门的 Bug 记录与根因分析流程，会登记到看板的 Bug 区）。继续用 dev-doc 吗？" 用户确认继续才往下走。
 
 复杂度可按改动范围、模块数量、接口数量和代码证据判断时直接记录；只有复杂度会改变拆分策略、模型建议或验收范围时才确认。
 
@@ -390,7 +390,7 @@ node project-html/build.js --standalone "<docPath 或 slug>"
 4. 当前门禁：`Plan Gate 已完成`；若存在 blocker/conflict，写 `Plan Gate 未通过` 并停止，不输出可执行编码提示
 5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项；实现结束立即读取 `git status --short` / `svn status`，把新增源码、测试、配置、OpenAPI 和正式 docs 的未纳管清单显式交给用户，不得直接跳到 review-loop 后才暴露 VCS blocker
 6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）。每条命令标记 `TestDependencyClass`（`Hermetic / ServiceBacked / LiveExternal / Mixed`）和所需依赖；默认本地/CI 命令只能包含 Hermetic 与受控 ServiceBacked 测试，真实 AI/SaaS 调用必须拆到独立 profile、tag 或 secret-protected job，不能让默认 `test/verify` 依赖真实密钥
-7. 验证通过后 Todo：先输出 VCS checkpoint，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；存在未纳管关键文件时必须显式列出，但 review-loop 仍可读取、修复、验证和复审这些文件，只能把最终 Submit/VCS Gate 结论标为阻塞；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
+7. 验证通过后 Todo：先输出 VCS checkpoint，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出 `code-review package → check → repair` 或 `loop`，随后进入 `project-analysis understanding` 的真实可用调用方式；存在未纳管关键文件时必须显式列出，但 loop 仍可读取、修复、验证和复审这些文件，只能把最终 Submit/VCS Gate 结论标为阻塞；三端均可用自然语言点名 skill 与 mode，不虚构已删除的旧命令
 8. `【Workflow Brief】` 块（PlanGate 阶段，见 reference.md）：供下一位 AI 先读索引、再按 tokenHint 读取 md 方案与相关源码，不必粘贴文档全文
 
 ## 规则

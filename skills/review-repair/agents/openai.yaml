@@ -1,7 +1,0 @@
-interface:
-  display_name: "Review Repair"
-  short_description: "根据 review findings 直接修复代码并验证"
-  default_prompt: "Use review-repair skill to directly fix code after code review findings or a review-fix handoff. Route requests that only ask for review, findings, or whether code has problems to review-check. When there are no findings and one agent is asked to review, repair, verify, and recheck, route to review-loop; do not repair without findings, a fix handoff, or a clear issue list. A Workflow Brief is only a valid entry when openFindings is non-empty or original findings are attached. Use the brief as a read-order index, normalize findings into accepted, blocked, rejected, and deferred items; apply only evidence-backed and locatable fixes; preserve unrelated local changes; run targeted verification or state why it was not run; report diff scope, VCS status, Workflow Brief, and each finding's closure state."
-
-policy:
-  allow_implicit_invocation: true

@@ -503,7 +503,7 @@ for (const error of validateWorkflowChainInventory(
   docTextByRel.get('skills/_shared/workflow-chain.md'),
   'skills/_shared/workflow-chain.md',
   skillNames,
-  ['`code-reading`（CodeMap）', '`code-reading`（ImpactAnalysis）'],
+  ['`project-analysis`（understanding CodeMap）', '`project-analysis`（understanding ImpactAnalysis）'],
 )) {
   fail(error);
 }
@@ -520,75 +520,24 @@ for (const rel of ['AGENTS.md', 'CLAUDE.md']) {
 
 const rows = [];
 const skillDescriptionRequirements = {
-  'biz-flow': ['bug-fix', 'dev-doc', 'code-reading', 'review-check', 'review-fix'],
-  'bug-fix': ['review-check', 'review-repair', 'dev-doc', 'biz-flow'],
-  'code-reading': ['dev-doc', 'review-check', 'review-repair', 'biz-flow'],
-  'dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求', 'bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair'],
-  'review-check': ['review-fix', 'review-repair', 'review-loop'],
-  'review-fix': ['review-check', 'review-repair', 'review-loop'],
-  'review-loop': ['小范围单模块改动默认 quick', '未跟踪文件必须纳入审查', '最多 2 个修复循环', '不进入 Submit Gate'],
-  'review-repair': ['review-check', 'review-loop'],
+  'dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求'],
+  'project-analysis': ['understanding', 'incident', 'business', 'code-reading', 'bug-fix', 'biz-flow'],
+  'code-review': ['check', 'repair', 'loop', 'package', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
 };
 const agentPromptRequirements = {
-  'biz-flow': [
-    'bug-fix',
-    'dev-doc',
-    'code-reading',
-    'review-check',
-    'review-fix',
-  ],
-  'bug-fix': [
-    'review-check',
-    'review-repair',
-    'dev-doc',
-    'biz-flow',
-  ],
   'conversation-handoff': [
     'dev-doc',
-    'bug-fix',
-    'review-fix',
-    'review-check',
-    'review-repair',
-  ],
-  'code-reading': [
-    'dev-doc',
-    'review-check',
-    'review-repair',
-    'biz-flow',
+    'project-analysis',
+    'code-review',
   ],
   'dev-doc': [
     'Do not invoke it for a direct implementation request',
     'publish or upgrade the HTML board only when the user explicitly requests it',
-    'bug-fix',
-    'biz-flow',
-    'code-reading',
-    'review-fix',
-    'review-check',
-    'review-repair',
+    'project-analysis',
+    'code-review',
   ],
-  'review-check': [
-    'review-fix',
-    'review-repair',
-    'review-loop',
-  ],
-  'review-fix': [
-    'review-check',
-    'review-repair',
-    'review-loop',
-  ],
-  'review-loop': [
-    'Default to quick',
-    'Untracked files must be read',
-    'at most two repair cycles',
-    'do not enter Submit Gate',
-    'Never commit or push',
-  ],
-  'review-repair': [
-    'review-check',
-    'review-loop',
-    'do not repair without findings',
-    'fix handoff',
-  ],
+  'project-analysis': ['understanding', 'incident', 'business'],
+  'code-review': ['package', 'check', 'repair', 'loop'],
 };
 
 for (const skill of skillNames) {
@@ -630,7 +579,7 @@ for (const skill of skillNames) {
   });
 }
 
-for (const required of ['dev-doc', 'review-check', 'review-repair', 'code-reading']) {
+for (const required of ['dev-doc', 'project-analysis', 'code-review', 'conversation-handoff']) {
   if (!skillNames.includes(required)) fail(`required workflow skill missing: ${required}`);
 }
 

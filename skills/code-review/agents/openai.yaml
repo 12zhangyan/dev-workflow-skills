@@ -1,0 +1,7 @@
+interface:
+  display_name: "Code Review"
+  short_description: "统一代码审查入口：只读检查、按 findings 修复、单 AI 闭环或多 AI 任务包"
+  default_prompt: "Use code-review and select exactly one mode: check, repair, loop, or package. State the mode and write authority before executing; ambiguous review requests default to read-only check. Do not claim implementation correctness without diff/source evidence, and report insufficient material explicitly."
+
+policy:
+  allow_implicit_invocation: true

@@ -13,6 +13,16 @@ const skillsDir = path.join(root, 'skills');
 const requiredSkills = fs.readdirSync(skillsDir)
   .filter((name) => fs.existsSync(path.join(skillsDir, name, 'SKILL.md')))
   .sort();
+const evalSpecs = [
+  ...requiredSkills.map((skill) => ({ key: skill, rel: `${skill}/evals.json`, expectedName: skill })),
+  { key: 'review-check', rel: 'code-review/modes/check/evals.json', expectedName: 'review-check' },
+  { key: 'review-repair', rel: 'code-review/modes/repair/evals.json', expectedName: 'review-repair' },
+  { key: 'review-loop', rel: 'code-review/modes/loop/evals.json', expectedName: 'review-loop' },
+  { key: 'review-fix', rel: 'code-review/modes/package/evals.json', expectedName: 'review-fix' },
+  { key: 'code-reading', rel: 'project-analysis/modes/understanding/evals.json', expectedName: 'code-reading' },
+  { key: 'bug-fix', rel: 'project-analysis/modes/incident/evals.json', expectedName: 'bug-fix' },
+  { key: 'biz-flow', rel: 'project-analysis/modes/business/evals.json', expectedName: 'biz-flow' },
+];
 const globalCoverage = {
   environmentBlocked: false,
   testAssertionTarget: false,
@@ -70,7 +80,7 @@ const reviewLoopRequiredTags = new Set([
 ]);
 const reviewLoopSeenTags = new Set();
 const evalCounts = new Map();
-const seenTagsBySkill = new Map(requiredSkills.map((skill) => [skill, new Set()]));
+const seenTagsBySkill = new Map(evalSpecs.map(({ key }) => [key, new Set()]));
 const additionalRequiredTags = {
   'biz-flow': ['routing_bug_fix', 'routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
   'bug-fix': ['routing_review_check', 'routing_dev_doc', 'routing_biz_flow', 'non_interactive_blocker', 'path_conflict'],
@@ -203,31 +213,33 @@ if (process.argv.includes('--self-test')) {
   process.exit(runSelfTest() ? 0 : 1);
 }
 
-for (const skill of requiredSkills) {
-  const file = path.join(skillsDir, skill, 'evals.json');
+for (const spec of evalSpecs) {
+  const skill = spec.key;
+  const file = path.join(skillsDir, spec.rel);
+  const rel = `skills/${spec.rel}`;
   if (!fs.existsSync(file)) {
-    fail(`Missing evals: skills/${skill}/evals.json`);
+    fail(`Missing evals: ${rel}`);
     continue;
   }
   const raw = fs.readFileSync(file, 'utf8');
   // JSON 不应带 BOM（与 SKILL.md 相反）。
   if (raw.charCodeAt(0) === 0xfeff) {
-    fail(`evals.json must not start with a BOM: skills/${skill}/evals.json`);
+    fail(`evals.json must not start with a BOM: ${rel}`);
   }
   let data;
   try {
     data = JSON.parse(raw);
   } catch (e) {
-    fail(`Invalid JSON in skills/${skill}/evals.json: ${e.message}`);
+    fail(`Invalid JSON in ${rel}: ${e.message}`);
     continue;
   }
-  for (const error of validateDocumentShape(data, `skills/${skill}/evals.json`)) fail(error);
+  for (const error of validateDocumentShape(data, rel)) fail(error);
   if (!isJsonObject(data)) continue;
-  if (data.skill_name !== skill) {
-    fail(`skill_name mismatch in skills/${skill}/evals.json: got "${data.skill_name}", want "${skill}"`);
+  if (data.skill_name !== spec.expectedName) {
+    fail(`skill_name mismatch in ${rel}: got "${data.skill_name}", want "${spec.expectedName}"`);
   }
   if (!Array.isArray(data.evals) || data.evals.length === 0) {
-    fail(`evals must be a non-empty array: skills/${skill}/evals.json`);
+    fail(`evals must be a non-empty array: ${rel}`);
     continue;
   }
   evalCounts.set(skill, data.evals.length);
@@ -235,7 +247,7 @@ for (const skill of requiredSkills) {
   const seenPrompts = new Map();
   let hasAccuracyBoundary = false;
   data.evals.forEach((ev, idx) => {
-    const where = `skills/${skill}/evals.json evals[${idx}]`;
+    const where = `${rel} evals[${idx}]`;
     for (const error of validateEvalShape(ev, where, seenIds, seenPrompts)) fail(error);
     if (!isJsonObject(ev)) return;
     const tags = usableTags(ev);
@@ -260,7 +272,7 @@ for (const skill of requiredSkills) {
     }
   });
   if (!hasAccuracyBoundary) {
-    fail(`skills/${skill}/evals.json must include at least one evidence/accuracy boundary eval`);
+    fail(`${rel} must include at least one evidence/accuracy boundary eval`);
   }
 }
 
@@ -278,8 +290,9 @@ for (const tag of reviewLoopRequiredTags) {
 }
 const totalEvalCount = [...evalCounts.values()].reduce((sum, count) => sum + count, 0);
 if (totalEvalCount < 100) fail(`eval suite must contain at least 100 scenarios; got ${totalEvalCount}`);
-for (const skill of requiredSkills) {
-  if ((evalCounts.get(skill) || 0) < 9) fail(`skills/${skill}/evals.json must contain at least 9 scenarios`);
+for (const { key: skill, rel } of evalSpecs) {
+  const minimum = ['code-review', 'project-analysis'].includes(skill) ? 6 : 9;
+  if ((evalCounts.get(skill) || 0) < minimum) fail(`skills/${rel} must contain at least ${minimum} scenarios`);
   for (const tag of additionalRequiredTags[skill] || []) {
     if (!seenTagsBySkill.get(skill).has(tag)) fail(`${skill} evals missing required scenario tag: ${tag}`);
   }
@@ -299,10 +312,10 @@ for (const [file, needles] of [
   }
 }
 
-const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
-const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
+const reviewLoopSkillPath = path.join(skillsDir, 'code-review', 'modes', 'loop', 'mode.md');
+const reviewLoopReferencePath = path.join(skillsDir, 'code-review', 'modes', 'loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'quick（小范围实现默认）', '未纳管不等于不可读取或不可验证', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'NotRequiredNoCodeChange', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../package/reference.md', '../check/reference.md', '../repair/reference.md', 'quick（小范围实现默认）', '未纳管不等于不可读取或不可验证', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'NotRequiredNoCodeChange', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'LegacyReviewTaskInput:', 'CompatibilityFlags:', 'legacy-review-form-input', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
@@ -316,16 +329,15 @@ const contractNeedles = [
   ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', 'VcsAddPolicy', 'host-required', 'user-authorize-only', 'PolicyConflict', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
   ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
   ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
-  ['skills/code-reading/SKILL.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
-  ['skills/code-reading/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
+  ['skills/project-analysis/modes/understanding/mode.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
+  ['skills/project-analysis/modes/understanding/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
   ['skills/conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
-  ['skills/review-fix/SKILL.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
-  ['skills/review-check/SKILL.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
-  ['skills/review-fix/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
-  ['skills/review-loop/SKILL.md', ['首轮最大序号', '控制在 5 个文件内']],
-  ['skills/review-repair/SKILL.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
-  ['skills/review-repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
-  ['skills/review-repair/examples.md', ['TestEvidenceStatus: Passed']],
+  ['skills/code-review/modes/package/mode.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
+  ['skills/code-review/modes/check/mode.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
+  ['skills/code-review/modes/package/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
+  ['skills/code-review/modes/loop/mode.md', ['首轮最大序号', '控制在 5 个文件内']],
+  ['skills/code-review/modes/repair/mode.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
+  ['skills/code-review/modes/repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
 ];
 for (const [rel, needles] of contractNeedles) {
   const text = fs.readFileSync(path.join(root, rel), 'utf8');
@@ -341,11 +353,11 @@ if (conversationHandoffSkill.includes('references/template.md')) {
 
 const reviewLoopSkillText = fs.readFileSync(reviewLoopSkillPath, 'utf8');
 if (/([~$][^\n]*|[A-Za-z]:\\[^\n]*)\.claude[\\/]skills[\\/]review-form/i.test(reviewLoopSkillText)) {
-  fail('skills/review-loop/SKILL.md must not hardcode a Claude review-form skill path');
+  fail('skills/code-review/modes/loop/mode.md must not hardcode a Claude review-form skill path');
 }
 
 if (process.exitCode) {
   console.error('evals check failed.');
 } else {
-  console.log(`ok evals checks passed (${requiredSkills.length} skills, ${totalEvalCount} scenarios)`);
+  console.log(`ok evals checks passed (${requiredSkills.length} public skills, ${evalSpecs.length} eval suites, ${totalEvalCount} scenarios)`);
 }

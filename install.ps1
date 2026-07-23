@@ -46,6 +46,10 @@ try {
 
         Write-Host "==> $label`: $skillsDir"
         New-Item -ItemType Directory -Force $skillsDir | Out-Null
+        @("bug-fix", "biz-flow", "code-reading", "review-fix", "review-check", "review-repair", "review-loop") | ForEach-Object {
+            $legacyDest = Join-Path $skillsDir $_
+            if (Test-Path $legacyDest) { Remove-Item -Recurse -Force $legacyDest }
+        }
         Get-ChildItem -Path (Join-Path $srcDir.FullName "skills") -Directory | ForEach-Object {
             $dest = Join-Path $skillsDir $_.Name
             if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }

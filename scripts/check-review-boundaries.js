@@ -31,16 +31,16 @@ function requireText(rel, needles) {
   }
 }
 
-requireText('skills/review-check/SKILL.md', [
+requireText('skills/code-review/modes/check/mode.md', [
   '只读 code review',
   '不得修改代码',
   '不执行数据库写操作',
   'InsufficientMaterial',
-  '可将以上 findings 原样贴回 /review-fix',
-  '如果希望直接修复，可将 findings 交给 /review-repair',
+  '可将以上 findings 原样交给 `code-review mode=package`',
+  '如果希望直接修复，可将 findings 交给 `code-review mode=repair`',
 ]);
 
-requireText('skills/review-repair/SKILL.md', [
+requireText('skills/code-review/modes/repair/mode.md', [
   '已有 findings',
   '用户要“审查/Review/找问题” → 使用 `review-check`',
   '用户要“一个 AI 审查并修复/一键 review 并修复”且还没有 findings → 使用 `review-loop`',
@@ -50,15 +50,15 @@ requireText('skills/review-repair/SKILL.md', [
   '单轮默认最多处理 5 条 accepted findings',
 ]);
 
-requireText('skills/review-fix/SKILL.md', [
+requireText('skills/code-review/modes/package/mode.md', [
   '默认只生成 review 任务包',
   '如果用户没有贴回 review 结果，到这里停止',
-  '普通一次只读审查用 review-check',
-  '已有 findings 要直接改代码用 review-repair',
+  '`code-review mode=check`',
+  '`code-review mode=repair`',
   '阻塞项不下发修复',
 ]);
 
-requireText('skills/review-loop/SKILL.md', [
+requireText('skills/code-review/modes/loop/mode.md', [
   'SingleAgentReview',
   '最多 2 个修复循环',
   '`review-check` 阶段保持只读',
@@ -76,11 +76,11 @@ requireText('skills/_shared/workflow-chain.md', [
 ]);
 
 const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';
-requireText('skills/review-fix/reference.md', [allTestEvidenceStatuses]);
-requireText('skills/review-check/reference.md', [allTestEvidenceStatuses]);
-requireText('skills/review-loop/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/code-review/modes/package/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/code-review/modes/check/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/code-review/modes/loop/reference.md', [allTestEvidenceStatuses]);
 
-requireText('skills/review-repair/SKILL.md', [
+requireText('skills/code-review/modes/repair/mode.md', [
   '`Passed` / `Failed` / `NotRun` / `EnvironmentBlocked`',
 ]);
 

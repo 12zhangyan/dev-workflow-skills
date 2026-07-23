@@ -1,7 +1,7 @@
 interface:
   display_name: "对话移交文档"
   short_description: "基于当前对话生成可复核的跨对话移交文档"
-  default_prompt: "Use conversation-handoff to create a concise evidence-bounded handoff document from the current conversation for a new Codex, Claude Code, or Cursor chat. It is not a development plan, bug root-cause record, review task, read-only code review, or findings repair; route those to dev-doc, bug-fix, review-fix, review-check, or review-repair. Separate confirmed facts, inferences, and unverified items; redact secrets; preserve paths, commands, results, blockers, and the next action. Do not claim work or verification that the current conversation did not establish."
+  default_prompt: "Use conversation-handoff to create a concise evidence-bounded handoff document from the current conversation for a new Codex, Claude Code, or Cursor chat. It is not a development plan, project analysis, review task, read-only code review, or findings repair; route those to dev-doc, project-analysis, or code-review. Separate confirmed facts, inferences, and unverified items; redact secrets; preserve paths, commands, results, blockers, and the next action. Do not claim work or verification that the current conversation did not establish."
 
 policy:
   allow_implicit_invocation: true

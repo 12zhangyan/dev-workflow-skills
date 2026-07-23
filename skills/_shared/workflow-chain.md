@@ -11,29 +11,22 @@
 | skill | 阶段 | 做什么 | 会改代码吗 |
 |-------|------|--------|-----------|
 | `dev-doc` | Plan Gate | 需求落成可执行开发文档 | 否 |
-| `bug-fix` | Plan Gate | 记录 Bug 现象/根因/修复边界 | 否 |
-| `biz-flow` | Plan Gate | 给测试的业务流/数据流/时序地图 | 否 |
-| `review-fix` | Review Gate | 生成 review 任务包；回收 findings 后出修复交接 | 否 |
-| `review-check` | Review Gate | 按清单执行一次只读审查，输出 findings | 否 |
-| `review-repair` | Review Gate → Verification | 按 findings/fix-handoff 直接修复并验证 | 是 |
-| `review-loop` | Review Gate → Verification | 单 AI 编排任务包、审查、修复、验证和二次复审 | 是 |
-| `code-reading` | Understanding Gate | `CodeMap` 生成代码地图；`ImpactAnalysis` 在聊天中只读分析契约、调用链和兼容影响 | 否 |
+| `project-analysis` | Plan / Understanding Gate | `incident` 记录 Bug；`business` 生成测试业务流；`understanding` 生成代码地图或零写入影响分析 | 否 |
+| `code-review` | Review Gate → Verification | `package` 组织任务包；`check` 只读审查；`repair` 按 findings 修复；`loop` 完成单 AI 闭环 | 仅 repair/loop |
 | `conversation-handoff` | 任意阶段 | 把当前对话证据、状态和下一步压缩为跨对话移交文档 | 否 |
 
 ## 下一步映射（谁 → 下一步 + 可复制命令）
 
 | 当前完成 | 默认下一步 | Claude Code | Codex |
 |----------|-----------|-------------|-------|
-| `dev-doc` | AI 实现 → VCS/验证 → 多 AI 用 `review-fix`，单 AI闭环用 `review-loop` | `/review-fix docs/<日期>/<任务>.md` 或 `/review-loop docs/<日期>/<任务>.md` | `使用 review-fix skill 基于 docs/<日期>/<任务>.md 生成 Review 任务包`，或 `使用 review-loop skill 基于该文档审查、修复、验证并复审当前工作区` |
-| `bug-fix` | 确认根因后修复 → VCS/验证 → 多 AI 用 `review-fix`，单 AI闭环用 `review-loop` | `/review-fix docs/bugs/<日期>/<bug>.md` 或 `/review-loop docs/bugs/<日期>/<bug>.md` | `使用 review-fix skill 基于 docs/bugs/<日期>/<bug>.md 生成 Review 任务包`，或 `使用 review-loop skill 基于该文档审查、修复、验证并复审当前工作区` |
-| `biz-flow` | 测试设计；或转 `dev-doc` 开发 | `/dev-doc <业务名>` | `使用 dev-doc skill 给 <业务名> 生成开发文档` |
-| `review-fix`（任务包） | 多 AI 只读审查 | `/review-check docs/review-fix/<日期>/<任务>-review-task.md` | `使用 review-check skill 审查 docs/review-fix/<日期>/<任务>-review-task.md` |
-| `review-check`（findings） | 贴回 `review-fix` 汇总，或交 `review-repair` 直修 | `/review-fix <粘贴 findings 并汇总>` 或 `/review-repair <粘贴 findings>` | `使用 review-fix skill 汇总这些 findings 并生成修复交接`，或 `使用 review-repair skill 根据这些 findings 直接修复` |
-| `review-fix`（修复交接） | `review-repair` 直修，或人工按交接修 | `/review-repair docs/review-fix/<日期>/<任务>-fix-handoff.md` | `使用 review-repair skill 根据 fix-handoff 直接修复` |
-| `review-repair`（修复完） | 验证通过 → `code-reading` → 人工 review；改动大则二次 `review-check` | `/code-reading docs/<日期>/<任务>.md` 或 `/review-check <当前修复 diff>` | `使用 code-reading skill 基于 docs/<日期>/<任务>.md 生成代码地图`，或 `使用 review-check skill 对当前修复 diff 执行二次只读审查` |
-| `review-loop`（单 AI 闭环） | 无未关闭 CR/IM 且验证通过 → `code-reading` → 人工 review | `/code-reading docs/<日期>/<任务>.md` | `使用 code-reading skill 基于 docs/<日期>/<任务>.md 和当前实现生成代码地图` |
-| `code-reading`（CodeMap） | 人工 review → 提交 | 人工 | 人工 |
-| `code-reading`（ImpactAnalysis） | 需要实施方案 → `dev-doc`；需要缺陷判断 → `review-check`；否则人工确认影响结论 | `/dev-doc <任务>` 或 `/review-check <影响分析 + 当前证据>` | `使用 dev-doc skill 基于本影响分析生成开发方案`，或 `使用 review-check skill 基于本影响分析执行只读审查` |
+| `dev-doc` | AI 实现 → VCS/验证 → 多 AI 用 package，单 AI 用 loop | 自然语言点名 `code-review` 与 mode | `使用 code-review skill，mode=package，基于 docs/<日期>/<任务>.md 生成 Review 任务包`，或 `mode=loop` 完成闭环 |
+| `project-analysis`（incident） | 确认根因后修复 → VCS/验证 → Review | 自然语言点名 `code-review` | `使用 code-review skill，mode=package 或 loop，基于 docs/bugs/<日期>/<bug>.md 继续` |
+| `project-analysis`（business） | 测试设计；或转 `dev-doc` 开发 | `/dev-doc <业务名>` | `使用 dev-doc skill 给 <业务名> 生成开发文档` |
+| `code-review`（package 任务包） | 多 AI 只读审查 | 自然语言点名 `mode=check` | `使用 code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务>-review-task.md` |
+| `code-review`（check findings） | 贴回 package 汇总，或交 repair 直修 | 自然语言点名对应 mode | `使用 code-review skill，mode=package，汇总这些 findings`，或 `mode=repair` 直接修复 |
+| `code-review`（repair/loop 完成） | 验证通过 → understanding → 人工 review | 自然语言点名 `project-analysis` | `使用 project-analysis skill，mode=understanding，基于 source 和当前实现生成代码地图` |
+| `project-analysis`（understanding CodeMap） | 人工 review → 提交 | 人工 | 人工 |
+| `project-analysis`（understanding ImpactAnalysis） | 需要实施方案 → `dev-doc`；需要缺陷判断 → `code-review check`；否则人工确认 | `/dev-doc <任务>`，或自然语言点名 `code-review mode=check` | `使用 dev-doc skill 基于本影响分析生成开发方案`，或 `使用 code-review skill，mode=check，基于本影响分析执行只读审查` |
 | `conversation-handoff` | 新对话按移交文档中的 `Workflow Brief.next/nextCommand` 恢复原阶段，不强制跳到固定 Skill | `请先阅读 docs/handoffs/<日期>/<任务>-handoff.md，按“最小读取顺序”核对证据后执行 nextCommand` | `请先阅读 docs/handoffs/<日期>/<任务>-handoff.md，按“最小读取顺序”核对证据后执行 nextCommand` |
 
 ## superpowers-zh 插入点（可选增强）

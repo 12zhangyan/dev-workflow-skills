@@ -1,0 +1,7 @@
+interface:
+  display_name: "Project Analysis"
+  short_description: "统一项目分析入口：代码理解、事故诊断或面向测试的业务流"
+  default_prompt: "Use project-analysis and select exactly one mode: understanding, incident, or business. State the mode first, load only its mode file, and preserve its artifact and write boundary. Separate confirmed evidence, inference, and unknowns; never present an unverified root cause as confirmed."
+
+policy:
+  allow_implicit_invocation: true

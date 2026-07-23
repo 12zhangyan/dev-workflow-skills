@@ -10,7 +10,7 @@
 → Implementation Gate：AI 或开发者按文档实现，并回填执行结果
 → VCS Gate：确认新增源码、测试、配置、OpenAPI、文档已进入 Git/SVN 可见范围
 → Verification Gate：运行有针对性的构建/测试/接口/数据核对
-→ Review Gate：完整拆分链为 review-fix → review-check → review-fix/review-repair；单 AI 可用 review-loop 编排审查、修复、验证和二次复审
+→ Review Gate：`code-review` 完整拆分模式为 package → check → package/repair；单 AI 可用 loop 编排审查、修复、验证和二次复审
 → Understanding Gate：code-reading 生成代码地图，辅助人工 review
 → Submit Gate：人工签收，最终 status/diff/test/review/document 检查后提交
 ```

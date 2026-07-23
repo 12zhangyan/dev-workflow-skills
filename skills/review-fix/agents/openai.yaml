@@ -1,7 +1,0 @@
-interface:
-  display_name: "Review Fix"
-  short_description: "生成多 AI 审查任务包与修复交接"
-  default_prompt: "Use review-fix skill to create a distributable multi-AI review task package and later summarize returned findings into a fix handoff. Require independent reviewers, enforce a minimum evidence gate, distinguish plan review from implementation review, and if diff/status/changed files or business decisions are missing, stop and list blockers. Route a normal one-pass read-only review to review-check, direct repair from existing findings to review-repair, and same-agent review-repair-verify-recheck closure to review-loop."
-
-policy:
-  allow_implicit_invocation: true

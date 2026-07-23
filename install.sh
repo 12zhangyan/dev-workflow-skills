@@ -40,6 +40,9 @@ install_target() {
 
   echo "==> ${label}: ${skills_dir}"
   mkdir -p "$skills_dir"
+  for legacy_name in bug-fix biz-flow code-reading review-fix review-check review-repair review-loop; do
+    rm -rf "${skills_dir:?}/${legacy_name}"
+  done
   for skill in "$SRC_DIR"/*/; do
     name="$(basename "$skill")"
     rm -rf "${skills_dir:?}/${name}"

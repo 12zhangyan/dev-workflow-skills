@@ -49,7 +49,7 @@
 1. 先读本移交文档。
 2. 按最小读取顺序核对两处改动，不从摘要推断未读代码。
 3. 运行聚焦测试并记录真实结果；失败则先定位，不把口头声明当证据。
-4. 验证通过后使用 review-check skill 做只读审查。
+4. 验证通过后使用 code-review skill，mode=check，做只读审查。
 
 ## 6. 最小读取顺序
 
@@ -75,8 +75,8 @@ vcs: owner=<Git 仓库根>; tracked=上述两个 modified 文件; untracked=无
 tests: class=Hermetic; command/result=mvn -pl order-service -Dtest=OrderTimeoutServiceTest test / NotRun（当前无输出）
 api: spec=无; index=无; operationIds=无
 openFindings: BK-1 聚焦测试结果待复核
-next: 先完成 Verification Gate，再使用 review-check skill 只读审查
-nextCommand: 运行聚焦测试并记录结果；通过后使用 review-check skill 审查当前实现
+next: 先完成 Verification Gate，再使用 code-review skill，mode=check，只读审查
+nextCommand: 运行聚焦测试并记录结果；通过后使用 code-review skill，mode=check，审查当前实现
 tokenHint: 下一位 AI 先读本 Brief -> 移交文档 -> 两个 changed 文件；首轮最多 5 个文件
 
 ````

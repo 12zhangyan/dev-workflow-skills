@@ -1,7 +1,0 @@
-interface:
-  display_name: "Code Reading"
-  short_description: "生成代码地图或只读分析接口与调用链影响"
-  default_prompt: "Use code-reading skill in CodeMap mode when a persisted code map is requested, or ImpactAnalysis mode when the user only wants contract, call-chain, or compatibility impact. ImpactAnalysis must stay chat-only with zero workspace writes. Auto-select a unique high-confidence entry, record evidence, and ask only when candidates are ambiguous. Do not write implementation plans, close findings, make defect verdicts, or repair code: route plans to dev-doc, defect judgments to review-check, direct findings repair to review-repair, and tester-facing business flows to biz-flow."
-
-policy:
-  allow_implicit_invocation: true

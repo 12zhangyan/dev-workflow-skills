@@ -82,6 +82,10 @@ function seedDestination(home) {
   fs.writeFileSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'), 'preserve me\n', 'utf8');
   fs.mkdirSync(path.join(skillsRoot, 'dev-doc'), { recursive: true });
   fs.writeFileSync(path.join(skillsRoot, 'dev-doc', 'stale-from-old-install.txt'), 'remove me\n', 'utf8');
+  for (const legacy of ['bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair', 'review-loop']) {
+    fs.mkdirSync(path.join(skillsRoot, legacy), { recursive: true });
+    fs.writeFileSync(path.join(skillsRoot, legacy, 'legacy-marker.txt'), 'remove me\n', 'utf8');
+  }
   return skillsRoot;
 }
 
@@ -94,6 +98,11 @@ function assertCodexInstallation(home) {
   }
   if (fs.existsSync(path.join(installedRoot, 'dev-doc', 'stale-from-old-install.txt'))) {
     fail('installer smoke did not replace a stale same-named skill directory');
+  }
+  for (const legacy of ['bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair', 'review-loop']) {
+    if (fs.existsSync(path.join(installedRoot, legacy))) {
+      fail(`installer smoke did not remove merged legacy skill directory: ${legacy}`);
+    }
   }
 
   for (const name of sourceDirectories()) {

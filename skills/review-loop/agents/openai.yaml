@@ -1,7 +1,0 @@
-interface:
-  display_name: "Review Loop"
-  short_description: "单 AI 一键完成审查、修复、验证与复审"
-  default_prompt: "Use review-loop for a single-agent review, repair, targeted verification, and second review. Default to quick for a clearly scoped single-module change of at most eight implementation/test files with no contract, permission, state, transaction, database, cross-module, or Critical risk; use standard when the user requests a review task/audit trail or the risk requires it. Stop after at most two repair cycles; if Critical/Important findings remain or verification is Failed/EnvironmentBlocked, preserve their IDs, report PartiallyFixed or Blocked, and do not enter Submit Gate. Untracked files must be read and included in scope: they block Review/Submit approval but do not block evidence-based repair, fallback validation, or re-review. Before VCS add, declare VcsAddPolicy and show the exact file list. Never commit or push, and never extend add authority beyond the exact approved or host-required list."
-
-policy:
-  allow_implicit_invocation: true

@@ -226,11 +226,20 @@ if (!sharedBrief.includes('deferred/deferred-next-batch')) {
   fail(`${sharedBriefRel} openFindings must distinguish deferred from deferred-next-batch`);
 }
 
-for (const skill of skillNames) {
+for (const skill of ['dev-doc', 'conversation-handoff']) {
   checkFile(`skills/${skill}/reference.md`, true);
   const examplesRel = `skills/${skill}/examples.md`;
   if (fs.existsSync(path.join(root, examplesRel))) checkFile(examplesRel, false);
 }
+for (const rel of [
+  'skills/project-analysis/modes/incident/reference.md',
+  'skills/project-analysis/modes/business/reference.md',
+  'skills/project-analysis/modes/understanding/reference.md',
+  'skills/code-review/modes/package/reference.md',
+  'skills/code-review/modes/check/reference.md',
+  'skills/code-review/modes/repair/reference.md',
+  'skills/code-review/modes/loop/reference.md',
+]) checkFile(rel, true);
 
 if (failed) process.exit(1);
 console.log(`ok Workflow Brief checks passed (${skillNames.length} skills)`);

@@ -80,6 +80,9 @@ set "DEST=%~1"
 set "TOOL=%~2"
 echo === %TOOL%: %DEST% ===
 if not exist "%DEST%\." mkdir "%DEST%" 2>nul
+for %%L in (bug-fix biz-flow code-reading review-fix review-check review-repair review-loop) do (
+  if exist "%DEST%\%%L\." rmdir /s /q "%DEST%\%%L"
+)
 for /d %%S in ("%SRC%\*") do (
   set "NAME=%%~nxS"
   if exist "%DEST%\!NAME!\." rmdir /s /q "%DEST%\!NAME!"

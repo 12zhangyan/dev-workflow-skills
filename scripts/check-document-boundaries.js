@@ -174,27 +174,27 @@ requireText('skills/dev-doc/SKILL.md', [
   '../_shared/board-shell-bootstrap.md',
 ]);
 
-requireText('skills/bug-fix/SKILL.md', [
+requireText('skills/project-analysis/modes/incident/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写 Bug 文档、看板或执行型修复 Todo',
   '根因无明确结论',
   'node project-html/board-add.js',
   '不要手改文件',
-  '../_shared/board-shell-bootstrap.md',
+  '../../../_shared/board-shell-bootstrap.md',
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
-requireText('skills/biz-flow/SKILL.md', [
+requireText('skills/project-analysis/modes/business/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写业务流文档、看板或确定性测试口径',
   '缺失入口会影响状态/数据闭环时停止生成正式方案',
   '写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本',
   '跳过条件',
-  '../_shared/board-shell-bootstrap.md',
+  '../../../_shared/board-shell-bootstrap.md',
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
-requireText('skills/code-reading/SKILL.md', [
+requireText('skills/project-analysis/modes/understanding/mode.md', [
   '非交互/无人值守运行中不等待提问',
   'ImpactAnalysis` 是严格零写入模式',
   '禁止 Write/Edit',
@@ -203,7 +203,7 @@ requireText('skills/code-reading/SKILL.md', [
   '最多列 5 个',
 ]);
 
-requireText('skills/code-reading/reference.md', [
+requireText('skills/project-analysis/modes/understanding/reference.md', [
   '首轮最多 5 个文件',
 ]);
 
