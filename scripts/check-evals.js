@@ -51,6 +51,8 @@ const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
   'standard',
   'quick',
+  'quick_review_receipt',
+  'toolchain_recovery',
   'recheck',
   'no_implementation',
   'business_blocker',
@@ -300,7 +302,7 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'review-loop', 'SKILL.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'review-loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'standard（默认）', 'quick', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../review-fix/reference.md', '../review-check/reference.md', '../review-repair/reference.md', 'quick（小范围实现默认）', '未纳管不等于不可读取或不可验证', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'NotRequiredNoCodeChange', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'LegacyReviewTaskInput:', 'CompatibilityFlags:', 'legacy-review-form-input', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');

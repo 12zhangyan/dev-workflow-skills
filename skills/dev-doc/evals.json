@@ -119,7 +119,7 @@
     {
       "id": 21,
       "prompt": "开发文档和 OpenAPI 已生成，但 svn status 显示测试文件和 YAML 为 ?，直接进入 review",
-      "expected_output": "应停在 VCS Gate，Workflow Brief untracked 明确列测试与 YAML，要求纳管后再验证/review；skill 不代替用户执行 svn add。",
+      "expected_output": "应在 Workflow Brief 的 untracked 明确列测试与 YAML，并输出精确纳管清单；skill 不代替用户执行 svn add。后续 review-loop 必须读取未跟踪文件，可继续审查、修复、验证和复审，但在纳管前最终保持 VCSGateBlocked，不得宣称 Review 通过或可提交。",
       "tags": ["vcs_untracked", "vcs_gate"]
     },
     {
@@ -131,7 +131,7 @@
     {
       "id": 23,
       "prompt": "dev-doc 实现交接已完成，但 git status 显示新增 CI、配置、测试和正式文档仍为 ??，直接自动串 review-loop",
-      "expected_output": "实现交接必须在调用 review-loop 前输出一次 VCS checkpoint 和最小未纳管清单。skill 不代替用户 git add；允许后续只读 review 获取 findings，但不得进入 repair 或 Review Gate 通过结论，避免到修复阶段才暴露 blocker。",
+      "expected_output": "实现交接必须在调用 review-loop 前输出一次 VCS checkpoint 和最小未纳管清单。skill 不代替用户 git add；review-loop 应把未跟踪文件纳入范围并可继续 repair、验证和复审，但最终不得输出 Review Gate 通过或 Submit Gate 通行结论。",
       "tags": ["implementation_handoff", "vcs_checkpoint", "review_loop"]
     },
     {
@@ -181,6 +181,18 @@
       "prompt": "只读梳理现有退款接口的 Controller 到 DAO 调用链、当前契约和兼容性影响，聊天里给代码地图即可，不要开发方案、Todo、OpenAPI 或看板",
       "expected_output": "不应使用 dev-doc 或创建任何方案产物；这是只读结构与影响理解，应路由 code-reading 的 ImpactAnalysis/代码地图模式。只有用户随后要求基于这些证据产出实施方案时，才把结果交回 dev-doc。",
       "tags": ["routing_code_reading", "chat_only", "no_plan_artifact"]
+    },
+    {
+      "id": 32,
+      "prompt": "直接在当前 Spring Boot 项目实现 Redis ChatMemoryStore 请求级故障隔离，补单测并验证；范围、失败语义和验收条件都已写清，不需要先给我方案",
+      "expected_output": "不应触发 dev-doc、生成方案文档或升级 HTML 看板。应由普通编码流程直接实施和验证；只有发现尚未裁决的接口、权限、状态、DB、事务或跨模块高风险决策时，才暂停并建议先进入 Plan Gate。",
+      "tags": ["routing_direct_implementation", "no_plan_artifact", "skip_board", "token_budget"]
+    },
+    {
+      "id": 33,
+      "prompt": "使用 dev-doc 给现有后端限流改造写一份开发方案，不用登记 HTML 看板，也不要生成展示页",
+      "expected_output": "应生成合适的 md 方案，但记录 BoardPublishStatus: NotRequested；不得因为仓库存在 project-html 就初始化、升级、迁移或写入看板，也不得运行 build.js。看板未发布不是失败或后续 blocker。",
+      "tags": ["board_opt_in", "skip_board", "plan_artifact", "token_budget"]
     }
   ]
 }

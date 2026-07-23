@@ -1,6 +1,6 @@
 ﻿---
 name: dev-doc
-description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案，并登记看板；用户要求“开发方案/改造方案/实施文档/先设计再编码”、需求仍是口头描述或范围容易走偏时必须使用。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow，只读代码地图/调用链/兼容影响分析且不输出方案改用 code-reading；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
+description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案。仅当用户明确要求“开发方案/改造方案/实施文档/先设计再编码”，或存在尚未裁决的接口、权限、状态、DB、事务、跨模块高风险决策而必须先形成可审核方案时使用；用户已经明确要求直接实现且范围与验收口径足够清楚时不要触发。HTML 看板仅在用户明确要求或适用项目规则要求发布时登记。Bug 现象与根因记录改用 bug-fix，面向测试/产品的业务流改用 biz-flow，只读代码地图/调用链/兼容影响分析且不输出方案改用 code-reading；生成审查任务包/修复交接改用 review-fix，实际只读审查改用 review-check，按 findings 直修改用 review-repair。Codex 用自然语言点名 dev-doc skill；Claude Code 可用 /dev-doc；Cursor 按当前 skill 入口或自然语言点名。
 argument-hint: [任务名称]
 arguments: task
 disable-model-invocation: true
@@ -14,13 +14,13 @@ effort: high
 
 ## 任务定位
 
-本 Skill 是开发工作流的第一步：把需求落成文档，驱动后续编码、自测、Code Review、上线。
+本 Skill 是显式的 Plan Gate 工具：把需要先评审的需求落成文档，驱动后续编码、自测和 Code Review。它不是所有实现任务的必经步骤；用户直接要求修改代码且关键边界已有证据时，由编码 Agent 直接实施和验证，不为流程完整性强行生成 dev-doc。
 
 用户只要求理解现有代码结构、调用链、接口契约或兼容性影响，且明确不要实施方案时，使用 `code-reading`，不生成 dev-doc 或看板条目。若这些只读结论是开发方案的前置证据，可先运行 `code-reading`，再把证据交给本 Skill 产出方案。
 
-**一次运行产出两份各有分工的文档：**
-- **md 文件 = AI 执行文档**：精确的文件路径、变更清单、约束条件、可执行 Todo，写给 Codex / Cursor / Claude Code 或开发者照着执行
-- **看板条目 = 人类阅读文档**：面向没参与本次开发的同事独立撰写的技术说明，不看 md、不看代码也能看懂这次改了什么、为什么改
+**一次运行的核心产物是 md 执行文档**：精确的文件路径、变更清单、约束条件、可执行 Todo，写给 Codex / Cursor / Claude Code 或开发者照着执行。
+
+**HTML 看板是可选发布产物**：只有用户明确要求“登记/更新/发布看板”，或当前项目规则明确要求 dev-doc 同步看板时才执行 Step 5.5/5.6。普通方案生成不初始化、不升级、不写入看板，也不为看板推断服务/模块归属。
 
 md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 
@@ -248,6 +248,8 @@ test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && g
 
 ### Step 5.5：同步更新 HTML 看板
 
+**进入条件**：用户明确要求登记/更新/发布 HTML 看板，或适用的项目级规则明确要求同步看板。未命中时跳过 Step 5.5 和 5.6，记录 `BoardPublishStatus: NotRequested`；不得因为仓库里恰好存在 `project-html/` 就自动升级或写入。
+
 看板为多文件结构，**skill 默认只通过 `board-add.js` 更新轻量目录与人类方案详情，不手改外壳/样式/逻辑**。外壳版本较低时只按下方升级命令复制模板外壳，绝不覆盖 `data/`。
 
 > **⚠️ 强制规则**：修改 `data/changes.js` 的主路径只能是 `node project-html/board-add.js project-html/data/_entry.json`，**禁止用 Write 整体重写**。只有 `node` 不存在时，才允许用 Edit 在标记行降级追加/更新。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
@@ -351,6 +353,8 @@ node project-html/board-add.js project-html/data/_entry.json && rm -f project-ht
 
 ### Step 5.6：生成轻量详情页 + 文档总索引（构建）
 
+仅当 Step 5.5 的看板进入条件成立且条目已成功写入时执行；`BoardPublishStatus: NotRequested` 时不得运行 `build.js`。
+
 `data/changes.js` 通过 `node --check` 后，运行构建脚本（一条命令完成单页与索引）：
 
 ```bash
@@ -377,7 +381,7 @@ node project-html/build.js --standalone "<docPath 或 slug>"
 
 模板见 [reference.md](reference.md#完成后输出格式)。
 
-`Compact` 改用 [精简模式完成输出](reference.md#精简模式完成输出)，artifacts 只列 md，明确看板/OpenAPI/索引均为 `NotApplicable (Compact)`。
+`Compact` 改用 [精简模式完成输出](reference.md#精简模式完成输出)，artifacts 只列 md，明确看板/OpenAPI/索引均为 `NotApplicable (Compact)`。Standard / IncrementalRevision 未请求看板时写 `BoardPublishStatus: NotRequested`，不把它描述为失败或待补任务。
 
 核心要素：
 1. 文件路径（可直接打开）
@@ -386,7 +390,7 @@ node project-html/build.js --standalone "<docPath 或 slug>"
 4. 当前门禁：`Plan Gate 已完成`；若存在 blocker/conflict，写 `Plan Gate 未通过` 并停止，不输出可执行编码提示
 5. 执行结果回填要求：要求实现方逐项回填 Todo 完成情况、变更文件、验证命令、偏离项；实现结束立即读取 `git status --short` / `svn status`，把新增源码、测试、配置、OpenAPI 和正式 docs 的未纳管清单显式交给用户，不得直接跳到 review-loop 后才暴露 VCS blocker
 6. 验证命令：用 Step 1 检测到的项目类型自动填入；多模块项目优先给模块级命令（例如 `mvn -f <module-pom> test` 或 `mvn -pl <module> -am test`）。每条命令标记 `TestDependencyClass`（`Hermetic / ServiceBacked / LiveExternal / Mixed`）和所需依赖；默认本地/CI 命令只能包含 Hermetic 与受控 ServiceBacked 测试，真实 AI/SaaS 调用必须拆到独立 profile、tag 或 secret-protected job，不能让默认 `test/verify` 依赖真实密钥
-7. 验证通过后 Todo：先执行 VCS Gate 和 Verification Gate，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；存在未纳管关键文件时先输出一次 VCS checkpoint，review-loop 仅可做只读 findings、不得 repair；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
+7. 验证通过后 Todo：先输出 VCS checkpoint，再按 [../_shared/workflow-chain.md](../_shared/workflow-chain.md) 输出当前宿主真实可用的 `review-fix → review-check → review-repair/code-reading` 调用方式；存在未纳管关键文件时必须显式列出，但 review-loop 仍可读取、修复、验证和复审这些文件，只能把最终 Submit/VCS Gate 结论标为阻塞；Claude Code 可给斜杠命令，Codex 给自然语言 skill 调用，Cursor 按当前 skill 入口或自然语言点名，不虚构命令
 8. `【Workflow Brief】` 块（PlanGate 阶段，见 reference.md）：供下一位 AI 先读索引、再按 tokenHint 读取 md 方案与相关源码，不必粘贴文档全文
 
 ## 规则
@@ -421,9 +425,9 @@ node project-html/build.js --standalone "<docPath 或 slug>"
 - [ ] OpenAPI 校验已记录 `OPENAPI_VALIDATION_MODE`；工作区外 skill 路径受限时已使用 `light:workspace-inline`，真实校验失败未被降级掩盖
 - [ ] 如只有行为变更或仅调用既有接口，已删除「三、API 设计」和「十三、Apifox 接口规范」，且看板 `apis` 为 `[]`、未写 `apiSpecPath`
 - [ ] Codex / Cursor / Claude Code 执行提示已按当前宿主能力生成，未混用不可用命令
-- [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`（Step 5.5 ②）
+- [ ] 已判定 BoardPublishStatus；仅在用户或项目规则要求发布时使用 `node project-html/board-add.js` 写入看板
 - [ ] 看板 entry 未包含 `changeList` / `todos` / `stackTrace` / `codeLocation`，精确执行信息只保留在 md
-- [ ] 已运行 `node project-html/build.js` 生成单页 + 文档总索引（Step 5.6）
+- [ ] 仅在看板条目成功写入后运行 `node project-html/build.js`；NotRequested 时未运行
 - [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6 第 8 项）
 
 ## 相关资源

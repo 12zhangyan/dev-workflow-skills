@@ -523,10 +523,10 @@ const skillDescriptionRequirements = {
   'biz-flow': ['bug-fix', 'dev-doc', 'code-reading', 'review-check', 'review-fix'],
   'bug-fix': ['review-check', 'review-repair', 'dev-doc', 'biz-flow'],
   'code-reading': ['dev-doc', 'review-check', 'review-repair', 'biz-flow'],
-  'dev-doc': ['bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair'],
+  'dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求', 'bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair'],
   'review-check': ['review-fix', 'review-repair', 'review-loop'],
   'review-fix': ['review-check', 'review-repair', 'review-loop'],
-  'review-loop': ['最多 2 个修复循环', '不进入 Submit Gate'],
+  'review-loop': ['小范围单模块改动默认 quick', '未跟踪文件必须纳入审查', '最多 2 个修复循环', '不进入 Submit Gate'],
   'review-repair': ['review-check', 'review-loop'],
 };
 const agentPromptRequirements = {
@@ -557,6 +557,8 @@ const agentPromptRequirements = {
     'biz-flow',
   ],
   'dev-doc': [
+    'Do not invoke it for a direct implementation request',
+    'publish or upgrade the HTML board only when the user explicitly requests it',
     'bug-fix',
     'biz-flow',
     'code-reading',
@@ -575,6 +577,8 @@ const agentPromptRequirements = {
     'review-loop',
   ],
   'review-loop': [
+    'Default to quick',
+    'Untracked files must be read',
     'at most two repair cycles',
     'do not enter Submit Gate',
     'Never commit or push',

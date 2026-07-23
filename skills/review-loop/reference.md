@@ -20,7 +20,7 @@
 | 业务/API/权限/DB blocker | 暂停对应项 | 仅复审已修部分 | Blocked / PartiallyFixed |
 | 验证失败或环境阻塞 | 不关闭相关 CR/IM | 可做只读复审 | 已修复：PartiallyFixed；未能修复：Blocked（验证状态另记 Failed / EnvironmentBlocked） |
 | 两轮后仍有 CR/IM | 停止 | 已完成最终复审 | PartiallyFixed |
-| 范围内关键文件未纳入 VCS | 只生成证据包和第一次只读 findings，不修复 | 否 | Blocked / VCSGateBlocked；输出最小纳管清单，纳管后带 finding ID 重跑 |
+| 范围内关键文件未纳入 VCS | 文件可读且范围明确时照常审查、修复 accepted findings | 修改过代码则复审 | Blocked / VCSGateBlocked；可保留修复与验证证据，但不得宣称 Review/Submit Gate 通过 |
 | 无 findings 但验证非 Passed | 否 | 否 | Blocked；补验证或修环境后重验 |
 
 ## 完成输出格式
@@ -38,10 +38,19 @@ LegacyReviewTaskInput: <无 / 用户显式提供的 docs/review-form/...>
 CompatibilityFlags: <none / legacy-review-form-input>
 修复结论：<NoEvidenceIssue / Fixed / PartiallyFixed / Blocked / InsufficientMaterial>
 VerificationStatus: <已运行命令和结果 / 未运行及原因>
+ToolchainRecovery: <NotNeeded / 检查来源 + 找到的兼容工具链 + 重跑结果 / Exhausted>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable>
 TestSourcePathCheck: <NotApplicable / Checked / WindowsTestSourcePathMismatch；Windows Java testCompile 时写测试源根、真实文件路径与 javac/Maven 报错路径>
 RepairCycles: <0 / 1 / 2>
+
+ReviewReceipt:
+- ScopeFiles: <本轮实际读取的实现/测试文件；含未跟踪文件，最多 8 个>
+- UntrackedInScope: <逐文件路径 / 无>
+- InitialReview: <NoEvidenceIssue / finding ID + 关键证据位置>
+- Repair: <NotRequired / 处理 finding ID>
+- Verification: <命令 + 结果>
+- Recheck: <PerformedAfterRepair + 结果 / NotRequiredNoCodeChange>
 
 阶段结果：
 | 阶段 | 状态 | 产物/证据 |
@@ -50,7 +59,7 @@ RepairCycles: <0 / 1 / 2>
 | 第一次 review-check | <NoEvidenceIssue / Findings / InsufficientMaterial> | <finding ID> |
 | review-repair | <fixed / partial / skipped / blocked> | <处理 ID> |
 | Verification Gate | <Passed / Failed / EnvironmentBlocked / NotRun> | <命令摘要> |
-| 二次 review-check | <NoEvidenceIssue / Findings / skipped> | <未关闭/新增 ID> |
+| 二次 review-check | <NoEvidenceIssue / Findings / NotRequiredNoCodeChange / skipped-blocked> | <未关闭/新增 ID 或未修改代码> |
 
 finding 处理：
 | ID | 级别 | 状态 | 文件/位置 | 处理说明 | 验证 |
