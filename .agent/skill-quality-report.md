@@ -14,7 +14,7 @@
 
 | 分类 | Skill | 主要职责 |
 | --- | --- | --- |
-| 计划与文档 | `dev-doc` | 编码前生成开发方案、看板条目和可选 OpenAPI |
+| 计划与文档 | `yan-dev-doc` | 编码前生成开发方案、看板条目和可选 OpenAPI |
 | Bug 诊断 | `bug-fix` | 记录 Bug 现象、根因证据、修复边界和看板条目 |
 | 业务说明 | `biz-flow` | 面向测试/产品输出业务流、数据流、时序和状态机 |
 | 审查任务 | `review-fix` | 生成多 AI review 任务包，或汇总 findings 形成修复交接 |
@@ -22,7 +22,7 @@
 | 直接修复 | `review-repair` | 根据 findings 修改代码、验证并回填状态 |
 | 单 Agent 闭环 | `review-loop` | 编排审查、修复、验证、复审的最多两轮闭环 |
 | 代码理解 | `code-reading` | 生成代码地图或只读影响分析 |
-| 对话交接 | `conversation-handoff` | 输出跨 Codex/Claude/Cursor 对话可继续执行的交接文档 |
+| 对话交接 | `yan-conversation-handoff` | 输出跨 Codex/Claude/Cursor 对话可继续执行的交接文档 |
 
 ## 当前质量基线
 
@@ -32,7 +32,7 @@
 - Eval 结构健壮性：顶层、场景对象、ID、prompt、expected_output、tags 均有确定性诊断；malformed 非对象和标量 tags 不会再抛 TypeError，相关自测由 `check-scripts.js` 执行。
 - Workflow Brief：9 个 Skill 均通过 `scripts/check-workflow-briefs.js`。
 - 公共交互协议：通过 `scripts/check-interaction-policy-sync.js`。
-- 看板资产同步：`project-html/` 与 `skills/dev-doc/assets/board/` 当前同步，`BOARD_VERSION = 23`。
+- 看板资产同步：`project-html/` 与 `skills/yan-dev-doc/assets/board/` 当前同步，`BOARD_VERSION = 23`。
 - 安装器：通过 `scripts/check-installers.js`；除三端静态 guardrail 外，会在隔离 HOME 实际安装 Codex 副本并逐目录树/字节验证资源完整、同名替换、无关 Skill 保留和仅 `SKILL.md` 去 BOM。Windows 路径已本地实测，POSIX 路径由本地 tar fixture 分支承载。
 - 文档：通过 `scripts/check-docs.js`。
 - Skill 资源清单：AGENTS/CLAUDE 的 9 个入口、`reference.md` 和 `examples.md` 声明通过 `scripts/check-skill-inventory.js` 与文件系统对账。
@@ -69,14 +69,14 @@
   - `scripts/check-review-boundaries.js`
   - `scripts/check-document-boundaries.js`
 - `node scripts/check-all.js` 当前执行 15 个脚本/步骤，并通过。
-- `conversation-handoff` 已补充非交互/无人值守停机规则，并新增 eval 覆盖；eval 总数为 131。
+- `yan-conversation-handoff` 已补充非交互/无人值守停机规则，并新增 eval 覆盖；eval 总数为 131。
 - README/AGENTS/CLAUDE 已同步新增单项脚本入口，`check-docs.js` 会守护 README 的新增脚本名。
 - 后续优先级：先审查当前 diff 和启动前 dirty 文件归属，再决定是否继续修改已有 dirty 文件。
 
 ## 第 19 轮 Checkpoint
 
 - `scripts/check-docs.js` 已从 `scripts/check-all.js` 自动推导 README 维护命令清单，减少新增校验脚本后的双写遗漏。
-- `review-repair`、`conversation-handoff`、`biz-flow` 的 OpenAI UI prompt 已补充相邻 Skill 路由边界，并由 `scripts/check-skill-inventory.js` 守护关键入口提示。
+- `review-repair`、`yan-conversation-handoff`、`biz-flow` 的 OpenAI UI prompt 已补充相邻 Skill 路由边界，并由 `scripts/check-skill-inventory.js` 守护关键入口提示。
 - `scripts/check-skill-metadata.js` 与 `scripts/check-skill-inventory.js` 已校验 OpenAI metadata 单行引号闭合，并通过 `--self-test` 覆盖最小正反例。
 - `scripts/check-review-boundaries.js` 与 `scripts/check-document-boundaries.js` 的失败信息已明确这些短语是行为护栏；README/AGENTS/CLAUDE 也已说明它们不是普通文案 lint。
 - 最新全量验证：`node scripts/check-all.js` 通过。
@@ -84,7 +84,7 @@
 
 ## 第 27 轮 Checkpoint
 
-- 9 个正式 Skill 现在全部具有按需加载的 `examples.md`；`code-reading` 与 `conversation-handoff` 的示例分别覆盖双模式边界和证据分层/无人值守停机。
+- 9 个正式 Skill 现在全部具有按需加载的 `examples.md`；`code-reading` 与 `yan-conversation-handoff` 的示例分别覆盖双模式边界和证据分层/无人值守停机。
 - `scripts/check-docs.js` 会验证全部 Skill 本地 Markdown 链接与标题锚点，当前共 100 个。
 - `scripts/check-skill-metadata.js` 递归验证 31 个 Skill Markdown 的 UTF-8 BOM/有效 UTF-8，并守护 metadata 单行 scalar；相关 parser 均有最小负例自测。
 - `scripts/check-workflow-briefs.js` 对 malformed Brief 输出字段级诊断，不再因缺字段抛 TypeError。
@@ -104,7 +104,7 @@
 ## 第 35 轮补充
 
 - code-reading discovery surface 现在明确只负责结构/影响理解，不输出实施方案、不判断或关闭 findings、不直接修复代码。
-- 相邻请求分别路由到 dev-doc、review-check、review-repair、biz-flow；四类路由都有 eval 标签并由 inventory/eval 检查守护。
+- 相邻请求分别路由到 yan-dev-doc、review-check、review-repair、biz-flow；四类路由都有 eval 标签并由 inventory/eval 检查守护。
 - 最新全量验证：`node scripts/check-all.js` 通过（9 个 Skill、31 个 Markdown、100 个本地链接、135 个 eval 场景，`BOARD_VERSION = 23`）。
 
 ## 第 36 轮补充
@@ -161,8 +161,8 @@
 
 ## 第 45 轮补充
 
-- dev-doc 与 code-reading 现在按主交付物双向分流：可执行实施方案归 dev-doc，只读结构/调用链/契约影响理解且不要方案归 code-reading。
-- 允许组合使用：先由 code-reading 收集证据，再回 dev-doc 形成方案；不会把这条组合路径误写成互斥禁令。
+- yan-dev-doc 与 code-reading 现在按主交付物双向分流：可执行实施方案归 yan-dev-doc，只读结构/调用链/契约影响理解且不要方案归 code-reading。
+- 允许组合使用：先由 code-reading 收集证据，再回 yan-dev-doc 形成方案；不会把这条组合路径误写成互斥禁令。
 - OpenAI prompt 已补齐既有 review-fix 路由；最新全量基线为 9 Skill、31 个 Markdown、100 个本地链接、141 个 eval 场景。
 
 ## 第 46 轮补充
@@ -173,14 +173,14 @@
 
 ## 第 47 轮补充
 
-- workflow-chain 的职责和下一步覆盖已从 8 个补齐到全部 9 个正式 Skill；conversation-handoff 作为任意阶段恢复工具，不改变原主链。
+- workflow-chain 的职责和下一步覆盖已从 8 个补齐到全部 9 个正式 Skill；yan-conversation-handoff 作为任意阶段恢复工具，不改变原主链。
 - inventory 会从文件系统动态推导 Skill 清单并对两个 chain 表做确定性检查；新增 Skill 后漏写 chain 会直接失败。
 - 下一步表保留阶段限定多分支能力，当前 review-fix 两分支与全部其他 Skill 均通过。
 
 ## 第 48 轮补充
 
 - workflow-chain 不再把 code-reading 视为单一代码地图产物：CodeMap 与 ImpactAnalysis 有独立下一步。
-- ImpactAnalysis 可按目标进入 dev-doc、review-check 或人工确认，不会被误推到提交；CodeMap 仍保持人工 review/Submit 路径。
+- ImpactAnalysis 可按目标进入 yan-dev-doc、review-check 或人工确认，不会被误推到提交；CodeMap 仍保持人工 review/Submit 路径。
 - inventory 自测和正例会守护两个必需模式标签，最新全量基线仍为 9 Skill、141 个 eval 场景。
 
 ## 第 49 轮补充
@@ -191,7 +191,7 @@
 
 ## 第 50 轮 Checkpoint
 
-- 看板外壳定位/复制/版本比较从 dev-doc、bug-fix、biz-flow 三份主入口下沉为 `_shared` 按需资源；初始 Skill 上下文合计减少 87 行。
+- 看板外壳定位/复制/版本比较从 yan-dev-doc、bug-fix、biz-flow 三份主入口下沉为 `_shared` 按需资源；初始 Skill 上下文合计减少 87 行。
 - bug-fix/biz-flow 不再依赖跨 shell 保留 `$src`；两个共享命令块各自解析模板位置，并守住既有 `data/`。
 - 当前基线：9 个正式 Skill、32 个 Skill Markdown、102 个本地链接、141 个 eval 场景、15 个全量检查步骤、`BOARD_VERSION = 23`。
 - 本地 Windows 全量和安装 smoke 通过；共享 Bash 仅有语法证据，POSIX 行为 smoke 记为下一轮高优先级任务。
@@ -204,7 +204,7 @@
 
 ## 第 52 轮补充
 
-- `conversation-handoff` 的完整输出模板现用四反引号包裹，内部三反引号提示块不再提前结束模板。
+- `yan-conversation-handoff` 的完整输出模板现用四反引号包裹，内部三反引号提示块不再提前结束模板。
 - `check-docs` 会按 Markdown 围栏字符、长度、缩进和 closing 语法扫描全部 Skill Markdown，并报告未闭合 opening 行；自测包含本次真实缺陷的最小负例。
 - Workflow Brief 校验器同步接受至少三个反引号或波浪号的纯围栏终止行，四反引号模板不会再误报非字段。首次全量暴露该兼容缺口后已修复，最终全量基线保持 9 Skill、32 Markdown、102 链接、141 eval。
 

@@ -15,13 +15,13 @@ const requiredSkills = fs.readdirSync(skillsDir)
   .sort();
 const evalSpecs = [
   ...requiredSkills.map((skill) => ({ key: skill, rel: `${skill}/evals.json`, expectedName: skill })),
-  { key: 'review-check', rel: 'code-review/modes/check/evals.json', expectedName: 'review-check' },
-  { key: 'review-repair', rel: 'code-review/modes/repair/evals.json', expectedName: 'review-repair' },
-  { key: 'review-loop', rel: 'code-review/modes/loop/evals.json', expectedName: 'review-loop' },
-  { key: 'review-fix', rel: 'code-review/modes/package/evals.json', expectedName: 'review-fix' },
-  { key: 'code-reading', rel: 'project-analysis/modes/understanding/evals.json', expectedName: 'code-reading' },
-  { key: 'bug-fix', rel: 'project-analysis/modes/incident/evals.json', expectedName: 'bug-fix' },
-  { key: 'biz-flow', rel: 'project-analysis/modes/business/evals.json', expectedName: 'biz-flow' },
+  { key: 'review-check', rel: 'yan-code-review/modes/check/evals.json', expectedName: 'review-check' },
+  { key: 'review-repair', rel: 'yan-code-review/modes/repair/evals.json', expectedName: 'review-repair' },
+  { key: 'review-loop', rel: 'yan-code-review/modes/loop/evals.json', expectedName: 'review-loop' },
+  { key: 'review-fix', rel: 'yan-code-review/modes/package/evals.json', expectedName: 'review-fix' },
+  { key: 'code-reading', rel: 'yan-project-analysis/modes/understanding/evals.json', expectedName: 'code-reading' },
+  { key: 'bug-fix', rel: 'yan-project-analysis/modes/incident/evals.json', expectedName: 'bug-fix' },
+  { key: 'biz-flow', rel: 'yan-project-analysis/modes/business/evals.json', expectedName: 'biz-flow' },
 ];
 const globalCoverage = {
   environmentBlocked: false,
@@ -85,8 +85,8 @@ const additionalRequiredTags = {
   'biz-flow': ['routing_bug_fix', 'routing_dev_doc', 'routing_review_check', 'non_interactive_blocker', 'workflow_brief'],
   'bug-fix': ['routing_review_check', 'routing_dev_doc', 'routing_biz_flow', 'non_interactive_blocker', 'path_conflict'],
   'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget', 'impact_analysis', 'chat_only', 'routing_dev_doc', 'routing_review_check', 'routing_review_repair', 'routing_biz_flow'],
-  'conversation-handoff': ['template_path', 'non_interactive_blocker'],
-  'dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency', 'routing_code_reading'],
+  'yan-conversation-handoff': ['template_path', 'non_interactive_blocker'],
+  'yan-dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency', 'routing_code_reading'],
   'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency', 'routing_review_repair', 'routing_review_loop'],
   'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency', 'superpowers_review_bridge', 'routing_review_check', 'routing_review_repair', 'routing_review_loop'],
   'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_input', 'host_isolation', 'vcs_add_policy', 'review_fix_path_canonical'],
@@ -260,7 +260,7 @@ for (const spec of evalSpecs) {
     if (/(测试名|断言对象|目标逻辑|被测方法|没有调用目标逻辑)/.test(joined)) {
       globalCoverage.testAssertionTarget = true;
     }
-    if (skill === 'dev-doc') {
+    if (skill === 'yan-dev-doc') {
       for (const tag of tags) devDocSeenTags.add(tag);
     }
     if (skill === 'review-loop') {
@@ -283,7 +283,7 @@ if (!globalCoverage.testAssertionTarget) {
   fail('evals must include a test assertion target/effectiveness scenario');
 }
 for (const tag of devDocRequiredTags) {
-  if (!devDocSeenTags.has(tag)) fail(`dev-doc evals missing required scenario tag: ${tag}`);
+  if (!devDocSeenTags.has(tag)) fail(`yan-dev-doc evals missing required scenario tag: ${tag}`);
 }
 for (const tag of reviewLoopRequiredTags) {
   if (!reviewLoopSeenTags.has(tag)) fail(`review-loop evals missing required scenario tag: ${tag}`);
@@ -291,16 +291,16 @@ for (const tag of reviewLoopRequiredTags) {
 const totalEvalCount = [...evalCounts.values()].reduce((sum, count) => sum + count, 0);
 if (totalEvalCount < 100) fail(`eval suite must contain at least 100 scenarios; got ${totalEvalCount}`);
 for (const { key: skill, rel } of evalSpecs) {
-  const minimum = ['code-review', 'project-analysis'].includes(skill) ? 6 : 9;
+  const minimum = ['yan-code-review', 'yan-project-analysis'].includes(skill) ? 6 : 9;
   if ((evalCounts.get(skill) || 0) < minimum) fail(`skills/${rel} must contain at least ${minimum} scenarios`);
   for (const tag of additionalRequiredTags[skill] || []) {
     if (!seenTagsBySkill.get(skill).has(tag)) fail(`${skill} evals missing required scenario tag: ${tag}`);
   }
 }
 
-const devDocSkillPath = path.join(skillsDir, 'dev-doc', 'SKILL.md');
-const devDocReferencePath = path.join(skillsDir, 'dev-doc', 'reference.md');
-const devDocExamplesPath = path.join(skillsDir, 'dev-doc', 'examples.md');
+const devDocSkillPath = path.join(skillsDir, 'yan-dev-doc', 'SKILL.md');
+const devDocReferencePath = path.join(skillsDir, 'yan-dev-doc', 'reference.md');
+const devDocExamplesPath = path.join(skillsDir, 'yan-dev-doc', 'examples.md');
 for (const [file, needles] of [
   [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', 'conflicts(status=resolved)', '旧口径、否决证据、最终口径和实现禁令', '不得把它继续算作 blocker', '`Compact`', '最多 2 个生产代码切点', '跳过 Step 5.1、5.5、5.6', '升级为 `Standard`', '前置文档', '不得只保留或只读取日期最近的一篇', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', 'YAML 校验失败误判成环境受限', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
   [devDocReferencePath, ['精简文档模板', '文档模式：Compact', 'NotApplicable (Compact)', '最多两个生产代码切点', '文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '已裁决冲突不进入', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
@@ -308,12 +308,12 @@ for (const [file, needles] of [
 ]) {
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of needles) {
-    if (!text.includes(needle)) fail(`${path.relative(root, file)} missing dev-doc contract text: ${needle}`);
+    if (!text.includes(needle)) fail(`${path.relative(root, file)} missing yan-dev-doc contract text: ${needle}`);
   }
 }
 
-const reviewLoopSkillPath = path.join(skillsDir, 'code-review', 'modes', 'loop', 'mode.md');
-const reviewLoopReferencePath = path.join(skillsDir, 'code-review', 'modes', 'loop', 'reference.md');
+const reviewLoopSkillPath = path.join(skillsDir, 'yan-code-review', 'modes', 'loop', 'mode.md');
+const reviewLoopReferencePath = path.join(skillsDir, 'yan-code-review', 'modes', 'loop', 'reference.md');
 for (const [file, needles] of [
   [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../package/reference.md', '../check/reference.md', '../repair/reference.md', 'quick（小范围实现默认）', '未纳管不等于不可读取或不可验证', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'NotRequiredNoCodeChange', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'LegacyReviewTaskInput:', 'CompatibilityFlags:', 'legacy-review-form-input', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
@@ -327,17 +327,17 @@ for (const [file, needles] of [
 const contractNeedles = [
   ['skills/_shared/interaction-policy.md', ['非交互/无人值守运行中', '推荐项不是授权', 'InsufficientMaterial']],
   ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', 'VcsAddPolicy', 'host-required', 'user-authorize-only', 'PolicyConflict', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
-  ['skills/dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
-  ['skills/dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
-  ['skills/project-analysis/modes/understanding/mode.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
-  ['skills/project-analysis/modes/understanding/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
-  ['skills/conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
-  ['skills/code-review/modes/package/mode.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
-  ['skills/code-review/modes/check/mode.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
-  ['skills/code-review/modes/package/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
-  ['skills/code-review/modes/loop/mode.md', ['首轮最大序号', '控制在 5 个文件内']],
-  ['skills/code-review/modes/repair/mode.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
-  ['skills/code-review/modes/repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
+  ['skills/yan-dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
+  ['skills/yan-dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
+  ['skills/yan-project-analysis/modes/understanding/mode.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
+  ['skills/yan-project-analysis/modes/understanding/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
+  ['skills/yan-conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
+  ['skills/yan-code-review/modes/package/mode.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
+  ['skills/yan-code-review/modes/check/mode.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
+  ['skills/yan-code-review/modes/package/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
+  ['skills/yan-code-review/modes/loop/mode.md', ['首轮最大序号', '控制在 5 个文件内']],
+  ['skills/yan-code-review/modes/repair/mode.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
+  ['skills/yan-code-review/modes/repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
 ];
 for (const [rel, needles] of contractNeedles) {
   const text = fs.readFileSync(path.join(root, rel), 'utf8');
@@ -346,14 +346,14 @@ for (const [rel, needles] of contractNeedles) {
   }
 }
 
-const conversationHandoffSkill = fs.readFileSync(path.join(root, 'skills/conversation-handoff/SKILL.md'), 'utf8');
+const conversationHandoffSkill = fs.readFileSync(path.join(root, 'skills/yan-conversation-handoff/SKILL.md'), 'utf8');
 if (conversationHandoffSkill.includes('references/template.md')) {
-  fail('skills/conversation-handoff/SKILL.md must not reference missing references/template.md');
+  fail('skills/yan-conversation-handoff/SKILL.md must not reference missing references/template.md');
 }
 
 const reviewLoopSkillText = fs.readFileSync(reviewLoopSkillPath, 'utf8');
 if (/([~$][^\n]*|[A-Za-z]:\\[^\n]*)\.claude[\\/]skills[\\/]review-form/i.test(reviewLoopSkillText)) {
-  fail('skills/code-review/modes/loop/mode.md must not hardcode a Claude review-form skill path');
+  fail('skills/yan-code-review/modes/loop/mode.md must not hardcode a Claude review-form skill path');
 }
 
 if (process.exitCode) {

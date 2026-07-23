@@ -503,7 +503,7 @@ for (const error of validateWorkflowChainInventory(
   docTextByRel.get('skills/_shared/workflow-chain.md'),
   'skills/_shared/workflow-chain.md',
   skillNames,
-  ['`project-analysis`（understanding CodeMap）', '`project-analysis`（understanding ImpactAnalysis）'],
+  ['`yan-project-analysis`（understanding CodeMap）', '`yan-project-analysis`（understanding ImpactAnalysis）'],
 )) {
   fail(error);
 }
@@ -520,27 +520,30 @@ for (const rel of ['AGENTS.md', 'CLAUDE.md']) {
 
 const rows = [];
 const skillDescriptionRequirements = {
-  'dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求'],
-  'project-analysis': ['understanding', 'incident', 'business', 'code-reading', 'bug-fix', 'biz-flow'],
-  'code-review': ['check', 'repair', 'loop', 'package', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
+  'yan-dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求'],
+  'yan-project-analysis': ['understanding', 'incident', 'business', 'code-reading', 'bug-fix', 'biz-flow'],
+  'yan-code-review': ['check', 'repair', 'loop', 'package', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
 };
 const agentPromptRequirements = {
-  'conversation-handoff': [
-    'dev-doc',
-    'project-analysis',
-    'code-review',
+  'yan-conversation-handoff': [
+    'yan-dev-doc',
+    'yan-project-analysis',
+    'yan-code-review',
   ],
-  'dev-doc': [
+  'yan-dev-doc': [
     'Do not invoke it for a direct implementation request',
     'publish or upgrade the HTML board only when the user explicitly requests it',
-    'project-analysis',
-    'code-review',
+    'yan-project-analysis',
+    'yan-code-review',
   ],
-  'project-analysis': ['understanding', 'incident', 'business'],
-  'code-review': ['package', 'check', 'repair', 'loop'],
+  'yan-project-analysis': ['understanding', 'incident', 'business'],
+  'yan-code-review': ['package', 'check', 'repair', 'loop'],
 };
 
 for (const skill of skillNames) {
+  if (!skill.startsWith('yan-')) {
+    fail(`public Skill directory must use yan- prefix: ${skill}`);
+  }
   const skillRel = `skills/${skill}/SKILL.md`;
   const skillText = read(skillRel);
   const frontmatter = parseFrontmatter(skillText, skillRel);
@@ -559,6 +562,9 @@ for (const skill of skillNames) {
   const agent = parseFlatYamlBlock(agentText, agentRel, /^interface:\s*$/);
   for (const field of ['display_name', 'short_description', 'default_prompt']) {
     if (!agent[field]) fail(`${agentRel} missing interface.${field}`);
+  }
+  if (agent.display_name && !agent.display_name.startsWith('Yan ')) {
+    fail(`${agentRel} interface.display_name must use Yan prefix`);
   }
   for (const needle of agentPromptRequirements[skill] || []) {
     if (!agent.default_prompt.includes(needle)) {
@@ -579,7 +585,7 @@ for (const skill of skillNames) {
   });
 }
 
-for (const required of ['dev-doc', 'project-analysis', 'code-review', 'conversation-handoff']) {
+for (const required of ['yan-dev-doc', 'yan-project-analysis', 'yan-code-review', 'yan-conversation-handoff']) {
   if (!skillNames.includes(required)) fail(`required workflow skill missing: ${required}`);
 }
 

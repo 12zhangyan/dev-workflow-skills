@@ -19,10 +19,10 @@ const CHECK_FILES = [
   'project-html/build.js',
   'project-html/board-add.js',
   'project-html/data/changes.js',
-  'skills/dev-doc/assets/board/js/board.js',
-  'skills/dev-doc/assets/board/build.js',
-  'skills/dev-doc/assets/board/board-add.js',
-  'skills/dev-doc/assets/board/data/changes.js'
+  'skills/yan-dev-doc/assets/board/js/board.js',
+  'skills/yan-dev-doc/assets/board/build.js',
+  'skills/yan-dev-doc/assets/board/board-add.js',
+  'skills/yan-dev-doc/assets/board/data/changes.js'
 ];
 
 let failed = false;
@@ -34,7 +34,7 @@ function fail(message) {
 
 for (const file of SHELL_FILES) {
   const projectFile = path.join(ROOT, 'project-html', file);
-  const templateFile = path.join(ROOT, 'skills/dev-doc/assets/board', file);
+  const templateFile = path.join(ROOT, 'skills/yan-dev-doc/assets/board', file);
   const a = fs.existsSync(projectFile) ? fs.readFileSync(projectFile) : null;
   const b = fs.existsSync(templateFile) ? fs.readFileSync(templateFile) : null;
   if (!a || !b || !a.equals(b)) fail(`x shell out of sync: ${file}`);
@@ -58,7 +58,7 @@ else {
     if (result.status !== 0) fail(`x syntax error: project-html/data/details/${name}`);
   }
 }
-if (!fs.existsSync(path.join(ROOT, 'skills/dev-doc/assets/board/data/details/.gitkeep'))) {
+if (!fs.existsSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/details/.gitkeep'))) {
   fail('x template data/details/.gitkeep is missing');
 }
 
@@ -67,7 +67,7 @@ const versionMatch = boardJs.match(/BOARD_VERSION\s*=\s*(\d+)/);
 if (!versionMatch) fail('x project-html/js/board.js is missing BOARD_VERSION');
 
 const projectData = fs.readFileSync(path.join(ROOT, 'project-html/data/changes.js'), 'utf8');
-const templateData = fs.readFileSync(path.join(ROOT, 'skills/dev-doc/assets/board/data/changes.js'), 'utf8');
+const templateData = fs.readFileSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/changes.js'), 'utf8');
 for (const marker of ['在此行上方追加变更日志', '在此行上方追加新记录']) {
   if (!projectData.includes(marker)) fail(`x project-html/data/changes.js missing marker: ${marker}`);
   if (!templateData.includes(marker)) fail(`x template data/changes.js missing marker: ${marker}`);

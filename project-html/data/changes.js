@@ -1,5 +1,5 @@
 // ─── AI 变更记录数据 ─────────────────────────────────────────────────────────
-// 本文件由 /dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加。
+// 本文件由 /yan-dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加。
 // 渲染逻辑在 js/board.js（不要在本文件写逻辑）。
 // 手工修改时保持 JS 语法合法：每条记录末尾带逗号，追加标记行不可删除。
 
@@ -105,7 +105,7 @@ const changes = [
     "detailId": "d-64e88fe567050fce",
     "detailPath": "data/details/d-64e88fe567050fce.js",
     "summary": "项目里的 AI 开发文档以 md 形式散落在 docs/ 各日期目录下，要回溯一次改动得先知道日期、再逐个打开文件，对不写代码的同事几乎不可用。",
-    "searchText": "AI变更记录-HTML展示页 dev-workflow-skills HTML 看板 新功能 项目里的 AI 开发文档以 md 形式散落在 docs/ 各日期目录下，要回溯一次改动得先知道日期、再逐个打开文件，对不写代码的同事几乎不可用。 在 project-html/ 目录下创建 HTML/CSS/JS 展示页 支持按服务/模块分组，左侧树导航，右侧文档详情 数据独立存放，每次执行 dev-doc 后自动追加 纯静态多文件页面：外壳、样式、渲染逻辑、数据四个文件分离，浏览器直接打开即可，不依赖任何服务器。 每次运行 /dev-doc 或 /bug-fix 时，skill 只向 data/changes.js 追加一条记录，外壳文件保持不动；流程图"
+    "searchText": "AI变更记录-HTML展示页 dev-workflow-skills HTML 看板 新功能 项目里的 AI 开发文档以 md 形式散落在 docs/ 各日期目录下，要回溯一次改动得先知道日期、再逐个打开文件，对不写代码的同事几乎不可用。 在 project-html/ 目录下创建 HTML/CSS/JS 展示页 支持按服务/模块分组，左侧树导航，右侧文档详情 数据独立存放，每次执行 yan-dev-doc 后自动追加 纯静态多文件页面：外壳、样式、渲染逻辑、数据四个文件分离，浏览器直接打开即可，不依赖任何服务器。 每次运行 /yan-dev-doc 或 /bug-fix 时，skill 只向 data/changes.js 追加一条记录，外壳文件保持不动；流程图"
   },
   {
     "service": "dev-workflow-skills",

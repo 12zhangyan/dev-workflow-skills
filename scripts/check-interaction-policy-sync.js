@@ -38,13 +38,13 @@ for (const skill of requiredSkills) {
 }
 
 const feedbackReferences = [
-  'dev-doc/reference.md',
-  'project-analysis/modes/incident/reference.md',
-  'project-analysis/modes/understanding/reference.md',
-  'project-analysis/modes/business/reference.md',
-  'code-review/modes/package/reference.md',
-  'code-review/modes/check/reference.md',
-  'code-review/modes/repair/reference.md'
+  'yan-dev-doc/reference.md',
+  'yan-project-analysis/modes/incident/reference.md',
+  'yan-project-analysis/modes/understanding/reference.md',
+  'yan-project-analysis/modes/business/reference.md',
+  'yan-code-review/modes/package/reference.md',
+  'yan-code-review/modes/check/reference.md',
+  'yan-code-review/modes/repair/reference.md'
 ];
 
 for (const rel of feedbackReferences) {
@@ -59,7 +59,7 @@ for (const rel of feedbackReferences) {
   }
 }
 
-const reviewCheckReference = path.join(root, 'skills', 'code-review', 'modes', 'check', 'reference.md');
+const reviewCheckReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'check', 'reference.md');
 if (fs.existsSync(reviewCheckReference)) {
   const text = fs.readFileSync(reviewCheckReference, 'utf8');
   for (const needle of ['ReviewScopeType', 'VerificationStatus', 'TestEvidenceStatus']) {
@@ -69,8 +69,8 @@ if (fs.existsSync(reviewCheckReference)) {
   fail('Missing review-check reference file: skills/review-check/reference.md');
 }
 
-const reviewFixReference = path.join(root, 'skills', 'code-review', 'modes', 'package', 'reference.md');
-const reviewFixSkill = path.join(root, 'skills', 'code-review', 'modes', 'package', 'mode.md');
+const reviewFixReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'reference.md');
+const reviewFixSkill = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'mode.md');
 for (const [file, label] of [[reviewFixReference, 'review-fix reference'], [reviewFixSkill, 'review-fix SKILL']]) {
   if (!fs.existsSync(file)) {
     fail(`Missing ${label} file`);
@@ -82,8 +82,8 @@ for (const [file, label] of [[reviewFixReference, 'review-fix reference'], [revi
   }
 }
 
-const reviewRepairReference = path.join(root, 'skills', 'code-review', 'modes', 'repair', 'reference.md');
-const reviewRepairSkill = path.join(root, 'skills', 'code-review', 'modes', 'repair', 'mode.md');
+const reviewRepairReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'repair', 'reference.md');
+const reviewRepairSkill = path.join(root, 'skills', 'yan-code-review', 'modes', 'repair', 'mode.md');
 for (const [file, label] of [[reviewRepairReference, 'review-repair reference'], [reviewRepairSkill, 'review-repair SKILL']]) {
   if (!fs.existsSync(file)) {
     fail(`Missing ${label} file`);

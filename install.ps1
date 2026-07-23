@@ -23,6 +23,12 @@ function Remove-SkillMarkdownBom {
 Write-Host "Installing dev-workflow-skills..."
 Write-Host ""
 
+$legacyNames = @(
+    "dev-doc", "project-analysis", "code-review", "conversation-handoff",
+    "bug-fix", "biz-flow", "code-reading",
+    "review-fix", "review-check", "review-repair", "review-loop"
+)
+
 $tmpDir = Join-Path $env:TEMP ("dev-workflow-skills-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force $tmpDir | Out-Null
 
@@ -46,11 +52,13 @@ try {
 
         Write-Host "==> $label`: $skillsDir"
         New-Item -ItemType Directory -Force $skillsDir | Out-Null
-        @("bug-fix", "biz-flow", "code-reading", "review-fix", "review-check", "review-repair", "review-loop") | ForEach-Object {
+        $legacyNames | ForEach-Object {
             $legacyDest = Join-Path $skillsDir $_
             if (Test-Path $legacyDest) { Remove-Item -Recurse -Force $legacyDest }
         }
-        Get-ChildItem -Path (Join-Path $srcDir.FullName "skills") -Directory | ForEach-Object {
+        Get-ChildItem -Path (Join-Path $srcDir.FullName "skills") -Directory |
+            Where-Object { $_.Name -notin $legacyNames } |
+            ForEach-Object {
             $dest = Join-Path $skillsDir $_.Name
             if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
             Copy-Item -Recurse $_.FullName $dest
@@ -67,5 +75,5 @@ try {
 
 Write-Host ""
 Write-Host "Done! Restart Claude Code / Cursor / Codex to load the skills."
-Write-Host "Claude Code usually uses slash names like /dev-doc; Codex should use natural language such as '使用 dev-doc skill 生成开发文档'."
+Write-Host "Claude Code usually uses slash names like /yan-dev-doc; Codex should use natural language such as '使用 yan-dev-doc skill 生成开发文档'."
 Write-Host "Optional companion: run 'npx superpowers-zh' from each concrete project directory for brainstorming/TDD/debugging/review helpers."

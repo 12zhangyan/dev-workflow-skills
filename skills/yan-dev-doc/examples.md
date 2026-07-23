@@ -1,0 +1,443 @@
+﻿# yan-dev-doc Examples
+
+> 一个完整新功能示例（用户登录优化）和一个 Bug 修复局部示例（支付回调签名）。
+> 用于参考生成文档的风格和详略程度。
+
+## 目录
+
+- [示例 1：新功能 - 用户登录优化](#示例-1新功能---用户登录优化)
+- [示例 2：Bug 修复 - 支付回调签名](#示例-2bug-修复---支付回调签名)
+- [风格要点](#风格要点)
+
+---
+
+## 示例 1：新功能 - 用户登录优化
+
+**用户调用：** Claude Code `/yan-dev-doc 用户登录优化`；Codex `使用 yan-dev-doc skill 给“用户登录优化”生成开发文档`；Cursor 按当前 skill 入口或自然语言点名。
+
+**收集到的信息：**
+- 任务类型：新功能
+- 复杂度：中等
+- 背景：现有账号密码登录留存率低，运营要求加入手机号验证码登录
+- 目标：新增手机号登录，保留原账号密码登录，本次不做第三方登录
+- 方案：新增 LoginStrategy 接口，密码登录和验证码登录各实现一个
+- 数据/接口变化：新增 `/api/v1/auth/sms-login`，DB 加 `sms_verification` 表
+- 风险：短信网关额度、验证码并发
+- 证据：`analytics/login-funnel-2026-05.md` 记录新用户留存率 18%、注册环节流失占比 60%；现有登录入口见 `AuthController.login()`
+- 数据库口径：用户已明确同意把新增 `sms_verification` 表写入方案并提交 DBA 申请；实际 DDL 仍须 DBA 审批和授权执行
+
+**生成的文档：**
+
+````markdown
+# 用户登录优化 开发文档
+
+> 日期：2026-05-31
+> 任务类型：新功能
+> 复杂度：中等
+> 状态：草稿
+> 关联分支：feature/sms-login
+> 关联 Commit：暂无
+
+---
+
+## 一、需求说明
+
+### 背景
+现有仅支持账号密码登录，新用户留存率仅 18%。运营调研显示 60% 流失发生在注册环节，主要原因是密码设置麻烦。
+
+### 目标
+- [ ] 新增手机号 + 短信验证码登录方式
+- [ ] 注册流程同步支持验证码注册
+- [ ] 保持原账号密码登录方式可用
+
+### 范围
+- ✅ 包含：手机号登录、短信网关接入、验证码生成与校验
+- ❌ 不包含：第三方登录（微信/支付宝）、生物识别登录
+
+### 判断依据、明确假设与待确认
+
+| 类型 | 内容 | 依据 | 处理口径 |
+|------|------|------|----------|
+| 事实 | 新用户留存率 18%，注册环节流失占比 60% | `analytics/login-funnel-2026-05.md` | 作为改造背景 |
+| 事实 | 保留原密码登录，本次不做第三方登录 | 用户明确范围 | 不扩大范围 |
+| 事实 | 用户同意将新增 `sms_verification` 表写入 DBA 申请草案 | 用户明确确认；当前代码无对应表 | 只生成建议方案，不由 AI 执行 DDL |
+
+---
+
+## 二、技术方案
+
+### 方案概述
+引入策略模式，定义统一的 LoginStrategy 接口，密码登录和验证码登录各为独立实现。
+
+### 核心设计
+- 新增 `LoginStrategy` 接口：`Result<UserToken> login(LoginRequest req)`
+- 现有 `AuthServiceImpl` 改为持有 `Map<LoginType, LoginStrategy>`，按类型分发
+- 验证码采用 Redis 存储，Key 格式 `sms:code:{phone}`，TTL 5 分钟
+
+### AI 执行口径
+
+- **前置条件**：用户确认数据库结构方案；DBA 审批完成；短信网关账号与测试环境可用
+- **执行顺序**：先扩展登录策略与 Redis 验证码逻辑，再接 Controller，最后联调网关；DB 变更由授权 DBA 独立执行
+- **验收标准**：原密码登录回归通过；验证码登录正常/过期/重复发送/网关超时用例通过
+- **禁止改动**：不得改变原 `/api/v1/auth/login` 契约；AI 不得执行 DDL 或生产数据操作
+
+### 最小影响分析（开闭原则）
+- **新增内容**：
+  - `LoginStrategy` 接口
+  - `PasswordLoginStrategy`、`SmsLoginStrategy` 实现类
+  - `SmsService`、`SmsGatewayClient`
+  - DB 表 `sms_verification`
+- **不变内容**：
+  - `User` 实体类
+  - 现有 `/api/v1/auth/login` 接口的请求/响应结构
+  - 所有依赖 `AuthService` 的上游 Controller
+- **必须修改**：
+  - `AuthServiceImpl.login()` 方法体——原因：从单一密码登录改为按类型分发，无法用扩展替代
+
+---
+
+## 三、API 设计
+
+| Method | URL | 说明 |
+|--------|-----|------|
+| POST | /api/v1/auth/sms-code | 发送短信验证码 |
+| POST | /api/v1/auth/sms-login | 验证码登录 |
+
+**发送验证码 Request：**
+```json
+{ "phone": "13800138000" }
+```
+
+**登录 Request：**
+```json
+{ "phone": "13800138000", "code": "123456" }
+```
+
+**Response：**
+```json
+{ "code": 0, "data": { "token": "xxx", "expireIn": 7200 } }
+```
+
+## 十三、Apifox 接口规范
+
+- **OpenAPI 文件**：`docs/apifox/2026-05-31/用户登录优化.openapi.yaml`
+- **Apifox 导入**：Apifox → 导入 → OpenAPI / Swagger → 选择该 YAML 文件
+- **接口索引**：`docs/apifox/INDEX.md`
+- **维护规则**：后续验证码登录接口参数、返回结构或路径变更时，更新同一个 YAML 文件和索引
+
+| Method | URL | operationId | 说明 | OpenAPI 文件 |
+|--------|-----|-------------|------|--------------|
+| POST | /api/v1/auth/sms-code | sendSmsCode | 发送短信验证码 | `docs/apifox/2026-05-31/用户登录优化.openapi.yaml` |
+| POST | /api/v1/auth/sms-login | smsLogin | 验证码登录 | `docs/apifox/2026-05-31/用户登录优化.openapi.yaml` |
+
+---
+
+## 四、数据库变更（DBA 申请草案）
+
+- **用户确认**：示例假设用户已明确同意提交变更申请；未确认时本节应作为 blocker
+- **DBA 审批状态**：待申请，必须由授权人员审核和执行
+- **建议结构变更**：新增 `sms_verification` 表（phone, code, created_at, used_at）
+- **数据迁移**：无
+- **建议回滚方案**：由 DBA 审核是否执行 `DROP TABLE sms_verification`
+- **只读验证 SQL**：通过 `information_schema.tables` / `information_schema.columns` 核对结构
+
+```sql
+-- 建议 DDL，仅供 DBA 审核；yan-dev-doc 与后续执行 AI 不得直接运行
+CREATE TABLE sms_verification (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  phone VARCHAR(20) NOT NULL,
+  code VARCHAR(6) NOT NULL,
+  created_at DATETIME NOT NULL,
+  used_at DATETIME DEFAULT NULL,
+  INDEX idx_phone (phone)
+);
+```
+
+---
+
+## 五、缓存策略
+
+- **缓存 Key**：`sms:code:{phone}`
+- **TTL**：5 分钟
+- **失效策略**：用户登录成功后主动删除
+- **击穿/雪崩防护**：单个手机号 60 秒内最多发送 1 次（Redis SETNX）
+
+---
+
+## 六、代码变更清单
+
+| 文件路径 | 变更类型 | 说明 |
+|----------|----------|------|
+| `auth/strategy/LoginStrategy.java` | 新增 | 登录策略接口 |
+| `auth/strategy/PasswordLoginStrategy.java` | 新增 | 密码登录实现 |
+| `auth/strategy/SmsLoginStrategy.java` | 新增 | 验证码登录实现 |
+| `auth/service/AuthServiceImpl.java` | 修改 | 改为策略分发，无法用扩展替代 |
+| `auth/controller/AuthController.java` | 新增 | sms-code 和 sms-login 接口 |
+| `sms/SmsService.java` | 新增 | 短信发送服务 |
+
+---
+
+## 七、流程图
+
+```mermaid
+flowchart TD
+    A([用户输入手机号]) --> B[/api/v1/auth/sms-code]
+    B --> C{60秒内已发送?}
+    C -->|是| D([返回限流提示])
+    C -->|否| E[生成验证码]
+    E --> F[Redis 存储 TTL=5min]
+    F --> G[调用短信网关]
+    G --> H([返回成功])
+    H --> I[用户输入验证码]
+    I --> J[/api/v1/auth/sms-login]
+    J --> K{Redis 校验}
+    K -->|不匹配| L([返回错误])
+    K -->|匹配| M[查/建 User]
+    M --> N[生成 Token]
+    N --> O([返回 Token])
+```
+
+---
+
+## 八、测试要点
+
+### 单元测试
+- [ ] `SmsLoginStrategy.login()` 各分支覆盖
+- [ ] `SmsService.sendCode()` 限流逻辑
+
+### 集成测试
+- [ ] 完整流程：发码 → 登录 → Token 有效
+- [ ] 验证码过期场景
+- [ ] 同手机号 60 秒内重复发送被拒
+
+### 边界与异常
+- [ ] 手机号格式非法
+- [ ] 验证码错误次数限制
+- [ ] 短信网关超时降级
+
+### 验收标准
+- [ ] 原账号密码登录请求/响应契约保持不变且回归通过
+- [ ] 验证码登录主流程、过期、防重发和网关异常均有可复核结果
+
+---
+
+## 九、风险与注意事项
+
+| 风险点 | 影响等级 | 应对措施 |
+|--------|----------|----------|
+| 短信网关额度耗尽 | 高 | 加用量监控，阈值告警 |
+| 验证码并发请求 | 中 | Redis SETNX 防重复发送 |
+| 老用户密码登录受影响 | 高 | 灰度发布，原流程保持不变 |
+
+---
+
+## 十、上线计划
+
+- **依赖项**：短信网关账号申请、用户确认 DB 方案、DBA 审批与授权执行结果、Redis 容量评估
+- **灰度策略**：先内部员工 → 1% 流量 → 10% → 全量
+- **回滚方案**：关闭 sms-login 接口的功能开关，前端切回密码登录
+- **监控指标**：发码 QPS、登录成功率、短信到达率、网关耗时 P99
+
+---
+
+## 十一、实现 Todo
+
+- [ ] 准备 DBA 变更申请、建议 DDL、影响评估和只读验证 SQL；由授权 DBA 审批执行
+- [ ] LoginStrategy 接口及两个实现
+- [ ] SmsService + 网关 client
+- [ ] Controller 新增 2 个接口
+- [ ] 单元测试覆盖
+- [ ] 联调短信网关
+- [ ] 配置灰度开关
+
+---
+
+## 十二、代码评审关注点
+
+- **重点检查**：`SmsLoginStrategy.login()` 验证码校验分支、Redis 并发与过期场景
+- **回归风险**：`AuthServiceImpl` 改为策略分发后，原密码登录路径是否仍正确执行
+- **不要改的**：`User` 实体类、`/api/v1/auth/login` 原接口的请求/响应结构
+````
+
+**完成输出中的 Workflow Brief（只列真实产物）：**
+
+```text
+【Workflow Brief】
+stage: PlanGate
+task: 用户登录优化
+source: 用户明确范围；analytics/login-funnel-2026-05.md；AuthController.login()
+artifacts: docs/2026-05-31/用户登录优化.md；docs/apifox/2026-05-31/用户登录优化.openapi.yaml；docs/apifox/INDEX.md；project-html/data/changes.js
+changed: 无（方案阶段未改业务代码）
+vcs: owner=Git 仓库根; tracked=已有业务代码; untracked=开发文档、OpenAPI、看板和索引待纳管
+tests: class=NotApplicable; command/result=OpenAPI 轻量结构校验通过，Apifox 实际导入未验证；业务代码测试未运行（方案阶段）
+api: spec=docs/apifox/2026-05-31/用户登录优化.openapi.yaml; index=docs/apifox/INDEX.md; operationIds=sendSmsCode,smsLogin
+openFindings: 无；DBA 审批与授权执行属于 Implementation Gate 前置依赖
+next: DBA 审批完成后，交给 AI/开发者按文档实现并进入 VCS/Verification Gate
+nextCommand: DBA 审批完成后，读取 docs/2026-05-31/用户登录优化.md 按 Todo 实现并执行文档内验证
+tokenHint: 下一位 AI 先读本 Brief -> 开发文档中的判断依据、技术方案、变更清单和 Todo -> 仅按需读取相关源码；首轮最多 5 个文件
+```
+
+> 本例因用户已明确确认数据库方案，所以可以完成 Plan Gate；若未确认或在非交互运行中发现该 blocker，应保持工作区零写入，而不是生成上述产物。
+
+**追加到看板的对象（Step 5.5，叙述字段面向人类重写、非 md 摘录；注意字符串转义）：**
+
+```js
+  {
+    service: "用户中心",
+    module: "认证",
+    title: "用户登录优化",
+    date: "2026-05-31",
+    type: "新功能",
+    complexity: "中等",
+    status: "草稿",
+    branch: "feature/sms-login",
+    docPath: "docs/2026-05-31/用户登录优化.md",
+    apiSpecPath: "docs/apifox/2026-05-31/用户登录优化.openapi.yaml",
+    apiIndexPath: "docs/apifox/INDEX.md",
+    background: "现有登录只支持账号密码，新用户留存仅 18%，运营调研发现 60% 流失在注册环节、卡在设密码。\n这次加手机号验证码登录，让新用户少一步密码设置，同时保留老的密码登录不动。",
+    goals: ["新增手机号+短信验证码登录", "注册流程支持验证码注册", "原账号密码登录保持可用"],
+    scopeIn: ["手机号登录", "短信网关接入", "验证码生成与校验"],
+    scopeOut: ["第三方登录（微信/支付宝）", "生物识别登录"],
+    apis: [
+      { method: "POST", url: "/api/v1/auth/sms-code", operationId: "sendSmsCode", desc: "发送短信验证码（同手机号 60 秒限一次）" },
+      { method: "POST", url: "/api/v1/auth/sms-login", operationId: "smsLogin", desc: "验证码登录，校验通过签发 Token" }
+    ],
+    solution: "引入策略模式：抽出 LoginStrategy 接口，密码登录和验证码登录各做一个实现，AuthServiceImpl 改成按登录类型分发。\n验证码走 Redis 存（key sms:code:{phone}，TTL 5 分钟），登录成功后主动删；发码用 SETNX 做 60 秒防重。",
+    coreDesign: "选策略模式而不是在原方法里加 if-else，是为了后续再加登录方式（扫码、第三方）时只加实现类、不动分发逻辑。\n放弃了「复制一套登录流程」的做法，因为会和密码登录产生大量重复校验代码。",
+    flowchart: `flowchart TD
+    A([用户输入手机号]) --> B[发送验证码]
+    B --> C{60秒内已发送?}
+    C -->|是| D([限流提示])
+    C -->|否| E[生成验证码/Redis TTL 5min]
+    E --> F[调短信网关]
+    F --> G[用户输入验证码]
+    G --> H{Redis 校验}
+    H -->|不匹配| I([返回错误])
+    H -->|匹配| J[查/建 User → 签发 Token]`,
+    keyImpl: [
+      { title: "登录方式分发", desc: "AuthServiceImpl 持有 Map<LoginType, LoginStrategy>，按入参类型路由，避免在单方法里堆登录分支。" },
+      { title: "验证码防重发", desc: "发码用 Redis SETNX 占位 60 秒，命中则直接返回限流，挡住并发重复发送。" },
+      { title: "验证码时效", desc: "code 存 Redis TTL 5 分钟，登录成功即删，过期或用过都不能复用。" }
+    ],
+    changeList: [
+      { file: "auth/strategy/LoginStrategy.java", action: "新增", desc: "登录策略接口，统一 login 入口" },
+      { file: "auth/strategy/SmsLoginStrategy.java", action: "新增", desc: "验证码登录实现" },
+      { file: "auth/service/AuthServiceImpl.java", action: "修改", desc: "改为按类型分发，原单一密码登录无法用扩展替代" }
+    ],
+    todos: ["准备 DBA 变更申请并等待授权人员执行", "LoginStrategy 及两实现", "SmsService+网关 client", "Controller 加 2 接口", "单测覆盖", "联调短信网关", "配置灰度开关"]
+  },
+```
+
+> 对照看：md 的「核心设计」是给 AI 执行的要点清单，看板的 `coreDesign` 是讲给人听的取舍（为什么选策略模式、放弃了什么）；两者不是复制关系。`flowchart` 用反引号包裹，字符串字段含换行用 `\n`、含双引号用 `\"`。
+
+---
+
+## 示例 2：Bug 修复 - 支付回调签名
+
+**用户调用：** Claude Code `/yan-dev-doc 支付回调签名修复`；Codex `使用 yan-dev-doc skill 生成“支付回调签名修复”开发文档`；Cursor 按当前 skill 入口或自然语言点名。
+
+**生成的文档（局部示例，省略判断依据、AI 执行口径、Workflow Brief 等未变章节；不可作为完整结构照抄）：**
+
+````markdown
+# 支付回调签名修复 开发文档
+
+> 日期：2026-05-31
+> 任务类型：Bug 修复
+> 复杂度：简单
+> 状态：草稿
+> 关联分支：fix/alipay-signature
+> 关联 Commit：a1b2c3d (引入问题的 SDK 升级)
+
+---
+
+## 一、需求说明
+
+### 背景
+监控发现支付宝异步回调失败率从 0.1% 上涨到 4.5%，时间点对应上周 SDK 升级。
+
+### 目标
+- [ ] 恢复回调成功率到 0.5% 以下
+
+### 范围
+- ✅ 包含：回调签名校验逻辑修复
+- ❌ 不包含：SDK 回退、其他支付渠道
+
+---
+
+## 二、技术方案
+
+### 方案概述
+SDK 升级后默认签名算法从 RSA 改为 RSA2，但回调处理代码仍只校验 RSA。改为同时兼容两种算法。
+
+### 核心设计
+在 `AlipayCallbackHandler.verify()` 中根据 `sign_type` 参数路由：
+- `sign_type=RSA` → 旧算法
+- `sign_type=RSA2` → 新算法
+- 缺失 → 默认 RSA2
+
+### 最小影响分析（开闭原则）
+- **新增内容**：`SignatureVerifier` 接口 + `RsaVerifier` + `Rsa2Verifier`
+- **不变内容**：回调入口 `AlipayController.callback()`、订单状态机
+- **必须修改**：`AlipayCallbackHandler.verify()` 改为通过接口分发，无法用扩展替代
+
+---
+
+## 六、代码变更清单
+
+| 文件路径 | 变更类型 | 说明 |
+|----------|----------|------|
+| `payment/alipay/SignatureVerifier.java` | 新增 | 签名校验接口 |
+| `payment/alipay/RsaVerifier.java` | 新增 | RSA 实现 |
+| `payment/alipay/Rsa2Verifier.java` | 新增 | RSA2 实现 |
+| `payment/alipay/AlipayCallbackHandler.java` | 修改 | verify() 改为接口分发 |
+
+## 八、测试要点
+
+### 边界与异常
+- [ ] sign_type=RSA 的旧回调能通过
+- [ ] sign_type=RSA2 的新回调能通过
+- [ ] sign_type 缺失时按 RSA2 处理
+- [ ] 错误签名一定被拒绝（不能放过）
+
+## 九、风险与注意事项
+
+| 风险点 | 影响等级 | 应对措施 |
+|--------|----------|----------|
+| 修复后新错误签名校验逻辑有漏洞 | 高 | 加 mock 单测覆盖错误签名场景 |
+| 历史失败回调需要补单 | 中 | 修复上线后查日志重放 24h 内失败的回调 |
+
+## 十、上线计划
+
+- **依赖项**：无
+- **灰度策略**：直接全量（修复 Bug 不灰度）
+- **回滚方案**：git revert
+- **监控指标**：回调成功率（预期回落到 0.5% 以下）
+
+## 十一、实现 Todo
+
+- [ ] 写两个 Verifier 实现
+- [ ] 改 AlipayCallbackHandler 路由
+- [ ] 加单测覆盖 4 种场景
+- [ ] 准备失败回调重放脚本
+
+---
+
+## 十二、代码评审关注点
+
+- **重点检查**：错误签名是否一定被拒绝（不能有漏判），`sign_type` 缺失时是否按 RSA2 处理
+- **回归风险**：RSA 旧签名的回调是否仍然能通过
+- **不要改的**：`AlipayController.callback()` 入口、订单状态机流转逻辑
+````
+
+---
+
+## 风格要点
+
+对比两个示例可以看出：
+
+1. **简单 Bug 不必写完整流程图** — 上面 Bug 修复示例直接省略了"流程图"章节
+2. **不相关章节直接删除** — Bug 修复没动 DB 和缓存，那两节就不要保留空模板
+3. **最小影响分析永远要写** — 这是开闭原则的硬约束
+4. **风险章节务必填具体值** — "高/中/低" 后面必须有具体应对措施，不能空着
+5. **代码评审关注点永远要写** — 为后续 review-check 提供具体检查目标，不能省略；调用写法按当前宿主生成
+

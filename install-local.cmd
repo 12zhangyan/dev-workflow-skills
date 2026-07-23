@@ -80,11 +80,18 @@ set "DEST=%~1"
 set "TOOL=%~2"
 echo === %TOOL%: %DEST% ===
 if not exist "%DEST%\." mkdir "%DEST%" 2>nul
-for %%L in (bug-fix biz-flow code-reading review-fix review-check review-repair review-loop) do (
+for %%L in (dev-doc project-analysis code-review conversation-handoff bug-fix biz-flow code-reading review-fix review-check review-repair review-loop) do (
   if exist "%DEST%\%%L\." rmdir /s /q "%DEST%\%%L"
 )
 for /d %%S in ("%SRC%\*") do (
   set "NAME=%%~nxS"
+  set "SKIP="
+  for %%L in (dev-doc project-analysis code-review conversation-handoff bug-fix biz-flow code-reading review-fix review-check review-repair review-loop) do (
+    if /i "!NAME!"=="%%L" set "SKIP=1"
+  )
+  if defined SKIP (
+    echo   [SKIP] !NAME! ^(legacy name^)
+  ) else (
   if exist "%DEST%\!NAME!\." rmdir /s /q "%DEST%\!NAME!"
   robocopy "%%~fS" "%DEST%\!NAME!" /e /nfl /ndl /njh /njs /nc /ns /np >nul
   if errorlevel 8 (
@@ -93,6 +100,7 @@ for /d %%S in ("%SRC%\*") do (
   ) else (
     if /i "%TOOL%"=="Codex CLI" call :codex_normalize "%DEST%\!NAME!"
     echo   [ OK ] !NAME!
+  )
   )
 )
 echo.

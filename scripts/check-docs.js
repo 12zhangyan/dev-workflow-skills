@@ -13,7 +13,7 @@ const skillNames = fs.readdirSync(skillsDir)
 const requiredDocs = [
   'README.md',
   'docs/workflow-guide.md',
-  'docs/why-dev-doc.md',
+  'docs/why-yan-dev-doc.md',
   'docs/why-code-reading.md',
   'skills/_shared/workflow-brief.md',
   'skills/_shared/workflow-chain.md',
@@ -292,7 +292,7 @@ for (const needle of [
   'superpowers-zh',
   'npx superpowers-zh',
   '真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准',
-  'Codex 不要输入 `/dev-doc` 或 `$dev-doc`'
+  'Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`'
 ]) {
   if (!readme.includes(needle)) fail(`README.md missing required text: ${needle}`);
 }
@@ -338,7 +338,7 @@ for (const skill of skillNames) {
     for (const pattern of [legacySlashCommand, legacyNaturalLanguageCommand]) {
       pattern.lastIndex = 0;
       if (pattern.test(text)) {
-        fail(`${rel} emits a removed public skill command; use code-review/project-analysis with an explicit mode`);
+        fail(`${rel} emits a removed public skill command; use yan-code-review/yan-project-analysis with an explicit mode`);
       }
     }
   }

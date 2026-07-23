@@ -1,16 +1,16 @@
 ﻿# 开发工作流门禁协议
 
-本协议供 `dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`review-repair`、`review-loop`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
+本协议供 `yan-dev-doc`、`bug-fix`、`biz-flow`、`review-fix`、`review-check`、`review-repair`、`review-loop`、`code-reading` 引用。目标是让每个 skill 都能说清楚当前处于哪一阶段、产出了什么、下一步需要什么证据，以及遇到问题时应该停在哪里。
 
 ## 主链路
 
 ```text
 需求/缺陷/业务流输入
-→ Plan Gate：dev-doc / bug-fix / biz-flow 产出可执行文档
+→ Plan Gate：yan-dev-doc / bug-fix / biz-flow 产出可执行文档
 → Implementation Gate：AI 或开发者按文档实现，并回填执行结果
 → VCS Gate：确认新增源码、测试、配置、OpenAPI、文档已进入 Git/SVN 可见范围
 → Verification Gate：运行有针对性的构建/测试/接口/数据核对
-→ Review Gate：`code-review` 完整拆分模式为 package → check → package/repair；单 AI 可用 loop 编排审查、修复、验证和二次复审
+→ Review Gate：`yan-code-review` 完整拆分模式为 package → check → package/repair；单 AI 可用 loop 编排审查、修复、验证和二次复审
 → Understanding Gate：code-reading 生成代码地图，辅助人工 review
 → Submit Gate：人工签收，最终 status/diff/test/review/document 检查后提交
 ```
@@ -23,7 +23,7 @@
 | Implementation Gate | Plan Gate 无阻塞项 | 执行结果对照表：Todo 完成情况、变更文件、未完成项、验证命令 | Todo 无法执行时回到文档补充，不静默扩大范围 |
 | VCS Gate | 已有本地改动 | `git status --short` 或 `svn status` 摘要；新增源码/测试/配置/OpenAPI/docs 已纳入 VCS；声明 `VcsAddPolicy`、来源和冲突采用口径 | 未纳管时必须读取并纳入审查范围，可继续修复、验证和复审，但不得宣称 Review 通过或进入 Submit Gate；最终保留 `VCSGateBlocked` 与精确纳管清单 |
 | Verification Gate | VCS Gate 已确认范围 | 测试/构建/接口/数据核对命令与结果；失败项与修复状态 | 验证失败先修复并重跑，不进入 Review |
-| Review Gate | 有 dev-doc/bug 文档和实际 diff/patch/status | review task、review-check findings、review-fix/review-repair 结果，或 review-loop 的 SingleAgentReview 闭环结果；accepted findings 处理状态 | 没有实际实现证据时不生成“已审代码”结论 |
+| Review Gate | 有 yan-dev-doc/bug 文档和实际 diff/patch/status | review task、review-check findings、review-fix/review-repair 结果，或 review-loop 的 SingleAgentReview 闭环结果；accepted findings 处理状态 | 没有实际实现证据时不生成“已审代码”结论 |
 | Understanding Gate | Review 修复和验证已完成 | code-reading 代码地图、关键调用链/状态/事务/风险位置 | 材料不足时只输出阅读边界，不补写问题结论 |
 | Submit Gate | 人工 review 通过 | 最终 status/diff/test/review/doc 检查清单与提交信息 | 任何 Critical/Important 未关闭、敏感信息或漏 add，停止提交 |
 
@@ -31,7 +31,7 @@
 
 这些规则优先于模板完整性；模板再完整，也不能牺牲证据准确性。
 
-- 区分 `计划`、`实际改动`、`验证结果`：dev-doc/biz-flow/bug-fix 只代表计划或分析；只有 diff/status/文件内容能证明实现已发生。
+- 区分 `计划`、`实际改动`、`验证结果`：yan-dev-doc/biz-flow/bug-fix 只代表计划或分析；只有 diff/status/文件内容能证明实现已发生。
 - `changed` 文件列表必须来自 VCS status、diff、patch、用户给出的明确路径或实际读取到的文件；不能凭任务名猜文件。
 - 验证结论必须写命令和结果；未运行时写 `未运行 + 原因`，不能写成通过。
 - 构建/测试因 JDK、Node、Maven、npm、依赖下载或明确要求执行的外部测试所需网络不可用而无法启动时，标为 `environment-blocked`，写清工具链版本和失败命令；不要把环境问题当成业务代码缺陷。默认测试/CI 命令自身强依赖未提供的真实凭据或外部服务时，按下方“测试依赖分级”判为测试架构/CI 契约缺陷，不能归咎于当前环境。
@@ -67,7 +67,7 @@
 
 Review、修复和提交完整性检查必须按变更文件所属工作副本取证，不能只使用当前目录向上的第一个或最外层 VCS 根：
 
-1. 从用户路径、Workflow Brief、dev-doc、review-task、patch 和当前 status/diff 得到候选变更文件。
+1. 从用户路径、Workflow Brief、yan-dev-doc、review-task、patch 和当前 status/diff 得到候选变更文件。
 2. 对每个候选文件，从文件所在目录逐级向上查找 `.svn` 或 `.git`（`.git` 可以是目录或 worktree 文件）；最先遇到的控制标记就是该文件的 `VCS_OWNER`。
 3. 按 `VCS_OWNER` 分组读取 status 和实际 diff。外层 Git 显示 `?? <内层 SVN 目录>/` 时，只记录嵌套工作副本提示，不能替代内层 SVN 证据。
 4. 命令失败时保留退出码和短错误摘要，写 `VCSStatusUnknown`；不得用空输出冒充 clean，也不得继续通过 VCS Gate。

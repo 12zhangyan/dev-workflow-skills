@@ -40,11 +40,21 @@ install_target() {
 
   echo "==> ${label}: ${skills_dir}"
   mkdir -p "$skills_dir"
-  for legacy_name in bug-fix biz-flow code-reading review-fix review-check review-repair review-loop; do
+  for legacy_name in \
+    dev-doc project-analysis code-review conversation-handoff \
+    bug-fix biz-flow code-reading \
+    review-fix review-check review-repair review-loop
+  do
     rm -rf "${skills_dir:?}/${legacy_name}"
   done
   for skill in "$SRC_DIR"/*/; do
     name="$(basename "$skill")"
+    case "$name" in
+      dev-doc|project-analysis|code-review|conversation-handoff|bug-fix|biz-flow|code-reading|review-fix|review-check|review-repair|review-loop)
+        echo "  [SKIP] ${name} (legacy name)"
+        continue
+        ;;
+    esac
     rm -rf "${skills_dir:?}/${name}"
     cp -r "$skill" "${skills_dir}/${name}"
     if [ "$target" = "codex" ]; then
@@ -80,5 +90,5 @@ done
 
 echo ""
 echo "Done! Restart Claude Code / Cursor / Codex to load the skills."
-echo "Claude Code usually uses slash names like /dev-doc; Codex should use natural language such as '使用 dev-doc skill 生成开发文档'."
+echo "Claude Code usually uses slash names like /yan-dev-doc; Codex should use natural language such as '使用 yan-dev-doc skill 生成开发文档'."
 echo "Optional companion: run 'npx superpowers-zh' from each concrete project directory for brainstorming/TDD/debugging/review helpers."

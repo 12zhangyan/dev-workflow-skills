@@ -12,10 +12,10 @@ The boundary checks guard high-risk behavior invariants, not prose style; if a s
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `dev-doc` | `skills/dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `scripts/validate-openapi.js`, `assets/board/` (HTML board template) |
-| `project-analysis` | `skills/project-analysis/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing understanding, incident, business |
-| `code-review` | `skills/code-review/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing package, check, repair, loop |
-| `conversation-handoff` | `skills/conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template), `examples.md` |
+| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `scripts/validate-openapi.js`, `assets/board/` (HTML board template) |
+| `yan-project-analysis` | `skills/yan-project-analysis/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing understanding, incident, business |
+| `yan-code-review` | `skills/yan-code-review/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing package, check, repair, loop |
+| `yan-conversation-handoff` | `skills/yan-conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template), `examples.md` |
 
 ## Installation
 
@@ -43,8 +43,8 @@ If auto-detection cannot identify the host tool, follow `superpowers-zh` documen
 
 Integration policy:
 - Use `superpowers-zh` before this repo's workflow when the requirement is still fuzzy (`brainstorming`), during implementation when TDD/debugging discipline is useful, or right before Review Gate for general verification discipline.
-- Use this repo's four public skills for authoritative Java delivery artifacts and gates: `dev-doc`, `project-analysis`, `code-review`, and `conversation-handoff`.
-- Do not let a `superpowers-zh` code-review result replace this repo's finding-ID chain. Convert useful findings into `code-review` package/check/repair mode IDs before repair or handoff.
+- Use this repo's four public skills for authoritative Java delivery artifacts and gates: `yan-dev-doc`, `yan-project-analysis`, `yan-code-review`, and `yan-conversation-handoff`.
+- Do not let a `superpowers-zh` code-review result replace this repo's finding-ID chain. Convert useful findings into `yan-code-review` package/check/repair mode IDs before repair or handoff.
 - When documenting the combined workflow, use `skills/_shared/workflow-chain.md` as the source of truth: `superpowers-zh` may be inserted as optional preflight/TDD/debugging/verification/reviewer input, but its output must be recorded in this repo's blockers/conflicts, Verification Gate fields, `Workflow Brief`, or `CR/IM/MI/RJ/BK` IDs.
 
 ## Architecture
@@ -57,14 +57,14 @@ skills/<name>/
   reference.md   ← question sets and document templates loaded by the skill at runtime
   examples.md    ← filled-in examples the skill references during generation
   scripts/       ← deterministic helpers executed by the skill when needed
-  assets/        ← files copied into the user's project (dev-doc only: the HTML board template)
+  assets/        ← files copied into the user's project (yan-dev-doc only: the HTML board template)
 ```
 
-SKILL.md frontmatter `name` and `description` are the portable discovery surface for Codex. Some files also keep Claude-oriented fields (`allowed-tools`, `model`, `effort`, `disable-model-invocation`) for compatibility, but do not rely on those fields to make Codex show slash commands. Codex invocation should be plain-language naming such as "使用 dev-doc skill ..."; do not document `$skill-name` as a user input because `$` opens the Desktop skill/app selector, which may not index personal skills.
+SKILL.md frontmatter `name` and `description` are the portable discovery surface for Codex. Some files also keep Claude-oriented fields (`allowed-tools`, `model`, `effort`, `disable-model-invocation`) for compatibility, but do not rely on those fields to make Codex show slash commands. Codex invocation should be plain-language naming such as "使用 yan-dev-doc skill ..."; do not document `$skill-name` as a user input because `$` opens the Desktop skill/app selector, which may not index personal skills.
 
 Each skill may include `agents/openai.yaml` for Codex UI metadata (display name, short description, default prompt). Keep it in sync with SKILL.md when changing a skill's purpose or invocation wording.
 
-Skills reference their sibling files with relative paths. `project-analysis` and `code-review` are thin routers: choose one mode first, then load only `modes/<mode>/mode.md` and the references that mode explicitly needs. Project-analysis modes reuse the board template from `../../../dev-doc/assets/board/`, and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
+Skills reference their sibling files with relative paths. `yan-project-analysis` and `yan-code-review` are thin routers: choose one mode first, then load only `modes/<mode>/mode.md` and the references that mode explicitly needs. Project-analysis modes reuse the board template from `../../../yan-dev-doc/assets/board/`, and runtime shell snippets search the common installed skill roots (`~/.codex`, `~/.claude`, `~/.cursor`, `~/.agents`) before falling back.
 
 ### HTML board
 
@@ -86,7 +86,7 @@ project-html/
   exports/<slug>.html      ← GENERATED self-contained page only on explicit --standalone export (gitignored here)
 ```
 
-Entry kinds: docs (default, from `dev-doc`; also from `review-fix` only when it reaches the fix-handoff phase), `kind:"bug"` (from `bug-fix`), `kind:"reading"` (from `code-reading`), `kind:"biz"` (from `biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields plus optional `roles`/`context`/`dataChanges`/`validations`/`dataObjects` rich fields). `review-fix` first produces a review task package for other AIs; after review findings are pasted back, its fix-handoff document uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). Optional `updatedAt`, `pinned`, and `lifecycle:"active|backlog|archived"` fields govern the workspace/backlog/archive views; old entries remain compatible through date/status inference. The `apis` field only records new or signature-changed endpoints and may include `operationId` plus optional interface-level `specPath`. When `dev-doc` generates importable Apifox/OpenAPI YAML, entries also carry `apiSpecPath` (for example `docs/apifox/<date>/<task>.openapi.yaml`) and usually `apiIndexPath:"docs/apifox/INDEX.md"` so the board can link the import file directly.
+Entry kinds: docs (default, from `yan-dev-doc`; also from `review-fix` only when it reaches the fix-handoff phase), `kind:"bug"` (from `bug-fix`), `kind:"reading"` (from `code-reading`), `kind:"biz"` (from `biz-flow`, tester-facing business flow with `bizFlow`/`dataFlow`/`sequence`/`stateMachine` mermaid fields plus optional `roles`/`context`/`dataChanges`/`validations`/`dataObjects` rich fields). `review-fix` first produces a review task package for other AIs; after review findings are pasted back, its fix-handoff document uses a default doc entry with `type:"代码审查"`. Entries carry `service` / `module` (two-level grouping) and `docPath` (repo-relative path to the source md, rendered as a `../<docPath>` link, also the dedupe key — skills update the existing entry instead of appending when `docPath` matches). Optional `updatedAt`, `pinned`, and `lifecycle:"active|backlog|archived"` fields govern the workspace/backlog/archive views; old entries remain compatible through date/status inference. The `apis` field only records new or signature-changed endpoints and may include `operationId` plus optional interface-level `specPath`. When `yan-dev-doc` generates importable Apifox/OpenAPI YAML, entries also carry `apiSpecPath` (for example `docs/apifox/<date>/<task>.openapi.yaml`) and usually `apiIndexPath:"docs/apifox/INDEX.md"` so the board can link the import file directly.
 
 **`build.js` (run by every skill after `node --check`, invoked as `node project-html/build.js`)** does three things: (1) resolves every catalog `detailPath`, hydrates the human solution, and incrementally maintains `project-html/pages/<slug>.html` using shared assets; missing/mismatched details fail explicitly; (2) regenerates `docs/INDEX.md` from the lightweight catalog; (3) on first run copies scattered legacy docs into `docs/archive/`. A self-contained page is generated only by `node project-html/build.js --standalone <docPath|slug>`. `slugOf()` and collision maps in build.js/board.js must stay identical.
 
@@ -94,27 +94,27 @@ Board writes go through **`board-add.js`** (`node project-html/board-add.js <ent
 
 Shell upgrade mechanism: skills compare the user project's `BOARD_VERSION` against the template's; if lower/missing they re-copy the shell files (never `data/`). **Bump `BOARD_VERSION` whenever shell behavior changes** (board.js, build.js, board-add.js, index.html, or css). Skills must run `node project-html/board-add.js` to write, then `node project-html/build.js`.
 
-Two copies must stay in sync: `project-html/` and `skills/dev-doc/assets/board/`. Shell files are byte-identical; template `data/changes.js` is empty and template `data/details/.gitkeep` only reserves the directory. Real detail sidecars are versioned project data; generated `pages/`, `exports/`, and repo-demo `docs/INDEX.md` remain ignored. Run `node scripts/check-board-sync.js` after shell changes.
+Two copies must stay in sync: `project-html/` and `skills/yan-dev-doc/assets/board/`. Shell files are byte-identical; template `data/changes.js` is empty and template `data/details/.gitkeep` only reserves the directory. Real detail sidecars are versioned project data; generated `pages/`, `exports/`, and repo-demo `docs/INDEX.md` remain ignored. Run `node scripts/check-board-sync.js` after shell changes.
 
 ## Workflow the Skills Support
 
 ```
-dev-doc/project-analysis → AI executes → svn add → mvn test → code-review package/check/repair split chain or loop mode → project-analysis understanding mode → human review → svn commit
+yan-dev-doc/yan-project-analysis → AI executes → svn add → mvn test → yan-code-review package/check/repair split chain or loop mode → yan-project-analysis understanding mode → human review → svn commit
 ```
 
-- `dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
-- `project-analysis mode=incident` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
-- `project-analysis mode=understanding` produces `docs/code-reading/YYYY-MM-DD/<feature>.md` in CodeMap mode, or zero-write chat output in ImpactAnalysis
-- `review-check` performs a read-only review from a review task/dev-doc/patch and outputs structured findings; it does not write docs or board entries
+- `yan-dev-doc` produces `docs/YYYY-MM-DD/<task>.md` in the user's project
+- `yan-project-analysis mode=incident` produces `docs/bugs/YYYY-MM-DD/<bug>.md`
+- `yan-project-analysis mode=understanding` produces `docs/code-reading/YYYY-MM-DD/<feature>.md` in CodeMap mode, or zero-write chat output in ImpactAnalysis
+- `review-check` performs a read-only review from a review task/yan-dev-doc/patch and outputs structured findings; it does not write docs or board entries
 - `review-repair` directly fixes accepted review findings in the working copy, preserves unrelated local changes, runs targeted verification, and reports fixed/blocked/rejected/deferred status; it does not create review tasks or perform read-only review
-- `code-review mode=loop` defaults to quick for clearly scoped, low-risk single-module changes and uses standard (package → check → repair → verify → recheck) when an audit task package or higher-risk review is needed; it labels results `SingleAgentReview`, includes untracked files in repair/verification while blocking Review/Submit approval until they are tracked, stops after at most two repair cycles, and never auto-commits
-- `project-analysis mode=business` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
-- `code-review mode=package` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md`; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
-- `conversation-handoff` produces `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` from current-conversation evidence for a new AI conversation; it is not a board entry and does not replace the smaller `Workflow Brief`
-- `dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh lightweight detail pages + `docs/INDEX.md`
+- `yan-code-review mode=loop` defaults to quick for clearly scoped, low-risk single-module changes and uses standard (package → check → repair → verify → recheck) when an audit task package or higher-risk review is needed; it labels results `SingleAgentReview`, includes untracked files in repair/verification while blocking Review/Submit approval until they are tracked, stops after at most two repair cycles, and never auto-commits
+- `yan-project-analysis mode=business` produces `docs/biz-flow/YYYY-MM-DD/<feature>.md` (tester-facing: business-flow + data-flow + sequence diagrams)
+- `yan-code-review mode=package` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md`; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
+- `yan-conversation-handoff` produces `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` from current-conversation evidence for a new AI conversation; it is not a board entry and does not replace the smaller `Workflow Brief`
+- `yan-dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh lightweight detail pages + `docs/INDEX.md`
 - All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
 - Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
-- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review mode should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use `code-review` package → check → package/repair or loop mode before project-analysis understanding and human review.
+- Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review mode should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use `yan-code-review` package → check → package/repair or loop mode before yan-project-analysis understanding and human review.
 - Lightweight handoff policy lives in `skills/_shared/workflow-brief.md`: every skill that produces a next action should output a copyable `Workflow Brief` with source/artifact/changed/test/finding pointers so the next AI reads indexed evidence instead of pasted full documents.
 - Chain map lives in `skills/_shared/workflow-chain.md`: the single source of truth for "after skill X, run which skill next + copyable command" and finding-ID traceability (review-check emits CR/IM/MI IDs, review-fix preserves them on merge, review-repair backfills status by the same ID). Skills point here via workflow-gates.md instead of each re-listing the chain.
 - Closed-choice questions are not automatically asked: infer first, and use AskUserQuestion only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Free-text questions stay conversational.

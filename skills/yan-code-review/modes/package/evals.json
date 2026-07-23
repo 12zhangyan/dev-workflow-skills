@@ -1,0 +1,84 @@
+{
+  "skill_name": "review-fix",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 review-fix skill 基于 docs/2026-07-09/quote-tag.md 生成 Review 任务包",
+      "expected_output": "应触发 review-fix 第一阶段；生成 docs/review-fix/<日期>/quote-tag-review-task.md，含审查目标、证据包、统一清单、Codex/Cursor/Claude 分发提示和 findings 回收格式；没有 review 结果时停在 Step 2.5，不生成修复交接、不编造 findings。"
+    },
+    {
+      "id": 2,
+      "prompt": "这是 Codex 和 Cursor 返回的 review 结果，帮我汇总并生成修复交接：Codex CR-1 ...；Cursor 也提了同一个 NPE ...",
+      "expected_output": "应触发 review-fix 第二阶段；去重合并同一问题为一条并保留各 AI 原始来源编号，统一重编 CR-/IM-/MI- ID，生成 fix-handoff、AI 修复操作码，登记看板 type=代码审查，并输出 Workflow Brief。"
+    },
+    {
+      "id": 3,
+      "prompt": "帮我 review 一下这段代码有没有 bug",
+      "expected_output": "本 skill 侧重生成可分发任务包/汇总修复；若用户只是想要一次只读审查结论，应说明可用 review-check 执行审查，review-fix 负责组织任务包与汇总。",
+      "tags": ["routing_review_check"]
+    },
+    {
+      "id": 4,
+      "prompt": "基于 docs/2026-07-09/quote-tag.md 生成 review 任务包，但项目里还没有任何代码改动",
+      "expected_output": "应触发 review-fix；因只有 yan-dev-doc、没有实际 diff/patch/VCS status，任务包只能定位为方案审查，明确不能宣称审过实现代码，并在证据包 blockers 里标出缺少实现证据。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 review-fix skill。【Workflow Brief】stage: PlanGate source: docs/2026-07-09/quote-tag.md artifacts: docs/2026-07-09/quote-tag.md changed: 无 tokenHint: 先读 Brief -> yan-dev-doc -> 变更文件",
+      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/artifacts/changed/tokenHint 定位 yan-dev-doc 和变更文件，不要求粘贴全文；再收集证据包生成任务包，Brief 的 changed 仅作读取索引，实际证据仍回到 diff/status 核实。"
+    },
+    {
+      "id": 6,
+      "prompt": "使用 review-fix skill 基于 docs/2026-07-09/pay-refund.md 生成代码审查任务包，但 git status 为空、没有 diff，也没有 changed 文件",
+      "expected_output": "应触发 review-fix；必须把审查对象降级为方案审查，证据包写明缺少实现证据，不得分发为'实现代码审查'，也不得要求 review-check 输出'代码无问题'结论。"
+    },
+    {
+      "id": 7,
+      "prompt": "生成给 Codex、Cursor、Claude 的三份独立 Review 提示",
+      "expected_output": "每份提示必须要求 reviewer 独立完成、返回前不得读取其他 reviewer findings；Codex 使用自然语言点名 review-check skill，Claude 可用 /review-check。",
+      "tags": ["independent_review", "cross_host_output"]
+    },
+    {
+      "id": 8,
+      "prompt": "汇总 findings：一条误报、一条业务口径待确认、一条 Critical",
+      "expected_output": "修复交接分别分配 RJ-n、BK-n、CR-n；Rejected 和 Blockers 表都保留来源、证据/原因，Critical 有修复与验证，不能用无 ID 的散文代替。",
+      "tags": ["finding_ids", "blocker_ids"]
+    },
+    {
+      "id": 9,
+      "prompt": "在外层 Git、内层 SVN 的工程生成 review 任务包，业务改动属于内层 SVN",
+      "expected_output": "必须按变更文件最近控制标记确定 VCS_OWNER 并分组收集 status/实际 diff；外层 Git 只记录嵌套提示。",
+      "tags": ["nested_vcs", "vcs_owner"]
+    },
+    {
+      "id": 10,
+      "prompt": "非交互运行 review-fix，目标 review-task 已存在且不能确认覆盖",
+      "expected_output": "应输出 Blocked/path conflict 并停止，不采用默认覆盖、不生成第二份猜测文件、不更新看板。",
+      "tags": ["non_interactive", "path_conflict", "no_write"]
+    },
+    {
+      "id": 11,
+      "prompt": "为默认 mvn verify 因模型 API Key 缺失而失败的项目生成 review 任务包，CI workflow 也未提供该密钥",
+      "expected_output": "任务包必须读取测试注解/profile、配置和 CI workflow，记录 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并要求审查默认 CI 契约；不得仅写 EnvironmentBlocked，也不得建议伪造密钥。",
+      "tags": ["external_test_dependency", "ci_contract", "test_evidence"]
+    },
+    {
+      "id": 12,
+      "prompt": "我已经用 superpowers-zh 的 requesting-yan-code-review 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接",
+      "expected_output": "应把 superpowers code review 结果作为额外 reviewer 来源，而不是替代本仓库链路。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能直接把外部 review 结论当作已关闭或已验证。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
+      "tags": ["superpowers_review_bridge", "finding_ids", "external_review_source"]
+    },
+    {
+      "id": 13,
+      "prompt": "这些 CR/IM findings 已经归一化好了，不需要再生成任务包或交接文档，直接修改代码并跑验证",
+      "expected_output": "不应使用 review-fix；已有 findings 且用户要求立即修改和验证、不需要汇总交接，应路由到 review-repair。",
+      "tags": ["routing_review_repair"]
+    },
+    {
+      "id": 14,
+      "prompt": "请用同一个 AI 审查当前改动，发现问题就修复、跑测试，再复审确认 Critical/Important 关闭",
+      "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并遵守其修复轮次上限。",
+      "tags": ["routing_review_loop"]
+    }
+  ]
+}

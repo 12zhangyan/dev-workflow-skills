@@ -108,9 +108,9 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
   try {
     const home = path.join(tempRoot, 'home');
     const project = path.join(tempRoot, 'project');
-    const installedTemplate = path.join(home, '.codex', 'skills', 'dev-doc', 'assets', 'board');
+    const installedTemplate = path.join(home, '.codex', 'skills', 'yan-dev-doc', 'assets', 'board');
     fs.mkdirSync(path.dirname(installedTemplate), { recursive: true });
-    fs.cpSync(path.join(root, 'skills', 'dev-doc', 'assets', 'board'), installedTemplate, { recursive: true });
+    fs.cpSync(path.join(root, 'skills', 'yan-dev-doc', 'assets', 'board'), installedTemplate, { recursive: true });
     fs.mkdirSync(project, { recursive: true });
 
     const env = { ...process.env, HOME: home };
@@ -164,7 +164,7 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
   }
 }
 
-requireText('skills/dev-doc/SKILL.md', [
+requireText('skills/yan-dev-doc/SKILL.md', [
   '非交互/无人值守运行',
   '不写 md、OpenAPI、看板或索引',
   '数据库操作始终只读',
@@ -174,7 +174,7 @@ requireText('skills/dev-doc/SKILL.md', [
   '../_shared/board-shell-bootstrap.md',
 ]);
 
-requireText('skills/project-analysis/modes/incident/mode.md', [
+requireText('skills/yan-project-analysis/modes/incident/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写 Bug 文档、看板或执行型修复 Todo',
   '根因无明确结论',
@@ -184,7 +184,7 @@ requireText('skills/project-analysis/modes/incident/mode.md', [
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
-requireText('skills/project-analysis/modes/business/mode.md', [
+requireText('skills/yan-project-analysis/modes/business/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写业务流文档、看板或确定性测试口径',
   '缺失入口会影响状态/数据闭环时停止生成正式方案',
@@ -194,7 +194,7 @@ requireText('skills/project-analysis/modes/business/mode.md', [
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
-requireText('skills/project-analysis/modes/understanding/mode.md', [
+requireText('skills/yan-project-analysis/modes/understanding/mode.md', [
   '非交互/无人值守运行中不等待提问',
   'ImpactAnalysis` 是严格零写入模式',
   '禁止 Write/Edit',
@@ -203,11 +203,11 @@ requireText('skills/project-analysis/modes/understanding/mode.md', [
   '最多列 5 个',
 ]);
 
-requireText('skills/project-analysis/modes/understanding/reference.md', [
+requireText('skills/yan-project-analysis/modes/understanding/reference.md', [
   '首轮最多 5 个文件',
 ]);
 
-requireText('skills/conversation-handoff/SKILL.md', [
+requireText('skills/yan-conversation-handoff/SKILL.md', [
   '非交互/无人值守运行中不等待提问',
   '不要猜测范围，不覆盖文件',
   '不得在文档、复制提示或 `Workflow Brief` 中转录 API key',

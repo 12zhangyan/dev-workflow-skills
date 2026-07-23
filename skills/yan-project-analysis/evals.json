@@ -1,0 +1,11 @@
+{
+  "skill_name": "yan-project-analysis",
+  "evals": [
+    {"id": 1, "prompt": "只读分析 UserDTO.email 改成可空会影响哪些调用方，不写文档。", "expected_output": "选择 understanding 的 ImpactAnalysis，仓库零写入。", "tags": ["route_understanding", "zero_write"]},
+    {"id": 2, "prompt": "生成支付回调模块的代码地图，方便人工 Review。", "expected_output": "选择 understanding 的 CodeMap，生成持久化代码地图并按该 mode 的既有规则登记看板。", "tags": ["route_understanding", "code_map"]},
+    {"id": 3, "prompt": "线上结算重复扣款，记录现象、复现、根因证据和修复边界。", "expected_output": "选择 incident；根因不足时只写诊断计划。", "tags": ["route_incident", "evidence_boundary"]},
+    {"id": 4, "prompt": "给测试讲清退款提交、审批、驳回和归档怎么走，状态和数据每步怎么变。", "expected_output": "选择 business；输出面向测试的业务/数据/状态流与测试关注点。", "tags": ["route_business", "tester_audience"]},
+    {"id": 5, "prompt": "使用 bug-fix skill 记录登录失败事故。", "expected_output": "把旧名称映射为 incident，并记录 LegacyAlias=bug-fix。", "tags": ["legacy_alias", "route_incident"]},
+    {"id": 6, "prompt": "解释一下 PaymentFacade.generate 这个方法。", "expected_output": "简单聊天解释不触发 yan-project-analysis，不得生成文档或看板，避免把单步任务升级为工作流。", "tags": ["should_not_trigger", "simple_explanation"]}
+  ]
+}

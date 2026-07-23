@@ -53,28 +53,28 @@
   相关文件：`scripts/check-review-boundaries.js`、`skills/review-*/SKILL.md`、`skills/_shared/workflow-chain.md`
 
 - 编号：SQ-007
-  问题描述：`conversation-handoff` 缺少与其他文档类 Skill 一致的非交互/无人值守入口级停机规则。
-  影响范围：`conversation-handoff`
+  问题描述：`yan-conversation-handoff` 缺少与其他文档类 Skill 一致的非交互/无人值守入口级停机规则。
+  影响范围：`yan-conversation-handoff`
   优先级：P2
   发现轮次：第 5 轮
   当前状态：已完成
-  相关文件：`skills/conversation-handoff/SKILL.md`
+  相关文件：`skills/yan-conversation-handoff/SKILL.md`
 
 - 编号：SQ-008
   问题描述：文档生成类 Skill 的失败分支、非交互停机、看板安全、零写入模式和临时交接不登记看板等边界缺少最小自动校验。
-  影响范围：`dev-doc`、`bug-fix`、`biz-flow`、`code-reading`、`conversation-handoff`
+  影响范围：`yan-dev-doc`、`bug-fix`、`biz-flow`、`code-reading`、`yan-conversation-handoff`
   优先级：P2
   发现轮次：第 6 轮
   当前状态：已完成
-  相关文件：`scripts/check-document-boundaries.js`、`skills/dev-doc/SKILL.md`、`skills/bug-fix/SKILL.md`、`skills/biz-flow/SKILL.md`、`skills/code-reading/SKILL.md`、`skills/conversation-handoff/SKILL.md`
+  相关文件：`scripts/check-document-boundaries.js`、`skills/yan-dev-doc/SKILL.md`、`skills/bug-fix/SKILL.md`、`skills/biz-flow/SKILL.md`、`skills/code-reading/SKILL.md`、`skills/yan-conversation-handoff/SKILL.md`
 
 - 编号：SQ-009
-  问题描述：新增或强化的边界规则需要 eval 场景覆盖，尤其是 `conversation-handoff` 的非交互/无人值守 Blocked/NeedsConfirmation 分支。
-  影响范围：`skills/conversation-handoff/evals.json` 及 eval 校验。
+  问题描述：新增或强化的边界规则需要 eval 场景覆盖，尤其是 `yan-conversation-handoff` 的非交互/无人值守 Blocked/NeedsConfirmation 分支。
+  影响范围：`skills/yan-conversation-handoff/evals.json` 及 eval 校验。
   优先级：P2
   发现轮次：第 7 轮
   当前状态：已完成
-  相关文件：`skills/conversation-handoff/evals.json`、`scripts/check-evals.js`
+  相关文件：`skills/yan-conversation-handoff/evals.json`、`scripts/check-evals.js`
 
 - 编号：SQ-010
   问题描述：新增校验脚本已接入 `check-all.js`，但 README/AGENTS/CLAUDE 的脚本清单可能未同步说明，影响维护者发现单项检查入口。
@@ -109,12 +109,12 @@
   相关文件：`skills/review-repair/agents/openai.yaml`、`scripts/check-skill-inventory.js`、`skills/review-repair/SKILL.md`
 
 - 编号：SQ-014
-  问题描述：继续抽样非 review-repair 的 OpenAI UI prompt，重点检查 `conversation-handoff`、`biz-flow` 是否缺少“不要替代 dev-doc/review/biz/bug 等相邻 skill”的路由边界。
+  问题描述：继续抽样非 review-repair 的 OpenAI UI prompt，重点检查 `yan-conversation-handoff`、`biz-flow` 是否缺少“不要替代 yan-dev-doc/review/biz/bug 等相邻 skill”的路由边界。
   影响范围：Codex UI skill 触发和跨 Skill 分工。
   优先级：P2
   发现轮次：第 12 轮
   当前状态：已完成
-  相关文件：`skills/conversation-handoff/agents/openai.yaml`、`skills/biz-flow/agents/openai.yaml`、`scripts/check-skill-inventory.js`
+  相关文件：`skills/yan-conversation-handoff/agents/openai.yaml`、`skills/biz-flow/agents/openai.yaml`、`scripts/check-skill-inventory.js`
 
 - 编号：SQ-015
   问题描述：`check-skill-metadata.js` 对 `agents/openai.yaml` 只检查字段存在，未显式校验单行引号是否闭合；未来 metadata 中缺少闭合引号可能被轻量正则误判通过。
@@ -190,12 +190,12 @@
   相关文件：`scripts/check-docs.js`、`scripts/check-scripts.js`、`AGENTS.md`、`CLAUDE.md`
 
 - 编号：SQ-023
-  问题描述：`dev-doc/SKILL.md` 已达到 499 行，贴近 500 行上限；需分析是否有可下沉到 reference/shared 的低收益细节，避免继续增长导致加载成本和可维护性恶化。
-  影响范围：`dev-doc` 的触发后 token 消耗、渐进加载和维护空间。
+  问题描述：`yan-dev-doc/SKILL.md` 已达到 499 行，贴近 500 行上限；需分析是否有可下沉到 reference/shared 的低收益细节，避免继续增长导致加载成本和可维护性恶化。
+  影响范围：`yan-dev-doc` 的触发后 token 消耗、渐进加载和维护空间。
   优先级：P2
   发现轮次：第 22 轮
   当前状态：已完成
-  相关文件：`skills/dev-doc/SKILL.md`、`skills/dev-doc/reference.md`、`skills/_shared/*.md`
+  相关文件：`skills/yan-dev-doc/SKILL.md`、`skills/yan-dev-doc/reference.md`、`skills/_shared/*.md`
   处理结论：将仅在异常时需要的常见错误表原样下沉到 reference，主入口保留显式失败处理和门禁规则；SKILL.md 从 499 行/25107 字符降为 478 行/22943 字符。
 
 - 编号：SQ-024
@@ -208,12 +208,12 @@
   处理结论：新增 CodeMap 与 ImpactAnalysis 各一个短例，主入口要求仅在首次执行或模式易混淆时按对应锚点加载；inventory 已从 no-examples 变为 examples。
 
 - 编号：SQ-025
-  问题描述：`conversation-handoff` 仍没有 `examples.md`；需判断事实/推断/缺口分层和非交互 Blocked 分支是否需要最小已填示例，或现有短 SKILL + reference 已足够。
+  问题描述：`yan-conversation-handoff` 仍没有 `examples.md`；需判断事实/推断/缺口分层和非交互 Blocked 分支是否需要最小已填示例，或现有短 SKILL + reference 已足够。
   影响范围：跨对话交接准确性、可选示例 token 成本。
   优先级：P3
   发现轮次：第 24 轮
   当前状态：已完成
-  相关文件：`skills/conversation-handoff/SKILL.md`、`skills/conversation-handoff/examples.md`、`AGENTS.md`、`CLAUDE.md`
+  相关文件：`skills/yan-conversation-handoff/SKILL.md`、`skills/yan-conversation-handoff/examples.md`、`AGENTS.md`、`CLAUDE.md`
   处理结论：新增一个完整 PartiallyComplete 证据分层示例和一个短 Blocked/NotWritten 分支；主入口只在首次生成或边界易混淆时按场景加载，并明确示例不得复制为当前事实。
 
 - 编号：SQ-026
@@ -258,7 +258,7 @@
   优先级：P2
   发现轮次：第 30 轮
   当前状态：已完成
-  相关文件：`scripts/check-workflow-briefs.js`、`skills/_shared/workflow-brief.md`、`skills/conversation-handoff/reference.md`、`skills/review-repair/reference.md`
+  相关文件：`scripts/check-workflow-briefs.js`、`skills/_shared/workflow-brief.md`、`skills/yan-conversation-handoff/reference.md`、`skills/review-repair/reference.md`
   处理结论：共享协议已纳入独立 marker 解析；自测守护 5 文件上限和 rejected 终态；普通 deferred 可追踪但不自动重跑，rejected 不再进入 openFindings。
 
 - 编号：SQ-031
@@ -267,7 +267,7 @@
   优先级：P2
   发现轮次：第 31 轮
   当前状态：已完成
-  相关文件：`scripts/check-workflow-briefs.js`、`skills/dev-doc/reference.md`、`skills/review-loop/reference.md`、`skills/code-reading/reference.md`
+  相关文件：`scripts/check-workflow-briefs.js`、`skills/yan-dev-doc/reference.md`、`skills/review-loop/reference.md`、`skills/code-reading/reference.md`
   处理结论：三个模板已补齐可复制命令；校验器会拒绝人工空命令、未知 Skill、明确状态分支遗漏和模糊调用占位符。
 
 - 编号：SQ-032
@@ -286,7 +286,7 @@
   发现轮次：第 33 轮
   当前状态：已完成
   相关文件：`skills/biz-flow/SKILL.md`、`scripts/check-skill-inventory.js`、`skills/biz-flow/evals.json`
-  处理结论：description 已明确开发方案、代码地图、只读审查和多 AI 任务包分别路由到 dev-doc/code-reading/review-check/review-fix；inventory 守护关键词，现有 eval 覆盖行为。
+  处理结论：description 已明确开发方案、代码地图、只读审查和多 AI 任务包分别路由到 yan-dev-doc/code-reading/review-check/review-fix；inventory 守护关键词，现有 eval 覆盖行为。
 
 - 编号：SQ-034
   问题描述：`review-check` 的 portable frontmatter description 与 OpenAI 默认提示未完整区分只读审查、已有 findings 直修、单 AI 审查修复闭环和多 AI 任务包/汇总。
@@ -304,7 +304,7 @@
   发现轮次：第 35 轮
   当前状态：已完成
   相关文件：`skills/code-reading/SKILL.md`、`skills/code-reading/agents/openai.yaml`、`skills/code-reading/evals.json`、`scripts/check-evals.js`、`scripts/check-skill-inventory.js`
-  处理结论：frontmatter 与 UI prompt 已统一路由到 dev-doc/review-check/review-repair/biz-flow；新增三个近邻负例并标记既有只读审查负例，确定性校验守护四类路由。方案请求可先以 code-reading 收集证据，但方案产物仍由 dev-doc 负责。
+  处理结论：frontmatter 与 UI prompt 已统一路由到 yan-dev-doc/review-check/review-repair/biz-flow；新增三个近邻负例并标记既有只读审查负例，确定性校验守护四类路由。方案请求可先以 code-reading 收集证据，但方案产物仍由 yan-dev-doc 负责。
 
 - 编号：SQ-036
   问题描述：`bug-fix` discovery surface 未排除不诊断单次故障、只面向测试/产品梳理正常业务流的请求。
@@ -388,13 +388,13 @@
   处理结论：portable/UI/正文均按有无 findings 分流 direct repair 与 single-agent loop；新增近邻 eval，三个检查器分别守护 discovery、场景标签和正文行为边界。
 
 - 编号：SQ-045
-  问题描述：`dev-doc` discovery surface 未排除只读代码地图、调用链或兼容影响分析且明确不要实施方案的 `code-reading` 请求；OpenAI prompt 同时遗漏既有 `review-fix` 路由。
-  影响范围：`dev-doc` 触发准确性、无谓方案/看板落盘、token 消耗和与 `code-reading` 的双向边界。
+  问题描述：`yan-dev-doc` discovery surface 未排除只读代码地图、调用链或兼容影响分析且明确不要实施方案的 `code-reading` 请求；OpenAI prompt 同时遗漏既有 `review-fix` 路由。
+  影响范围：`yan-dev-doc` 触发准确性、无谓方案/看板落盘、token 消耗和与 `code-reading` 的双向边界。
   优先级：P2
   发现轮次：第 45 轮
   当前状态：已完成
-  相关文件：`skills/dev-doc/SKILL.md`、`skills/dev-doc/agents/openai.yaml`、`skills/dev-doc/evals.json`、`scripts/check-evals.js`、`scripts/check-skill-inventory.js`
-  处理结论：portable/UI/正文均按是否需要方案产物分流 dev-doc 与 code-reading；新增只读近邻 eval，discovery 与 tag 由检查器守护；UI 同步多 AI review-fix 路由。
+  相关文件：`skills/yan-dev-doc/SKILL.md`、`skills/yan-dev-doc/agents/openai.yaml`、`skills/yan-dev-doc/evals.json`、`scripts/check-evals.js`、`scripts/check-skill-inventory.js`
+  处理结论：portable/UI/正文均按是否需要方案产物分流 yan-dev-doc 与 code-reading；新增只读近邻 eval，discovery 与 tag 由检查器守护；UI 同步多 AI review-fix 路由。
 
 - 编号：SQ-046
   问题描述：eval 校验未拒绝同一 Skill 内只改 ID 的重复 prompt，可能让场景数量和覆盖指标虚高。
@@ -406,13 +406,13 @@
   处理结论：按 trim + 连续空白折叠后的 prompt 在 Skill 内去重，诊断包含首次位置；自测覆盖重复，当前 141 个场景均无冲突。
 
 - 编号：SQ-047
-  问题描述：共享 workflow-chain 的职责表和下一步映射遗漏正式 Skill `conversation-handoff`，且没有与文件系统对账。
+  问题描述：共享 workflow-chain 的职责表和下一步映射遗漏正式 Skill `yan-conversation-handoff`，且没有与文件系统对账。
   影响范围：跨对话恢复入口、工作流单一权威文档和新增 Skill 后的索引完整性。
   优先级：P2
   发现轮次：第 47 轮
   当前状态：已完成
   相关文件：`skills/_shared/workflow-chain.md`、`scripts/check-skill-inventory.js`
-  处理结论：chain 补齐 conversation-handoff 的任意阶段职责和恢复入口；inventory 对职责表精确对账、对下一步表做全量覆盖/未知项/重复标签检查，并用自测守护多分支规则。
+  处理结论：chain 补齐 yan-conversation-handoff 的任意阶段职责和恢复入口；inventory 对职责表精确对账、对下一步表做全量覆盖/未知项/重复标签检查，并用自测守护多分支规则。
 
 - 编号：SQ-048
   问题描述：workflow-chain 把 code-reading 的 CodeMap 与 ImpactAnalysis 压成单一“代码地图 → 人工 review/提交”路径，与 Skill 的双模式契约冲突。
@@ -434,11 +434,11 @@
 
 - 编号：SQ-050
   问题描述：三个看板 Skill 重复内联模板复制命令，且 bug-fix/biz-flow 的 EXISTS 分支依赖前一 shell 调用中的 `$src`，版本检查在独立 shell 下不可执行。
-  影响范围：dev-doc、bug-fix、biz-flow 的看板创建/升级、初始上下文 token 和共享规则漂移。
+  影响范围：yan-dev-doc、bug-fix、biz-flow 的看板创建/升级、初始上下文 token 和共享规则漂移。
   优先级：P1
   发现轮次：第 50 轮
   当前状态：已完成
-  相关文件：`skills/_shared/board-shell-bootstrap.md`、`skills/dev-doc/SKILL.md`、`skills/bug-fix/SKILL.md`、`skills/biz-flow/SKILL.md`、`scripts/check-document-boundaries.js`
+  相关文件：`skills/_shared/board-shell-bootstrap.md`、`skills/yan-dev-doc/SKILL.md`、`skills/bug-fix/SKILL.md`、`skills/biz-flow/SKILL.md`、`scripts/check-document-boundaries.js`
   处理结论：公共命令下沉为按需加载的两个自包含 Bash 块，每次自行定位模板且不覆盖数据；三份 SKILL 合计减 87 行，边界/链接/BOM/安装 smoke 均有守护。
 
 - 编号：SQ-051
@@ -451,12 +451,12 @@
   处理结论：document boundary 检查始终要求两个 Bash 块；非 Windows 在隔离 HOME/项目中验证复制、数据保留和版本 marker，Windows 明确 skip 行为执行且继续静态/语法检查。当前本机全量通过，Ubuntu 行为证据待提交后由既有 CI 产生。
 
 - 编号：SQ-052
-  问题描述：`conversation-handoff/reference.md` 用三反引号包裹完整 Markdown 模板，内部又含三反引号 `text` 提示块，导致外层围栏提前闭合并在 Workflow Brief 后留下未闭合围栏；现有文档检查未发现该结构错误。
-  影响范围：conversation-handoff 模板的独立可读性、Agent 对输出边界的理解、Markdown 结构回归检测。
+  问题描述：`yan-conversation-handoff/reference.md` 用三反引号包裹完整 Markdown 模板，内部又含三反引号 `text` 提示块，导致外层围栏提前闭合并在 Workflow Brief 后留下未闭合围栏；现有文档检查未发现该结构错误。
+  影响范围：yan-conversation-handoff 模板的独立可读性、Agent 对输出边界的理解、Markdown 结构回归检测。
   优先级：P2
   发现轮次：第 51 轮
   当前状态：已完成
-  相关文件：`skills/conversation-handoff/reference.md`、`scripts/check-docs.js`、`scripts/check-workflow-briefs.js`
+  相关文件：`skills/yan-conversation-handoff/reference.md`、`scripts/check-docs.js`、`scripts/check-workflow-briefs.js`
   处理结论：模板外层改为四反引号；docs 检查按围栏字符/长度/info-string/缩进规则检测全部 Skill Markdown 的未闭合块并有原缺陷负例；Workflow Brief 提取器兼容至少三个反引号或波浪号的纯终止行。
 
 - 编号：SQ-053

@@ -28,7 +28,7 @@
 | 类型 | 内容 | 依据 | 处理口径 |
 |------|------|------|----------|
 | 事实 | 当前看板详情依赖 `background/solution/coreDesign/keyImpl/changeList/todos` 等完整字段 | `project-html/js/board.js` 详情渲染与双视角摘要 |
-| 事实 | dev-doc、bug-fix、biz-flow、code-reading 都构造一份完整 entry JSON | 各 skill 的看板登记步骤 |
+| 事实 | yan-dev-doc、bug-fix、biz-flow、code-reading 都构造一份完整 entry JSON | 各 skill 的看板登记步骤 |
 | 需求冲突（已裁决） | 旧候选：让 md 成为唯一内容来源并自动生成看板；最终口径：看板方案与 Agent 文档必须独立 | 用户明确说明“看板是让人理解方案，而 md 是让 agent 执行” | `conflicts(status=resolved)`；禁止从 md 摘录或自动生成看板叙述 |
 | 假设 | `changes.js` 只加载目录和搜索摘要，详情在点击时加载，能兼顾本地 file:// 使用 | 当前看板为静态 script 架构 | 详情使用 JS sidecar，不使用可能受 file:// CORS 限制的 fetch JSON |
 
@@ -90,7 +90,7 @@
 | `project-html/build.js` | 修改 | 加载/校验 sidecar，合并后生成 pages/exports |
 | `project-html/data/changes.js` | 脚本迁移 | 只能运行 `node project-html/board-add.js --migrate`，不得手工覆盖 |
 | `project-html/data/details/*.js` | 脚本生成 | 每条记录一份人类方案详情，文件名由稳定 detailId 决定 |
-| `skills/dev-doc/assets/board/` | 同步 | 外壳字节一致，模板 detail 目录用 `.gitkeep` 表达 |
+| `skills/yan-dev-doc/assets/board/` | 同步 | 外壳字节一致，模板 detail 目录用 `.gitkeep` 表达 |
 | 四类登记看板的 skill | 修改 | 明确看板字段只服务人类理解，删除 Agent 执行型重复字段 |
 | `scripts/check-board-behavior.js` | 修改 | 覆盖迁移、sidecar、懒加载契约、构建合并和字段禁令 |
 | `AGENTS.md`、`CLAUDE.md`、`README.md` | 修改 | 更新双产物职责和目录/详情架构 |
@@ -103,7 +103,7 @@
 - [x] 在 `board.js` 实现 detail sidecar 懒加载、错误提示、缓存和旧数据回退。
 - [x] 在 `build.js` 合并 catalog/detail，验证缺失详情时显式失败。
 - [x] 用迁移命令转换现有全部记录，并验证记录数、docPath 和状态不变。
-- [x] 收敛 dev-doc、bug-fix、biz-flow、code-reading/review-fix 的看板字段职责。
+- [x] 收敛 yan-dev-doc、bug-fix、biz-flow、code-reading/review-fix 的看板字段职责。
 - [x] 同步模板，提升 `BOARD_VERSION`，补充行为检查并运行 `node scripts/check-all.js`。
 
 ---

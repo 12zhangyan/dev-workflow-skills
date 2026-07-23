@@ -1,7 +1,0 @@
-interface:
-  display_name: "Dev Doc"
-  short_description: "显式需要先评审方案时生成可执行开发文档"
-  default_prompt: "Use dev-doc only when the user explicitly asks for a development/implementation plan or when unresolved contract, database, permission, state, transaction, or cross-module decisions require a reviewable Plan Gate before coding. Do not invoke it for a direct implementation request whose scope and acceptance criteria are already clear. The core artifact is the md plan; publish or upgrade the HTML board only when the user explicitly requests it or an applicable project rule requires it. Select Compact for an explicitly requested small same-module backward-compatible plan, and prefer IncrementalRevision when prior dev-docs are supplied. Route bug, tester-flow, and read-only code-impact work to project-analysis incident/business/understanding; route review packaging, read-only review, findings repair, and same-agent closure to code-review package/check/repair/loop."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,0 +1,60 @@
+{
+  "skill_name": "biz-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 biz-flow skill 给'询价到下单'生成业务流方案，给测试看",
+      "expected_output": "应触发 biz-flow；生成 docs/biz-flow/<日期>/<业务名>.md，含业务流转图+数据流+校验规则+测试执行口径（主流程/优先异常/数据核对/暂不覆盖），用 board-add.js 登记看板 biz 条目并 build.js，完成输出含 PlanGate 的 Workflow Brief。"
+    },
+    {
+      "id": 2,
+      "prompt": "使用 biz-flow skill 梳理'审批流'，但代码里找不到闭环的终态入口",
+      "expected_output": "应触发 biz-flow；列出已覆盖/缺失/排除入口并标记 blocker，不靠画图补齐闭环缺口，未确认的接口/字段/分支标'待补充'。"
+    },
+    {
+      "id": 3,
+      "prompt": "使用 biz-flow skill 给一个简单的无状态查询功能生成业务流",
+      "expected_output": "应触发 biz-flow；按实际复杂度裁剪，简单无状态功能可省略状态机图和阶段数据变动，至少给业务流转图和测试关注点，不放空模板。"
+    },
+    {
+      "id": 4,
+      "prompt": "帮我画一下这个功能的类调用链和方法在哪个文件",
+      "expected_output": "调用链+代码位置是给开发看的代码地图，属于 code-reading；biz-flow 面向测试的业务流转/数据流。应建议改用 code-reading。"
+    },
+    {
+      "id": 5,
+      "prompt": "使用 biz-flow skill 梳理'退款审批'，用户只说有 App 和 PC 两个入口，但没有给回调、定时任务或终态接口",
+      "expected_output": "应触发 biz-flow；必须列出已确认入口、缺失入口和本次排除入口；闭环证据不足时文档状态为草稿/待确认，终态、字段和分支写待补充，不得为了成图编造回调或终态。"
+    },
+    {
+      "id": 6,
+      "prompt": "请给退款审批做一个可执行的前后端改造方案，列出代码文件、Todo 和验收标准",
+      "expected_output": "不应使用 biz-flow；这是编码前开发方案，应路由到 yan-dev-doc。biz-flow 只在需要给测试/产品解释业务状态、数据流和接口顺序时使用。",
+      "tags": ["routing_dev_doc"]
+    },
+    {
+      "id": 7,
+      "prompt": "帮我审查退款审批状态流实现是否正确，只列问题不要改代码",
+      "expected_output": "不应使用 biz-flow；这是只读实现审查，应路由到 review-check，并要求实际 diff/status/changed 文件作为实现证据。",
+      "tags": ["routing_review_check"]
+    },
+    {
+      "id": 8,
+      "prompt": "在无人值守任务中运行 biz-flow，但没有业务名、入口或接口路径",
+      "expected_output": "应按非交互规则输出 Blocked 和最小缺失入口，不等待提问，不猜业务名，不写业务流文档、看板或确定性测试口径。",
+      "tags": ["non_interactive_blocker"]
+    },
+    {
+      "id": 9,
+      "prompt": "使用 biz-flow skill，并把结果通过 Workflow Brief 交给 yan-dev-doc；只允许下一位 AI 首轮读取 5 个文件",
+      "expected_output": "应输出标准 Workflow Brief，nextCommand 明确指向 yan-dev-doc，tokenHint 首轮最多 5 个文件；Brief 只列 source/artifacts/changed 路径，不粘贴完整业务流正文。",
+      "tags": ["workflow_brief", "token_budget"]
+    },
+    {
+      "id": 10,
+      "prompt": "复盘这次线上重复扣款事故，沉淀实际现象、复现步骤、根因证据、修复范围和验证方案；业务链路只作为事故背景",
+      "expected_output": "不应使用 biz-flow；主交付物是单次故障诊断和修复边界，应路由到 bug-fix。业务链路可作为 bug-fix 的背景证据，但不能替代事故现象、复现与根因记录。",
+      "tags": ["routing_bug_fix"]
+    }
+  ]
+}

@@ -9,6 +9,11 @@ const { pathToFileURL } = require('url');
 
 const root = path.resolve(__dirname, '..');
 let failed = false;
+const legacyNames = new Set([
+  'dev-doc', 'project-analysis', 'code-review', 'conversation-handoff',
+  'bug-fix', 'biz-flow', 'code-reading',
+  'review-fix', 'review-check', 'review-repair', 'review-loop',
+]);
 
 function fail(message) {
   failed = true;
@@ -65,7 +70,7 @@ function listTree(dir, base = dir) {
 
 function sourceDirectories() {
   return fs.readdirSync(path.join(root, 'skills'), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !legacyNames.has(entry.name))
     .map((entry) => entry.name)
     .sort();
 }
@@ -80,9 +85,13 @@ function seedDestination(home) {
   const skillsRoot = path.join(home, '.codex', 'skills');
   fs.mkdirSync(path.join(skillsRoot, 'user-owned-skill'), { recursive: true });
   fs.writeFileSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'), 'preserve me\n', 'utf8');
-  fs.mkdirSync(path.join(skillsRoot, 'dev-doc'), { recursive: true });
-  fs.writeFileSync(path.join(skillsRoot, 'dev-doc', 'stale-from-old-install.txt'), 'remove me\n', 'utf8');
-  for (const legacy of ['bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair', 'review-loop']) {
+  fs.mkdirSync(path.join(skillsRoot, 'yan-dev-doc'), { recursive: true });
+  fs.writeFileSync(path.join(skillsRoot, 'yan-dev-doc', 'stale-from-old-install.txt'), 'remove me\n', 'utf8');
+  for (const legacy of [
+    'dev-doc', 'project-analysis', 'code-review', 'conversation-handoff',
+    'bug-fix', 'biz-flow', 'code-reading',
+    'review-fix', 'review-check', 'review-repair', 'review-loop',
+  ]) {
     fs.mkdirSync(path.join(skillsRoot, legacy), { recursive: true });
     fs.writeFileSync(path.join(skillsRoot, legacy, 'legacy-marker.txt'), 'remove me\n', 'utf8');
   }
@@ -96,10 +105,14 @@ function assertCodexInstallation(home) {
   if (!fs.existsSync(unrelatedMarker)) {
     fail('installer smoke removed an unrelated user skill');
   }
-  if (fs.existsSync(path.join(installedRoot, 'dev-doc', 'stale-from-old-install.txt'))) {
+  if (fs.existsSync(path.join(installedRoot, 'yan-dev-doc', 'stale-from-old-install.txt'))) {
     fail('installer smoke did not replace a stale same-named skill directory');
   }
-  for (const legacy of ['bug-fix', 'biz-flow', 'code-reading', 'review-fix', 'review-check', 'review-repair', 'review-loop']) {
+  for (const legacy of [
+    'dev-doc', 'project-analysis', 'code-review', 'conversation-handoff',
+    'bug-fix', 'biz-flow', 'code-reading',
+    'review-fix', 'review-check', 'review-repair', 'review-loop',
+  ]) {
     if (fs.existsSync(path.join(installedRoot, legacy))) {
       fail(`installer smoke did not remove merged legacy skill directory: ${legacy}`);
     }

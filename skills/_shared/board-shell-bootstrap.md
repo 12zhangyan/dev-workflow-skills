@@ -1,6 +1,6 @@
 ﻿# 看板外壳定位、复制与版本检查
 
-仅当 `dev-doc`、`bug-fix` 或 `biz-flow` 需要创建看板、比较外壳版本或执行外壳升级时读取本文件。各 Skill 的 entry 字段、文案、`kind`、迁移条件、`board-add.js` 和 `build.js` 顺序仍以各自 `SKILL.md` 为准。
+仅当 `yan-dev-doc`、`bug-fix` 或 `biz-flow` 需要创建看板、比较外壳版本或执行外壳升级时读取本文件。各 Skill 的 entry 字段、文案、`kind`、迁移条件、`board-add.js` 和 `build.js` 顺序仍以各自 `SKILL.md` 为准。
 
 ## 执行约束
 
@@ -13,14 +13,14 @@
 ```bash
 src=""
 for candidate in \
-  "$HOME/.codex/skills/dev-doc/assets/board" \
-  "$HOME/.claude/skills/dev-doc/assets/board" \
-  "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board"
+  "$HOME/.codex/skills/yan-dev-doc/assets/board" \
+  "$HOME/.claude/skills/yan-dev-doc/assets/board" \
+  "$HOME/.cursor/skills/yan-dev-doc/assets/board" \
+  "$HOME/.agents/skills/yan-dev-doc/assets/board"
 do
   if [ -d "$candidate" ]; then src="$candidate"; break; fi
 done
-[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
+[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: yan-dev-doc/assets/board not found"; exit 1; }
 mkdir -p project-html/css project-html/js/vendor project-html/data/details
 cp "$src/index.html" project-html/index.html
 cp "$src/css/board.css" project-html/css/board.css
@@ -31,21 +31,21 @@ cp "$src/board-add.js" project-html/board-add.js
 test -f project-html/data/changes.js || cp "$src/data/changes.js" project-html/data/changes.js
 ```
 
-若模板确实安装在其他位置且 `cp` 无法定位，只能从 [dev-doc 看板资产](../dev-doc/assets/board/) 逐个读取并写入 `index.html`、CSS、JS、`build.js` 和 `board-add.js`；跳过 vendor，让看板使用 Mermaid CDN 回退。不得把路径未知解释为目标看板不存在，也不得覆盖数据文件。
+若模板确实安装在其他位置且 `cp` 无法定位，只能从 [yan-dev-doc 看板资产](../yan-dev-doc/assets/board/) 逐个读取并写入 `index.html`、CSS、JS、`build.js` 和 `board-add.js`；跳过 vendor，让看板使用 Mermaid CDN 回退。不得把路径未知解释为目标看板不存在，也不得覆盖数据文件。
 
 ## 只读比较版本
 
 ```bash
 src=""
 for candidate in \
-  "$HOME/.codex/skills/dev-doc/assets/board" \
-  "$HOME/.claude/skills/dev-doc/assets/board" \
-  "$HOME/.cursor/skills/dev-doc/assets/board" \
-  "$HOME/.agents/skills/dev-doc/assets/board"
+  "$HOME/.codex/skills/yan-dev-doc/assets/board" \
+  "$HOME/.claude/skills/yan-dev-doc/assets/board" \
+  "$HOME/.cursor/skills/yan-dev-doc/assets/board" \
+  "$HOME/.agents/skills/yan-dev-doc/assets/board"
 do
   if [ -d "$candidate" ]; then src="$candidate"; break; fi
 done
-[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: dev-doc/assets/board not found"; exit 1; }
+[ -n "$src" ] || { echo "BOARD_TEMPLATE_MISSING: yan-dev-doc/assets/board not found"; exit 1; }
 project_version=$(grep -m1 -E 'BOARD_VERSION[[:space:]]*=[[:space:]]*[0-9]+' project-html/js/board.js 2>/dev/null | sed -E 's/.*=[[:space:]]*([0-9]+).*/\1/')
 template_version=$(grep -m1 -E 'BOARD_VERSION[[:space:]]*=[[:space:]]*[0-9]+' "$src/js/board.js" | sed -E 's/.*=[[:space:]]*([0-9]+).*/\1/')
 [ -n "$template_version" ] || { echo "BOARD_TEMPLATE_VERSION_MISSING"; exit 1; }

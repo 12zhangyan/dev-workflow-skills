@@ -10,7 +10,7 @@
 
 ## 你会得到什么
 
-- 一套只有 4 个公开入口的开发工作流：`dev-doc`、`project-analysis`、`code-review`、`conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
+- 一套只有 4 个公开入口的开发工作流：`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
 - 一组面向 AI 执行的 Markdown 文档：明确路径、变更清单、Todo、验证命令和下一步。
 - 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
 - Apifox/OpenAPI 导入文件：接口新增或签名变更时，单独生成 `docs/apifox/<日期>/<任务>.openapi.yaml` 和索引。
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 
 安装后重启 Claude Code / Cursor / Codex。
 
-推荐增强：本仓库可以和 [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh) 组合使用。`superpowers-zh` 提供头脑风暴、TDD、系统化调试、通用代码审查、完成前验证等方法论 skill；本仓库负责企业 Java 交付链里的 `dev-doc / project-analysis / code-review / conversation-handoff` 和项目产物规范。两者职责互补，不互相替代。
+推荐增强：本仓库可以和 [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh) 组合使用。`superpowers-zh` 提供头脑风暴、TDD、系统化调试、通用代码审查、完成前验证等方法论 skill；本仓库负责企业 Java 交付链里的 `yan-dev-doc / yan-project-analysis / yan-code-review / yan-conversation-handoff` 和项目产物规范。两者职责互补，不互相替代。
 
 在具体项目目录运行：
 
@@ -53,78 +53,78 @@ npx superpowers-zh
 
 | 工具 | 写法 |
 |------|------|
-| Claude Code | `/dev-doc 任务名`；其余入口用自然语言点名 skill 与 mode |
-| Codex | `使用 dev-doc skill 给 XX 生成开发文档` |
+| Claude Code | `/yan-dev-doc 任务名`；其余入口用自然语言点名 skill 与 mode |
+| Codex | `使用 yan-dev-doc skill 给 XX 生成开发文档` |
 | Cursor | 按 Cursor 当前 skill 入口调用；也可直接引用安装后的 skill 文档 |
 
-Codex 不要输入 `/dev-doc` 或 `$dev-doc`。本仓库的 Codex 推荐入口是自然语言点名 skill，例如：
+Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐入口是自然语言点名 skill，例如：
 
 ```text
-使用 dev-doc skill 给“询价详情新报价标识”生成开发文档
-使用 code-review skill，mode=check，审查 docs/review-fix/2026-07-06/xxx-review-task.md
-使用 code-review skill，mode=repair，根据这些 findings 直接修复并运行验证
-使用 code-review skill，mode=loop，基于 docs/2026-07-06/xxx.md 审查、修复、验证并复审当前工作区
+使用 yan-dev-doc skill 给“询价详情新报价标识”生成开发文档
+使用 yan-code-review skill，mode=check，审查 docs/review-fix/2026-07-06/xxx-review-task.md
+使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复并运行验证
+使用 yan-code-review skill，mode=loop，基于 docs/2026-07-06/xxx.md 审查、修复、验证并复审当前工作区
 ```
 
 ### 3. 选择 skill
 
 | 你要做什么 | 用哪个 skill | 主要产物 |
 |------------|--------------|----------|
-| 明确要求先出开发方案，或高风险决策必须先评审 | `dev-doc` | 核心产物为 md；看板仅在明确请求/项目规则要求时发布；适用时生成 OpenAPI |
-| 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
-| 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
-| 把当前对话交给另一段 AI 对话继续 | `conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
+| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；看板仅在明确请求/项目规则要求时发布；适用时生成 OpenAPI |
+| 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `yan-project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
+| 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
+| 把当前对话交给另一段 AI 对话继续 | `yan-conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
 
-旧名称仍可作为迁移别名理解：`bug-fix / biz-flow / code-reading` 分别映射到 `project-analysis` 的 `incident / business / understanding`；`review-fix / review-check / review-repair / review-loop` 分别映射到 `code-review` 的 `package / check / repair / loop`。安装器会移除旧的独立目录，避免它们继续占用公开发现入口。
+旧名称仍可作为迁移别名理解：`bug-fix / biz-flow / code-reading` 分别映射到 `yan-project-analysis` 的 `incident / business / understanding`；`review-fix / review-check / review-repair / review-loop` 分别映射到 `yan-code-review` 的 `package / check / repair / loop`。安装器会移除旧的独立目录，避免它们继续占用公开发现入口。
 
 ## 推荐工作流
 
 可选前后增强：
 
-- 需求还不清楚：先用 `superpowers:brainstorming`（或宿主显示的同名入口）收敛方案，再运行 `dev-doc`。
+- 需求还不清楚：先用 `superpowers:brainstorming`（或宿主显示的同名入口）收敛方案，再运行 `yan-dev-doc`。
 - 实现复杂或要 TDD：可用 `superpowers:test-driven-development` / `superpowers:systematic-debugging` 辅助实现阶段，但产物和门禁仍按本仓库 `Workflow Brief`、VCS Gate、Verification Gate 记录。
-- 完成前：可用 `superpowers:verification-before-completion` 做通用完成检查，再进入本仓库 `code-review mode=package` / `mode=loop`。
+- 完成前：可用 `superpowers:verification-before-completion` 做通用完成检查，再进入本仓库 `yan-code-review mode=package` / `mode=loop`。
 
 推荐组合口径：
 
 ```text
 superpowers:brainstorming（可选，收敛需求）
-→ dev-doc / project-analysis（正式落文档与门禁）
+→ yan-dev-doc / yan-project-analysis（正式落文档与门禁）
 → AI 实现；复杂逻辑可插入 superpowers:test-driven-development / systematic-debugging
 → VCS Gate + Verification Gate；可插入 superpowers:verification-before-completion 做完成前自检
-→ code-review（package/check/repair，或 loop）
-→ project-analysis mode=understanding
+→ yan-code-review（package/check/repair，或 loop）
+→ yan-project-analysis mode=understanding
 → 人工 Review / 提交
 ```
 
-`superpowers-zh` 的输出不能替代本仓库的正式产物：code review 结论要归并成 `CR/IM/MI` finding ID，验证结论要回填命令、结果和 `TestEvidenceStatus`，需求讨论要写入 `dev-doc` 的 blockers/conflicts/assumptions。
+`superpowers-zh` 的输出不能替代本仓库的正式产物：code review 结论要归并成 `CR/IM/MI` finding ID，验证结论要回填命令、结果和 `TestEvidenceStatus`，需求讨论要写入 `yan-dev-doc` 的 blockers/conflicts/assumptions。
 
 ```text
-dev-doc / project-analysis mode=incident
+yan-dev-doc / yan-project-analysis mode=incident
 → AI 执行并回填结果
 → git add / svn add 纳管新增文件
 → 运行测试或接口验证
-→ code-review mode=package 生成 Review 任务包
-→ code-review mode=check 做多 AI 只读审查
-→ code-review mode=package 汇总修复交接 / mode=repair 直接修复
-→ project-analysis mode=understanding 生成代码地图
+→ yan-code-review mode=package 生成 Review 任务包
+→ yan-code-review mode=check 做多 AI 只读审查
+→ yan-code-review mode=package 汇总修复交接 / mode=repair 直接修复
+→ yan-project-analysis mode=understanding 生成代码地图
 → 人工 Review
 → git commit / svn commit
 ```
 
-`project-analysis mode=business` 的默认终点是测试设计；如果梳理结果需要进入开发，先交给 `dev-doc` 形成可执行方案，再进入上述实现链路。
+`yan-project-analysis mode=business` 的默认终点是测试设计；如果梳理结果需要进入开发，先交给 `yan-dev-doc` 形成可执行方案，再进入上述实现链路。
 
 单 AI 简化路径：
 
 ```text
-dev-doc / project-analysis mode=incident → AI 实现并验证 → code-review mode=loop（任务包 + 审查 + 修复 + 验证 + 二次复审）→ project-analysis mode=understanding → 人工 Review → 提交
+yan-dev-doc / yan-project-analysis mode=incident → AI 实现并验证 → yan-code-review mode=loop（任务包 + 审查 + 修复 + 验证 + 二次复审）→ yan-project-analysis mode=understanding → 人工 Review → 提交
 ```
 
-`code-review mode=loop` 对范围明确的单模块小改动默认 quick；用户要求审计任务包、多 AI 分发或发现高风险边界时使用 standard。未跟踪文件必须纳入审查、修复和验证范围，但在纳管前不得宣称 Review/Submit Gate 通过。它必须标记 `SingleAgentReview`，最多自动修复两轮，不自动 commit/push，也不替代高风险改动的多 AI 独立审查。
+`yan-code-review mode=loop` 对范围明确的单模块小改动默认 quick；用户要求审计任务包、多 AI 分发或发现高风险边界时使用 standard。未跟踪文件必须纳入审查、修复和验证范围，但在纳管前不得宣称 Review/Submit Gate 通过。它必须标记 `SingleAgentReview`，最多自动修复两轮，不自动 commit/push，也不替代高风险改动的多 AI 独立审查。
 
-跨 AI / 跨 skill 交接时，直接复制上一轮输出里的 `【Workflow Brief】`。其中 `nextCommand` 是可直接交给下一位 AI 的完整命令，`tokenHint` 把首轮读取限制在最多 5 个文件；不要反复粘贴完整 dev-doc、review-task、fix-handoff 或大段 diff。
+跨 AI / 跨 skill 交接时，直接复制上一轮输出里的 `【Workflow Brief】`。其中 `nextCommand` 是可直接交给下一位 AI 的完整命令，`tokenHint` 把首轮读取限制在最多 5 个文件；不要反复粘贴完整 yan-dev-doc、review-task、fix-handoff 或大段 diff。
 
-如果需要把当前整段对话的结论、已做动作、验证、风险和接手提示落成独立文档，使用 `conversation-handoff`。它将已证实、推断和待确认分开；`Workflow Brief` 仍只是最小索引，不能代替原始证据。
+如果需要把当前整段对话的结论、已做动作、验证、风险和接手提示落成独立文档，使用 `yan-conversation-handoff`。它将已证实、推断和待确认分开；`Workflow Brief` 仍只是最小索引，不能代替原始证据。
 
 Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operationIds=<接口 ID>`，方便直接导入 Apifox，并在后续接口变更时定位和更新原文件。VCS 状态固定写成 `owner / tracked / untracked`，测试、OpenAPI、文档等新增文件未纳管时会明确暴露。
 
@@ -133,7 +133,7 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 - `Plan Gate`：文档、阻塞项、冲突、假设明确。
 - `VCS Gate`：新增源码、测试、配置、OpenAPI、文档已纳入 Git/SVN。
 - `Verification Gate`：测试、构建、接口或数据核对有结果。
-- `Review Gate`：使用 `code-review` 的 `package / check / repair` 拆分模式，或用 `loop` 输出单 AI 审查、修复、验证和二次复审闭环。
+- `Review Gate`：使用 `yan-code-review` 的 `package / check / repair` 拆分模式，或用 `loop` 输出单 AI 审查、修复、验证和二次复审闭环。
 - `Submit Gate`：最终 status/diff/test/review/doc/sensitive 检查通过。
 
 ## 产物位置
@@ -144,8 +144,8 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 | Bug 文档 | `docs/bugs/YYYY-MM-DD/<bug>.md` |
 | 业务流文档 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` |
 | Review 任务包 / 修复交接 | `docs/review-fix/YYYY-MM-DD/` |
-| Review 后直接修复结果 | `code-review mode=repair` 直接修改代码并在最终输出里回填结果 |
-| 单 AI Review 闭环 | `code-review mode=loop` 最终输出；standard 模式另生成 `docs/review-fix/YYYY-MM-DD/*-review-task.md` |
+| Review 后直接修复结果 | `yan-code-review mode=repair` 直接修改代码并在最终输出里回填结果 |
+| 单 AI Review 闭环 | `yan-code-review mode=loop` 最终输出；standard 模式另生成 `docs/review-fix/YYYY-MM-DD/*-review-task.md` |
 | 代码地图 | `docs/code-reading/YYYY-MM-DD/` |
 | 对话移交文档 | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
 | Apifox/OpenAPI 文件 | `docs/apifox/YYYY-MM-DD/<task>.openapi.yaml` |
@@ -159,7 +159,7 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 
 ## HTML 看板
 
-`dev-doc` 仅在用户明确要求或项目规则要求时登记看板；`project-analysis` 的 incident/business/CodeMap 沿用原有看板语义。MD 是 Agent 执行文档；看板是独立的人类方案说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
+`yan-dev-doc` 仅在用户明确要求或项目规则要求时登记看板；`yan-project-analysis` 的 incident/business/CodeMap 沿用原有看板语义。MD 是 Agent 执行文档；看板是独立的人类方案说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
@@ -252,7 +252,7 @@ git diff --check
 
 - 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
 - 行为回归套件固定至少 100 个场景，覆盖全部正式 Skill 的触发边界、非交互阻塞、VCS/API/Review/token 关键分支；新增规则时同步补 `evals.json` 标签和契约断言。
-- 改看板外壳时，同步 `project-html/` 和 `skills/dev-doc/assets/board/`。
+- 改看板外壳时，同步 `project-html/` 和 `skills/yan-dev-doc/assets/board/`。
 - 改仓库级 agent 指南时，先改 `AGENTS.md`，再同步 `CLAUDE.md`，并运行 `node scripts/check-agent-doc-sync.js`。
 - 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
 - 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
@@ -287,5 +287,5 @@ git diff --check
 ## 设计说明
 
 - [docs/workflow-guide.md](docs/workflow-guide.md)：完整操作手册。
-- [docs/why-dev-doc.md](docs/why-dev-doc.md)：为什么先生成开发文档。
+- [docs/why-yan-dev-doc.md](docs/why-yan-dev-doc.md)：为什么先生成开发文档。
 - [docs/why-code-reading.md](docs/why-code-reading.md)：为什么 Review 前需要代码地图。

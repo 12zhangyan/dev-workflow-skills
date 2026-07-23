@@ -43,7 +43,7 @@ Brief 是索引，不是第二份文档。避免它反噬 token 收益：
 
 ## Token 节省规则
 
-- 不把 `dev-doc`、`review-task`、`fix-handoff` 全文反复复制给后续 AI；复制 Brief + 路径即可。
+- 不把 `yan-dev-doc`、`review-task`、`fix-handoff` 全文反复复制给后续 AI；复制 Brief + 路径即可。
 - 不把完整 diff 粘贴给 review；提供 VCS 命令、关键文件列表和 review-task 路径，让 reviewer 在本地读取。
 - Findings 回传时保留 ID、文件、问题、证据、修复建议和验证方式；无关叙述删掉。
 - 修复后回填只写处理表、验证结果和 Brief；不要复述完整方案。

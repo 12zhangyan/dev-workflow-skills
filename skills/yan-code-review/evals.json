@@ -1,0 +1,12 @@
+{
+  "skill_name": "yan-code-review",
+  "evals": [
+    {"id": 1, "prompt": "只审查当前 diff，列出有证据的问题，不要修改代码。", "expected_output": "选择 check；严格只读，不写文件，不进入 repair。", "tags": ["route_check", "read_only"]},
+    {"id": 2, "prompt": "IM-2 已确认，按 finding 直接修复并验证。", "expected_output": "选择 repair；保留 finding ID，修改最小范围并验证。", "tags": ["route_repair", "existing_findings"]},
+    {"id": 3, "prompt": "一个 AI 把当前改动审查、必要修复、验证和复审跑完。", "expected_output": "选择 loop；没有现成 findings 也可先审查，最多两个修复循环。", "tags": ["route_loop", "closed_loop"]},
+    {"id": 4, "prompt": "把 yan-dev-doc 和 diff 整理成发给三个 AI 的 review task。", "expected_output": "选择 package；只生成审查任务包，不自行执行审查或编造 findings。", "tags": ["route_package", "multi_agent"]},
+    {"id": 5, "prompt": "review 一下这个 patch。", "expected_output": "模糊 review 默认选择最小权限 check；不得自动改代码。", "tags": ["ambiguous_defaults_read_only", "safety"]},
+    {"id": 6, "prompt": "使用 review-loop skill 检查并修复当前工作区。", "expected_output": "把旧名称映射为 loop，并在输出记录 LegacyAlias=review-loop。", "tags": ["legacy_alias", "route_loop"]},
+    {"id": 7, "prompt": "一个请求级降级包装器在失败后设置 mutable 标记，多个线程可能同时调用；请审查、修复、验证并复审。", "expected_output": "选择 loop；首次只读审查必须显式检查共享可变状态的原子性和并发语义，没有并发证据时不得输出 NoEvidenceIssue。", "tags": ["route_loop", "concurrency", "test_effectiveness"]}
+  ]
+}

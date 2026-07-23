@@ -121,7 +121,7 @@ const temp = fs.mkdtempSync(path.join(ROOT, '.tmp-board-behavior-'));
 try {
   fs.mkdirSync(path.join(temp, 'data'));
   fs.copyFileSync(path.join(ROOT, 'project-html/board-add.js'), path.join(temp, 'board-add.js'));
-  fs.copyFileSync(path.join(ROOT, 'skills/dev-doc/assets/board/data/changes.js'), path.join(temp, 'data/changes.js'));
+  fs.copyFileSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/changes.js'), path.join(temp, 'data/changes.js'));
   const input = path.join(temp, 'entry.json');
   const runAdd = entry => {
     fs.writeFileSync(input, JSON.stringify({ entry }));
