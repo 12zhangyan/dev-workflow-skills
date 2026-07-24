@@ -95,6 +95,22 @@ for (const contract of contracts.cases || []) {
   if (!['none', 'docs', 'docs-and-board', 'code-and-tests'].includes(contract.write_scope)) {
     fail(`${contract.id} has unsupported write_scope: ${contract.write_scope}`);
   }
+  if (contract.assertions !== undefined) {
+    if (!contract.assertions || typeof contract.assertions !== 'object') {
+      fail(`${contract.id} assertions must be an object`);
+    } else {
+      for (const artifact of contract.assertions.artifacts || []) {
+        if (typeof artifact.glob !== 'string' || !artifact.glob || !Number.isInteger(artifact.min_matches) || artifact.min_matches < 1) {
+          fail(`${contract.id} has an invalid artifact assertion`);
+        }
+      }
+      for (const textAssertion of contract.assertions.text || []) {
+        if (typeof textAssertion.pattern !== 'string' || !textAssertion.pattern || !Number.isInteger(textAssertion.min_matches) || textAssertion.min_matches < 1) {
+          fail(`${contract.id} has an invalid text assertion`);
+        }
+      }
+    }
+  }
   const ref = /^([^:]+):(\d+)$/.exec(contract.prompt_ref || '');
   if (!ref) {
     fail(`${contract.id} has invalid prompt_ref`);

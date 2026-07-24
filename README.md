@@ -216,6 +216,7 @@ install-local.cmd
 install-local.cmd codex
 install-local.cmd claude cursor
 install-local.cmd status
+install-local.cmd doctor
 install-local.cmd codex --migrate-legacy
 ```
 
@@ -223,10 +224,11 @@ install-local.cmd codex --migrate-legacy
 
 - 安装器依赖 Node.js，复制整个 `skills/` 子树，不维护硬编码 skill 列表。
 - 每个宿主目录写入 `.yan-dev-workflow-skills.json`，用于记录来源版本、受管 Skill 和安装哈希；`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
-- 首次纳管或发现受管 Skill 有本地修改时，覆盖前先备份到 `.yan-backups/<timestamp>/`；未纳管的旧 Skill 默认不删除。
+- 首次纳管或发现受管 Skill 有本地修改时，覆盖前先备份到发现目录之外的 `~/.yan-dev-workflow-skills-backups/<host>/<timestamp>/`；旧 `.yan-backups/` 保留但不再新增，未纳管的旧 Skill 默认不删除。
 - Codex 目标由 Node 安装器确定性移除安装副本 `SKILL.md` 文件头 BOM；无法完成时安装直接失败，不再静默跳过。
 - 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文；Windows PowerShell 5.1 读取其他无 BOM 的 UTF-8 文档时，请显式使用 `Get-Content -Encoding UTF8`。
 - Cursor 可能同时读取 `~/.cursor/skills`、`~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills`，多处安装会导致同名 skill 重复出现。
+- `doctor` 是只读诊断：逐宿主输出 `ROOT` / `MANIFEST`，将同一发行版本的三端受管副本标为预期 `MIRROR`，并单独列出 `LEGACY` 与未受管/来源不一致的 `DUPLICATE`；它不迁移、不删除、不覆盖。
 
 ## 维护这个仓库
 
@@ -266,14 +268,14 @@ git diff --check
 - 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
 - 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界、`yan-` 命名和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
-- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样必须显式传 `--live --host <host> --case <只读场景> --workspace <干净隔离 worktree>`；运行器拒绝脏工作区和可写场景，并记录路由、写入范围、退出状态及工作区漂移。
+- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器总是在临时 Git clone 中执行，不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、目标产物、路由、退出状态与工作区漂移。
 - 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，验证清单、覆盖前备份、默认保留未纳管旧 Skill、显式迁移、漂移检测，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
 - 跨 AI / 跨 skill 的轻量交接格式来自 [skills/_shared/workflow-brief.md](skills/_shared/workflow-brief.md)。
 - 各 skill 完成后的下一步串联映射（谁→下一步+可复制命令）来自 [skills/_shared/workflow-chain.md](skills/_shared/workflow-chain.md)。
-- 每个 skill 的 `SKILL.md` 是执行步骤权威来源；`reference.md` 是模板和输出格式。
+- 每个 skill 的 `SKILL.md` 是执行步骤权威来源；运行路径应直接加载选中模式需要的聚焦资源。`reference.md` 可以是兼容索引，但不应迫使 Agent 一次读取所有模板。
 
 ## 自定义
 
@@ -288,11 +290,11 @@ git diff --check
 常改的位置：
 
 - `SKILL.md`：执行步骤、触发说明、工具约束。
-- `reference.md`：问题槽位、文档模板、完成输出。
+- `planning-slots.md` / `template-*.md` / `completion.md`：按当前模式分别承载问题槽位、文档模板和完成输出；`reference.md` 只保留兼容索引。
 - `examples.md`：示例输出。
 - `agents/openai.yaml`：Codex UI 展示名、短描述、默认提示。
 
-各文档/审查类 skill 的完成输出末尾会追加 `【Skill 维护反馈】`。它写给维护这套 skill 的任一智能体；如果运行中发现多问、漏问、误猜需求、冲突没暴露或模板不顺手，复制这段反馈回来即可继续优化。
+文档/审查类 skill 默认不输出维护反馈。只有运行中确实暴露规则缺口，或评测显式设置 `EvaluationMode=true` 时，才追加 `【Skill 维护反馈】`，避免污染正常业务交付。
 
 ## 设计说明
 

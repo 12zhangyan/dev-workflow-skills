@@ -86,7 +86,7 @@ description: 生成可分发给多个 AI 的统一代码审查任务包、证据
 
 ### Step 2：生成 Review 任务包
 
-加载模板：[reference.md](reference.md#review-任务包模板)
+加载模板：[review-task-template.md](review-task-template.md#review-任务包模板)
 
 产出一份文档，默认路径：
 
@@ -110,7 +110,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 
 ### Step 2.5：输出并停住
 
-完成 Step 2 后输出：
+完成 Step 2 后按 [第一阶段完成格式](completion.md#第一阶段完成后输出格式) 输出并停止：
 
 ```text
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
@@ -129,7 +129,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 - 用户贴回 Codex/Cursor/Claude 任一或多个 review 结果。
 - 用户明确说："汇总 review"、"生成修复文档"、"生成修复操作码"。
 
-加载模板：[reference.md](reference.md#汇总规则)
+加载规则：[aggregation.md](aggregation.md#汇总规则)
 
 处理规则：
 - 只接受有文件/方法/行为证据的问题；纯风格偏好默认降为 Minor 或 Rejected。
@@ -142,17 +142,17 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 
 路径：`docs/review-fix/<日期>/<任务名>-fix-handoff.md`
 
-文档模板见：[reference.md](reference.md#修复交接模板)
+文档模板见：[fix-handoff-template.md](fix-handoff-template.md#修复交接模板)
 
 ### Step 4.5：登记到 HTML 看板（第二阶段）
 
 仅在生成修复交接文档时登记看板。将 review-fix 文档作为普通文档条目登记，`type` 固定为 `"代码审查"`，`status` 固定为 `"草稿"`。
 
-看板创建、升级、写入、构建流程与 `/yan-dev-doc` Step 5.5 / 5.6 相同：使用 `project-html/board-add.js` 写入，禁止手工重写 `data/changes.js`。
+看板创建、升级、写入、构建遵循 `yan-dev-doc` 的 [看板发布流程](../../../yan-dev-doc/publishing-board.md)：使用 `project-html/board-add.js` 写入，禁止手工重写 `data/changes.js`。
 
 ### Step 5：输出 AI 修复操作码（第二阶段）
 
-加载模板：[reference.md](reference.md#ai-修复操作码模板)
+加载模板：[fix-handoff-template.md](fix-handoff-template.md#ai-修复操作码模板)
 
 操作码必须包含：
 - 任务目标
@@ -162,6 +162,8 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 - 执行顺序
 - 验证命令
 - 完成后回填要求
+
+随后按 [第二阶段完成格式](completion.md#第二阶段完成后输出格式) 回复。
 
 ## 规则
 
@@ -200,7 +202,11 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 
 ## 相关资源
 
-- 详细模板：[reference.md](reference.md)
+- 第一阶段任务包：[review-task-template.md](review-task-template.md)
+- findings 汇总：[aggregation.md](aggregation.md)
+- 修复交接与操作码：[fix-handoff-template.md](fix-handoff-template.md)
+- 两阶段完成输出：[completion.md](completion.md)
+- 兼容索引：[reference.md](reference.md)（不作为运行时模板加载）
 - 示例：[examples.md](examples.md)
 - 工作流背景：仓库 `docs/workflow-guide.md`
 - 相邻 skill：`yan-dev-doc`、`yan-code-review mode=check/repair`、`yan-project-analysis mode=understanding/incident`

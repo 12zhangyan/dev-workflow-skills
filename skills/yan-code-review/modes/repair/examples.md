@@ -56,12 +56,4 @@ Diff 范围：只覆盖 accepted findings 和必要测试
 VCS：无未跟踪新增文件
 二次 review-check：建议，原因：修复包含 Critical 且改动了业务校验逻辑
 
-【Skill 维护反馈】
-- skill：review-repair
-- 本次场景：基于 review-check findings 直接修复 Java Service 空指针风险
-- 运行评价：顺畅
-- 建议：
-  1. 无
-- 证据：
-  - 无
 ```

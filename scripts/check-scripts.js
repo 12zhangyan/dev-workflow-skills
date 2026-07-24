@@ -60,10 +60,10 @@ for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js',
   }
 }
 
-const devDocReference = fs.readFileSync(path.join(root, 'skills/yan-dev-doc/reference.md'), 'utf8');
-const fallbackMatch = devDocReference.match(/<!-- OPENAPI_WORKSPACE_FALLBACK_START -->\s*```javascript\r?\n([\s\S]*?)\r?\n```\s*<!-- OPENAPI_WORKSPACE_FALLBACK_END -->/);
+const devDocOpenApi = fs.readFileSync(path.join(root, 'skills/yan-dev-doc/publishing-openapi.md'), 'utf8');
+const fallbackMatch = devDocOpenApi.match(/<!-- OPENAPI_WORKSPACE_FALLBACK_START -->\s*```javascript\r?\n([\s\S]*?)\r?\n```\s*<!-- OPENAPI_WORKSPACE_FALLBACK_END -->/);
 if (!fallbackMatch) {
-  fail('skills/yan-dev-doc/reference.md missing executable OpenAPI workspace fallback block');
+  fail('skills/yan-dev-doc/publishing-openapi.md missing executable OpenAPI workspace fallback block');
 } else {
   const tempDir = fs.mkdtempSync(path.join(root, '.openapi-fallback-test-'));
   const validFile = path.join(tempDir, 'valid.openapi.yaml');

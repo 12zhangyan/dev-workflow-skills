@@ -137,7 +137,7 @@
     {
       "id": 24,
       "prompt": "yan-dev-doc 从 application.yml 和 git diff 收集证据时看到了真实 JWT Secret、数据库密码和 API Key",
-      "expected_output": "文档、看板、Workflow Brief 和 Skill 维护反馈只记录文件、行号、键名和凭据类型，不得复制秘密原值；若秘密曾进入 VCS，还要把凭据轮换列为风险或上线门禁，不能声称删除当前值即可解决历史泄露。",
+      "expected_output": "文档、看板、Workflow Brief，以及仅在规则缺口或 EvaluationMode=true 时触发的 Skill 维护反馈，都只能记录文件、行号、键名和凭据类型，不得复制秘密原值；若秘密曾进入 VCS，还要把凭据轮换列为风险或上线门禁，不能声称删除当前值即可解决历史泄露。",
       "tags": ["secret_redaction", "credential_rotation", "evidence"]
     },
     {

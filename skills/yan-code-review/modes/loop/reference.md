@@ -93,14 +93,6 @@ VCS 完整性：
 - 本次为 SingleAgentReview，不代表多 AI 独立交叉审查。
 - <其余 blocker / 环境风险 / 未验证项>
 
-【Skill 维护反馈】
-- skill：review-loop
-- 本次场景：<standard/quick + 输入形态>
-- 运行评价：<顺畅 / 有小问题 / 有阻塞>
-- 建议：
-  1. <无，或一条可落地改进>
-- 证据：
-  - <具体表现；无则写 无>
 ```
 
 ## 结论口径

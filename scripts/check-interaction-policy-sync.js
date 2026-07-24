@@ -38,11 +38,11 @@ for (const skill of requiredSkills) {
 }
 
 const feedbackReferences = [
-  'yan-dev-doc/reference.md',
+  'yan-dev-doc/completion.md',
   'yan-project-analysis/modes/incident/reference.md',
   'yan-project-analysis/modes/understanding/reference.md',
   'yan-project-analysis/modes/business/reference.md',
-  'yan-code-review/modes/package/reference.md',
+  'yan-code-review/modes/package/completion.md',
   'yan-code-review/modes/check/reference.md',
   'yan-code-review/modes/repair/reference.md'
 ];
@@ -54,8 +54,15 @@ for (const rel of feedbackReferences) {
     continue;
   }
   const text = fs.readFileSync(file, 'utf8');
-  if (!text.includes('【Skill 维护反馈】')) {
-    fail(`Reference output format missing skill feedback block: skills/${rel}`);
+  if (text.includes('【Skill 维护反馈】')) {
+    fail(`Reference must not force unconditional skill feedback: skills/${rel}`);
+  }
+}
+
+if (fs.existsSync(shared)) {
+  const text = fs.readFileSync(shared, 'utf8');
+  for (const needle of ['默认不输出维护反馈', 'EvaluationMode=true', '正常业务执行顺畅时完全省略']) {
+    if (!text.includes(needle)) fail(`Shared interaction policy missing conditional feedback rule: ${needle}`);
   }
 }
 
@@ -69,7 +76,7 @@ if (fs.existsSync(reviewCheckReference)) {
   fail('Missing review-check reference file: skills/review-check/reference.md');
 }
 
-const reviewFixReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'reference.md');
+const reviewFixReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'review-task-template.md');
 const reviewFixSkill = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'mode.md');
 for (const [file, label] of [[reviewFixReference, 'review-fix reference'], [reviewFixSkill, 'review-fix SKILL']]) {
   if (!fs.existsSync(file)) {

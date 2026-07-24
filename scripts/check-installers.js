@@ -115,6 +115,8 @@ function seedHome(home) {
     fs.writeFileSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'), 'preserve me\n');
     fs.mkdirSync(path.join(skillsRoot, 'yan-dev-doc'), { recursive: true });
     fs.writeFileSync(path.join(skillsRoot, 'yan-dev-doc', 'stale-from-old-install.txt'), 'back me up\n');
+    fs.mkdirSync(path.join(skillsRoot, '.yan-backups', 'legacy-install'), { recursive: true });
+    fs.writeFileSync(path.join(skillsRoot, '.yan-backups', 'legacy-install', 'old-backup-marker.txt'), 'keep me\n');
     for (const legacy of legacyNames) {
       fs.mkdirSync(path.join(skillsRoot, legacy), { recursive: true });
       fs.writeFileSync(path.join(skillsRoot, legacy, 'legacy-marker.txt'), 'unknown owner\n');
@@ -131,6 +133,10 @@ function findFile(rootDir, fileName) {
     else if (entry.name === fileName) found.push(full);
   }
   return found;
+}
+
+function backupRoot(home, target) {
+  return path.join(home, '.yan-dev-workflow-skills-backups', target.name);
 }
 
 function assertInstall(home, { legacyMigrated = false } = {}) {
@@ -157,11 +163,17 @@ function assertInstall(home, { legacyMigrated = false } = {}) {
       if (legacyMigrated && exists) fail(`${target.name} explicit migration kept legacy: ${legacy}`);
       if (!legacyMigrated && !exists) fail(`${target.name} default install deleted unowned legacy: ${legacy}`);
     }
-    if (legacyMigrated && findFile(path.join(skillsRoot, '.yan-backups'), 'legacy-marker.txt').length < legacyNames.length) {
+    if (legacyMigrated && findFile(backupRoot(home, target), 'legacy-marker.txt').length < legacyNames.length) {
       fail(`${target.name} did not back up every explicitly migrated legacy directory`);
     }
-    if (findFile(path.join(skillsRoot, '.yan-backups'), 'stale-from-old-install.txt').length < 1) {
+    if (findFile(backupRoot(home, target), 'stale-from-old-install.txt').length < 1) {
       fail(`${target.name} did not back up a pre-manifest same-name skill`);
+    }
+    if (!fs.existsSync(path.join(skillsRoot, '.yan-backups', 'legacy-install', 'old-backup-marker.txt'))) {
+      fail(`${target.name} removed a pre-existing legacy in-root backup`);
+    }
+    if (findFile(path.join(skillsRoot, '.yan-backups'), 'stale-from-old-install.txt').length) {
+      fail(`${target.name} wrote a new backup inside the active skills root`);
     }
 
     for (const name of sourceDirectories()) {
@@ -196,6 +208,17 @@ function smokeWindows(tempRoot) {
   run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude cursor codex'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd default');
   assertInstall(cmdHome);
+  const beforeDoctor = JSON.stringify(listTree(cmdHome));
+  const doctor = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd doctor'],
+    { cwd: root, env: cmdEnv }, 'install-local.cmd doctor');
+  if (!doctor.stdout.includes('ROOT\tclaude\tPRESENT')
+    || !doctor.stdout.includes('MANIFEST\tcodex\tCURRENT')
+    || !doctor.stdout.includes('LEGACY\tclaude\tdev-doc\tPRESENT')
+    || !doctor.stdout.includes('MIRROR\tyan-dev-doc\tclaude,cursor,codex')
+    || !doctor.stdout.includes('DUPLICATE\tuser-owned-skill\tclaude,cursor,codex')) {
+    fail('install-local.cmd doctor did not distinguish managed mirrors from unmanaged duplicates');
+  }
+  if (JSON.stringify(listTree(cmdHome)) !== beforeDoctor) fail('install-local.cmd doctor modified the home directory');
   seedRemovedManagedSkill(cmdHome);
   run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd --migrate-legacy claude cursor codex'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd explicit migration');
@@ -205,7 +228,7 @@ function smokeWindows(tempRoot) {
     if (fs.existsSync(path.join(skillsRoot, 'yan-removed-skill'))) {
       fail(`${target.name} kept a Skill removed from the managed distribution`);
     }
-    if (findFile(path.join(skillsRoot, '.yan-backups'), 'removed-marker.txt').length !== 1) {
+    if (findFile(backupRoot(cmdHome, target), 'removed-marker.txt').length !== 1) {
       fail(`${target.name} did not back up a Skill removed from the managed distribution`);
     }
   }
@@ -258,12 +281,15 @@ function smokePosix(tempRoot) {
   assertInstall(home);
 }
 
-requireText('install.sh', ['scripts/install-core.js', 'Node.js is required', '--migrate-legacy']);
-requireText('install.ps1', ['scripts\\install-core.js', 'Node.js is required', 'DEV_WORKFLOW_SKILLS_SOURCE']);
-requireText('install-local.cmd', ['scripts\\install-core.js', 'status', '--migrate-legacy']);
+requireText('install.sh', ['scripts/install-core.js', 'Node.js is required', 'doctor', '--migrate-legacy']);
+requireText('install.ps1', ['scripts\\install-core.js', 'Node.js is required', 'DEV_WORKFLOW_SKILLS_SOURCE', 'Doctor']);
+requireText('install-local.cmd', ['scripts\\install-core.js', 'status', 'doctor', '--migrate-legacy']);
 requireText('scripts/install-core.js', [
   '.yan-dev-workflow-skills.json',
-  '.yan-backups',
+  '.yan-dev-workflow-skills-backups',
+  'function doctor',
+  'MIRROR',
+  'DUPLICATE',
   'unowned legacy name',
   'removeUtf8BomFromSkillFiles',
   'sourceTreeHash',

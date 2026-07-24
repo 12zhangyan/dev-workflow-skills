@@ -235,67 +235,13 @@ stateDiagram-v2
 
 ## HTML 追加格式
 
-`data/changes.js` 文档标记行上方插入（非空字段才写，没有的图字段省略）：
+本参考不提供可直接插入 `data/changes.js` 的 JS 片段。entry 字段和标准 JSON 示例以 [mode.md 的 Step 5.5](mode.md#step-55登记到-html-看板kindbiz) 为准，随后必须执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)：
 
-```js
-  {
-    kind: "biz",
-    service: "<service>",
-    module: "<module>",
-    title: "<title>",
-    type: "业务流",
-    status: "已完成",
-    date: "<date>",
-    branch: "<branch>",
-    docPath: "<docPath>",
-    background: "<业务概述，可 \\n 分段>",
-    roles: [
-      { name: "<角色名>", channel: "<App/PC/任务/回调>", entry: "<接口或操作>", desc: "<职责与权限范围>" }
-    ],
-    context: [
-      { field: "<上下文字段/条件>", source: "<来源>", usage: "<业务用途>", note: "<缺失或边界说明>" }
-    ],
-    apis: [{ method: "POST", url: "/api/v1/xxx", desc: "<作用>" }],
-    bizFlow: `flowchart TD
-  A([开始]) --> B{判断}
-  B -->|是| C[处理]`,
-    dataFlow: `flowchart LR
-  IN[入参] --> SVC[服务] --> T[(表)]`,
-    sequence: `sequenceDiagram
-  participant U as 用户
-  U->>O: 请求`,
-    stateMachine: `stateDiagram-v2
-  [*] --> 待支付`,
-    dataChanges: [
-      { stage: "<阶段名>", trigger: "<触发入口>", summary: "<阶段摘要>",
-        operations: [
-          { target: "<表/对象>", action: "INSERT/UPDATE/SELECT/MQ/CALL", fields: "<关键字段变化>", check: "<测试核对点>" }
-        ] }
-    ],
-    bizRules: [
-      { title: "<规则名>", desc: "<触发条件→行为→边界>" }
-    ],
-    validations: [
-      { stage: "<阶段>", rule: "<校验项>", failure: "<失败提示/行为>", check: "<测试核对点>" }
-    ],
-    testPoints: [
-      "<具体可验证的测试点 1>",
-      "<具体可验证的测试点 2>"
-    ],
-    dataObjects: [
-      { name: "<表/缓存/消息/外部服务>", phase: "<阶段>", action: "<操作>", note: "<关键字段/说明>" }
-    ],
-    assumptions: ["<低风险假设>"],
-    conflicts: [
-      { point: "<冲突点>", user: "<用户说法>", evidence: "<现有证据>", risk: "<风险>", suggestion: "<建议口径>", blocking: true }
-    ],
-    blockers: ["<影响业务闭环或测试口径的阻塞项>"],
-    openQuestions: ["<非阻塞待确认项>"]
-  },
-  // ─── 在此行上方追加新记录 ───
-```
+1. 将 `{ "changelog": "...", "entry": { ... } }` 写入临时 `project-html/data/_entry.json`；
+2. 只运行 `node project-html/board-add.js project-html/data/_entry.json` 写入；
+3. 成功后运行 `node project-html/build.js`。
 
-> 没有数据流图 / 时序图 / 状态机时，直接省略对应字段（`dataFlow` / `sequence` / `stateMachine`），看板会自动不渲染该节。角色、上下文、阶段数据变动、校验规则、涉及数据对象能确定时优先写结构化字段；确实不存在时可省略。
+Mermaid 字段是带 `\n` 的普通 JSON 字符串，不使用反引号。禁止手工插入标记行或整体重写 `data/changes.js`。
 
 ---
 
@@ -331,12 +277,4 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/biz-flow/<日期>/<业务名>.md
 3. 已有实现且需要审查：使用 `yan-code-review mode=package` 基于业务流文档生成任务包，再用 `mode=check` 审查。
 4. 需要开发理解调用链：使用 `yan-project-analysis mode=understanding` 并提供 `<入口类#方法>`。
 
-【Skill 维护反馈】
-- skill：biz-flow
-- 本次场景：<一句话描述入口形态，如接口/功能名/菜单/Job/MQ/回调>
-- 运行评价：<顺畅 / 有小问题 / 有阻塞>
-- 建议：
-  1. <无，或一条可落地的 skill 改进建议>
-- 证据：
-  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```

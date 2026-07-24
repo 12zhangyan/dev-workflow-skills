@@ -121,25 +121,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/bugs
 
 **Agent 专属字段禁止写入看板 entry**：`stackTrace`、`codeLocation`、`changeList`、`todos`。原始堆栈、文件/方法/行号、修复动作、验证命令和执行 Todo 只写 Bug md；看板只解释现象、根因、修复边界与人能核对的结果。
 
-**字符串转义**（否则看板 JS 语法错误）：字段值含双引号 → `\"`，含换行 → `\n`；entry 使用标准 JSON，不使用反引号。
-
-创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../../../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，不能依赖前一次 shell 调用留下的 `$src`。
-
-**① 确保看板文件存在**（跨平台确定性判断，不靠模型解读读取结果）：
-
-```text
-node <helper> exists project-html/data/changes.js
-```
-
-- **MISSING** →
-  1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行共享引导的「定位并复制或升级外壳」；它只在数据文件缺失时补一份**空的** `data/changes.js` 模板。两种情况这一步都不写业务数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
-  3. **检测 VCS**：运行 `node <helper> detect-vcs`。仅本次新建时提示一次，不代为执行：SVN 建议 `svn add project-html --depth=infinity`；Git 建议 `git add project-html`。
-- **EXISTS** → 执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再复制外壳（`data/` 不动）；升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录，输出 `🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
-
-**② 用 board-add.js 写入 Bug 条目（确定性脚本，替代手工 Edit）**
-
-把本次提取的字段组成 entry 对象，连同变更日志描述写进临时 JSON，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归全在脚本里完成**，AI 不再手改 `data/changes.js`，从根上杜绝「误判看板不存在 → 整体覆盖」事故：
+**字符串转义**：entry 使用标准 JSON；字段值含双引号按 JSON 转义，内部换行写成 `\n`，不使用反引号。
 
 使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
 
@@ -153,17 +135,9 @@ node <helper> exists project-html/data/changes.js
     "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
 ```
 
-运行 `node project-html/board-add.js project-html/data/_entry.json`；成功后再用当前宿主的文件能力删除临时 `_entry.json`。失败时保留文件用于诊断。
+非空字段才写，空数组可省略；字段含义见上方表格与 [reference.md](reference.md#html-追加格式)。Step 4 冲突选 A/E 时把 `changelog` 改成 `更新 Bug：<title>`。
 
-- **标准 JSON**：字符串值用双引号、内部换行写成 `\n`，**不要用反引号**；非空字段才写，空数组可省略。字段含义见上方表格与 [reference.md](reference.md#html-追加格式)。
-- **查重自动处理**：脚本按 `docPath` 命中既有条目时就地更新并**保留原 status**，否则追加。Step 4 冲突选 A/E 时无需特殊操作，只把 `changelog` 改成 `更新 Bug：<title>`。
-- **结果与回滚**：脚本打印 `✓ 看板已追加/更新…（记录数 X → Y）`；校验失败（语法错误或记录数下降）会放弃写入并保持原文件不动，按提示排查后重试，不要手改文件。
-- **`node` 不存在** → 降级手工：用 Edit 在 `// ─── 在此行上方追加新记录 ───` 上方插入同一 bug 对象（注意 JS 转义：双引号 `\"`、换行 `\n`），并在 `// ─── 在此行上方追加变更日志 ───` 上方插入 `{ date: "<date>", desc: "新增 Bug：<title>" }`，提示用户手动打开看板确认。
-
-**③ 生成轻量详情页 + 文档总索引（构建）**：写入成功后运行 `node project-html/build.js`，增量维护共享资源详情页 `project-html/pages/<slug>.html`、重新生成 `docs/INDEX.md` 文档总索引，并在首次运行时把项目根散落的旧 md/看板/接口文档复制归档到 `docs/archive/`（不删原件）。需要单文件外发时再运行 `node project-html/build.js --standalone "<docPath 或 slug>"` 生成 `project-html/exports/<slug>.html`。`node` 不存在 → 跳过。
-
-输出：`🐛 Bug 已追加到 HTML 看板：project-html/data/changes.js + project-html/data/details/（浏览器打开 project-html/index.html 查看）`
-`📑 已生成轻量详情页 pages/ 与文档总索引 docs/INDEX.md`
+然后加载并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)。成功后输出 catalog/detail、轻量详情页和文档索引证据；`BoardPublishSkipped`、`BoardPublishBlocked` 或 `BoardBuildBlocked` 必须显式报告，不能宣称完整成功。
 
 ### Step 6：输出 Next Steps
 

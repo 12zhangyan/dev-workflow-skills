@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "hosts": ["claude", "cursor", "codex"],
   "description": "Offline routing and side-effect contracts shared by all supported hosts. These are static contracts, not claims that a live model completed the scenario.",
   "cases": [
@@ -12,6 +12,9 @@
     {"id": "analysis-incident-artifacts", "prompt_ref": "yan-project-analysis:3", "route": "incident", "write_scope": "docs-and-board"},
     {"id": "analysis-business-artifacts", "prompt_ref": "yan-project-analysis:4", "route": "business", "write_scope": "docs-and-board"},
     {"id": "handoff-persistent-doc", "prompt_ref": "yan-conversation-handoff:1", "route": "handoff", "write_scope": "docs"},
-    {"id": "handoff-chat-only", "prompt_ref": "yan-conversation-handoff:6", "route": "handoff", "write_scope": "none"}
+    {"id": "handoff-chat-only", "prompt_ref": "yan-conversation-handoff:6", "route": "handoff", "write_scope": "none"},
+    {"id": "dev-doc-standard-artifacts", "prompt_ref": "yan-dev-doc:1", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "project-html/data/changes.js", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
+    {"id": "dev-doc-api-artifacts", "prompt_ref": "yan-dev-doc:3", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "docs/apifox/**/*.openapi.yaml", "min_matches": 1}, {"glob": "docs/apifox/INDEX.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
+    {"id": "dev-doc-compact-artifact", "prompt_ref": "yan-dev-doc:28", "route": "yan-dev-doc", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}}
   ]
 }

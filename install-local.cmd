@@ -6,6 +6,7 @@ REM Usage:
 REM   install-local.cmd
 REM   install-local.cmd claude cursor codex
 REM   install-local.cmd status
+REM   install-local.cmd doctor
 REM   install-local.cmd --migrate-legacy claude
 
 where node >nul 2>nul
@@ -22,6 +23,8 @@ set "TARGETS="
 if "%~1"=="" goto run
 if /i "%~1"=="status" (
   set "ACTION=status"
+) else if /i "%~1"=="doctor" (
+  set "ACTION=doctor"
 ) else if /i "%~1"=="--migrate-legacy" (
   set "MIGRATE=--migrate-legacy"
 ) else if /i "%~1"=="claude" (
@@ -32,7 +35,7 @@ if /i "%~1"=="status" (
   set "TARGETS=!TARGETS! codex"
 ) else (
   echo [ERROR] Unknown argument: %~1
-  echo Allowed: status claude cursor codex --migrate-legacy
+  echo Allowed: status doctor claude cursor codex --migrate-legacy
   exit /b 1
 )
 shift

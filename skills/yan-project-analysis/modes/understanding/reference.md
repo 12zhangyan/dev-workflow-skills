@@ -210,12 +210,4 @@ next: 人工 Review / Submit Gate；如发现新风险则回到 review-check
 nextCommand: 人工：按代码地图完成 Review 和 Submit Gate 检查；发现新风险时使用 yan-code-review skill，mode=check，重新审查
 tokenHint: 人工或下一位 AI 先读本 Brief -> 代码地图 -> changed 文件关键方法；不要把代码地图当作审查结论；首轮最多 5 个文件
 
-【Skill 维护反馈】
-- skill：code-reading
-- 本次场景：<一句话描述入口形态，如 yan-dev-doc/类方法/自然语言描述>
-- 运行评价：<顺畅 / 有小问题 / 有阻塞>
-- 建议：
-  1. <无，或一条可落地的 skill 改进建议>
-- 证据：
-  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```

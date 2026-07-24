@@ -128,14 +128,6 @@ VCS：<无未跟踪新增文件 / 需 git add / 需 svn add>
 二次 review-check：<建议 / 不需要，原因>
 ```
 
-【Skill 维护反馈】
-- skill：review-repair
-- 本次场景：<findings/fix-handoff/自然语言问题清单>
-- 运行评价：<顺畅 / 有小问题 / 有阻塞>
-- 建议：
-  1. <无，或一条可落地的 skill 改进建议>
-- 证据：
-  - <本次多问/漏问/误判/模板不足的具体表现；没有则写 无>
 ```
 
 ## 示例 1：review-check findings 后直接修复

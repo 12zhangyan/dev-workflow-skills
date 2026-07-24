@@ -300,12 +300,20 @@ for (const { key: skill, rel } of evalSpecs) {
 
 const devDocSkillPath = path.join(skillsDir, 'yan-dev-doc', 'SKILL.md');
 const devDocReferencePath = path.join(skillsDir, 'yan-dev-doc', 'reference.md');
+const devDocSlotsPath = path.join(skillsDir, 'yan-dev-doc', 'planning-slots.md');
+const devDocCompactPath = path.join(skillsDir, 'yan-dev-doc', 'template-compact.md');
+const devDocStandardPath = path.join(skillsDir, 'yan-dev-doc', 'template-standard.md');
+const devDocCompletionPath = path.join(skillsDir, 'yan-dev-doc', 'completion.md');
 const devDocExamplesPath = path.join(skillsDir, 'yan-dev-doc', 'examples.md');
 const devDocOpenApiPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-openapi.md');
 const devDocBoardPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-board.md');
 for (const [file, needles] of [
   [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 申请草案', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
-  [devDocReferencePath, ['精简文档模板', '文档模式：Compact', 'NotApplicable (Compact)', '最多两个生产代码切点', '文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '已裁决冲突不进入', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
+  [devDocReferencePath, ['Compatibility index only', 'planning-slots.md', 'template-compact.md', 'template-standard.md', 'completion.md']],
+  [devDocSlotsPath, ['Step 3 查漏槽位', '不是逐条必问题卷']],
+  [devDocCompactPath, ['精简文档模板', '文档模式：Compact', '最多两个生产代码切点', '## 五、决策与 Plan Gate', '**assumptions**', '**blockers**']],
+  [devDocStandardPath, ['文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '承接：<主题/约束范围>', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）']],
+  [devDocCompletionPath, ['NotApplicable (Compact)', '已裁决冲突不进入', 'Plan Gate 未通过']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
   [devDocOpenApiPath, ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'OPENAPI_VALIDATION_MODE=light:workspace-inline']],
   [devDocBoardPath, ['node project-html/board-add.js', '禁止用宿主文件能力整体重写', 'node project-html/build.js']],
@@ -340,7 +348,8 @@ const contractNeedles = [
   ['skills/yan-conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
   ['skills/yan-code-review/modes/package/mode.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
   ['skills/yan-code-review/modes/check/mode.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
-  ['skills/yan-code-review/modes/package/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
+  ['skills/yan-code-review/modes/package/review-task-template.md', ['独立完成本次审查']],
+  ['skills/yan-code-review/modes/package/fix-handoff-template.md', ['| RJ-1 |', '| BK-1 |']],
   ['skills/yan-code-review/modes/loop/mode.md', ['首轮最大序号', 'VCS 证据归属']],
   ['skills/yan-code-review/modes/repair/mode.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
   ['skills/yan-code-review/modes/repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],

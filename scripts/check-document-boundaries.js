@@ -201,9 +201,9 @@ requireText('skills/yan-project-analysis/modes/incident/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写 Bug 文档、看板或执行型修复 Todo',
   '根因无明确结论',
-  'node project-html/board-add.js',
-  '不要手改文件',
-  '../../../_shared/board-shell-bootstrap.md',
+  '../../../_shared/board-publish-flow.md',
+  '"kind":"bug"',
+  'Agent 专属字段禁止写入看板 entry',
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
@@ -211,9 +211,9 @@ requireText('skills/yan-project-analysis/modes/business/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写业务流文档、看板或确定性测试口径',
   '缺失入口会影响状态/数据闭环时停止生成正式方案',
-  '写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本',
-  '跳过条件',
-  '../../../_shared/board-shell-bootstrap.md',
+  '../../../_shared/board-publish-flow.md',
+  '"kind":"biz"',
+  'Mermaid 字段也是普通 JSON 字符串，不使用反引号',
   '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
 ]);
 
@@ -246,6 +246,28 @@ requireText(boardShellBootstrap, [
   '不得覆盖既有 `data/` 或 `data/details/`',
   'BOARD_SHELL_UPGRADE_REQUIRED',
   'BOARD_SHELL_CURRENT',
+]);
+
+for (const rel of [
+  'skills/yan-project-analysis/modes/incident/reference.md',
+  'skills/yan-project-analysis/modes/business/reference.md',
+]) {
+  requireText(rel, [
+    '../../../_shared/board-publish-flow.md',
+    'project-html/data/_entry.json',
+    '禁止手工插入标记行或整体重写 `data/changes.js`',
+  ]);
+}
+
+requireText('skills/_shared/board-publish-flow.md', [
+  '只通过 `project-html/board-add.js` 写业务数据',
+  '禁止用宿主文件能力整体重写 `data/changes.js`',
+  'workflow-fs.js exists',
+  'Mermaid 代码也是普通 JSON 字符串',
+  'BoardPublishSkipped',
+  'BoardPublishBlocked',
+  'BoardBuildBlocked',
+  '不得降级为手工插入',
 ]);
 
 smokeBoardShellBootstrap();

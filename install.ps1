@@ -1,6 +1,7 @@
 param(
     [string[]]$Targets,
     [switch]$Status,
+    [switch]$Doctor,
     [switch]$MigrateLegacy
 )
 
@@ -33,7 +34,8 @@ try {
     }
     if ($null -eq $srcDir) { throw "repository root not found in downloaded archive" }
 
-    $command = if ($Status) { "status" } else { "install" }
+    if ($Status -and $Doctor) { throw "Choose either -Status or -Doctor." }
+    $command = if ($Doctor) { "doctor" } elseif ($Status) { "status" } else { "install" }
     $arguments = @(
         (Join-Path $srcDir.FullName "scripts\install-core.js"),
         $command,

@@ -9,11 +9,12 @@ TARGETS=()
 for arg in "$@"; do
   case "$arg" in
     status) COMMAND="status" ;;
+    doctor) COMMAND="doctor" ;;
     --migrate-legacy) MIGRATE_LEGACY="true" ;;
     claude|cursor|codex) TARGETS+=("$arg") ;;
     *)
       echo "[ERROR] Unknown argument: $arg" >&2
-      echo "Allowed: status claude cursor codex --migrate-legacy" >&2
+      echo "Allowed: status doctor claude cursor codex --migrate-legacy" >&2
       exit 1
       ;;
   esac

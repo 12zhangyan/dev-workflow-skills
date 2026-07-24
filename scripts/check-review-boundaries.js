@@ -76,7 +76,7 @@ requireText('skills/_shared/workflow-chain.md', [
 ]);
 
 const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';
-requireText('skills/yan-code-review/modes/package/reference.md', [allTestEvidenceStatuses]);
+requireText('skills/yan-code-review/modes/package/review-task-template.md', [allTestEvidenceStatuses]);
 requireText('skills/yan-code-review/modes/check/reference.md', [allTestEvidenceStatuses]);
 requireText('skills/yan-code-review/modes/loop/reference.md', [allTestEvidenceStatuses]);
 

@@ -97,16 +97,18 @@ function timestamp() {
   return new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-');
 }
 
-function backupDirectory(skillsRoot, name, reason) {
+function backupDirectory(home, targetName, skillsRoot, name, reason) {
   const source = path.join(skillsRoot, name);
   if (!fs.existsSync(source)) return null;
-  const backupRoot = path.join(skillsRoot, '.yan-backups', timestamp());
+  // Keep backups outside active skill discovery roots. Old in-root backups are
+  // deliberately retained for backwards compatibility.
+  const backupRoot = path.join(home, '.yan-dev-workflow-skills-backups', targetName, timestamp());
   fs.mkdirSync(backupRoot, { recursive: true });
   let destination = path.join(backupRoot, name);
   let suffix = 2;
   while (fs.existsSync(destination)) destination = path.join(backupRoot, `${name}-${suffix++}`);
   fs.renameSync(source, destination);
-  process.stdout.write(`  [BACKUP] ${name} (${reason}) -> ${path.relative(skillsRoot, destination).replace(/\\/g, '/')}\n`);
+  process.stdout.write(`  [BACKUP] ${name} (${reason}) -> ${destination.replace(/\\/g, '/')}\n`);
   return destination;
 }
 
@@ -160,7 +162,7 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
     : [];
   for (const name of removedManaged) {
     if (fs.existsSync(path.join(skillsRoot, name))) {
-      backupDirectory(skillsRoot, name, 'removed from current distribution');
+      backupDirectory(home, targetName, skillsRoot, name, 'removed from current distribution');
     }
   }
 
@@ -171,9 +173,9 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
     const previouslyManaged = previous && Array.isArray(previous.managedLegacy)
       && previous.managedLegacy.includes(legacy);
     if (previouslyManaged) {
-      backupDirectory(skillsRoot, legacy, 'managed legacy migration');
+      backupDirectory(home, targetName, skillsRoot, legacy, 'managed legacy migration');
     } else if (migrateLegacy) {
-      backupDirectory(skillsRoot, legacy, 'explicit legacy migration');
+      backupDirectory(home, targetName, skillsRoot, legacy, 'explicit legacy migration');
     } else {
       preservedLegacy.push(legacy);
       process.stdout.write(`  [KEEP] ${legacy} (unowned legacy name; use --migrate-legacy to back it up)\n`);
@@ -189,7 +191,7 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
       if (previousHashes[name] && previousHashes[name] === currentHash) {
         fs.rmSync(destination, { recursive: true, force: true });
       } else {
-        backupDirectory(skillsRoot, name, previousHashes[name] ? 'locally modified managed skill' : 'pre-manifest skill');
+        backupDirectory(home, targetName, skillsRoot, name, previousHashes[name] ? 'locally modified managed skill' : 'pre-manifest skill');
       }
     }
     copySkill(source, destination, target.stripSkillBom);
@@ -213,13 +215,10 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
   process.stdout.write(`  [MANIFEST] ${MANIFEST}\n\n`);
 }
 
-function statusTarget(sourceRoot, home, targetName) {
-  const target = TARGETS[targetName];
-  const skillsRoot = path.resolve(home, target.dotDir, 'skills');
+function inspectManifest(sourceRoot, skillsRoot) {
   const manifest = readManifest(skillsRoot);
   if (!manifest) {
-    process.stdout.write(`${targetName}\tUNMANAGED\t${skillsRoot}\n`);
-    return false;
+    return { state: 'UNMANAGED', version: '-', notes: [] };
   }
   let state = 'CURRENT';
   const notes = [];
@@ -253,13 +252,63 @@ function statusTarget(sourceRoot, home, targetName) {
       notes.push('source-tree-changed');
     }
   }
-  process.stdout.write(`${targetName}\t${state}\t${manifest.sourceVersion}\t${notes.join(',') || '-'}\n`);
-  return state === 'CURRENT';
+  return { state, version: manifest.sourceVersion || '-', notes };
+}
+
+function statusTarget(sourceRoot, home, targetName) {
+  const target = TARGETS[targetName];
+  const skillsRoot = path.resolve(home, target.dotDir, 'skills');
+  const result = inspectManifest(sourceRoot, skillsRoot);
+  if (result.state === 'UNMANAGED') {
+    process.stdout.write(`${targetName}\tUNMANAGED\t${skillsRoot}\n`);
+    return false;
+  }
+  process.stdout.write(`${targetName}\t${result.state}\t${result.version}\t${result.notes.join(',') || '-'}\n`);
+  return result.state === 'CURRENT';
+}
+
+function doctor(sourceRoot, home, targets) {
+  const skillOwners = new Map();
+  const orderedTargets = Object.keys(TARGETS).filter((targetName) => targets.includes(targetName));
+  for (const targetName of orderedTargets) {
+    const target = TARGETS[targetName];
+    const skillsRoot = path.resolve(home, target.dotDir, 'skills');
+    const rootState = fs.existsSync(skillsRoot) && fs.statSync(skillsRoot).isDirectory() ? 'PRESENT' : 'MISSING';
+    const rawManifest = readManifest(skillsRoot);
+    const manifest = inspectManifest(sourceRoot, skillsRoot);
+    process.stdout.write(`ROOT\t${targetName}\t${rootState}\t${skillsRoot.replace(/\\/g, '/')}\n`);
+    process.stdout.write(`MANIFEST\t${targetName}\t${manifest.state}\t${manifest.version}\t${manifest.notes.join(',') || '-'}\n`);
+    if (rootState === 'MISSING') continue;
+    const names = fs.readdirSync(skillsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== '.yan-backups')
+      .map((entry) => entry.name)
+      .sort();
+    for (const name of names) {
+      if (LEGACY_NAMES.has(name)) process.stdout.write(`LEGACY\t${targetName}\t${name}\tPRESENT\n`);
+      if (!skillOwners.has(name)) skillOwners.set(name, []);
+      const managed = Boolean(rawManifest
+        && Array.isArray(rawManifest.managedSkills)
+        && rawManifest.managedSkills.includes(name));
+      skillOwners.get(name).push({
+        target: targetName,
+        managed,
+        sourceTreeHash: managed ? rawManifest.sourceTreeHash || null : null,
+      });
+    }
+  }
+  for (const [name, owners] of [...skillOwners.entries()].sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))) {
+    if (owners.length < 2) continue;
+    const targetsText = owners.map((owner) => owner.target).join(',');
+    const expectedMirror = owners.every((owner) => owner.managed)
+      && owners.every((owner) => owner.sourceTreeHash)
+      && new Set(owners.map((owner) => owner.sourceTreeHash)).size === 1;
+    process.stdout.write(`${expectedMirror ? 'MIRROR' : 'DUPLICATE'}\t${name}\t${targetsText}\n`);
+  }
 }
 
 const options = parseArgs(process.argv.slice(2));
-if (!['install', 'status'].includes(options.command)) {
-  fail('usage: install-core.js <install|status> --source <repo-root> --home <home> [--targets ...] [--migrate-legacy]');
+if (!['install', 'status', 'doctor'].includes(options.command)) {
+  fail('usage: install-core.js <install|status|doctor> --source <repo-root> --home <home> [--targets ...] [--migrate-legacy]');
 }
 const home = path.resolve(options.home || process.env.USERPROFILE || process.env.HOME || '');
 if (!home) fail('home directory is required');
@@ -271,9 +320,11 @@ if (options.command === 'install') {
   const version = sourceVersion(sourceRoot, options.version);
   for (const target of targets) installTarget(sourceRoot, home, target, version, options.migrateLegacy);
   process.stdout.write('Done. Open a new host session if the current one does not refresh its skill catalog.\n');
-} else {
+} else if (options.command === 'status') {
   const sourceRoot = options.source ? path.resolve(options.source) : null;
   let current = true;
   for (const target of targets) current = statusTarget(sourceRoot, home, target) && current;
   process.exitCode = current ? 0 : 2;
+} else {
+  doctor(options.source ? path.resolve(options.source) : null, home, targets);
 }

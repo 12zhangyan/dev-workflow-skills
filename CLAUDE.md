@@ -12,7 +12,7 @@ The boundary checks guard high-risk behavior invariants, not prose style; if a s
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | `reference.md` (question sets + doc template), `examples.md`, `scripts/validate-openapi.js`, `assets/board/` (HTML board template) |
+| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | `reference.md` (compatibility index), `planning-slots.md`, `template-compact.md`, `template-standard.md`, `completion.md`, `publishing-openapi.md`, `publishing-board.md`, `examples.md`, `scripts/validate-openapi.js`, `assets/board/` |
 | `yan-project-analysis` | `skills/yan-project-analysis/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing understanding, incident, business |
 | `yan-code-review` | `skills/yan-code-review/SKILL.md` | `reference.md`, `evals.json`, and `modes/` containing package, check, repair, loop |
 | `yan-conversation-handoff` | `skills/yan-conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template), `examples.md` |
@@ -27,9 +27,9 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 irm https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.ps1 | iex
 ```
 
-The scripts require Node.js, download the repo archive (tarball/zip), and copy the `skills/` subtree into `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/` by default. Each target gets a `.yan-dev-workflow-skills.json` ownership/version manifest. Before replacing a managed Skill that predates the manifest or has local changes, the installer copies it to `.yan-backups/<timestamp>/`. Unowned legacy Skill directories are preserved by default; pass `--migrate-legacy` only when intentionally backing them up and removing them from active discovery. For the Codex target only, the Node installer removes a leading UTF-8 BOM from copied `SKILL.md` files and fails explicitly if normalization cannot be completed. Restart the target tool after install.
+The scripts require Node.js, download the repo archive (tarball/zip), and copy the `skills/` subtree into `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/` by default. Each target gets a `.yan-dev-workflow-skills.json` ownership/version manifest. Before replacing a managed Skill that predates the manifest or has local changes, the installer copies it outside all discovery roots to `~/.yan-dev-workflow-skills-backups/<host>/<timestamp>/`. Existing legacy `.yan-backups/` folders are preserved but no new backup is written there. Unowned legacy Skill directories are preserved by default; pass `--migrate-legacy` only when intentionally backing them up and removing them from active discovery. For the Codex target only, the Node installer removes a leading UTF-8 BOM from copied `SKILL.md` files and fails explicitly if normalization cannot be completed. Restart the target tool after install.
 
-`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. Add `status` for a read-only CURRENT/DRIFT/OUTDATED/UNMANAGED report, or `--migrate-legacy` for the explicit legacy cleanup described above. The cmd wrapper stays **pure ASCII on purpose** because cmd.exe parses batch files per the OEM code page.
+`install-local.cmd` (Windows cmd) installs from the local checkout instead of downloading. Args `claude` / `cursor` / `codex` (combinable) restrict targets; no args installs all three. Add `status` for a read-only CURRENT/DRIFT/OUTDATED/UNMANAGED report, `doctor` for discovery-root, manifest, legacy-name, expected managed mirror, and risky duplicate diagnostics, or `--migrate-legacy` for the explicit legacy cleanup described above. The cmd wrapper stays **pure ASCII on purpose** because cmd.exe parses batch files per the OEM code page.
 
 Recommended companion workflow layer: [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh). It provides general engineering-method skills such as brainstorming, test-driven development, systematic debugging, requesting code review, and verification before completion. This repository remains the Java delivery workflow layer: dev docs, bug/business-flow docs, review-task packages, structured finding IDs, repair handoff, code maps, board entries, Apifox/OpenAPI artifacts, and Workflow Briefs.
 
@@ -54,7 +54,7 @@ Each skill is a self-contained directory:
 ```
 skills/<name>/
   SKILL.md       ← skill definition (frontmatter + execution instructions)
-  reference.md   ← question sets and document templates loaded by the skill at runtime
+  reference.md   ← optional compatibility index; runtime paths link directly to focused resources
   examples.md    ← filled-in examples the skill references during generation
   scripts/       ← deterministic helpers executed by the skill when needed
   assets/        ← files copied into the user's project (yan-dev-doc only: the HTML board template)
@@ -70,7 +70,7 @@ Skills reference their sibling files with relative paths. `yan-project-analysis`
 
 The four public skills are one portable behavior core for Claude Code, Cursor, and Codex. Public `SKILL.md` and mode frontmatter use only the portable `name` and `description` discovery fields. Runtime instructions describe semantic capabilities (read/search, scoped edit, terminal, structured question, optional delegation) through `skills/_shared/host-capabilities.md`; they must not require one host's tool name or UI convention.
 
-Cross-platform filesystem decisions use `skills/_shared/scripts/workflow-fs.js` instead of assuming Bash. Stable behavior contracts live in `skills/_shared/host-contracts.json` and are checked by `node scripts/check-portable-contracts.js`. This is an offline routing/side-effect contract suite, not evidence of live-model behavior. `node scripts/run-host-evals.js --probe` reports real Claude Code, Cursor Agent, and Codex CLI availability without model calls. Opt-in sampled evaluation uses `--live --host <host> --case <read-only-case> --workspace <clean-isolated-worktree>`; it refuses dirty worktrees and write-capable cases, and records route, write scope, process result, and workspace drift.
+Cross-platform filesystem decisions use `skills/_shared/scripts/workflow-fs.js` instead of assuming Bash. Stable behavior contracts live in `skills/_shared/host-contracts.json` and are checked by `node scripts/check-portable-contracts.js`. This is an offline routing/side-effect contract suite, not evidence of live-model behavior. `node scripts/run-host-evals.js --probe` reports real Claude Code, Cursor Agent, and Codex CLI availability without model calls. Opt-in sampled evaluation uses `--live --host <host> --case <case> --workspace <git-worktree>`; the runner creates a temporary Git clone and never writes the supplied workspace. Write-capable cases additionally require `--allow-write`, enforce their declared scope, and can assert produced artifacts and output markers.
 
 Installation is also part of the host contract: Claude Code and Cursor preserve repository Markdown BOMs; only the Codex target strips the leading BOM from installed `SKILL.md`. `node scripts/check-installers.js` installs and byte-checks all three targets in an isolated home directory.
 
@@ -120,18 +120,18 @@ yan-dev-doc/yan-project-analysis → AI executes → svn add → mvn test → ya
 - `yan-code-review mode=package` first produces `docs/review-fix/YYYY-MM-DD/<task>-review-task.md`; after findings are pasted back, it can produce `<task>-fix-handoff.md` plus an AI fix prompt/code
 - `yan-conversation-handoff` produces `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` from current-conversation evidence for a new AI conversation; it is not a board entry and does not replace the smaller `Workflow Brief`
 - `yan-dev-doc`, `bug-fix`, `code-reading`, and `biz-flow` auto-register their output in `project-html/data/changes.js`; `review-fix` registers only its second-stage fix-handoff document (doc entry with `type:"代码审查"`), then runs `node project-html/build.js` to refresh lightweight detail pages + `docs/INDEX.md`
-- All skills use bash `date +%F` + `mkdir -p` for date generation and directory creation (no Python dependency)
+- All skills use `skills/_shared/scripts/workflow-fs.js prepare-date-dir` for date generation and directory creation; runtime behavior does not depend on Bash, PowerShell, or Python
 - Interaction policy for documentation/review skills lives in `skills/_shared/interaction-policy.md`: evidence-prefill first, risk-grade unknowns, ask only blocking questions, and surface business logic conflicts with evidence.
 - Workflow gate policy lives in `skills/_shared/workflow-gates.md`: every documentation/review mode should state the current gate, produced artifacts, evidence summary, next input, and blocker/failure branch. The intended Review Gate can use `yan-code-review` package → check → package/repair or loop mode before yan-project-analysis understanding and human review.
 - Lightweight handoff policy lives in `skills/_shared/workflow-brief.md`: every skill that produces a next action should output a copyable `Workflow Brief` with source/artifact/changed/test/finding pointers so the next AI reads indexed evidence instead of pasted full documents.
 - Chain map lives in `skills/_shared/workflow-chain.md`: the single source of truth for "after skill X, run which skill next + copyable command" and finding-ID traceability (review-check emits CR/IM/MI IDs, review-fix preserves them on merge, review-repair backfills status by the same ID). Skills point here via workflow-gates.md instead of each re-listing the chain.
-- Closed-choice questions are not automatically asked: infer first, and use AskUserQuestion only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Free-text questions stay conversational.
+- Closed-choice questions are not automatically asked: infer first, and use the current host's structured-question capability only when the answer changes execution path, risk level, file conflict handling, or an irreversible business/data/API decision. Otherwise ask one concise conversational question.
 
 ## Editing Skills
 
 When modifying a skill:
 - The execution steps in SKILL.md are the authoritative source of behavior — keep them precise and sequential
-- `reference.md` holds content the skill loads at runtime (templates, question banks); keep it anchored with markdown headings that match the `#anchor` references in SKILL.md
+- Focused Markdown resources hold runtime templates and question banks; `SKILL.md` must link directly to only the resources needed for the selected route. A `reference.md` compatibility index must not become an eager-load instruction.
 - `agents/openai.yaml` is the Codex UI/default-prompt metadata; update it when renaming a skill or changing the user-facing trigger
 - Keep repository skill Markdown files (`skills/**/*.md`) encoded as UTF-8 with BOM. This is intentional: some Windows-based AI tools and PowerShell readers otherwise decode Chinese skill text as the local ANSI code page and show mojibake. Do not copy that BOM policy blindly into the installed Codex target: the installers strip the leading BOM from copied `SKILL.md` files under `~/.codex/skills` so Codex can discover the skill frontmatter.
 - Test with `node scripts/check-all.js`, install locally, verify `install-local.cmd status`, and use the opt-in host eval runner or delegated agents against an isolated Java fixture

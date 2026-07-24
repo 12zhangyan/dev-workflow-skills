@@ -226,8 +226,11 @@ if (!sharedBrief.includes('deferred/deferred-next-batch')) {
   fail(`${sharedBriefRel} openFindings must distinguish deferred from deferred-next-batch`);
 }
 
-for (const skill of ['yan-dev-doc', 'yan-conversation-handoff']) {
-  checkFile(`skills/${skill}/reference.md`, true);
+for (const [skill, templateRel] of [
+  ['yan-dev-doc', 'skills/yan-dev-doc/completion.md'],
+  ['yan-conversation-handoff', 'skills/yan-conversation-handoff/reference.md'],
+]) {
+  checkFile(templateRel, true);
   const examplesRel = `skills/${skill}/examples.md`;
   if (fs.existsSync(path.join(root, examplesRel))) checkFile(examplesRel, false);
 }
@@ -235,7 +238,7 @@ for (const rel of [
   'skills/yan-project-analysis/modes/incident/reference.md',
   'skills/yan-project-analysis/modes/business/reference.md',
   'skills/yan-project-analysis/modes/understanding/reference.md',
-  'skills/yan-code-review/modes/package/reference.md',
+  'skills/yan-code-review/modes/package/completion.md',
   'skills/yan-code-review/modes/check/reference.md',
   'skills/yan-code-review/modes/repair/reference.md',
   'skills/yan-code-review/modes/loop/reference.md',

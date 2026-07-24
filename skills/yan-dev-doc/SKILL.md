@@ -75,7 +75,7 @@ Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VC
 
 ### 3. 核对关键决策
 
-信息槽位见 [reference.md 的 Step 3 查漏槽位](reference.md#step-3-查漏槽位)，它是查漏表，不是问卷。简单任务最多补 2 个槽位，其他任务最多补 5 个；可以 0 问。
+信息槽位见 [查漏槽位](planning-slots.md#step-3-查漏槽位)，它是查漏表，不是问卷。简单任务最多补 2 个槽位，其他任务最多补 5 个；可以 0 问。
 
 接口逐个分类：
 
@@ -107,9 +107,9 @@ node <helper> file-state docs/<日期>/<任务名>.md
 
 按模式只加载模板锚点：
 
-- `Standard`：[文档模板](reference.md#文档模板)；
+- `Standard`：[Standard 文档模板](template-standard.md#文档模板)；
 - `IncrementalRevision`：文档模板中的增量修订段；
-- `Compact`：[精简文档模板](reference.md#精简文档模板)。
+- `Compact`：[Compact 文档模板](template-compact.md#精简文档模板)。
 
 不要一次性读取整份 reference。[examples.md](examples.md) 仅在用户要示例、字段仍歧义或首次结果未通过格式校验时，读取当前模式的一个示例。
 
@@ -130,7 +130,7 @@ node <helper> file-state docs/<日期>/<任务名>.md
 
 ### 6. 完成输出
 
-按 [完成后输出格式](reference.md#完成后输出格式) 回复，至少包含：
+按 [完成输出与恢复](completion.md) 中当前模式的格式回复，至少包含：
 
 1. md 与可选产物路径；
 2. 3 句关键决策；
@@ -156,7 +156,11 @@ node <helper> file-state docs/<日期>/<任务名>.md
 
 ## 资源
 
-- [reference.md](reference.md)：模板和查漏槽位
+- [planning-slots.md](planning-slots.md)：仅证据预填后仍需查漏时读取
+- [template-compact.md](template-compact.md)：仅 Compact 读取
+- [template-standard.md](template-standard.md)：仅 Standard / IncrementalRevision 读取
+- [completion.md](completion.md)：完成输出、Workflow Brief 和失败恢复
+- [reference.md](reference.md)：兼容索引，不作为运行时模板加载
 - [examples.md](examples.md)：按需示例
 - [publishing-openapi.md](publishing-openapi.md)：条件 OpenAPI 发布
 - [publishing-board.md](publishing-board.md)：条件看板发布
