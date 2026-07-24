@@ -1,13 +1,6 @@
 ﻿---
 name: review-repair
 description: 根据 code review findings 或 fix-handoff 直接修改代码并验证；只在已有 findings、review 结果或明确问题清单时触发。由 yan-code-review 根入口的 repair mode 加载。
-argument-hint: [findings文本 | review结果路径 | fix-handoff路径 | review-task路径]
-arguments: entry
-disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # Review 后直接修复
@@ -67,36 +60,12 @@ effort: high
 
 执行 VCS 与项目类型检测，结果用于保护本地改动和选择验证命令，不完整展示给用户：
 
-```bash
-vcs_root="$PWD"
-vcs_type="none"
-while [ "$vcs_root" != "/" ]; do
-  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
-  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
-  parent=$(dirname "$vcs_root")
-  [ "$parent" = "$vcs_root" ] && break
-  vcs_root="$parent"
-done
-case "$vcs_type" in
-  git)
-    echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff
-    ;;
-  svn)
-    echo "VCS_TYPE=svn"
-    svn status "$vcs_root"
-    svn diff --summarize "$vcs_root"
-    svn diff "$vcs_root"
-    ;;
-  *) echo "VCS_TYPE=none" ;;
-esac
-find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
-```
+1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
+2. Git：以 `root` 为工作目录读取 `status --short`、`diff --name-status` 和实际 diff；SVN：读取 status、diff summarize 和实际 diff；无 VCS 时记录 `VCS_TYPE=none`。
+3. 使用当前宿主的目录枚举/搜索能力，在 VCS root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
 
 判断规则：
-- 上述 `$PWD` 扫描只用于初始发现；最终按 workflow-gates 的“VCS 证据归属”对 finding/Brief 指向的文件逐个确定最近 `VCS_OWNER`，按 owner 分组读取 status 和实际 diff。
+- 初始 root 只用于发现；最终按 workflow-gates 的“VCS 证据归属”对 finding/Brief 指向的文件逐个确定最近 `VCS_OWNER`，按 owner 分组读取 status 和实际 diff。
 - 命令失败保留退出码和错误摘要，写 `VCSStatusUnknown`；不得用空输出冒充 clean。任一范围内 owner 有未纳管源码、测试、配置、OpenAPI 或正式文档时写 `VCSGateBlocked`。
 - Git dubious ownership 时只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不改全局配置。
 - 修复前记录当前已改文件、变更文件列表和关键 diff 摘要；不要回滚、覆盖或格式化与本次 finding 无关的本地改动。

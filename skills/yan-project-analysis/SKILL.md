@@ -1,7 +1,6 @@
 ﻿---
 name: yan-project-analysis
 description: 统一处理低频但相邻的项目分析任务，并按目标读者与产物选择 understanding（代码地图、调用链、接口兼容影响；可零写入）、incident（Bug 现象、复现、根因证据和修复边界文档）或 business（面向测试/产品的业务流、数据流、状态机和测试关注点）模式。用户要求理解代码结构/影响、记录事故或 Bug、梳理业务流程时使用；不直接实现功能、不执行 review findings 修复。兼容旧名称 code-reading、bug-fix、biz-flow。
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
 ---
 
 # Project Analysis 统一入口
@@ -32,6 +31,8 @@ allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
 - 用户要求直接改代码时退出本 skill；已有 review findings 交给 `yan-code-review repair`。
 
 ## 渐进加载
+
+先遵循 [三端宿主能力协议](../_shared/host-capabilities.md)，不臆造 Claude Code、Cursor 或 Codex 的工具名。
 
 路由和执行都遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)；输入或输出含 `【Workflow Brief】` 时同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)，把 Brief 当作证据索引而不是事实证明。
 

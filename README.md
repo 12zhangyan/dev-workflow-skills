@@ -11,6 +11,7 @@
 ## 你会得到什么
 
 - 一套只有 4 个公开入口的开发工作流：`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
+- 一套面向 Claude Code、Cursor、Codex 的共享行为内核：三端复用相同路由、写入边界、产物与门禁，通过宿主能力协议适配工具名、终端和调用入口，而不是维护三份会漂移的 Skill。
 - 一组面向 AI 执行的 Markdown 文档：明确路径、变更清单、Todo、验证命令和下一步。
 - 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
 - Apifox/OpenAPI 导入文件：接口新增或签名变更时，单独生成 `docs/apifox/<日期>/<任务>.openapi.yaml` 和索引。
@@ -236,6 +237,7 @@ node scripts/check-agent-doc-sync.js
 node scripts/check-docs.js
 node scripts/check-skill-inventory.js
 node scripts/check-skill-metadata.js
+node scripts/check-portable-contracts.js
 node scripts/check-workflow-briefs.js
 node scripts/check-review-boundaries.js
 node scripts/check-document-boundaries.js
@@ -257,7 +259,8 @@ git diff --check
 - 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
 - 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
-- 改安装脚本时，运行 `node scripts/check-installers.js`；它会检查三端目标，并在隔离 HOME 中实际安装 Codex 副本，逐文件验证完整复制、同名替换、无关 Skill 保留和仅 `SKILL.md` 去 BOM。
+- 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
+- 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，逐文件验证完整复制、同名替换、无关 Skill 保留，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。

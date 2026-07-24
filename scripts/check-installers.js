@@ -81,40 +81,39 @@ function withoutUtf8Bom(bytes) {
     : bytes;
 }
 
+const targets = [
+  { name: 'claude', dotDir: '.claude', stripSkillBom: false },
+  { name: 'cursor', dotDir: '.cursor', stripSkillBom: false },
+  { name: 'codex', dotDir: '.codex', stripSkillBom: true },
+];
+
 function seedDestination(home) {
-  const skillsRoot = path.join(home, '.codex', 'skills');
-  fs.mkdirSync(path.join(skillsRoot, 'user-owned-skill'), { recursive: true });
-  fs.writeFileSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'), 'preserve me\n', 'utf8');
-  fs.mkdirSync(path.join(skillsRoot, 'yan-dev-doc'), { recursive: true });
-  fs.writeFileSync(path.join(skillsRoot, 'yan-dev-doc', 'stale-from-old-install.txt'), 'remove me\n', 'utf8');
-  for (const legacy of [
-    'dev-doc', 'project-analysis', 'code-review', 'conversation-handoff',
-    'bug-fix', 'biz-flow', 'code-reading',
-    'review-fix', 'review-check', 'review-repair', 'review-loop',
-  ]) {
-    fs.mkdirSync(path.join(skillsRoot, legacy), { recursive: true });
-    fs.writeFileSync(path.join(skillsRoot, legacy, 'legacy-marker.txt'), 'remove me\n', 'utf8');
+  for (const target of targets) {
+    const skillsRoot = path.join(home, target.dotDir, 'skills');
+    fs.mkdirSync(path.join(skillsRoot, 'user-owned-skill'), { recursive: true });
+    fs.writeFileSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'), 'preserve me\n', 'utf8');
+    fs.mkdirSync(path.join(skillsRoot, 'yan-dev-doc'), { recursive: true });
+    fs.writeFileSync(path.join(skillsRoot, 'yan-dev-doc', 'stale-from-old-install.txt'), 'remove me\n', 'utf8');
+    for (const legacy of legacyNames) {
+      fs.mkdirSync(path.join(skillsRoot, legacy), { recursive: true });
+      fs.writeFileSync(path.join(skillsRoot, legacy, 'legacy-marker.txt'), 'remove me\n', 'utf8');
+    }
   }
-  return skillsRoot;
 }
 
-function assertCodexInstallation(home) {
+function assertInstallation(home, target) {
   const sourceRoot = path.join(root, 'skills');
-  const installedRoot = path.join(home, '.codex', 'skills');
+  const installedRoot = path.join(home, target.dotDir, 'skills');
   const unrelatedMarker = path.join(installedRoot, 'user-owned-skill', 'marker.txt');
   if (!fs.existsSync(unrelatedMarker)) {
-    fail('installer smoke removed an unrelated user skill');
+    fail(`${target.name} installer smoke removed an unrelated user skill`);
   }
   if (fs.existsSync(path.join(installedRoot, 'yan-dev-doc', 'stale-from-old-install.txt'))) {
-    fail('installer smoke did not replace a stale same-named skill directory');
+    fail(`${target.name} installer smoke did not replace a stale same-named skill directory`);
   }
-  for (const legacy of [
-    'dev-doc', 'project-analysis', 'code-review', 'conversation-handoff',
-    'bug-fix', 'biz-flow', 'code-reading',
-    'review-fix', 'review-check', 'review-repair', 'review-loop',
-  ]) {
+  for (const legacy of legacyNames) {
     if (fs.existsSync(path.join(installedRoot, legacy))) {
-      fail(`installer smoke did not remove merged legacy skill directory: ${legacy}`);
+      fail(`${target.name} installer smoke did not remove merged legacy skill directory: ${legacy}`);
     }
   }
 
@@ -122,13 +121,13 @@ function assertCodexInstallation(home) {
     const source = path.join(sourceRoot, name);
     const installed = path.join(installedRoot, name);
     if (!fs.existsSync(installed)) {
-      fail(`installer smoke missing copied directory: ${name}`);
+      fail(`${target.name} installer smoke missing copied directory: ${name}`);
       continue;
     }
     const sourceTree = listTree(source);
     const installedTree = listTree(installed);
     if (JSON.stringify(sourceTree) !== JSON.stringify(installedTree)) {
-      fail(`installer smoke tree mismatch for ${name}`);
+      fail(`${target.name} installer smoke tree mismatch for ${name}`);
       continue;
     }
     for (const item of sourceTree.filter((entry) => entry.startsWith('F:'))) {
@@ -136,28 +135,51 @@ function assertCodexInstallation(home) {
       const sourceFile = path.join(source, ...rel.split('/'));
       const installedFile = path.join(installed, ...rel.split('/'));
       const sourceBytes = fs.readFileSync(sourceFile);
-      const expected = path.basename(sourceFile) === 'SKILL.md'
+      const expected = target.stripSkillBom && path.basename(sourceFile) === 'SKILL.md'
         ? withoutUtf8Bom(sourceBytes)
         : sourceBytes;
       const actual = fs.readFileSync(installedFile);
       if (!actual.equals(expected)) {
-        fail(`installer smoke byte mismatch: skills/${name}/${rel}`);
+        fail(`${target.name} installer smoke byte mismatch: skills/${name}/${rel}`);
       }
     }
   }
 }
 
+function assertAllInstallations(home) {
+  for (const target of targets) assertInstallation(home, target);
+}
+
 function smokeWindowsLocalInstaller(tempRoot) {
-  const home = path.join(tempRoot, 'home');
-  fs.mkdirSync(home, { recursive: true });
-  seedDestination(home);
-  const ok = runChecked(
+  const cmdHome = path.join(tempRoot, 'cmd-home');
+  fs.mkdirSync(cmdHome, { recursive: true });
+  seedDestination(cmdHome);
+  const cmdOk = runChecked(
     process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd codex'],
-    { cwd: root, env: { ...process.env, USERPROFILE: home, HOME: home } },
-    'install-local.cmd Codex smoke',
+    ['/d', '/q', '/c', 'call install-local.cmd claude cursor codex'],
+    { cwd: root, env: { ...process.env, USERPROFILE: cmdHome, HOME: cmdHome } },
+    'install-local.cmd three-host smoke',
   );
-  if (ok) assertCodexInstallation(home);
+  if (cmdOk) assertAllInstallations(cmdHome);
+
+  const psHome = path.join(tempRoot, 'powershell-home');
+  fs.mkdirSync(psHome, { recursive: true });
+  seedDestination(psHome);
+  const psOk = runChecked(
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'install.ps1'],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        USERPROFILE: psHome,
+        HOME: psHome,
+        DEV_WORKFLOW_SKILLS_SOURCE: root,
+      },
+    },
+    'install.ps1 three-host smoke',
+  );
+  if (psOk) assertAllInstallations(psHome);
 }
 
 function smokePosixInstaller(tempRoot) {
@@ -178,7 +200,7 @@ function smokePosixInstaller(tempRoot) {
   if (!packed) return;
   const ok = runChecked(
     'bash',
-    ['install.sh', 'codex'],
+    ['install.sh', 'claude', 'cursor', 'codex'],
     {
       cwd: root,
       env: {
@@ -187,9 +209,9 @@ function smokePosixInstaller(tempRoot) {
         DEV_WORKFLOW_SKILLS_TARBALL: pathToFileURL(archive).href,
       },
     },
-    'install.sh Codex smoke',
+    'install.sh three-host smoke',
   );
-  if (ok) assertCodexInstallation(home);
+  if (ok) assertAllInstallations(home);
 }
 
 requireText('install.sh', [
@@ -204,6 +226,7 @@ requireText('install.sh', [
 
 requireText('install.ps1', [
   '@("claude", "cursor", "codex")',
+  'DEV_WORKFLOW_SKILLS_SOURCE',
   'Remove-SkillMarkdownBom',
   '"codex"',
   'SKILL.md',
@@ -234,4 +257,4 @@ try {
 }
 
 if (failed) process.exit(1);
-console.log(`ok installer checks and ${process.platform === 'win32' ? 'Windows local' : 'POSIX archive'} smoke passed`);
+console.log(`ok installer checks and ${process.platform === 'win32' ? 'Windows local' : 'POSIX archive'} three-host smoke passed`);

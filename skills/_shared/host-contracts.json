@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "hosts": ["claude", "cursor", "codex"],
+  "description": "Offline routing and side-effect contracts shared by all supported hosts. These are static contracts, not claims that a live model completed the scenario.",
+  "cases": [
+    {"id": "review-check-read-only", "prompt_ref": "yan-code-review:1", "route": "check", "write_scope": "none"},
+    {"id": "review-repair-scoped-write", "prompt_ref": "yan-code-review:2", "route": "repair", "write_scope": "code-and-tests"},
+    {"id": "review-loop-closed-loop", "prompt_ref": "yan-code-review:3", "route": "loop", "write_scope": "code-and-tests"},
+    {"id": "review-package-artifacts", "prompt_ref": "yan-code-review:4", "route": "package", "write_scope": "docs-and-board"},
+    {"id": "review-ambiguous-safe-default", "prompt_ref": "yan-code-review:5", "route": "check", "write_scope": "none"},
+    {"id": "analysis-impact-zero-write", "prompt_ref": "yan-project-analysis:1", "route": "understanding", "write_scope": "none"},
+    {"id": "analysis-incident-artifacts", "prompt_ref": "yan-project-analysis:3", "route": "incident", "write_scope": "docs-and-board"},
+    {"id": "analysis-business-artifacts", "prompt_ref": "yan-project-analysis:4", "route": "business", "write_scope": "docs-and-board"},
+    {"id": "handoff-persistent-doc", "prompt_ref": "yan-conversation-handoff:1", "route": "handoff", "write_scope": "docs"},
+    {"id": "handoff-chat-only", "prompt_ref": "yan-conversation-handoff:6", "route": "handoff", "write_scope": "none"}
+  ]
+}

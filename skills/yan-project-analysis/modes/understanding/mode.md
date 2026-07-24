@@ -1,13 +1,6 @@
 ﻿---
 name: code-reading
 description: 在 Code Review 前生成开发者代码地图，或只读分析新旧接口契约、现有调用链和兼容性影响；CodeMap 生成 md 并登记看板，ImpactAnalysis 仅聊天输出且仓库零写入。由 yan-project-analysis 根入口的 understanding mode 加载。
-argument-hint: [功能描述 | yan-dev-doc路径 | ClassName#method]
-arguments: entry
-disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # 代码地图生成（Review 前阅读工具）
@@ -37,7 +30,7 @@ effort: high
 - **`CodeMap`（默认）**：用户明确要求“生成代码地图/调用链文档/登记看板”，或需要可持久化的 Review 阅读产物。
 - **`ImpactAnalysis`（只读影响分析）**：用户只要求“判断影响/比较新旧接口契约/哪些调用方受影响/兼容性分析”，或明确要求不生成文档、看板。即使用户点名 code-reading，只要交付目标只是影响结论，也直接选此模式，无需为是否落盘再提问。
 
-`ImpactAnalysis` 是严格零写入模式：只允许 Read/Glob/Grep 和只读 shell 命令；禁止 Write/Edit、创建目录或临时文件、修改看板、运行 `board-add.js` / `build.js`。证据不足时输出 `Blocked` 与最小补充项，仍保持零写入。
+`ImpactAnalysis` 是严格零写入模式：只允许当前宿主的读取、搜索和只读终端能力；禁止任何文件修改、创建目录或临时文件、修改看板、运行 `board-add.js` / `build.js`。证据不足时输出 `Blocked` 与最小补充项，仍保持零写入。
 
 `$entry` 为空且当前为交互会话 → 使用当前实际可用的结构化提问能力；没有时用普通聊天询问（三选一，候选入口确认同样降级处理）：
 > "请选择入口方式：
@@ -115,11 +108,11 @@ effort: high
 
 ### Step 4：保存文件（仅 `CodeMap`）
 
-```bash
-d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
+```text
+node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/code-reading
 ```
 
-**冲突处理**：Write 前把候选路径赋给 `target`，用 `test -e "$target"` / `test -r "$target"` 区分目标不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`：
+**冲突处理**：写入前把候选路径赋给 `target`，运行 `node <helper> file-state <target>` 区分目标不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`：
 - 不存在 → Write 到 `docs/code-reading/<日期>/<功能名>.md`。
 - 可读且已存在 → 交互会话询问 `A` 覆盖（重新生成地图）/ `B` 时间戳后缀（`<功能名>-1530.md`）/ `C` 取消。默认建议 A 只是推荐，不代表授权。
 - 不可读/状态未知，或非交互运行遇到已存在文件 → 标 blocker 并停止，不猜测覆盖。
@@ -152,21 +145,22 @@ d=$(date +%F) && mkdir -p "docs/code-reading/$d" && echo "$d"
 - yan-dev-doc 模式 → Read `project-html/data/changes.js`，按源 yan-dev-doc 文档的 `docPath` 找到对应条目，复用其 `service` / `module`
 - 其他模式 → 问一次："属于哪个微服务/模块？格式 `服务/模块`（不确定填 `通用/通用`）"
 
-**看板操作与 `/yan-dev-doc` Step 5.5 / 5.6 完全相同**：md 是供 Agent 后续理解调用链的精确代码地图；看板 entry 是给人独立理解方案/实现结构的说明，不截取 md。先用 `test -f project-html/data/changes.js` 判定 EXISTS/MISSING，MISSING 时执行 yan-dev-doc 的「外壳复制命令」（含 `build.js` + `board-add.js`，并 `test -f ... || cp` 补空数据模板）、做旧版单文件迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级外壳，升级到 v23+ 时运行 `node project-html/board-add.js --migrate`。模板目录按 `~/.codex/skills`、`~/.claude/skills`、`~/.cursor/skills`、`~/.agents/skills` 依次查找。
+**看板操作与 yan-dev-doc Step 5.5 / 5.6 完全相同**：md 是供 Agent 后续理解调用链的精确代码地图；看板 entry 是给人独立理解方案/实现结构的说明，不截取 md。先运行 `node <helper> exists project-html/data/changes.js` 判定 EXISTS/MISSING；MISSING 时按共享外壳引导初始化空数据并做旧版迁移；EXISTS 时按 `BOARD_VERSION` 决定是否升级，升级到 v23+ 时运行 `node project-html/board-add.js --migrate`。需要定位 yan-dev-doc 模板时运行 `node <helper> resolve-skill-file yan-dev-doc assets/board/index.html`，不要写死三端目录或搜索顺序。
 
 **写入条目同样走 `board-add.js`**（确定性脚本：备份、按 `docPath` 查重、转义、记录数回归全自动，不手改 `data/changes.js`）：
 
-```bash
-cat > project-html/data/_entry.json <<'JSON'
+使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
+
+```json
 { "changelog": "新增代码地图：<title>",
   "entry": { "kind":"reading", "type":"代码阅读", "status":"已完成",
     "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>",
     "entry":"<entry>", "docPath":"<docPath>", "background":"<background>",
     "flowchart":"<flowchart>", "keyImpl":[<keyImpl>],
     "assumptions":[<assumptions>], "openQuestions":[<openQuestions>] } }
-JSON
-node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
+
+运行 `node project-html/board-add.js project-html/data/_entry.json`；成功后再用当前宿主的文件能力删除临时 `_entry.json`。失败时保留文件用于诊断。
 
 entry 为标准 JSON（字符串双引号、换行写 `\n`、不要反引号；`flowchart` 是带 `\n` 的普通字符串）。脚本打印 `✓` 即成功，命中 `docPath` 会就地更新；校验失败则原文件不动。写入后运行 `node project-html/build.js` 刷新轻量详情页 `pages/<slug>.html` 与文档总索引 `docs/INDEX.md`；需要单文件外发时再运行 `node project-html/build.js --standalone "<docPath 或 slug>"`。`node` 不存在 → 降级手工 Edit 标记行（注意 JS 转义）并提示用户打开看板确认。
 

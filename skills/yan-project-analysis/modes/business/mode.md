@@ -1,13 +1,6 @@
 ﻿---
 name: biz-flow
 description: 把一组接口/功能捋成面向测试人员的业务逻辑方案，包含角色入口、前置条件、业务流、数据流、时序、状态、数据变动、校验和测试关注点。由 yan-project-analysis 根入口的 business mode 加载。
-argument-hint: [业务/功能名称]
-arguments: feature
-disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # 业务逻辑梳理（面向测试的业务流方案）
@@ -38,32 +31,11 @@ effort: high
 
 ### Step 1：静默收集上下文（不展示给用户）
 
-```bash
-vcs_root="$PWD"
-vcs_type="none"
-while [ "$vcs_root" != "/" ]; do
-  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
-  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
-  parent=$(dirname "$vcs_root")
-  [ "$parent" = "$vcs_root" ] && break
-  vcs_root="$parent"
-done
-case "$vcs_type" in
-  git)
-    echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    ;;
-  svn)
-    echo "VCS_TYPE=svn"
-    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
-    ;;
-  *) echo "VCS_TYPE=none" ;;
-esac
-find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
-```
+1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
+2. Git：以 root 为工作目录读取当前分支与 `status --short`；SVN：读取 info/revision；无 VCS 时记录 `VCS_TYPE=none`。
+3. 使用当前宿主的目录枚举/搜索能力，在 root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
+判断规则：先按 `detect-vcs` 的目录结构结果识别 Git/SVN，不要用“git 命令失败”推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只在本次只读命令中使用 `git -c "safe.directory=<root>"`，不修改全局 git 配置。
 
 ### Step 2：收集接口与业务信息（少问，先从入口追）
 
@@ -98,13 +70,13 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 4：路径处理
 
-```bash
-d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
+```text
+node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/biz-flow
 ```
 
 路径格式：`docs/biz-flow/<日期>/<业务名>.md`
 
-冲突处理：先把候选路径赋给 `target`，再用 `test -e "$target"` / `test -r "$target"` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把 Read 失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
+冲突处理：先把候选路径赋给 `target`，再运行 `node <helper> file-state <target>` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把读取失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
 
 ### Step 5：生成文档
 
@@ -128,7 +100,7 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 **定位：看板条目面向人类阅读**——让没碰过这条业务的业务/测试/开发同事看完就懂整体怎么走。md 给 Agent 提供完整证据、精确执行与测试口径；看板是独立撰写的业务方案地图，不从 md 截取段落：业务人员看主线和规则，开发人员看接口、数据、联调边界。
 
-> **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用 Write 重写整个文件**。判断看板"是否存在"用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——历史上误判"不存在"走 Write 模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
+> **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用宿主文件能力重写整个文件**。判断看板"是否存在"用共享助手的 `exists`（确定性判断），不要凭读取工具的报错/记忆去猜——历史上误判"不存在"走模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
 
 **结构字段（照搬）：**
 
@@ -163,24 +135,25 @@ d=$(date +%F) && mkdir -p "docs/biz-flow/$d" && echo "$d"
 
 创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../../../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，不能依赖前一次 shell 调用留下的 `$src`。
 
-**① 确保看板文件存在**（bash 确定性判断，不靠模型解读 Read 结果）：
+**① 确保看板文件存在**（跨平台确定性判断，不靠模型解读读取结果）：
 
-```bash
-test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```text
+node <helper> exists project-html/data/changes.js
 ```
 
 - **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行共享引导的「定位并复制或升级外壳」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
-  3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：`if [ -d .svn ]; then echo "💡 建议: svn add project-html --depth=infinity"; elif [ -d .git ]; then echo "💡 建议: git add project-html"; fi`
+  2. 否则执行共享引导的「定位并复制或升级外壳」；它只在数据文件缺失时补一份**空的** `data/changes.js` 模板。两种情况这一步都不写业务数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
+  3. **检测 VCS**：运行 `node <helper> detect-vcs`。仅本次新建时提示一次，不代为执行：SVN 建议 `svn add project-html --depth=infinity`；Git 建议 `git add project-html`。
 - **EXISTS** → 执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再复制外壳（`data/` 不动）；升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录，输出 `🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
 
 **② 用 board-add.js 写入业务流条目（确定性脚本，替代手工 Edit）**
 
 把本次提取的字段组成 entry 对象，连同变更日志描述写进临时 JSON，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归全在脚本里完成**，AI 不再手改 `data/changes.js`：
 
-```bash
-cat > project-html/data/_entry.json <<'JSON'
+使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
+
+```json
 { "changelog": "新增业务流：<title>",
   "entry": { "kind":"biz", "type":"业务流", "status":"已完成",
     "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>", "docPath":"<docPath>",
@@ -190,9 +163,9 @@ cat > project-html/data/_entry.json <<'JSON'
     "bizRules":[<bizRules>], "validations":[<validations>], "testPoints":[<testPoints>],
     "dataObjects":[<dataObjects>],
     "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
-JSON
-node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
+
+运行 `node project-html/board-add.js project-html/data/_entry.json`；成功后再用当前宿主的文件能力删除临时 `_entry.json`。失败时保留文件用于诊断。
 
 - **标准 JSON**：字符串值用双引号、内部换行写成 `\n`，**不要用反引号**；各 Mermaid 字段（`bizFlow`/`dataFlow`/`sequence`/`stateMachine`）都是带 `\n` 的普通字符串，没有的字段省略。字段含义见上方表格与 [reference.md](reference.md#html-追加格式)。
 - **结构化字段优先**：`roles` / `context` / `dataChanges` / `validations` / `dataObjects` 能从代码或用户输入确定时必须写入；未知值写 `待补充`，不要整块省略到只剩 Mermaid 图。

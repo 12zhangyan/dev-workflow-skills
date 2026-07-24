@@ -1,13 +1,6 @@
 ﻿---
 name: review-check
 description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区执行一次只读代码审查并输出结构化 findings；不得修改代码。由 yan-code-review 根入口的 check mode 加载。
-argument-hint: [review-task路径 | yan-dev-doc路径 | diff/patch路径 | 功能描述]
-arguments: entry
-disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # 代码审查执行
@@ -54,37 +47,11 @@ effort: high
 
 静默执行，只用于审查，不完整展示给用户：
 
-```bash
-vcs_root="$PWD"
-vcs_type="none"
-while [ "$vcs_root" != "/" ]; do
-  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
-  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
-  parent=$(dirname "$vcs_root")
-  [ "$parent" = "$vcs_root" ] && break
-  vcs_root="$parent"
-done
-case "$vcs_type" in
-  git)
-    echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff --name-status
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" diff
-    ;;
-  svn)
-    echo "VCS_TYPE=svn"
-    svn info "$vcs_root" | grep -E "^(Relative URL|Revision):"
-    svn status "$vcs_root"
-    svn diff --summarize "$vcs_root"
-    svn diff "$vcs_root"
-    ;;
-  *) echo "VCS_TYPE=none" ;;
-esac
-find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
-```
+1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
+2. Git：以 `root` 为工作目录读取当前分支、`status --short`、`diff --name-status` 和实际 diff；SVN：以 `root` 为工作目录读取 info/revision、status、diff summarize 和实际 diff。无 VCS 时记录 `VCS_TYPE=none`。
+3. 使用当前宿主的目录枚举/搜索能力，在 VCS root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
 
-判断规则：上述 `$PWD` 扫描只用于初始发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
+判断规则：初始 root 只用于发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
 
 按模式读取：
 - 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。

@@ -6,12 +6,16 @@ on:
   pull_request:
 
 jobs:
-  board:
-    runs-on: ubuntu-latest
+  quality:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: 完整 Skill 质量检查
+      - name: Full skill quality checks
         run: node scripts/check-all.js

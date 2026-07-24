@@ -103,7 +103,28 @@ function removeTempRoot(tempRoot) {
   }
 }
 
-function smokeBoardShellBootstrap(copyBlock, versionBlock) {
+function runBoardAdapter(command, project, label) {
+  const adapter = path.join(root, 'skills', '_shared', 'scripts', 'board-bootstrap.js');
+  const result = spawnSync(process.execPath, [adapter, command, project], {
+    cwd: project,
+    encoding: 'utf8',
+    timeout: 30000,
+    windowsHide: true,
+  });
+  if (result.error) {
+    fail(`${label} could not start: ${result.error.message}`);
+    return null;
+  }
+  if (result.status !== 0) {
+    fail(`${label} exited with ${result.status}`);
+    if (result.stdout) process.stderr.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    return null;
+  }
+  return result;
+}
+
+function smokeBoardShellBootstrap() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-workflow-skills-board-shell-'));
   try {
     const home = path.join(tempRoot, 'home');
@@ -113,8 +134,7 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
     fs.cpSync(path.join(root, 'skills', 'yan-dev-doc', 'assets', 'board'), installedTemplate, { recursive: true });
     fs.mkdirSync(project, { recursive: true });
 
-    const env = { ...process.env, HOME: home };
-    const firstCopy = runBashBlock(copyBlock, project, env, 'board-shell initial copy smoke');
+    const firstCopy = runBoardAdapter('sync', project, 'board-shell initial copy smoke');
     const requiredFiles = [
       'project-html/index.html',
       'project-html/css/board.css',
@@ -138,7 +158,7 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
     fs.writeFileSync(changesPath, changesSentinel, 'utf8');
     fs.writeFileSync(detailPath, detailSentinel, 'utf8');
 
-    const secondCopy = runBashBlock(copyBlock, project, env, 'board-shell repeat copy smoke');
+    const secondCopy = runBoardAdapter('sync', project, 'board-shell repeat copy smoke');
     if (secondCopy && fs.readFileSync(changesPath, 'utf8') !== changesSentinel) {
       fail('board-shell repeat copy overwrote existing data/changes.js');
     }
@@ -146,7 +166,7 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
       fail('board-shell repeat copy overwrote an existing data/details sidecar');
     }
 
-    const current = runBashBlock(versionBlock, project, env, 'board-shell current-version smoke');
+    const current = runBoardAdapter('status', project, 'board-shell current-version smoke');
     requireMarker(current, 'BOARD_SHELL_CURRENT', 'board-shell current-version smoke');
 
     const boardJsPath = path.join(project, 'project-html', 'js', 'board.js');
@@ -157,7 +177,7 @@ function smokeBoardShellBootstrap(copyBlock, versionBlock) {
       return;
     }
     fs.writeFileSync(boardJsPath, boardJs.replace(versionPattern, (_match, prefix) => `${prefix}0`), 'utf8');
-    const upgrade = runBashBlock(versionBlock, project, env, 'board-shell upgrade-version smoke');
+    const upgrade = runBoardAdapter('status', project, 'board-shell upgrade-version smoke');
     requireMarker(upgrade, 'BOARD_SHELL_UPGRADE_REQUIRED', 'board-shell upgrade-version smoke');
   } finally {
     removeTempRoot(tempRoot);
@@ -169,7 +189,7 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '不写 md、OpenAPI、看板或索引',
   '数据库操作始终只读',
   '不得执行 DDL、数据修复',
-  '禁止用 Write 整体重写',
+  '禁止用宿主文件能力整体重写',
   'node project-html/board-add.js',
   '../_shared/board-shell-bootstrap.md',
 ]);
@@ -197,7 +217,7 @@ requireText('skills/yan-project-analysis/modes/business/mode.md', [
 requireText('skills/yan-project-analysis/modes/understanding/mode.md', [
   '非交互/无人值守运行中不等待提问',
   'ImpactAnalysis` 是严格零写入模式',
-  '禁止 Write/Edit',
+  '禁止任何文件修改、创建目录或临时文件',
   '不得进入 Step 4/4.5',
   '不判断缺陷或关闭 findings',
   '最多列 5 个',
@@ -218,27 +238,14 @@ requireText('skills/yan-conversation-handoff/SKILL.md', [
 
 const boardShellBootstrap = 'skills/_shared/board-shell-bootstrap.md';
 requireText(boardShellBootstrap, [
-  '不依赖前一次 shell 调用留下的 `$src`',
-  'test -f project-html/data/changes.js || cp',
+  '不依赖 Bash、PowerShell',
+  'board-bootstrap.js',
   '不得覆盖既有 `data/` 或 `data/details/`',
   'BOARD_SHELL_UPGRADE_REQUIRED',
   'BOARD_SHELL_CURRENT',
 ]);
 
-const boardShellBlocks = extractBashBlocks(read(boardShellBootstrap));
-if (boardShellBlocks.length !== 2) {
-  fail(`${boardShellBootstrap} must contain exactly 2 bash code blocks; found ${boardShellBlocks.length}`);
-}
-
-let boardShellSmokeResult = 'POSIX board-shell behavior smoke skipped on Windows';
-if (process.platform !== 'win32') {
-  if (boardShellBlocks.length === 2) {
-    smokeBoardShellBootstrap(boardShellBlocks[0], boardShellBlocks[1]);
-    boardShellSmokeResult = 'POSIX board-shell behavior smoke executed';
-  } else {
-    boardShellSmokeResult = 'POSIX board-shell behavior smoke not run because block extraction failed';
-  }
-}
+smokeBoardShellBootstrap();
 
 if (failed) process.exit(1);
-console.log(`ok document skill boundary checks passed; ${boardShellSmokeResult}`);
+console.log('ok document skill boundary checks passed; cross-platform board adapter smoke executed');

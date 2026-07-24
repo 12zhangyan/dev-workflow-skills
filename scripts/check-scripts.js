@@ -32,7 +32,7 @@ for (const file of files) {
   const rel = file;
   const full = path.join(root, rel);
   const text = fs.readFileSync(full, 'utf8');
-  if (!text.startsWith('#!/usr/bin/env node\n')) fail(`${rel} must start with a node shebang`);
+  if (!/^#!\/usr\/bin\/env node\r?\n/.test(text)) fail(`${rel} must start with a node shebang`);
   if (!text.includes("'use strict';")) fail(`${rel} must enable strict mode`);
 
   const result = spawnSync('node', ['--check', rel], { cwd: root, encoding: 'utf8' });

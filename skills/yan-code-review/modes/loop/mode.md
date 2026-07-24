@@ -1,13 +1,6 @@
 ﻿---
 name: review-loop
 description: 用一个 AI 把当前实现的一轮代码审查、修复、验证和复审闭环一次跑完。小范围单模块改动默认 quick，直接执行 review-check、必要的 review-repair、目标验证和二次复审；需要审计任务包、多 AI 分发或存在契约/权限/状态/事务/DB/跨模块高风险时使用 standard。未跟踪文件必须纳入审查，可继续修复和验证，但在纳管前不得宣称 Review 通过，并且不进入 Submit Gate。用户说“一键 review 并修复”“一个 AI 把这批 review skill 全跑完”“审查当前改动直到没有 Critical/Important”时必须使用；最多 2 个修复循环，仍有 Critical/Important、验证失败或环境阻塞时保留未关闭项并停止。只想看问题不改代码用 review-check；已有明确 findings 只需修复用 review-repair；要分发给多个 AI 审查或只生成任务包用 review-fix。
-argument-hint: [yan-dev-doc路径 | 当前工作区 | 功能描述] [standard|quick]
-arguments: entry
-disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # 单 AI Review 闭环编排

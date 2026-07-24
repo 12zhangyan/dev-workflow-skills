@@ -1,7 +1,6 @@
 ﻿---
 name: yan-code-review
 description: 统一处理代码审查相关任务，并根据用户是否允许修改、是否已有 findings、是否需要多 AI 分发，选择 check（只读审查）、repair（按现有 findings 修复）、loop（同一 AI 审查→修复→验证→复审）或 package（生成多 AI review 任务包/汇总 findings）模式。用户提到 review、代码审查、修复 findings、一键审查并修复、生成 review task、让多个 AI 独立审查时使用。仅说“看看有没有问题”必须保持只读 check；只有明确要求修改且有 findings 才用 repair，没有 findings 但明确要求审查并修复才用 loop。兼容旧名称 review-check、review-repair、review-loop、review-fix。
-allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion
 ---
 
 # Code Review 统一入口
@@ -32,7 +31,7 @@ allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion
 
 ## 渐进加载
 
-路由和执行都遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)；输入或输出含 `【Workflow Brief】` 时同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)，把 Brief 当作证据索引而不是修改授权。
+路由和执行先遵循 [三端宿主能力协议](../_shared/host-capabilities.md)，再遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)；输入或输出含 `【Workflow Brief】` 时同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)，把 Brief 当作证据索引而不是修改授权。
 
 选定模式后只读取对应文件：
 

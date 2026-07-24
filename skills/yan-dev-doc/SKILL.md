@@ -1,13 +1,6 @@
 ﻿---
 name: yan-dev-doc
 description: 在编码前把新功能、前后端改造、接口签名变化、重构、性能或配置需求落成有证据、可执行、可验收的开发方案。仅当用户明确要求“开发方案/改造方案/实施文档/先设计再编码”，或存在尚未裁决的接口、权限、状态、DB、事务、跨模块高风险决策而必须先形成可审核方案时使用；用户已经明确要求直接实现且范围与验收口径足够清楚时不要触发。HTML 看板仅在用户明确要求或适用项目规则要求发布时登记。Bug/业务流/代码影响分析改用 yan-project-analysis 的 incident/business/understanding；审查任务包、只读审查、findings 修复或单 AI 闭环改用 yan-code-review 的 package/check/repair/loop。Codex 用自然语言点名 yan-dev-doc skill；Claude Code 可用 /yan-dev-doc；Cursor 按当前 skill 入口或自然语言点名。
-argument-hint: [任务名称]
-arguments: task
-disable-model-invocation: true
-allowed-tools: Write, Read, Edit, Bash, Glob, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # 开发文档生成（开发工作流 - Step 1）
@@ -30,7 +23,7 @@ md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 
 先执行 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)：证据预填 → 风险分级 → 单点确认 → 冲突显式记录。信息槽位只用于查漏，不是逐条问卷。
 
-**交互能力兼容与降级：** 不按产品名猜工具，先检查当前宿主、会话和模式实际暴露的能力。Claude Code 可能提供 `AskUserQuestion`，Codex 可能在特定模式提供结构化用户提问能力，Cursor 或其他模式可能只支持普通聊天；`AskQuestion` 仅视为宿主可能使用的别名，未实际暴露时不得调用。
+先遵循 [三端宿主能力协议](../_shared/host-capabilities.md)。不按产品名猜工具；结构化提问不可用时直接在聊天中提出一个最小阻塞问题，非交互任务不得等待。
 
 同一会话可能出现多个候选提问工具。只选择**当前确实已暴露且参数结构兼容**的工具，不按名称列表盲试。某个候选返回“不可用 / 当前模式不支持 / 调用失败”后，记录该失败并且同一问题不再重试该工具；若还有另一个已暴露且兼容的候选，可切换一次，否则立即进入聊天降级。工具失败不能触发自动选择默认项，也不能让流程卡在重复调用工具名上。
 
@@ -56,38 +49,13 @@ md 文档必须**可执行**——结尾给出明确的下一步 Todo 清单。
 
 ### Step 1：静默收集环境上下文（不打扰用户）
 
-执行以下命令，结果**用作引导提问和 Step 6 输出填充**，不展示给用户：
+结果**用作引导提问和 Step 6 输出填充**，不展示给用户：
 
-```bash
-# VCS 类型检测（记住 VCS_TYPE=git/svn/none，用于 Step 6 填入代码审查命令）
-vcs_root="$PWD"
-vcs_type="none"
-while [ "$vcs_root" != "/" ]; do
-  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
-  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
-  parent=$(dirname "$vcs_root")
-  [ "$parent" = "$vcs_root" ] && break
-  vcs_root="$parent"
-done
-case "$vcs_type" in
-  git)
-    echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" log --oneline -3 2>/dev/null
-    ;;
-  svn)
-    echo "VCS_TYPE=svn"
-    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
-    svn log "$vcs_root" -l 3 2>/dev/null
-    ;;
-  *) echo "VCS_TYPE=none" ;;
-esac
-# 项目类型检测（记住结果，用于 Step 6 填入验证命令；支持 monorepo 子目录）
-find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
-```
+1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`，记为 `VCS_TYPE` / `VCS_ROOT`。
+2. Git：以 `VCS_ROOT` 为工作目录读取当前分支、`status --short`、最近 3 条日志；SVN：读取 info/revision 与最近 3 条日志；无 VCS 时记录 `VCS_TYPE=none`。
+3. 使用当前宿主的目录枚举/搜索能力，在 VCS root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，用于识别 monorepo 子项目和 Step 6 验证命令，不依赖 POSIX `find`。
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
+判断规则：先按 `detect-vcs` 的目录结构结果识别 Git/SVN，不要用“git 命令失败”推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只在本次只读命令中使用 `git -c "safe.directory=<VCS_ROOT>"`，不修改全局 git 配置。
 
 ### Step 2：确认任务类型、复杂度和归属（少问、先判断）
 
@@ -154,25 +122,15 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 4：路径处理（跨平台）
 
-一条 bash 命令完成日期获取和目录创建：
+一条跨平台 Node 命令完成日期获取和目录创建：
 
-```bash
-d=$(date +%F) && mkdir -p "docs/$d" && echo "$d"
+```text
+node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs
 ```
 
 命令输出即为日期字符串（如 `2026-05-31`），拼接为最终路径 `docs/<日期>/<任务名>.md`。
 
-**冲突处理**：先用确定性命令判断目标路径状态，不能用 Read 失败推断文件不存在。将 Step 4 得到的最终候选路径赋给 `target`：
-
-```bash
-if [ ! -e "$target" ]; then
-  echo MISSING
-elif [ -f "$target" ] && [ -r "$target" ]; then
-  echo EXISTS_READABLE
-else
-  echo EXISTS_UNREADABLE_OR_UNKNOWN
-fi
-```
+**冲突处理**：先运行 `node <helper> exists <target>`，不能用读取失败推断文件不存在。输出 `MISSING` 时直接生成；输出 `EXISTS` 时再用当前宿主的读取能力读取目标：成功即 `EXISTS_READABLE`，权限/类型/沙箱原因无法读取则记为 `EXISTS_UNREADABLE_OR_UNKNOWN`。不要用 `[ -e ]`、`[ -f ]`、`[ -r ]` 等宿主不一定支持的 shell 条件。
 
 - `MISSING` → 直接生成。
 - `EXISTS_READABLE` → Read 现有内容后，使用当前可用的结构化单选工具询问；工具不可用时按交互降级规则处理：
@@ -186,8 +144,9 @@ fi
 
 ### Step 5：生成文档
 
-`Standard` / `IncrementalRevision` 加载完整模板：[reference.md](reference.md#文档模板)；`Compact` 加载 [精简文档模板](reference.md#精简文档模板)。
-参考已填示例：[examples.md](examples.md)
+按模式只加载需要的锚点：`Standard` 加载 [文档模板](reference.md#文档模板)，`IncrementalRevision` 加载该模板中对应的增量修订段，`Compact` 只加载 [精简文档模板](reference.md#精简文档模板)。查漏问题只按 Step 3 当前任务类型读取对应锚点；不要为了“完整理解”一次性加载整份 reference。
+
+[examples.md](examples.md) 不是默认上下文。只有用户明确要示例、模板字段含义仍歧义，或首次生成结果未通过格式校验时，才读取与当前模式对应的一个示例。
 
 **核心规则**：
 - 只使用用户提供的信息和代码/文档证据；未确认的标 `待补充` 或明确假设，不能把猜测写成事实
@@ -206,8 +165,8 @@ fi
 
 当 Step 5 判定存在新增接口或契约变更时执行；只有行为变更或仅调用既有接口时跳过本步。
 
-```bash
-mkdir -p "docs/apifox/$d"
+```text
+node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/apifox
 ```
 
 执行顺序：
@@ -227,16 +186,17 @@ mkdir -p "docs/apifox/$d"
 - 看板 entry 必须同步写入 `apiSpecPath`；生成索引时写入 `apiIndexPath: "docs/apifox/INDEX.md"`
 - `docs/INDEX.md` 只由 `node project-html/build.js` 覆盖生成，不手工编辑；它会从看板 `apiSpecPath` 生成 OpenAPI 链接列
 
-优先运行随 skill 安装的确定性校验器：
-```bash
-validator=""
-for root in "$HOME/.codex/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills" "$HOME/.agents/skills"; do
-  candidate="$root/yan-dev-doc/scripts/validate-openapi.js"
-  [ -f "$candidate" ] && validator="$candidate" && break
-done
-[ -n "$validator" ] && node "$validator" "$apiSpecPath"
-test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && grep -q "$mdPath" docs/apifox/INDEX.md
+优先运行随 skill 安装的确定性校验器。先通过共享助手解析路径，再运行校验；索引检查也用助手完成，避免依赖某一宿主目录或 `grep`：
+
+```text
+node <helper> resolve-skill-file yan-dev-doc scripts/validate-openapi.js
+node <上一步输出的校验器绝对路径> <apiSpecPath>
+node <helper> exists docs/apifox/INDEX.md
+node <helper> contains docs/apifox/INDEX.md <apiSpecPath>
+node <helper> contains docs/apifox/INDEX.md <mdPath>
 ```
+
+后三项必须依次输出 `EXISTS`、`YES`、`YES`；否则先修复索引。
 
 按以下结果分流，禁止把 YAML 校验失败误判成环境受限：
 1. 校验器成功并输出 `OPENAPI_VALIDATION_MODE=full:<parser>` → 记录“完整解析校验通过，Apifox 实际导入未验证”。
@@ -252,7 +212,7 @@ test -f docs/apifox/INDEX.md && grep -q "$apiSpecPath" docs/apifox/INDEX.md && g
 
 看板为多文件结构，**skill 默认只通过 `board-add.js` 更新轻量目录与人类方案详情，不手改外壳/样式/逻辑**。外壳版本较低时只按下方升级命令复制模板外壳，绝不覆盖 `data/`。
 
-> **⚠️ 强制规则**：修改 `data/changes.js` 的主路径只能是 `node project-html/board-add.js project-html/data/_entry.json`，**禁止用 Write 整体重写**。只有 `node` 不存在时，才允许用 Edit 在标记行降级追加/更新。判断看板"是否存在"必须用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——上下文压缩后误判"不存在"走到 Write 模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
+> **⚠️ 强制规则**：修改 `data/changes.js` 的主路径只能是 `node project-html/board-add.js project-html/data/_entry.json`，**禁止用宿主文件能力整体重写**。只有 `node` 不存在时，才允许用当前宿主的局部编辑能力在标记行降级追加/更新。判断看板"是否存在"必须用共享助手的 `exists`（确定性判断），不要凭读取工具的报错/记忆去猜——上下文压缩后误判"不存在"走到模板分支，是已发生过的真实事故（21 条记录被整体覆盖成 4 条）。
 
 ```
 project-html/
@@ -300,19 +260,16 @@ project-html/
 
 创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，复制时只在缺失状态初始化 `data/changes.js`，不会覆盖既有数据。
 
-**判断看板是否存在**（bash 确定性判断，不靠模型解读 Read 结果）：
+**判断看板是否存在**（跨平台确定性判断，不靠模型解读读取结果）：
 
-```bash
-test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```text
+node <helper> exists project-html/data/changes.js
 ```
 
 - **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 两个数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行共享引导的「定位并复制或升级外壳」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 的 `board-add.js` 统一写入（首次创建同样要进入 Step 5.6 构建）。
-  3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：
-     ```bash
-     if [ -d .svn ]; then echo "💡 检测到 SVN 工作副本，建议执行: svn add project-html --depth=infinity，把看板数据纳入版本管理"; elif [ -d .git ]; then echo "💡 检测到 Git 仓库，建议把 project-html/ 加入版本管理: git add project-html"; fi
-     ```
+  2. 否则执行共享引导的「定位并复制或升级外壳」；它只在数据文件缺失时补一份**空的** `data/changes.js` 模板。两种情况这一步都不写业务数据，交给下方 ② 的 `board-add.js` 统一写入（首次创建同样要进入 Step 5.6 构建）。
+  3. **检测 VCS**：运行 `node <helper> detect-vcs`。仅本次新建时提示一次，不代为执行：SVN 建议 `svn add project-html --depth=infinity`；Git 建议 `git add project-html`。
 - **EXISTS** → 先执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再执行「定位并复制或升级外壳」（`data/` 不动）；升级目标为 v23 或更高时，再运行 `node project-html/board-add.js --migrate`，把旧富记录拆为目录 + 人类方案详情，并输出一行：`🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
 
 **② 用 board-add.js 写入条目（确定性脚本，替代手工 Edit）**
@@ -321,8 +278,9 @@ test -f project-html/data/changes.js && echo EXISTS || echo MISSING
 
 下例是**存在接口变更**时的写法；如果本次没有新增接口或接口签名变更，必须删除 `apiSpecPath` / `apiIndexPath` 两个字段，并保持 `apis: []`。如果生成了 `apiSpecPath`，`apis` 必须至少包含一条接口，接口级 `specPath` 可省略；只有一个任务拆出多个 OpenAPI 文件时才给单个接口写 `specPath` 覆盖任务级路径。
 
-```bash
-cat > project-html/data/_entry.json <<'JSON'
+使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
+
+```json
 {
   "changelog": "新增文档：<title>",
   "entry": {
@@ -338,9 +296,9 @@ cat > project-html/data/_entry.json <<'JSON'
     "keyImpl": [<keyImpl>]
   }
 }
-JSON
-node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
+
+运行 `node project-html/board-add.js project-html/data/_entry.json`；成功后再用当前宿主的文件能力删除临时 `_entry.json`。失败时保留文件用于诊断。
 
 写 entry 的规则：
 - **标准 JSON**：字符串值用双引号，内部换行写成 `\n`，**不要用反引号**；`flowchart` 也是普通 JSON 字符串（用 `\n` 分行，不含 ` ``` ` 标记）。非空字段才写，空数组可省略。

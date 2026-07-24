@@ -1,13 +1,6 @@
 ﻿---
 name: bug-fix
 description: 记录和分析 Bug，生成诊断/修复边界文档并追加到 HTML 看板，沉淀现象、复现、根因证据和修复范围。由 yan-project-analysis 根入口的 incident mode 加载。
-argument-hint: [bug 名称]
-arguments: task
-disable-model-invocation: true
-allowed-tools: Write, Read, Edit, Bash, Glob, Grep, AskUserQuestion
-shell: bash
-model: sonnet
-effort: high
 ---
 
 # Bug 修复文档生成
@@ -34,36 +27,15 @@ effort: high
 
 ### Step 1：静默收集上下文（不展示给用户）
 
-```bash
-vcs_root="$PWD"
-vcs_type="none"
-while [ "$vcs_root" != "/" ]; do
-  if [ -e "$vcs_root/.git" ]; then vcs_type="git"; break; fi
-  if [ -d "$vcs_root/.svn" ]; then vcs_type="svn"; break; fi
-  parent=$(dirname "$vcs_root")
-  [ "$parent" = "$vcs_root" ] && break
-  vcs_root="$parent"
-done
-case "$vcs_type" in
-  git)
-    echo "VCS_TYPE=git"
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" branch --show-current 2>/dev/null
-    git -c "safe.directory=$vcs_root" -C "$vcs_root" status --short 2>/dev/null
-    ;;
-  svn)
-    echo "VCS_TYPE=svn"
-    svn info "$vcs_root" 2>/dev/null | grep -E "^(Relative URL|Revision):"
-    ;;
-  *) echo "VCS_TYPE=none" ;;
-esac
-find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name package.json \) 2>/dev/null
-```
+1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
+2. Git：以 root 为工作目录读取当前分支与 `status --short`；SVN：读取 info/revision；无 VCS 时记录 `VCS_TYPE=none`。
+3. 使用当前宿主的目录枚举/搜索能力，在 root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
 
-判断规则：先按目录结构识别 Git/SVN，不要用"git 命令失败"推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只使用 `git -c "safe.directory=$vcs_root"` 做本次只读命令，不修改全局 git 配置。
+判断规则：先按 `detect-vcs` 的目录结构结果识别 Git/SVN，不要用“git 命令失败”推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只在本次只读命令中使用 `git -c "safe.directory=<root>"`，不修改全局 git 配置。
 
 ### Step 2：收集 Bug 信息（先从证据预填）
 
-**规则：先从用户描述、报错、堆栈、日志、当前分支/改动和源码搜索中预填。不要机械按信息槽位逐条追问；只有缺失信息会影响复现、严重度、定位方向或修复范围时才问。确需询问时每次只问一个，并说明为什么这个答案会影响判断。封闭选项的问题（严重度、Step 4 冲突处理）用 AskUserQuestion 工具提问；自由文本问题直接对话提问。**
+**规则：先从用户描述、报错、堆栈、日志、当前分支/改动和源码搜索中预填。不要机械按信息槽位逐条追问；只有缺失信息会影响复现、严重度、定位方向或修复范围时才问。确需询问时每次只问一个，并说明为什么这个答案会影响判断。封闭选项优先使用当前宿主的结构化提问能力；不可用时直接对话提问。**
 
 具体槽位见 [reference.md](reference.md#step-2-信息槽位)，作为查漏表使用，不是必问清单。服务/模块归属优先从路径、包名、Controller、日志 logger、最近改动推断，只有无法判断且会影响看板归类或修复范围时再问。
 
@@ -91,13 +63,13 @@ find "$vcs_root" -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name pac
 
 ### Step 4：路径处理
 
-```bash
-d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
+```text
+node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/bugs
 ```
 
 路径格式：`docs/bugs/<日期>/<任务名>.md`
 
-冲突处理：先把候选路径赋给 `target`，再用 `test -e "$target"` / `test -r "$target"` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把 Read 失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
+冲突处理：先把候选路径赋给 `target`，再运行 `node <helper> file-state <target>` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把读取失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
 
 ### Step 5：生成文档
 
@@ -117,7 +89,7 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 
 看板为多文件结构（外壳 + `data/changes.js` 轻量目录 + `data/details/` 人类复盘详情），**skill 只通过 `board-add.js` 写数据**。
 
-> **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用 Write 重写整个文件**。判断看板"是否存在"用下方的 `test -f`（确定性判断），不要凭 Read 工具的报错/记忆去猜——历史上误判"不存在"走 Write 模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
+> **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用宿主文件能力重写整个文件**。判断看板"是否存在"用共享助手的 `exists`（确定性判断），不要凭读取工具的报错/记忆去猜——历史上误判"不存在"走模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
 
 **定位：看板条目不是 md 的摘录，而是一篇独立的、给人看的故障复盘。** md 写给 AI 执行修复，看板写给「没遇到这个 Bug 的同事」——业务人员要看懂影响、现象、验收方式，开发人员要看懂根因、修复边界、验证步骤。
 
@@ -153,24 +125,25 @@ d=$(date +%F) && mkdir -p "docs/bugs/$d" && echo "$d"
 
 创建、比较或升级看板外壳时，按需读取 [共享看板外壳引导](../../../_shared/board-shell-bootstrap.md)。其中每个命令块都会重新定位模板目录，不能依赖前一次 shell 调用留下的 `$src`。
 
-**① 确保看板文件存在**（bash 确定性判断，不靠模型解读 Read 结果）：
+**① 确保看板文件存在**（跨平台确定性判断，不靠模型解读读取结果）：
 
-```bash
-test -f project-html/data/changes.js && echo EXISTS || echo MISSING
+```text
+node <helper> exists project-html/data/changes.js
 ```
 
 - **MISSING** →
   1. 若 `project-html/index.html` 已存在且内含 `const changes`（旧版单文件看板）→ 先把其中的 `changes` / `htmlChangelog` 数组原样迁移到新建的 `data/changes.js`（带标记行）。
-  2. 否则执行共享引导的「定位并复制或升级外壳」——其中 `test -f ... || cp` 会补上一份**空的** `data/changes.js` 模板。两种情况这一步都不写数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
-  3. **检测 VCS**（仅本次新建时提示一次，不代为执行）：`if [ -d .svn ]; then echo "💡 建议: svn add project-html --depth=infinity"; elif [ -d .git ]; then echo "💡 建议: git add project-html"; fi`
+  2. 否则执行共享引导的「定位并复制或升级外壳」；它只在数据文件缺失时补一份**空的** `data/changes.js` 模板。两种情况这一步都不写业务数据，交给下方 ② 统一写入（首次创建同样要进入 ③ 构建）。
+  3. **检测 VCS**：运行 `node <helper> detect-vcs`。仅本次新建时提示一次，不代为执行：SVN 建议 `svn add project-html --depth=infinity`；Git 建议 `git add project-html`。
 - **EXISTS** → 执行共享引导的「只读比较版本」。输出 `BOARD_SHELL_UPGRADE_REQUIRED` 时再复制外壳（`data/` 不动）；升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录，输出 `🔄 看板外壳与数据结构已升级到 v<N>`。输出 `BOARD_SHELL_CURRENT` 时直接进入 ②。
 
 **② 用 board-add.js 写入 Bug 条目（确定性脚本，替代手工 Edit）**
 
 把本次提取的字段组成 entry 对象，连同变更日志描述写进临时 JSON，交给脚本一次性写入。**备份、按 `docPath` 查重、转义、记录数回归全在脚本里完成**，AI 不再手改 `data/changes.js`，从根上杜绝「误判看板不存在 → 整体覆盖」事故：
 
-```bash
-cat > project-html/data/_entry.json <<'JSON'
+使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
+
+```json
 { "changelog": "新增 Bug：<title>",
   "entry": { "kind":"bug", "service":"<service>", "module":"<module>", "title":"<title>",
     "date":"<date>", "severity":"<severity>", "status":"未修复", "branch":"<branch>", "docPath":"<docPath>",
@@ -178,9 +151,9 @@ cat > project-html/data/_entry.json <<'JSON'
     "rootCause":"<rootCause>", "fixPlan":"<fixPlan>",
     "reproSteps":[<reproSteps>], "expected":"<expected>", "actual":"<actual>", "verifySteps":[<verifySteps>],
     "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
-JSON
-node project-html/board-add.js project-html/data/_entry.json && rm -f project-html/data/_entry.json
 ```
+
+运行 `node project-html/board-add.js project-html/data/_entry.json`；成功后再用当前宿主的文件能力删除临时 `_entry.json`。失败时保留文件用于诊断。
 
 - **标准 JSON**：字符串值用双引号、内部换行写成 `\n`，**不要用反引号**；非空字段才写，空数组可省略。字段含义见上方表格与 [reference.md](reference.md#html-追加格式)。
 - **查重自动处理**：脚本按 `docPath` 命中既有条目时就地更新并**保留原 status**，否则追加。Step 4 冲突选 A/E 时无需特殊操作，只把 `changelog` 改成 `更新 Bug：<title>`。

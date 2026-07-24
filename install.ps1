@@ -33,13 +33,20 @@ $tmpDir = Join-Path $env:TEMP ("dev-workflow-skills-" + [System.Guid]::NewGuid()
 New-Item -ItemType Directory -Force $tmpDir | Out-Null
 
 try {
-    $zipPath = Join-Path $tmpDir "repo.zip"
-    Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
-    Expand-Archive -Path $zipPath -DestinationPath $tmpDir
+    if ($env:DEV_WORKFLOW_SKILLS_SOURCE) {
+        $srcDir = Get-Item -LiteralPath $env:DEV_WORKFLOW_SKILLS_SOURCE
+        if (-not (Test-Path (Join-Path $srcDir.FullName "skills"))) {
+            throw "DEV_WORKFLOW_SKILLS_SOURCE does not contain skills/"
+        }
+    } else {
+        $zipPath = Join-Path $tmpDir "repo.zip"
+        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
+        Expand-Archive -Path $zipPath -DestinationPath $tmpDir
 
-    $srcDir = Get-ChildItem -Path $tmpDir -Directory |
-        Where-Object { Test-Path (Join-Path $_.FullName "skills") } |
-        Select-Object -First 1
+        $srcDir = Get-ChildItem -Path $tmpDir -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "skills") } |
+            Select-Object -First 1
+    }
     if ($null -eq $srcDir) { throw "skills/ directory not found in downloaded archive" }
 
     foreach ($target in $Targets) {
