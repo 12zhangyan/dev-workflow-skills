@@ -76,7 +76,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 | 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
 | 把当前对话交给另一段 AI 对话继续 | `yan-conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
 
-旧名称仍可作为迁移别名理解：`bug-fix / biz-flow / code-reading` 分别映射到 `yan-project-analysis` 的 `incident / business / understanding`；`review-fix / review-check / review-repair / review-loop` 分别映射到 `yan-code-review` 的 `package / check / repair / loop`。安装器会移除旧的独立目录，避免它们继续占用公开发现入口。
+旧名称仍可作为迁移别名理解：`bug-fix / biz-flow / code-reading` 分别映射到 `yan-project-analysis` 的 `incident / business / understanding`；`review-fix / review-check / review-repair / review-loop` 分别映射到 `yan-code-review` 的 `package / check / repair / loop`。安装器默认保留不属于本发行版的旧目录；确认迁移时传入 `--migrate-legacy`，安装器会先备份再移出公开发现入口。
 
 ## 推荐工作流
 
@@ -215,12 +215,16 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 install-local.cmd
 install-local.cmd codex
 install-local.cmd claude cursor
+install-local.cmd status
+install-local.cmd codex --migrate-legacy
 ```
 
 说明：
 
-- 安装脚本复制整个 `skills/` 子树，不维护硬编码 skill 列表。
-- Codex 目标会移除安装副本 `SKILL.md` 文件头 BOM，避免 frontmatter 发现失败。
+- 安装器依赖 Node.js，复制整个 `skills/` 子树，不维护硬编码 skill 列表。
+- 每个宿主目录写入 `.yan-dev-workflow-skills.json`，用于记录来源版本、受管 Skill 和安装哈希；`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
+- 首次纳管或发现受管 Skill 有本地修改时，覆盖前先备份到 `.yan-backups/<timestamp>/`；未纳管的旧 Skill 默认不删除。
+- Codex 目标由 Node 安装器确定性移除安装副本 `SKILL.md` 文件头 BOM；无法完成时安装直接失败，不再静默跳过。
 - 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文；Windows PowerShell 5.1 读取其他无 BOM 的 UTF-8 文档时，请显式使用 `Get-Content -Encoding UTF8`。
 - Cursor 可能同时读取 `~/.cursor/skills`、`~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills`，多处安装会导致同名 skill 重复出现。
 
@@ -238,6 +242,8 @@ node scripts/check-docs.js
 node scripts/check-skill-inventory.js
 node scripts/check-skill-metadata.js
 node scripts/check-portable-contracts.js
+node scripts/check-host-eval-runner.js
+node scripts/run-host-evals.js --probe
 node scripts/check-workflow-briefs.js
 node scripts/check-review-boundaries.js
 node scripts/check-document-boundaries.js
@@ -259,8 +265,9 @@ git diff --check
 - 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
 - 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
-- 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
-- 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，逐文件验证完整复制、同名替换、无关 Skill 保留，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
+- 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界、`yan-` 命名和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
+- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样必须显式传 `--live --host <host> --case <只读场景> --workspace <干净隔离 worktree>`；运行器拒绝脏工作区和可写场景，并记录路由、写入范围、退出状态及工作区漂移。
+- 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，验证清单、覆盖前备份、默认保留未纳管旧 Skill、显式迁移、漂移检测，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。

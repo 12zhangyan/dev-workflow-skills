@@ -1,5 +1,5 @@
 ﻿---
-name: review-fix
+name: yan-code-review-package
 description: 生成可分发给多个 AI 的统一代码审查任务包、证据包和 review 提示，或汇总 findings 形成修复交接；仅在收到 review 结果后生成 fix-handoff。由 yan-code-review 根入口的 package mode 加载。
 ---
 

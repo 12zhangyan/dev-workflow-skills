@@ -61,6 +61,15 @@ function frontmatterKeys(text, rel) {
     .map((line) => line.slice(0, line.indexOf(':')));
 }
 
+function frontmatterName(text, rel) {
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) return '';
+  const nameLine = match[1].split(/\r?\n/).find((line) => line.startsWith('name:'));
+  const name = nameLine ? nameLine.slice(nameLine.indexOf(':') + 1).trim() : '';
+  if (!name) fail(`${rel} has no frontmatter name`);
+  return name;
+}
+
 let contracts;
 try {
   contracts = JSON.parse(fs.readFileSync(contractsPath, 'utf8'));
@@ -105,8 +114,10 @@ for (const contract of contracts.cases || []) {
 for (const rel of runtimeFiles) {
   const text = read(rel);
   const keys = frontmatterKeys(text, rel);
+  const name = frontmatterName(text, rel);
   const extra = keys.filter((key) => !['name', 'description'].includes(key));
   if (extra.length) fail(`${rel} has host-specific frontmatter keys: ${extra.join(', ')}`);
+  if (name && !name.startsWith('yan-')) fail(`${rel} frontmatter name must use yan- prefix: ${name}`);
   for (const forbidden of forbiddenRuntimeText) {
     if (text.includes(forbidden)) fail(`${rel} contains host-bound text: ${forbidden}`);
   }

@@ -12,6 +12,7 @@ const checks = [
   ['node', ['scripts/check-skill-inventory.js']],
   ['node', ['scripts/check-skill-metadata.js']],
   ['node', ['scripts/check-portable-contracts.js']],
+  ['node', ['scripts/check-host-eval-runner.js']],
   ['node', ['scripts/check-workflow-briefs.js']],
   ['node', ['scripts/check-review-boundaries.js']],
   ['node', ['scripts/check-document-boundaries.js']],

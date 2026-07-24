@@ -301,10 +301,14 @@ for (const { key: skill, rel } of evalSpecs) {
 const devDocSkillPath = path.join(skillsDir, 'yan-dev-doc', 'SKILL.md');
 const devDocReferencePath = path.join(skillsDir, 'yan-dev-doc', 'reference.md');
 const devDocExamplesPath = path.join(skillsDir, 'yan-dev-doc', 'examples.md');
+const devDocOpenApiPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-openapi.md');
+const devDocBoardPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-board.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['结构化工具', '多个候选提问工具', '同一问题不再重试该工具', 'IncrementalRevision', 'conflicts(status=resolved)', '旧口径、否决证据、最终口径和实现禁令', '不得把它继续算作 blocker', '`Compact`', '最多 2 个生产代码切点', '跳过 Step 5.1、5.5、5.6', '升级为 `Standard`', '前置文档', '不得只保留或只读取日期最近的一篇', '逐接口区分新增 / 契约变更 / 行为变更 / 仅调用', '不全量重写原接口规范', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', 'YAML 校验失败误判成环境受限', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 变更申请草案', '默认建议按证据优先级']],
+  [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 申请草案', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
   [devDocReferencePath, ['精简文档模板', '文档模式：Compact', 'NotApplicable (Compact)', '最多两个生产代码切点', '文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '已裁决冲突不进入', '承接：<主题/约束范围>', '工作区内 OpenAPI 静态校验降级', 'OPENAPI_WORKSPACE_FALLBACK_START', 'OPENAPI_VALIDATION_MODE=light:workspace-inline', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）', 'Plan Gate 未通过', 'Apifox 实际导入未验证']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
+  [devDocOpenApiPath, ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'OPENAPI_VALIDATION_MODE=light:workspace-inline']],
+  [devDocBoardPath, ['node project-html/board-add.js', '禁止用宿主文件能力整体重写', 'node project-html/build.js']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
   for (const needle of needles) {
@@ -315,7 +319,7 @@ for (const [file, needles] of [
 const reviewLoopSkillPath = path.join(skillsDir, 'yan-code-review', 'modes', 'loop', 'mode.md');
 const reviewLoopReferencePath = path.join(skillsDir, 'yan-code-review', 'modes', 'loop', 'reference.md');
 for (const [file, needles] of [
-  [reviewLoopSkillPath, ['review-fix → review-check → review-repair', '../package/reference.md', '../check/reference.md', '../repair/reference.md', 'quick（小范围实现默认）', '未纳管不等于不可读取或不可验证', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'NotRequiredNoCodeChange', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSOwnerUnknown', '最先遇到的控制标记', 'VCSGateBlocked', 'VcsAddPolicy: host-required', 'VcsAddPolicy: user-authorize-only', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'PowerShell', '陈旧报告', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'javac/Maven 报错路径', 'docs/review-fix/<日期>/<任务>-review-task.md', '不得新建 `docs/review-form` 任务包', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'review-fix-sibling-missing', '不得因为运行在 Cursor/Codex 就按产品名探测其他宿主', '不自动 commit、push', '数据库始终只读']],
+  [reviewLoopSkillPath, ['../package/mode.md', '../check/mode.md', '../repair/mode.md', '默认 `quick`', '`standard`', '未纳管不等于不可审查', 'ToolchainRecovery', 'FallbackValidation=Passed', 'ReviewReceipt', 'SingleAgentReview', '最多 2 个修复循环', 'VCS_OWNER', 'VCSGateBlocked', '`host-required`', '`user-authorize-only`', 'VcsAddPolicySource', 'PolicyConflict: review-loop-default-no-add -> host-required', '第一次 VCS 操作前', '禁止 `git add .`', 'TestDependencyClass', 'LiveExternal', 'walk/rglob', 'WindowsTestSourcePathMismatch', 'testCompile', 'docs/review-fix/<日期>/<任务>-review-task.md', 'LegacyReviewTaskInput', 'legacy-review-form-input', 'package-sibling-missing', '不得扫描其他宿主目录', '任何策略都不授权 commit/push', '数据库始终只读']],
   [reviewLoopReferencePath, ['ReviewMode:', 'ReviewAgentMode: SingleAgentReview', 'ReviewTaskTemplateSource:', 'LegacyReviewTaskInput:', 'CompatibilityFlags:', 'legacy-review-form-input', 'RepairCycles:', 'TestDependencyClass:', 'TestSourcePathCheck:', 'WindowsTestSourcePathMismatch', 'EnvironmentBlocked', '自动提交：未执行']],
 ]) {
   const text = fs.readFileSync(file, 'utf8');
@@ -326,16 +330,18 @@ for (const [file, needles] of [
 
 const contractNeedles = [
   ['skills/_shared/interaction-policy.md', ['非交互/无人值守运行中', '推荐项不是授权', 'InsufficientMaterial']],
+  ['skills/_shared/host-capabilities.md', ['显式按 UTF-8 解码', '不得据此改写源文件']],
   ['skills/_shared/workflow-gates.md', ['VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked', 'VcsAddPolicy', 'host-required', 'user-authorize-only', 'PolicyConflict', '测试依赖分级与失败归因', 'Hermetic', 'ServiceBacked', 'LiveExternal', 'TestDependencyClass']],
-  ['skills/yan-dev-doc/SKILL.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'TestDependencyClass']],
+  ['skills/yan-dev-doc/SKILL.md', ['publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
+  ['skills/yan-dev-doc/publishing-openapi.md', ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证']],
   ['skills/yan-dev-doc/examples.md', ['operationIds=sendSmsCode,smsLogin']],
   ['skills/yan-project-analysis/modes/understanding/mode.md', ['`CodeMap`（默认）', '`ImpactAnalysis`（只读影响分析）', '严格零写入模式', '不得进入 Step 4/4.5', 'artifacts: 无（聊天只读分析）']],
-  ['skills/yan-project-analysis/modes/understanding/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
+  ['skills/yan-project-analysis/modes/understanding/reference.md', ['AnalysisMode: ImpactAnalysis', 'WritePolicy: NoWorkspaceWrites', '契约对比', '异步、流式或队列场景追加维度', '客户端断连、重连、刷新', '明确受影响/不受影响/待确认', 'artifacts: 无（ImpactAnalysis 聊天只读分析）']],
   ['skills/yan-conversation-handoff/SKILL.md', ['同一 skill 目录下的完整模板', '[reference.md](reference.md)']],
   ['skills/yan-code-review/modes/package/mode.md', ['TestDependencyClass', 'TestEvidenceStatus=Passed', '`NotProvided`', '`NotRun`', '`EnvironmentBlocked`', '`NotApplicable`']],
   ['skills/yan-code-review/modes/check/mode.md', ['TestDependencyClass', 'CI 契约', '不得写成 `EnvironmentBlocked`']],
   ['skills/yan-code-review/modes/package/reference.md', ['独立完成本次审查', '| RJ-1 |', '| BK-1 |']],
-  ['skills/yan-code-review/modes/loop/mode.md', ['首轮最大序号', '控制在 5 个文件内']],
+  ['skills/yan-code-review/modes/loop/mode.md', ['首轮最大序号', 'VCS 证据归属']],
   ['skills/yan-code-review/modes/repair/mode.md', ['TestDependencyClass', '不得用伪造密钥绕过']],
   ['skills/yan-code-review/modes/repair/reference.md', ['归一化前检查 ID 唯一性', 'TestDependencyClass:']],
 ];

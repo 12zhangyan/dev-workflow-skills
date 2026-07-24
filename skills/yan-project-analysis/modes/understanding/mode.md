@@ -1,5 +1,5 @@
 ﻿---
-name: code-reading
+name: yan-project-analysis-understanding
 description: 在 Code Review 前生成开发者代码地图，或只读分析新旧接口契约、现有调用链和兼容性影响；CodeMap 生成 md 并登记看板，ImpactAnalysis 仅聊天输出且仓库零写入。由 yan-project-analysis 根入口的 understanding mode 加载。
 ---
 

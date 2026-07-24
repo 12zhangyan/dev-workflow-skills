@@ -1,5 +1,5 @@
 ﻿---
-name: bug-fix
+name: yan-project-analysis-incident
 description: 记录和分析 Bug，生成诊断/修复边界文档并追加到 HTML 看板，沉淀现象、复现、根因证据和修复范围。由 yan-project-analysis 根入口的 incident mode 加载。
 ---
 

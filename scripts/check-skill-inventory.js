@@ -520,7 +520,7 @@ for (const rel of ['AGENTS.md', 'CLAUDE.md']) {
 
 const rows = [];
 const skillDescriptionRequirements = {
-  'yan-dev-doc': ['直接实现且范围与验收口径足够清楚时不要触发', 'HTML 看板仅在用户明确要求'],
+  'yan-dev-doc': ['需求和验收已清楚且用户要求直接实现时不要触发'],
   'yan-project-analysis': ['understanding', 'incident', 'business', 'code-reading', 'bug-fix', 'biz-flow'],
   'yan-code-review': ['check', 'repair', 'loop', 'package', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
 };

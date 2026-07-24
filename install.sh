@@ -2,93 +2,54 @@
 set -euo pipefail
 
 TARBALL="${DEV_WORKFLOW_SKILLS_TARBALL:-https://github.com/12zhangyan/dev-workflow-skills/archive/refs/heads/main.tar.gz}"
+COMMAND="install"
+MIGRATE_LEGACY="false"
+TARGETS=()
 
-if [ "$#" -eq 0 ]; then
-  TARGETS="claude cursor codex"
-else
-  TARGETS="$*"
+for arg in "$@"; do
+  case "$arg" in
+    status) COMMAND="status" ;;
+    --migrate-legacy) MIGRATE_LEGACY="true" ;;
+    claude|cursor|codex) TARGETS+=("$arg") ;;
+    *)
+      echo "[ERROR] Unknown argument: $arg" >&2
+      echo "Allowed: status claude cursor codex --migrate-legacy" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "[ERROR] Node.js is required for safe installation and Codex BOM normalization." >&2
+  exit 1
+fi
+if [ -z "${HOME:-}" ]; then
+  echo "[ERROR] HOME is required." >&2
+  exit 1
 fi
 
-echo "Installing dev-workflow-skills..."
-echo ""
-
+echo "Preparing dev-workflow-skills ${COMMAND}..."
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 if ! curl -fsSL "$TARBALL" | tar -xz -C "$TMP_DIR"; then
-  echo "  ✗ Failed to download ${TARBALL}" >&2
+  echo "[ERROR] Failed to download ${TARBALL}" >&2
   exit 1
 fi
 
-SRC_DIR="$(find "$TMP_DIR" -maxdepth 2 -type d -name skills | head -1)"
-if [ -z "$SRC_DIR" ]; then
-  echo "  ✗ skills/ directory not found in downloaded archive" >&2
+CORE="$(find "$TMP_DIR" -maxdepth 3 -type f -path '*/scripts/install-core.js' | head -1)"
+if [ -z "$CORE" ]; then
+  echo "[ERROR] scripts/install-core.js not found in downloaded archive" >&2
   exit 1
 fi
+REPO_ROOT="$(cd "$(dirname "$CORE")/.." && pwd)"
 
-install_target() {
-  target="$1"
-  case "$target" in
-    claude) skills_dir="${HOME}/.claude/skills"; label="Claude Code" ;;
-    cursor) skills_dir="${HOME}/.cursor/skills"; label="Cursor" ;;
-    codex) skills_dir="${HOME}/.codex/skills"; label="Codex" ;;
-    *)
-      echo "  ✗ Unknown target: ${target} (allowed: claude cursor codex)" >&2
-      return 1
-      ;;
-  esac
+ARGS=("$COMMAND" "--source" "$REPO_ROOT" "--home" "$HOME")
+if [ "${#TARGETS[@]}" -gt 0 ]; then
+  ARGS+=("--targets" "${TARGETS[@]}")
+fi
+if [ "$MIGRATE_LEGACY" = "true" ]; then
+  ARGS+=("--migrate-legacy")
+fi
 
-  echo "==> ${label}: ${skills_dir}"
-  mkdir -p "$skills_dir"
-  for legacy_name in \
-    dev-doc project-analysis code-review conversation-handoff \
-    bug-fix biz-flow code-reading \
-    review-fix review-check review-repair review-loop
-  do
-    rm -rf "${skills_dir:?}/${legacy_name}"
-  done
-  for skill in "$SRC_DIR"/*/; do
-    name="$(basename "$skill")"
-    case "$name" in
-      dev-doc|project-analysis|code-review|conversation-handoff|bug-fix|biz-flow|code-reading|review-fix|review-check|review-repair|review-loop)
-        echo "  [SKIP] ${name} (legacy name)"
-        continue
-        ;;
-    esac
-    rm -rf "${skills_dir:?}/${name}"
-    cp -r "$skill" "${skills_dir}/${name}"
-    if [ "$target" = "codex" ]; then
-      normalize_codex_skill "${skills_dir}/${name}"
-    fi
-    echo "  ✓ ${name}"
-  done
-  echo ""
-}
-
-normalize_codex_skill() {
-  skill_dir="$1"
-  if command -v python3 >/dev/null 2>&1; then
-    python3 - "$skill_dir" <<'PY'
-from pathlib import Path
-import sys
-
-for path in Path(sys.argv[1]).rglob("SKILL.md"):
-    data = path.read_bytes()
-    if data.startswith(b"\xef\xbb\xbf"):
-        path.write_bytes(data[3:])
-PY
-  elif command -v perl >/dev/null 2>&1; then
-    find "$skill_dir" -name SKILL.md -type f -exec perl -i -pe 'BEGIN { binmode STDIN; binmode STDOUT } s/^\xEF\xBB\xBF//' {} +
-  else
-    echo "  ! Codex SKILL.md BOM normalization skipped (python3/perl not found)" >&2
-  fi
-}
-
-for target in $TARGETS; do
-  install_target "$target"
-done
-
-echo ""
-echo "Done! Restart Claude Code / Cursor / Codex to load the skills."
-echo "Claude Code usually uses slash names like /yan-dev-doc; Codex should use natural language such as '使用 yan-dev-doc skill 生成开发文档'."
-echo "Optional companion: run 'npx superpowers-zh' from each concrete project directory for brainstorming/TDD/debugging/review helpers."
+node "$CORE" "${ARGS[@]}"

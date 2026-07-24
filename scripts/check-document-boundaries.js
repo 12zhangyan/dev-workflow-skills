@@ -190,6 +190,9 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '数据库操作始终只读',
   '不得执行 DDL、数据修复',
   '禁止用宿主文件能力整体重写',
+]);
+
+requireText('skills/yan-dev-doc/publishing-board.md', [
   'node project-html/board-add.js',
   '../_shared/board-shell-bootstrap.md',
 ]);

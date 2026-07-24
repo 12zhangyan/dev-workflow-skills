@@ -1,5 +1,5 @@
 ﻿---
-name: review-repair
+name: yan-code-review-repair
 description: 根据 code review findings 或 fix-handoff 直接修改代码并验证；只在已有 findings、review 结果或明确问题清单时触发。由 yan-code-review 根入口的 repair mode 加载。
 ---
 

@@ -61,9 +61,9 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
 requireText('skills/yan-code-review/modes/loop/mode.md', [
   'SingleAgentReview',
   '最多 2 个修复循环',
-  '`review-check` 阶段保持只读',
-  '没有 findings 时不制造修复动作',
-  '不会提交代码或执行数据库写操作',
+  '读取并执行 [check mode](../check/mode.md)',
+  '没有 Critical/Important：跳过 repair',
+  '不会自动 commit/push，不会执行数据库写入',
 ]);
 
 requireText('skills/_shared/workflow-chain.md', [

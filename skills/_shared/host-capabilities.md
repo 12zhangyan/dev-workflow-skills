@@ -14,6 +14,8 @@
 
 Mode 或参考资料中的 `bash` / `powershell` 命令块只代表该 shell 下的等价示例，不是宿主契约。实际终端不匹配时，必须按本协议翻译为当前 shell 的等价操作；不得把 POSIX 重定向、`test`、`rm`、`cp`、`grep` 或 PowerShell cmdlet 原样发送给不兼容的终端。能由共享 Node 助手或宿主文件能力完成的确定性操作，优先使用这两者。
 
+通过终端读取 Markdown 时必须显式按 UTF-8 解码，尤其是 Windows PowerShell 5.1 中无 BOM 的 Codex 安装副本（例如 `Get-Content -Encoding UTF8`）。出现乱码时先修正读取编码，不得据此改写源文件或把乱码当作 Skill 内容。
+
 ## 跨平台确定性操作
 
 日期和目录创建使用共享 Node 助手，不依赖 `date`、`mkdir -p` 或 PowerShell 专属语法：

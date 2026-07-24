@@ -1,5 +1,5 @@
 ﻿---
-name: review-check
+name: yan-code-review-check
 description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区执行一次只读代码审查并输出结构化 findings；不得修改代码。由 yan-code-review 根入口的 check mode 加载。
 ---
 

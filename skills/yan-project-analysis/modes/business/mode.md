@@ -1,5 +1,5 @@
 ﻿---
-name: biz-flow
+name: yan-project-analysis-business
 description: 把一组接口/功能捋成面向测试人员的业务逻辑方案，包含角色入口、前置条件、业务流、数据流、时序、状态、数据变动、校验和测试关注点。由 yan-project-analysis 根入口的 business mode 加载。
 ---
 
