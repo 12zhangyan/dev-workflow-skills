@@ -11,7 +11,7 @@
 | 记录 Bug | 自然语言点名 `yan-project-analysis mode=incident` | `使用 yan-project-analysis skill，mode=incident，记录 Bug名` |
 | 梳理测试业务流 | 自然语言点名 `yan-project-analysis mode=business` | `使用 yan-project-analysis skill，mode=business，生成业务流方案` |
 | 生成 Review 任务包 | 自然语言点名 `yan-code-review mode=package` | `使用 yan-code-review skill，mode=package，基于 docs/.../任务.md 生成 Review 任务包` |
-| 执行只读审查 | 自然语言点名 `yan-code-review mode=check` | `使用 yan-code-review skill，mode=check，审查 docs/review-fix/...-review-task.md` |
+| 执行业务代码只读审查并更新同一档案 | 自然语言点名 `yan-code-review mode=check` | `使用 yan-code-review skill，mode=check，审查 docs/review-fix/...-review-task.md` |
 | Review 后直接修复 | 自然语言点名 `yan-code-review mode=repair` | `使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复` |
 | 单 AI 一键 Review 闭环 | 自然语言点名 `yan-code-review mode=loop` | `使用 yan-code-review skill，mode=loop，审查、修复、验证并复审当前工作区` |
 | 生成代码地图 | 自然语言点名 `yan-project-analysis mode=understanding` | `使用 yan-project-analysis skill，mode=understanding，生成代码地图` |
@@ -92,11 +92,13 @@ review-loop standard（审计留档/高风险）：review-fix 任务包 → revi
 
 小改动可显式使用 quick，跳过任务包文件但不跳过审查、修复门槛、验证和二次复审。`review-loop` 必须标记 `SingleAgentReview`，不能冒充多 AI 交叉审查。
 
+看板采用“一事一档”：`yan-dev-doc` 创建稳定 `deliveryId` 的主档案，package/check/repair/loop 直接调用时都更新该档案的 Review 生命周期。check 的“只读”仅约束业务代码和正式文档；它仍通过 `board-add.js` 发布看板元数据。loop 内部的 package/check/repair 不重复发布，由 loop 统一写一条汇总事件。
+
 ## 阶段门禁
 
 | 门禁 | 必须看到的证据 | 通过后进入 |
 |------|----------------|------------|
-| Plan Gate | yan-dev-doc / bug-fix / biz-flow 文档；阻塞项、冲突、假设已写清；yan-dev-doc 仅在明确请求/项目规则要求时发布看板，Compact 明确标记派生产物 NotApplicable | 实现 |
+| Plan Gate | yan-dev-doc / bug-fix / biz-flow 文档；阻塞项、冲突、假设已写清；yan-dev-doc Standard / IncrementalRevision 默认创建研发档案，Compact 明确标记派生产物 NotApplicable | 实现 |
 | Implementation Gate | Todo 对照表：已完成项、变更文件、未完成项、执行偏差 | VCS 检查 |
 | VCS Gate | `git status --short` 或 `svn status`；新增源码、测试、配置、OpenAPI YAML、文档已 `add` | 验证 |
 | Verification Gate | 有针对性的测试/构建/接口/数据核对命令和结果；失败已修复并重跑 | Review |
@@ -162,7 +164,7 @@ review-loop standard（审计留档/高风险）：review-fix 任务包 → revi
 | Review 修复交接 | `docs/review-fix/YYYY-MM-DD/<task>-fix-handoff.md` | `review-fix` 第二阶段 | 是 |
 | 代码地图 | `docs/code-reading/YYYY-MM-DD/<task>.md` | `code-reading CodeMap` | 是 |
 | 只读影响分析 | 聊天输出，无仓库文件 | `code-reading ImpactAnalysis` | 否 |
-| 看板数据 | `project-html/data/changes.js` | 文档类 skill | 是 |
+| 看板数据 | `project-html/data/changes.js` + `data/details/` | yan-dev-doc 创建主档案；yan-code-review 四模式更新同一档案；其他文档类 mode 写各自 entry | 是 |
 | 单页与总索引 | `project-html/pages/`、`docs/INDEX.md` | `node project-html/build.js` | `docs/INDEX.md` 是；`pages/` 按项目策略 |
 
 ## 详细步骤

@@ -87,6 +87,22 @@ function spawnPortable(command, args, options = {}) {
   });
 }
 
+function unwrapNodeShim(command) {
+  if (process.platform !== 'win32' || !/\.cmd$/i.test(command)) {
+    return { command, prefixArgs: [] };
+  }
+  try {
+    const shim = fs.readFileSync(command, 'utf8');
+    const match = shim.match(/%dp0%\\([^"\r\n]+\.js)/i);
+    if (!match) return { command, prefixArgs: [] };
+    const script = path.resolve(path.dirname(command), match[1]);
+    if (!fs.existsSync(script)) return { command, prefixArgs: [] };
+    return { command: process.execPath, prefixArgs: [script] };
+  } catch {
+    return { command, prefixArgs: [] };
+  }
+}
+
 function probeHost(host) {
   const spec = hostSpecs[host];
   const configured = process.env[spec.env];
@@ -179,8 +195,14 @@ function liveArgs(host, command, workspace, prompt, model, writeScope) {
   if (host === 'codex') {
     const args = ['exec', '--ephemeral', '--sandbox', writable ? 'workspace-write' : 'read-only', '--skip-git-repo-check', '-C', workspace];
     if (model) args.push('--model', model);
-    args.push(prompt);
-    return { command, args, cwd: workspace };
+    args.push('-');
+    const direct = unwrapNodeShim(command);
+    return {
+      command: direct.command,
+      args: [...direct.prefixArgs, ...args],
+      cwd: workspace,
+      input: Buffer.from(prompt, 'utf8'),
+    };
   }
   if (host === 'claude') {
     const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', '12'];
@@ -280,6 +302,7 @@ function main() {
   const started = Date.now();
   const run = spawnPortable(invocation.command, invocation.args, {
     cwd: invocation.cwd,
+    input: invocation.input,
     timeout: args.timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });

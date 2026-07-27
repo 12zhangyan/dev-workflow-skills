@@ -114,7 +114,7 @@ CompatibilityFlags: <legacy-review-form-input|none>
 
 ### 3. 首轮只读审查
 
-读取并执行 [check mode](../check/mode.md) 与 [check reference](../check/reference.md)。保持只读，输出稳定 finding ID：
+设置 `BoardPublishOwner: loop`，再读取并执行 [check mode](../check/mode.md) 与 [check reference](../check/reference.md)。保持业务代码与正式文档只读，输出稳定 finding ID；check 子阶段不得自行发布看板，由 loop 在闭环末尾统一发布：
 
 - `CR-*` Critical
 - `IM-*` Important
@@ -159,6 +159,17 @@ CompatibilityFlags: <legacy-review-form-input|none>
 
 若仍有 Critical/Important 且修复循环少于 2，回到步骤 4；达到 2 次后停止并保留未关闭项。
 
+### 6.5. 发布闭环事件
+
+加载并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)，由 loop 作为唯一发布所有权人：
+
+- 优先凭 `deliveryId`，其次凭 yan-dev-doc `sourceDocPath` 更新同一研发档案；身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`。
+- 写入单条稳定 `mode:"loop"` 事件；相同目标和本次 loop receipt 重跑时更新原事件，不重复追加。
+- 摘要包括 quick/standard、修复循环次数、首轮与复审结论、finding 关闭状态、目标验证、VCS Gate 和明确下一步。
+- findings 保留原 `CR/IM/MI/RJ/BK` ID；看板只写问题/影响的人类摘要和状态，不写精确 File/Line、完整 diff 或操作 prompt。
+- 无未关闭 Critical/Important、目标验证通过且 VCSGate 不阻塞时写 `reviewState:"verified"`、`gateStatus:"passed"`；否则写 `blocked|findings` 与 `gateStatus:"blocked"`。
+- standard 内部生成的 package、check、repair 子阶段不得重复发布；直接调用这些模式时仍各自发布。
+
 ### 7. 输出闭环
 
 按 [loop reference](reference.md) 输出：
@@ -184,4 +195,5 @@ CompatibilityFlags: <legacy-review-form-input|none>
 - [ ] 未跟踪文件已纳入审查和验证
 - [ ] 修改后已二次 check
 - [ ] 修复循环不超过 2
+- [ ] loop 已作为唯一 owner 向同一研发档案发布汇总事件，或明确输出 `BoardPublishStatus: Blocked`
 - [ ] 未自动 add/commit/push，未执行数据库写入

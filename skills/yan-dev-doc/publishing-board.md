@@ -24,15 +24,18 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
 
 升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录。详细 adapter 契约见 [共享看板外壳引导](../_shared/board-shell-bootstrap.md)。
 
-## 2. 编写人类方案 entry
+## 2. 创建“一事一档”主记录
 
-结构字段直接来自方案：
+`yan-dev-doc` 是研发档案的创建者。每个方案只创建一个主记录；后续 `yan-code-review package/check/repair/loop` 必须凭 `deliveryId` 或 `sourceDocPath` 更新这条记录，不得另建孤立的 Review 条目。
+
+轻量目录字段直接来自方案：
 
 - `service`、`module`、`title`、`date`、`type`、`complexity`、`status:"草稿"`；
 - `branch`、`docPath`；
+- `currentGate:"plan"`、`gateStatus:"passed|blocked"`；`deliveryId` 由 `board-add.js` 根据稳定文档路径生成并写回目录；
 - 仅接口新增/契约变更时写 `apiSpecPath`、`apiIndexPath` 和 `apis[]`。
 
-叙述字段必须重新面向人类写：
+人类叙述写入 `detail.delivery.plan`，必须重新面向同事独立撰写：
 
 - `background`：业务痛点和触发原因；
 - `goals`、`scopeIn`、`scopeOut`：业务和方案边界；
@@ -52,7 +55,7 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
 - 看板保留开发理解所需的组件关系、接口、状态、数据流和验收；精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md，禁止复制到看板；
 - 标题和小标题使用同事能理解的业务/技术语言，避免把字段名、流水账或模板占位符直接展示给人类。
 
-使用当前宿主文件能力把标准 JSON 写入 `project-html/data/_entry.json`。字符串双引号，换行写 `\n`，不使用反引号；空字段省略。
+使用当前宿主文件能力把标准 JSON 写入 `project-html/data/_entry.json`。字符串双引号，换行写 `\n`，不使用反引号；空字段省略。目录元数据写入 `entry`，人类方案写入 `detail.delivery.plan`：
 
 ```json
 {
@@ -67,17 +70,28 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
     "status": "草稿",
     "branch": "<branch>",
     "docPath": "<docPath>",
-    "background": "<background>",
-    "goals": ["<goal>"],
-    "scopeIn": ["<scope>"],
-    "scopeOut": ["<non-goal>"],
-    "apis": [],
-    "solution": "<solution>",
-    "dataFlowSummary": "<source -> validation/transform -> processing -> persistence/outbound -> result/event>",
-    "coreDesign": "<boundary and trade-off>",
-    "keyImpl": [{"title": "<decision>", "desc": "<problem -> choice -> reason>"}],
-    "flowchart": "<mermaid data flow>",
-    "acceptance": ["<observable acceptance result>"]
+    "currentGate": "plan",
+    "gateStatus": "passed",
+    "apis": []
+  },
+  "detail": {
+    "delivery": {
+      "plan": {
+        "status": "passed",
+        "summary": "<one-sentence plan>",
+        "background": "<background>",
+        "goals": ["<goal>"],
+        "scopeIn": ["<scope>"],
+        "scopeOut": ["<non-goal>"],
+        "solution": "<solution>",
+        "dataFlowSummary": "<source -> validation/transform -> processing -> persistence/outbound -> result/event>",
+        "coreDesign": "<boundary and trade-off>",
+        "keyImpl": [{"title": "<decision>", "desc": "<problem -> choice -> reason>"}],
+        "flowchart": "<mermaid data flow>",
+        "acceptance": ["<observable acceptance result>"],
+        "next": "<next gate action>"
+      }
+    }
   }
 }
 ```
@@ -89,14 +103,14 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
 3. 运行 `node project-html/build.js`，生成轻量详情页和 `docs/INDEX.md`。
 4. 只有明确需要单文件外发时运行 `node project-html/build.js --standalone "<docPath 或 slug>"`。
 
-`board-add.js` 负责按 `docPath` 去重、保留治理字段、备份、拆分详情和记录数回归。脚本失败时原数据必须保持不变。
+`board-add.js` 负责生成稳定 `deliveryId`，按 `deliveryId` / `sourceDocPath` / `docPath` 去重，深合并生命周期详情，按稳定 `eventId` 幂等更新 Review 事件，并保留治理字段、备份、拆分详情和记录数回归。脚本失败时原数据必须保持不变。
 
 ## 4. 完成条件
 
 - entry 是独立的人类方案，不是 md 摘录；
 - `data/changes.js` 未被整体重写；
 - `board-add.js` 与 `build.js` 均成功；
-- 详情页首屏能直接回答“这次做什么 / 数据怎么流转 / 实现方式 / 关键边界与取舍 / 怎么验收”，正文标题、段落、章节导航和 Mermaid/表格可正常阅读；
+- 详情页首屏能直接回答“当前 Gate / 开发方案 / Review 摘要 / 验证证据 / 下一步”；正文保留完整方案，后续 Review 可在同一 `deliveryId` 下持续更新；
 - 有真实浏览器能力时至少打开一条详情检查首屏与正文；无法浏览器复核时标记 `BoardVisualCheck: NotRun`，不得声称视觉已验证；
 - 输出 `BoardPublishStatus: Published` 和目录/详情/索引路径；
 - 新建看板时只提示精确 VCS 纳管命令，不代用户执行。

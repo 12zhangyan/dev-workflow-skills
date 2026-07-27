@@ -15,10 +15,10 @@ description: 统一处理代码审查相关任务，并根据用户是否允许�
 
 | 用户意图/证据状态 | 模式 | 写权限 |
 |---|---|---|
-| 生成 review task、分发多个 AI、汇总返回的 findings、生成 fix-handoff | `package` | 只写审查文档，不改业务代码 |
-| 已提供 findings / fix-handoff / 明确问题清单，并要求直接修复 | `repair` | 可改范围内代码和测试 |
-| 没有现成 findings，明确要求同一 AI 审查、必要修复、验证并复审 | `loop` | 可改范围内代码和测试 |
-| 只要求 review、检查、找问题、输出 findings，或没有明确修改授权 | `check` | 严格只读 |
+| 生成 review task、分发多个 AI、汇总返回的 findings、生成 fix-handoff | `package` | 写审查文档与同一档案的看板事件，不改业务代码 |
+| 已提供 findings / fix-handoff / 明确问题清单，并要求直接修复 | `repair` | 可改范围内代码和测试，并更新看板 |
+| 没有现成 findings，明确要求同一 AI 审查、必要修复、验证并复审 | `loop` | 可改范围内代码和测试，并更新看板 |
+| 只要求 review、检查、找问题、输出 findings，或没有明确修改授权 | `check` | 业务代码与正式文档只读；更新同一档案的看板事件 |
 
 旧名称确定性映射：
 
@@ -27,7 +27,7 @@ description: 统一处理代码审查相关任务，并根据用户是否允许�
 - `review-loop` → `loop`
 - `review-fix` → `package`
 
-“review 一下”“看看有没有问题”等模糊表达默认 `check`，因为只读是最小权限。只有模式会改变写权限且用户意图无法从原话确定时，才问一个问题确认是否允许修改。
+“review 一下”“看看有没有问题”等模糊表达默认 `check`，因为业务代码只读是最小权限。看板生命周期元数据是所有模式的标准产物，不视为修改业务实现的授权。只有模式会改变代码/正式文档写权限且用户意图无法从原话确定时，才问一个问题确认是否允许修改。
 
 ## 渐进加载
 
@@ -45,10 +45,11 @@ description: 统一处理代码审查相关任务，并根据用户是否允许�
 ## 统一边界
 
 - 启动时输出 `ReviewMode: check|repair|loop|package` 和选择依据。
-- `check` 期间不得写文件或修改代码；若发现问题，只输出有证据的 finding。
+- `check` 期间不得修改业务代码或正式文档；若发现问题，只输出有证据的 finding，但必须按共享发布流程更新同一研发档案的 Review 事件。
 - `repair` 必须有现成 finding/问题清单；没有时停止并建议 `check` 或 `loop`。
 - `loop` 最多两个修复循环，不自动提交；小范围单模块默认 quick。
 - `package` 没有外部 review 结果时只生成任务包，不编造 findings。
+- 四种模式直接调用时都加载 [共享看板发布流程](../_shared/board-publish-flow.md)，优先凭 `deliveryId`、其次凭 `sourceDocPath` 更新同一档案；身份无法确定时显式输出 `BoardPublishBlocked: IdentityMissing`，不得创建 Review 孤岛。
 - 数据库始终只读；DDL、数据修复只生成 DBA 申请材料。
 - 不自动 commit、push、merge、发布，不回滚无关本地改动。
 - 旧产物路径继续兼容：`docs/review-fix/...`、`CR/IM/MI/RJ/BK` finding ID 和 Workflow Brief 字段不变。

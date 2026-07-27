@@ -114,7 +114,7 @@ function buildPages(data) {
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="../js/vendor/mermaid.min.js"></script>
 <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
-<link rel="stylesheet" href="../css/board.css">
+<link rel="stylesheet" href="../css/board.css?v=27">
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
 </head>
 <body>
@@ -122,7 +122,7 @@ function buildPages(data) {
 <main class="main" id="main"></main>
 <script>window.DETAIL_PAGE = true;</script>
 <script>${entryJs}</script>
-<script src="../js/board.js"></script>
+<script src="../js/board.js?v=27"></script>
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;

@@ -1,5 +1,6 @@
-// ─── AI 变更记录数据 ─────────────────────────────────────────────────────────
-// 本文件由 /yan-dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加。
+// ─── 研发变更档案目录 ────────────────────────────────────────────────────────
+// yan-dev-doc 创建一事一档主记录；yan-code-review package/check/repair/loop 更新同一 deliveryId。
+// bug-fix、code-reading、biz-flow 保留各自记录类型。
 // 渲染逻辑在 js/board.js（不要在本文件写逻辑）。
 // 手工修改时保持 JS 语法合法：每条记录末尾带逗号，追加标记行不可删除。
 

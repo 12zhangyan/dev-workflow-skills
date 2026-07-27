@@ -1,5 +1,6 @@
-// ─── AI 变更记录数据 ─────────────────────────────────────────────────────────
-// 本文件由 /yan-dev-doc、/bug-fix、/code-reading、/biz-flow 自动登记；渲染逻辑在 js/board.js。
+// ─── 研发变更档案目录 ────────────────────────────────────────────────────────
+// yan-dev-doc 创建一事一档主记录；yan-code-review package/check/repair/loop 更新同一 deliveryId。
+// bug-fix、code-reading、biz-flow 保留各自记录类型；渲染逻辑在 js/board.js。
 // 数据只能通过 board-add.js 写入；模板保持空目录。
 
 const htmlChangelog = [

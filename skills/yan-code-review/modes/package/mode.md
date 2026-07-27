@@ -110,7 +110,15 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 
 ### Step 2.5：输出并停住
 
-完成 Step 2 后按 [第一阶段完成格式](completion.md#第一阶段完成后输出格式) 输出并停止：
+完成 Step 2 后，先加载 [共享看板发布流程](../../../_shared/board-publish-flow.md)，凭 `deliveryId` 或主开发文档 `sourceDocPath` 更新同一研发档案：
+
+- 若上层明确传入 `BoardPublishOwner: loop`，本子阶段只把任务包结果交回 loop，不自行写看板。
+- 写入稳定 `mode:"package"` 事件，第一阶段 `eventId` 固定区分为 `package-task`，`reviewState:"packaged"`、`gateStatus:"in_progress"`；
+- 摘要说明审查包覆盖范围、分发对象、材料完整性和待回收内容，不复制 AI prompt、逐文件证据包或 Agent 操作步骤；
+- 身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`；任务包仍可按本模式生成，但不得为它另建 Review 孤岛；
+- 写入后运行 `board-add.js` 与 `build.js`，记录 `deliveryId` 和 `BoardPublishStatus`。
+
+随后按 [第一阶段完成格式](completion.md#第一阶段完成后输出格式) 输出并停止：
 
 ```text
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
@@ -146,9 +154,12 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 
 ### Step 4.5：登记到 HTML 看板（第二阶段）
 
-仅在生成修复交接文档时登记看板。将 review-fix 文档作为普通文档条目登记，`type` 固定为 `"代码审查"`，`status` 固定为 `"草稿"`。
+生成修复交接文档后继续更新 Step 2.5 的同一研发档案，不把 fix-handoff 当成新的普通文档条目：
 
-看板创建、升级、写入、构建遵循 `yan-dev-doc` 的 [看板发布流程](../../../yan-dev-doc/publishing-board.md)：使用 `project-html/board-add.js` 写入，禁止手工重写 `data/changes.js`。
+- 使用另一稳定 `eventId`（固定区分为 `package-handoff`），写入 accepted / rejected / blocked finding 的 ID、状态和人类摘要；
+- `reviewState` 取 `findings|blocked|ready-for-repair`，`gateStatus` 由是否存在未裁决 Critical/Important/blocker 决定；
+- `sourceDocPath` 始终指向主开发文档；fix-handoff 路径可在事件摘要或下一步里说明，但不得替换档案 `docPath`；
+- 看板创建、升级、写入、构建仍按 [共享看板发布流程](../../../_shared/board-publish-flow.md) 执行。
 
 ### Step 5：输出 AI 修复操作码（第二阶段）
 
@@ -188,6 +199,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 - [ ] 已生成 Codex / Cursor / Claude 审查提示
 - [ ] 已提示可用 `yan-code-review mode=check` 执行审查
 - [ ] 已写明 findings 回收格式
+- [ ] 已向同一研发档案写入 `package-task` 事件，或明确输出 `BoardPublishStatus: Blocked`
 - [ ] 没有 review 结果时已停住，没有生成修复文档
 
 ### 第二阶段：修复交接
@@ -198,7 +210,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 - [ ] 修复交接文档已写入 `docs/review-fix/<日期>/<任务名>-fix-handoff.md`
 - [ ] AI 修复操作码已生成，且包含修改边界和验证命令
 - [ ] 若存在 blocker 或需求冲突，操作码已要求先确认，不让 AI 直接修
-- [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
+- [ ] 同一档案的 `package-handoff` 事件已用 `node project-html/board-add.js` 幂等更新并打印 `✓`，并已运行 `node project-html/build.js`
 
 ## 相关资源
 

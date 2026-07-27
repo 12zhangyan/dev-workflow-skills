@@ -5,6 +5,7 @@
 ```
 ✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
 🧭 工作流阶段：Review Gate 已创建，等待 review-check findings 回收
+🗂️ BoardPublishStatus: <Published: deliveryId/sourceDocPath · package-task / Blocked: 原因>
 
 【Workflow Brief】
 stage: ReviewGate
@@ -34,6 +35,7 @@ tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 d
 ✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>-fix-handoff.md
 📋 已汇总 review 结果：Critical <n> / Important <n> / Minor <n> / Rejected <n>
 🧭 工作流阶段：Review Gate 修复交接已完成；下一步回到 Verification Gate，修复并重跑验证
+🗂️ BoardPublishStatus: <Published: deliveryId/sourceDocPath · package-handoff / Blocked: 原因>
 
 【Workflow Brief】
 stage: ReviewGate

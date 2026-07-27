@@ -79,6 +79,12 @@
       "prompt": "请用同一个 AI 审查当前改动，发现问题就修复、跑测试，再复审确认 Critical/Important 关闭",
       "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并遵守其修复轮次上限。",
       "tags": ["routing_review_loop"]
+    },
+    {
+      "id": 15,
+      "prompt": "基于 docs/2026-07-27/order.md 生成多 AI review task，并把进度放到原研发档案里",
+      "expected_output": "第一阶段生成 review-task，同时用 sourceDocPath 更新原档案的稳定 package-task 事件；贴回 findings 后用 package-handoff 事件更新同一 deliveryId，不把 fix-handoff 建成第二条普通看板记录。",
+      "tags": ["board_lifecycle", "same_delivery", "package_two_stage"]
     }
   ]
 }

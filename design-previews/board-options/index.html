@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dev Doc × Code Review 看板候选方案</title>
+  <style>
+    :root {
+      --shell: #0c0d10;
+      --shell-soft: #17191f;
+      --shell-line: rgba(255,255,255,.12);
+      --text: #f5f3ec;
+      --muted: #aaaeb8;
+      --lime: #d9ff52;
+      --paper: #f5efe2;
+      --ink: #241f1a;
+      --red: #c44732;
+      --blue: #2867d8;
+      --cyan: #43d9ce;
+      --orange: #ff9c4a;
+      --shadow: 0 28px 80px rgba(0,0,0,.34);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 13% 8%, rgba(217,255,82,.11), transparent 26rem),
+        radial-gradient(circle at 88% 24%, rgba(61,107,255,.13), transparent 30rem),
+        var(--shell);
+      color: var(--text);
+      font-family: "Bahnschrift", "Microsoft YaHei", sans-serif;
+    }
+    button { font: inherit; }
+    button:focus-visible {
+      outline: 3px solid var(--lime);
+      outline-offset: 3px;
+    }
+    .top {
+      max-width: 1520px;
+      margin: auto;
+      padding: 42px clamp(20px, 4vw, 68px) 26px;
+    }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--lime);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 32px;
+      height: 2px;
+      background: currentColor;
+    }
+    h1 {
+      max-width: 980px;
+      margin: 18px 0 10px;
+      font: 600 clamp(36px, 5.4vw, 76px)/.98 Georgia, "STSong", serif;
+      letter-spacing: -.045em;
+    }
+    .intro {
+      max-width: 850px;
+      margin: 20px 0 0;
+      color: #c6c8cf;
+      font-size: 16px;
+      line-height: 1.75;
+    }
+    .notice {
+      display: inline-flex;
+      margin-top: 20px;
+      padding: 8px 12px;
+      border: 1px solid rgba(217,255,82,.4);
+      border-radius: 999px;
+      color: #e9ff9b;
+      background: rgba(217,255,82,.07);
+      font-size: 12px;
+    }
+    .chooser {
+      max-width: 1520px;
+      margin: auto;
+      padding: 22px clamp(20px, 4vw, 68px) 28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .choice {
+      position: relative;
+      min-height: 174px;
+      padding: 22px;
+      border: 1px solid var(--shell-line);
+      border-radius: 20px;
+      color: var(--text);
+      background: rgba(255,255,255,.035);
+      text-align: left;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .choice::after {
+      content: attr(data-letter);
+      position: absolute;
+      right: 12px;
+      bottom: -28px;
+      color: rgba(255,255,255,.045);
+      font: 800 110px/1 Georgia, serif;
+    }
+    .choice:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.28); }
+    .choice.active {
+      border-color: var(--lime);
+      background: rgba(217,255,82,.08);
+      box-shadow: 0 0 0 1px rgba(217,255,82,.2) inset;
+    }
+    .choice-num {
+      color: var(--lime);
+      font: 700 12px/1 "Consolas", monospace;
+    }
+    .choice h2 {
+      margin: 16px 0 8px;
+      font-size: 24px;
+      letter-spacing: -.03em;
+    }
+    .choice p {
+      max-width: 88%;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .preview-wrap {
+      padding: 0 clamp(10px, 2.5vw, 40px) 50px;
+    }
+    .preview {
+      max-width: 1600px;
+      min-height: 820px;
+      margin: auto;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: arrive .42s ease both;
+    }
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(12px) scale(.994); }
+      to { opacity: 1; transform: none; }
+    }
+    .hidden { display: none !important; }
+    .prototype-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 40px;
+      padding: 8px 16px;
+      color: #d6d8df;
+      background: #13151a;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      font: 600 11px/1.4 "Consolas", monospace;
+      letter-spacing: .06em;
+    }
+    .prototype-label span:last-child { color: #777e8c; }
+
+    /* A — editorial dossier */
+    .a-app {
+      min-height: 780px;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(52,44,34,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 100% 28px;
+      font-family: "Noto Serif SC", "STSong", Georgia, serif;
+    }
+    .a-bar {
+      height: 74px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #cfc3af;
+      background: rgba(250,247,239,.92);
+    }
+    .a-brand { font-size: 20px; font-weight: 800; letter-spacing: .08em; }
+    .a-brand small {
+      display: block;
+      margin-top: 4px;
+      color: #8b7e6c;
+      font: 10px/1.2 "Consolas", monospace;
+      letter-spacing: .15em;
+    }
+    .a-nav { display: flex; gap: 18px; color: #817360; font-size: 13px; }
+    .a-layout { display: grid; grid-template-columns: 284px 1fr; min-height: 706px; }
+    .a-side {
+      padding: 24px 18px;
+      border-right: 1px solid #cfc3af;
+      background: rgba(240,232,216,.65);
+    }
+    .a-side-title {
+      margin: 0 8px 16px;
+      color: #8d7b66;
+      font: 700 10px/1 "Consolas", monospace;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .a-task {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 14px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: #51483d;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .a-task.active {
+      border-color: #b89e80;
+      background: #fffaf0;
+      box-shadow: 4px 4px 0 rgba(111,88,60,.11);
+    }
+    .a-task strong { display: block; margin-bottom: 7px; font-size: 14px; }
+    .a-task span { color: #8d7d6b; font: 11px "Consolas", monospace; }
+    .a-main { padding: 42px clamp(26px, 5vw, 74px) 60px; overflow: auto; }
+    .a-kicker {
+      display: flex;
+      gap: 10px;
+      color: var(--red);
+      font: 700 11px "Consolas", monospace;
+      letter-spacing: .12em;
+    }
+    .a-main h3 {
+      max-width: 840px;
+      margin: 12px 0 14px;
+      font: 700 clamp(32px, 4vw, 56px)/1.08 Georgia, "STSong", serif;
+      letter-spacing: -.045em;
+    }
+    .a-lead {
+      max-width: 850px;
+      margin: 0;
+      padding-left: 18px;
+      border-left: 4px solid var(--red);
+      color: #665b4e;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .a-progress {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      margin: 32px 0 28px;
+      border-top: 1px solid #bcae99;
+      border-bottom: 1px solid #bcae99;
+    }
+    .a-step {
+      position: relative;
+      padding: 16px 10px 14px 0;
+      color: #938674;
+      font: 11px/1.4 "Consolas", monospace;
+    }
+    .a-step::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 0;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #bcae99;
+    }
+    .a-step.done { color: #3f684f; }
+    .a-step.done::before { background: #3f8a5e; }
+    .a-step.current { color: var(--red); font-weight: 800; }
+    .a-step.current::before { background: var(--red); box-shadow: 0 0 0 5px rgba(196,71,50,.14); }
+    .a-grid { display: grid; grid-template-columns: 1.22fr .78fr; gap: 28px; }
+    .a-section {
+      padding: 22px 0;
+      border-top: 3px double #a89880;
+    }
+    .a-section h4 { margin: 0 0 12px; font-size: 18px; }
+    .a-section p { margin: 0; color: #665c50; font-size: 13px; line-height: 1.75; }
+    .a-mini {
+      margin-top: 13px;
+      padding: 14px;
+      background: rgba(255,255,255,.48);
+      border: 1px solid #d5c8b4;
+    }
+    .a-mini b { color: var(--red); }
+    .a-findings { display: grid; gap: 8px; }
+    .a-finding {
+      padding: 12px 13px;
+      border-left: 4px solid #d58b42;
+      background: #fff9ee;
+      font: 12px/1.55 "Microsoft YaHei", sans-serif;
+    }
+    .a-finding.fixed { border-left-color: #4f966b; }
+    .a-model {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      padding: 18px;
+      color: #f4ead9;
+      background: #2d2924;
+    }
+    .a-model strong { color: #ffb394; }
+    .a-model code { color: #d8e7ad; font: 12px/1.7 "Consolas", monospace; }
+
+    /* B — dual lane industrial board */
+    .b-app {
+      min-height: 780px;
+      color: #eef2f2;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        #101719;
+      background-size: 34px 34px;
+      font-family: "Bahnschrift", "Microsoft YaHei", sans-serif;
+    }
+    .b-head {
+      padding: 22px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid #334145;
+      background: rgba(13,21,23,.88);
+    }
+    .b-head h3 { margin: 0; font-size: 29px; text-transform: uppercase; letter-spacing: -.04em; }
+    .b-head p { margin: 5px 0 0; color: #85989c; font: 11px "Consolas", monospace; }
+    .b-stats { display: flex; gap: 8px; }
+    .b-stat {
+      min-width: 86px;
+      padding: 10px;
+      border: 1px solid #334145;
+      color: #8fa2a6;
+      background: #152024;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .b-stat b { display: block; margin-bottom: 3px; color: var(--cyan); font-size: 21px; }
+    .b-layout { display: grid; grid-template-columns: 1fr 390px; min-height: 700px; }
+    .b-board { padding: 24px; overflow: auto; }
+    .b-lanes { display: grid; grid-template-columns: 1fr 54px 1fr; align-items: start; }
+    .b-lane { min-width: 280px; }
+    .b-lane-head {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 4px 12px;
+      color: #a9b8ba;
+      font: 700 12px "Consolas", monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .b-lane-head span { color: #607276; }
+    .b-bridge {
+      position: relative;
+      min-height: 500px;
+    }
+    .b-bridge::before {
+      content: "";
+      position: absolute;
+      top: 97px;
+      left: 9px;
+      width: 36px;
+      border-top: 1px dashed var(--cyan);
+    }
+    .b-bridge::after {
+      content: "LINK";
+      position: absolute;
+      top: 87px;
+      left: 13px;
+      padding: 2px 4px;
+      color: var(--cyan);
+      background: #101719;
+      font: 8px "Consolas", monospace;
+    }
+    .b-card {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 17px;
+      border: 1px solid #334448;
+      border-radius: 10px;
+      color: #e8eded;
+      background: rgba(23,34,37,.96);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .18s ease, transform .18s ease;
+    }
+    .b-card:hover { border-color: #60777c; transform: translateY(-2px); }
+    .b-card.active { border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(67,217,206,.2) inset; }
+    .b-card.review.active { border-color: var(--orange); box-shadow: 0 0 0 1px rgba(255,156,74,.2) inset; }
+    .b-card-top { display: flex; justify-content: space-between; gap: 10px; }
+    .b-id { color: var(--cyan); font: 10px "Consolas", monospace; }
+    .b-card.review .b-id { color: var(--orange); }
+    .b-status {
+      padding: 3px 7px;
+      border: 1px solid #4a5e62;
+      border-radius: 999px;
+      color: #a9bbbe;
+      font: 9px "Consolas", monospace;
+    }
+    .b-card h4 { margin: 15px 0 8px; font-size: 17px; }
+    .b-card p { margin: 0; color: #8da0a3; font-size: 12px; line-height: 1.6; }
+    .b-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; }
+    .b-tags span { padding: 4px 6px; background: #223034; color: #91a4a7; font: 9px "Consolas", monospace; }
+    .b-detail {
+      padding: 24px;
+      border-left: 1px solid #334145;
+      background: rgba(13,20,22,.96);
+    }
+    .b-detail-kicker { color: var(--orange); font: 10px "Consolas", monospace; letter-spacing: .12em; }
+    .b-detail h4 { margin: 12px 0 10px; font-size: 26px; line-height: 1.15; }
+    .b-detail > p { color: #92a3a6; font-size: 13px; line-height: 1.7; }
+    .b-rel {
+      margin: 20px 0;
+      padding: 14px;
+      border: 1px dashed #3d5559;
+      color: #a9babc;
+      background: #152225;
+      font: 11px/1.7 "Consolas", monospace;
+    }
+    .b-rel b { color: var(--cyan); }
+    .b-checks { display: grid; gap: 7px; }
+    .b-check {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid #263538;
+      color: #a4b2b5;
+      font-size: 12px;
+    }
+    .b-check strong { color: #e9eeee; }
+    .b-model {
+      margin-top: 22px;
+      padding: 15px;
+      border-left: 3px solid var(--orange);
+      color: #aebcbe;
+      background: #182326;
+      font-size: 11px;
+      line-height: 1.65;
+    }
+    .b-model b { color: var(--orange); }
+
+    /* C — gate cockpit */
+    .c-app {
+      min-height: 780px;
+      color: #16243b;
+      background:
+        radial-gradient(circle at 78% 3%, rgba(40,103,216,.14), transparent 28rem),
+        #edf3fb;
+      font-family: "Aptos", "Microsoft YaHei", sans-serif;
+    }
+    .c-head {
+      height: 76px;
+      display: grid;
+      grid-template-columns: 250px 1fr auto;
+      align-items: center;
+      border-bottom: 1px solid #c6d4e7;
+      background: rgba(248,251,255,.92);
+    }
+    .c-logo {
+      height: 100%;
+      padding: 20px 24px;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+    .c-logo small { display: block; margin-top: 4px; opacity: .7; font: 9px "Consolas", monospace; letter-spacing: .14em; }
+    .c-current { padding-left: 26px; }
+    .c-current b { display: block; font-size: 17px; }
+    .c-current span { color: #73839a; font-size: 11px; }
+    .c-health {
+      margin-right: 22px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      color: #19734a;
+      background: #dff6e9;
+      font: 700 11px "Consolas", monospace;
+    }
+    .c-layout { display: grid; grid-template-columns: 250px 1fr; min-height: 704px; }
+    .c-side {
+      padding: 24px 16px;
+      border-right: 1px solid #c6d4e7;
+      background: rgba(245,249,254,.9);
+    }
+    .c-side-label { margin: 0 8px 12px; color: #8696ac; font: 10px "Consolas", monospace; letter-spacing: .14em; }
+    .c-task {
+      width: 100%;
+      padding: 13px 12px;
+      border: 0;
+      border-radius: 9px;
+      color: #4c5d75;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .c-task.active { color: #153b75; background: #dfeaff; }
+    .c-task b { display: block; margin-bottom: 5px; font-size: 13px; }
+    .c-task span { font: 10px "Consolas", monospace; }
+    .c-main { padding: 24px; overflow: auto; }
+    .c-summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+    .c-summary h3 { margin: 0 0 7px; font-size: 29px; letter-spacing: -.035em; }
+    .c-summary p { margin: 0; color: #64768f; font-size: 13px; line-height: 1.6; }
+    .c-score {
+      width: 90px;
+      height: 90px;
+      display: grid;
+      place-items: center;
+      border: 9px solid #d3e0f2;
+      border-top-color: #2fbd78;
+      border-right-color: #2fbd78;
+      border-radius: 50%;
+      color: #1d7b51;
+      background: #fff;
+      font: 800 22px "Consolas", monospace;
+    }
+    .c-gates {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .c-gate {
+      min-height: 110px;
+      padding: 14px;
+      border: 1px solid #cbd8e9;
+      border-radius: 13px;
+      color: #475a73;
+      background: rgba(255,255,255,.78);
+      text-align: left;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+    .c-gate:hover { transform: translateY(-2px); }
+    .c-gate.active { color: #154b99; border-color: var(--blue); box-shadow: 0 9px 24px rgba(40,103,216,.13); }
+    .c-gate-num { color: #9aabc0; font: 10px "Consolas", monospace; }
+    .c-gate b { display: block; margin: 15px 0 6px; font-size: 14px; }
+    .c-gate span { color: #74869e; font-size: 10px; }
+    .c-gate i {
+      float: right;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2fbd78;
+      box-shadow: 0 0 0 4px rgba(47,189,120,.12);
+    }
+    .c-gate.review i { background: #f09b42; box-shadow: 0 0 0 4px rgba(240,155,66,.14); }
+    .c-panels { display: grid; grid-template-columns: 1.25fr .75fr; gap: 16px; }
+    .c-panel {
+      padding: 20px;
+      border: 1px solid #cedbea;
+      border-radius: 15px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 8px 28px rgba(41,75,118,.06);
+    }
+    .c-panel h4 { margin: 0 0 15px; font-size: 15px; }
+    .c-row {
+      display: grid;
+      grid-template-columns: 104px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e3eaf3;
+      font-size: 12px;
+    }
+    .c-row:last-child { border-bottom: 0; }
+    .c-row code { color: #667991; font-size: 10px; }
+    .c-pill {
+      padding: 4px 7px;
+      border-radius: 999px;
+      color: #287752;
+      background: #e0f6ea;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .c-pill.warn { color: #9b5d1f; background: #fff0df; }
+    .c-pulse { display: grid; gap: 11px; }
+    .c-pulse-item {
+      padding: 12px;
+      border-radius: 10px;
+      color: #5a6d86;
+      background: #f0f5fb;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .c-pulse-item b { display: block; color: #213b61; }
+    .c-model {
+      grid-column: 1 / -1;
+      padding: 15px 18px;
+      border: 1px solid #b8ccea;
+      border-radius: 12px;
+      color: #50647f;
+      background: #e9f1ff;
+      font-size: 11px;
+      line-height: 1.65;
+    }
+    .c-model b { color: #174f9d; }
+
+    .decision {
+      max-width: 1520px;
+      margin: 0 auto 72px;
+      padding: 0 clamp(20px, 4vw, 68px);
+    }
+    .decision-box {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, 1fr);
+      border: 1px solid var(--shell-line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(255,255,255,.035);
+    }
+    .decision-box > div { min-height: 120px; padding: 20px; border-right: 1px solid var(--shell-line); }
+    .decision-box > div:last-child { border-right: 0; }
+    .decision-title { font: 700 22px/1.2 Georgia, serif; }
+    .decision-title span { display: block; margin-top: 10px; color: var(--muted); font: 12px/1.6 "Bahnschrift", sans-serif; }
+    .decision-col b { color: var(--lime); }
+    .decision-col p { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .content-showcase {
+      max-width: 1520px;
+      margin: 0 auto 34px;
+      padding: 22px clamp(20px, 4vw, 68px) 0;
+    }
+    .content-intro {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .content-intro h2 {
+      margin: 8px 0 0;
+      font: 600 clamp(30px, 4vw, 52px)/1.05 Georgia, "STSong", serif;
+      letter-spacing: -.04em;
+    }
+    .content-intro p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+    .content-shell {
+      display: grid;
+      grid-template-columns: 264px 1fr;
+      min-height: 720px;
+      overflow: hidden;
+      border: 1px solid var(--shell-line);
+      border-radius: 24px;
+      background: #111318;
+      box-shadow: var(--shadow);
+    }
+    .content-menu {
+      padding: 22px 14px;
+      border-right: 1px solid var(--shell-line);
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        #15181e;
+      background-size: 100% 32px;
+    }
+    .content-menu-label {
+      margin: 0 10px 15px;
+      color: #6e7480;
+      font: 10px "Consolas", monospace;
+      letter-spacing: .14em;
+    }
+    .content-tab {
+      width: 100%;
+      margin-bottom: 7px;
+      padding: 13px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: #aeb3bd;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .content-tab:hover { color: #fff; background: rgba(255,255,255,.04); }
+    .content-tab.active {
+      color: #f5ffd4;
+      border-color: rgba(217,255,82,.45);
+      background: rgba(217,255,82,.08);
+    }
+    .content-tab b { display: block; margin-bottom: 5px; font-size: 13px; }
+    .content-tab span { color: #707783; font: 9px "Consolas", monospace; letter-spacing: .08em; }
+    .content-canvas {
+      padding: clamp(18px, 3vw, 42px);
+      background:
+        radial-gradient(circle at 92% 6%, rgba(41,102,212,.11), transparent 25rem),
+        #e9edf2;
+      color: #1b2430;
+    }
+    .content-paper {
+      min-height: 636px;
+      padding: clamp(22px, 4vw, 48px);
+      border-radius: 3px;
+      background: #fff;
+      box-shadow: 0 22px 60px rgba(22,32,47,.16);
+      animation: contentIn .25s ease both;
+    }
+    @keyframes contentIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    .ct-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid #dce1e8;
+    }
+    .ct-kicker {
+      color: #68788e;
+      font: 700 10px "Consolas", monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .ct-top h3 {
+      margin: 10px 0 8px;
+      font: 700 clamp(26px, 3vw, 40px)/1.12 Georgia, "STSong", serif;
+      letter-spacing: -.035em;
+    }
+    .ct-top p { max-width: 760px; margin: 0; color: #617087; font-size: 13px; line-height: 1.7; }
+    .ct-status {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: #216c4a;
+      background: #e2f6eb;
+      font: 700 10px "Consolas", monospace;
+      white-space: nowrap;
+    }
+    .ct-status.warn { color: #985b1e; background: #fff0dc; }
+    .ct-facts {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin: 22px 0;
+      background: #dfe4eb;
+      border: 1px solid #dfe4eb;
+    }
+    .ct-fact { padding: 13px; background: #f7f9fb; }
+    .ct-fact span { display: block; color: #8a97a8; font: 9px "Consolas", monospace; letter-spacing: .08em; }
+    .ct-fact b { display: block; margin-top: 7px; font-size: 13px; }
+    .ct-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 26px; }
+    .ct-stack { display: grid; gap: 15px; align-content: start; }
+    .ct-block {
+      padding-top: 15px;
+      border-top: 2px solid #253247;
+    }
+    .ct-block h4 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 0 9px;
+      font-size: 14px;
+    }
+    .ct-block h4 span { color: #97a2b1; font: 9px "Consolas", monospace; }
+    .ct-block p { margin: 0; color: #58687d; font-size: 12px; line-height: 1.75; }
+    .ct-list { display: grid; gap: 7px; margin-top: 10px; }
+    .ct-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 11px;
+      border: 1px solid #e0e5ec;
+      background: #fafbfc;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .ct-item-id { color: #b65b2b; font: 700 10px "Consolas", monospace; }
+    .ct-item-state {
+      padding: 3px 6px;
+      border-radius: 999px;
+      color: #26724e;
+      background: #e1f5e9;
+      font: 8px "Consolas", monospace;
+      white-space: nowrap;
+    }
+    .ct-item-state.warn { color: #9b5c1f; background: #fff0dc; }
+    .ct-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+    .ct-flow span {
+      position: relative;
+      padding: 7px 9px;
+      border-radius: 7px;
+      color: #35557d;
+      background: #eaf2fd;
+      font-size: 10px;
+    }
+    .ct-flow span:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -8px;
+      color: #8291a3;
+    }
+    .ct-gate {
+      margin-top: 22px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      color: #dbe5f4;
+      background: #202d41;
+      font-size: 11px;
+    }
+    .ct-gate b { color: #d9ff52; }
+    .ct-gate code { color: #9fb1c8; font-size: 10px; }
+    .ct-density {
+      margin-top: 13px;
+      color: #7c8796;
+      font: 10px/1.65 "Consolas", monospace;
+    }
+    .footer-note {
+      max-width: 1520px;
+      margin: -42px auto 50px;
+      padding: 0 clamp(20px, 4vw, 68px);
+      color: #727782;
+      font: 11px/1.7 "Consolas", monospace;
+    }
+
+    @media (max-width: 980px) {
+      .chooser { grid-template-columns: 1fr; }
+      .choice { min-height: 130px; }
+      .a-layout, .b-layout, .c-layout { grid-template-columns: 1fr; }
+      .a-side, .c-side { display: none; }
+      .b-detail { border-left: 0; border-top: 1px solid #334145; }
+      .c-head { grid-template-columns: 190px 1fr; }
+      .c-health { display: none; }
+      .c-gates { grid-template-columns: repeat(3, 1fr); }
+      .decision-box { grid-template-columns: 1fr; }
+      .decision-box > div { border-right: 0; border-bottom: 1px solid var(--shell-line); }
+      .content-intro { grid-template-columns: 1fr; }
+      .content-shell { grid-template-columns: 1fr; }
+      .content-menu {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--shell-line);
+      }
+      .content-menu-label { display: none; }
+      .content-tab { min-width: 170px; margin-bottom: 0; }
+    }
+    @media (max-width: 640px) {
+      .top { padding-top: 28px; }
+      .preview-wrap { padding-inline: 6px; }
+      .preview { border-radius: 16px; }
+      .prototype-label span:last-child { display: none; }
+      .a-bar { height: auto; padding: 15px; }
+      .a-nav { display: none; }
+      .a-main { padding: 28px 18px 42px; }
+      .a-progress { grid-template-columns: 1fr; border-bottom: 0; }
+      .a-step { border-bottom: 1px solid #cbbda9; }
+      .a-grid, .b-lanes, .c-panels { grid-template-columns: 1fr; }
+      .a-model, .c-model { grid-column: auto; }
+      .b-bridge { display: none; }
+      .b-board, .b-detail, .c-main { padding: 16px; }
+      .b-head { align-items: flex-start; }
+      .b-stats { display: none; }
+      .c-head { height: auto; grid-template-columns: 1fr; }
+      .c-logo { padding: 15px 18px; }
+      .c-current { padding: 13px 18px; }
+      .c-summary { grid-template-columns: 1fr; }
+      .c-score { width: 70px; height: 70px; }
+      .c-gates { grid-template-columns: repeat(2, 1fr); }
+      .c-row { grid-template-columns: 1fr; gap: 4px; }
+      .content-showcase { padding-inline: 8px; }
+      .content-shell { border-radius: 15px; }
+      .content-canvas { padding: 8px; }
+      .content-paper { padding: 20px 16px; }
+      .ct-top, .ct-grid { display: grid; grid-template-columns: 1fr; }
+      .ct-facts { grid-template-columns: repeat(2, 1fr); }
+      .ct-item { grid-template-columns: auto 1fr; }
+      .ct-item-state { grid-column: 2; justify-self: start; }
+      .ct-gate { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="eyebrow">Design decision playground · 仅供选型</div>
+    <h1>Dev Doc × Code Review<br>看板怎么合在一起？</h1>
+    <p class="intro">下面不是三套“换皮”，而是三种不同的数据关系。每套都用同一个 OOM 防护任务演示：方案如何进入、审查如何落位、验证证据放在哪里，以及 Skill 最终要按什么结构写看板。</p>
+    <span class="notice">当前正式看板和 Skill 未被修改 · 选择后再接入</span>
+  </header>
+
+  <nav class="chooser" aria-label="候选模板">
+    <button class="choice active" data-option="a" data-letter="A" aria-pressed="true">
+      <span class="choice-num">OPTION 01 · 最易理解</span>
+      <h2>一事一档 · 生命周期档案</h2>
+      <p>一个需求只有一张主卡，dev-doc、实现、code-review、验证作为连续章节追加。适合先看“为什么改、后来审出了什么”。</p>
+    </button>
+    <button class="choice" data-option="b" data-letter="B" aria-pressed="false">
+      <span class="choice-num">OPTION 02 · 职责最清楚</span>
+      <h2>双轨泳道 · 方案与审查分开</h2>
+      <p>dev-doc 和每次 code-review 都是独立记录，通过来源关系连接。适合多轮审查、多人协作和严格追责。</p>
+    </button>
+    <button class="choice" data-option="c" data-letter="C" aria-pressed="false">
+      <span class="choice-num">OPTION 03 · 流程最严格</span>
+      <h2>Gate 驾驶舱 · 按闸门组织</h2>
+      <p>不以文档类型为中心，而以 Plan、Implementation、Verification、Review、Submit 是否通过为中心。</p>
+    </button>
+  </nav>
+
+  <main class="preview-wrap">
+    <section class="preview" id="preview-a">
+      <div class="prototype-label"><span>候选 A / LIFECYCLE DOSSIER</span><span>点击左侧任务可模拟切换</span></div>
+      <div class="a-app">
+        <header class="a-bar">
+          <div class="a-brand">研发变更档案馆<small>ONE CHANGE · ONE STORY</small></div>
+          <div class="a-nav"><span>工作台</span><span>待审阅</span><span>已归档</span><span>搜索</span></div>
+        </header>
+        <div class="a-layout">
+          <aside class="a-side">
+            <p class="a-side-title">最近变更 / 3</p>
+            <button class="a-task active" data-a-task="oom"><strong>批量导出 OOM 防护</strong><span>Review Gate · 07/27</span></button>
+            <button class="a-task" data-a-task="quote"><strong>报价状态语义统一</strong><span>Implementation · 07/26</span></button>
+            <button class="a-task" data-a-task="archive"><strong>历史单据归档治理</strong><span>Completed · 07/24</span></button>
+          </aside>
+          <article class="a-main" id="a-content"></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview hidden" id="preview-b">
+      <div class="prototype-label"><span>候选 B / DUAL-TRACK BOARD</span><span>点击卡片查看 dev-doc 与 review 的关联</span></div>
+      <div class="b-app">
+        <header class="b-head">
+          <div><h3>Delivery Ledger</h3><p>DEV PLAN ↔ REVIEW RECORD · 独立留痕</p></div>
+          <div class="b-stats">
+            <div class="b-stat"><b>04</b>Active Plans</div>
+            <div class="b-stat"><b>03</b>Open Review</div>
+            <div class="b-stat"><b>00</b>Critical</div>
+          </div>
+        </header>
+        <div class="b-layout">
+          <div class="b-board">
+            <div class="b-lanes">
+              <section class="b-lane">
+                <div class="b-lane-head">DEV-DOC / 方案轨<span>3 ITEMS</span></div>
+                <button class="b-card active" data-b-card="plan-oom">
+                  <div class="b-card-top"><span class="b-id">DD-027</span><span class="b-status">已实现</span></div>
+                  <h4>批量导出 OOM 防护</h4>
+                  <p>从全量物化改为流式分段处理，并设置批次内存上限。</p>
+                  <div class="b-tags"><span>yan-dev-doc</span><span>库存服务</span><span>中风险</span></div>
+                </button>
+                <button class="b-card" data-b-card="plan-quote">
+                  <div class="b-card-top"><span class="b-id">DD-026</span><span class="b-status">开发中</span></div>
+                  <h4>报价状态语义统一</h4>
+                  <p>统一草稿、待审批、已驳回的状态映射。</p>
+                  <div class="b-tags"><span>yan-dev-doc</span><span>报价模块</span></div>
+                </button>
+              </section>
+              <div class="b-bridge" aria-hidden="true"></div>
+              <section class="b-lane">
+                <div class="b-lane-head">CODE-REVIEW / 审查轨<span>3 ITEMS</span></div>
+                <button class="b-card review active" data-b-card="review-oom">
+                  <div class="b-card-top"><span class="b-id">RV-027.2</span><span class="b-status">1 IM 已修复</span></div>
+                  <h4>OOM 防护 · 二次复审</h4>
+                  <p>批次释放已补齐；异常路径分页状态清理验证通过。</p>
+                  <div class="b-tags"><span>yan-code-review</span><span>ImplementationReview</span></div>
+                </button>
+                <button class="b-card review" data-b-card="review-quote">
+                  <div class="b-card-top"><span class="b-id">RV-026.1</span><span class="b-status">待处理</span></div>
+                  <h4>报价状态 · 首轮审查</h4>
+                  <p>发现权限边界与驳回语义存在 2 个 Important。</p>
+                  <div class="b-tags"><span>yan-code-review</span><span>2 IM</span></div>
+                </button>
+              </section>
+            </div>
+          </div>
+          <aside class="b-detail" id="b-detail"></aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview hidden" id="preview-c">
+      <div class="prototype-label"><span>候选 C / DELIVERY GATE COCKPIT</span><span>点击 Gate 查看该阶段证据</span></div>
+      <div class="c-app">
+        <header class="c-head">
+          <div class="c-logo">交付控制塔<small>DELIVERY CONTROL</small></div>
+          <div class="c-current"><b>批量导出 OOM 防护</b><span>库存服务 / export-service · DD-027</span></div>
+          <div class="c-health">● HEALTHY · 4/5 PASSED</div>
+        </header>
+        <div class="c-layout">
+          <aside class="c-side">
+            <p class="c-side-label">ACTIVE DELIVERY</p>
+            <button class="c-task active"><b>批量导出 OOM 防护</b><span>REVIEW GATE</span></button>
+            <button class="c-task"><b>报价状态语义统一</b><span>IMPLEMENTATION</span></button>
+            <button class="c-task"><b>历史单据归档治理</b><span>SUBMIT READY</span></button>
+          </aside>
+          <div class="c-main">
+            <div class="c-summary">
+              <div>
+                <h3>交付链路还差一步</h3>
+                <p>方案、实现与验证已经闭合；Review Gate 的 IM-1 已修复，等待精确纳管新增测试文件后进入 Submit。</p>
+              </div>
+              <div class="c-score">82%</div>
+            </div>
+            <nav class="c-gates" aria-label="交付 Gate">
+              <button class="c-gate" data-gate="plan"><span class="c-gate-num">01</span><i></i><b>Plan</b><span>dev-doc 已批准</span></button>
+              <button class="c-gate" data-gate="implementation"><span class="c-gate-num">02</span><i></i><b>Implementation</b><span>3 files changed</span></button>
+              <button class="c-gate" data-gate="verification"><span class="c-gate-num">03</span><i></i><b>Verification</b><span>12 tests passed</span></button>
+              <button class="c-gate review active" data-gate="review"><span class="c-gate-num">04</span><i></i><b>Review</b><span>1 IM fixed</span></button>
+              <button class="c-gate" data-gate="submit"><span class="c-gate-num">05</span><i></i><b>Submit</b><span>VCS blocked</span></button>
+            </nav>
+            <div class="c-panels" id="c-panels"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="content-showcase">
+    <div class="content-intro">
+      <div>
+        <div class="eyebrow">Content anatomy · 内容模板试阅</div>
+        <h2>点进看板后，<br>里面具体写什么？</h2>
+      </div>
+      <p>这五个模板对应 Skill 的实际产物阶段。它们共用同一任务编号，但各自回答不同问题：方案讲“为什么与怎么做”，审查讲“证据与问题”，修复讲“哪些 finding 关闭了”，闭环讲“整个 Review Gate 最终是否通过”。</p>
+    </div>
+    <div class="content-shell">
+      <nav class="content-menu" aria-label="内容模板类型">
+        <p class="content-menu-label">SELECT RECORD TYPE</p>
+        <button class="content-tab active" data-content="devdoc"><b>Dev Doc · 方案说明</b><span>PLAN GATE</span></button>
+        <button class="content-tab" data-content="check"><b>Review Check · 审查结果</b><span>READ-ONLY REVIEW</span></button>
+        <button class="content-tab" data-content="package"><b>Review Package · 审查任务</b><span>AWAITING FINDINGS</span></button>
+        <button class="content-tab" data-content="repair"><b>Review Repair · 修复结果</b><span>FINDING CLOSURE</span></button>
+        <button class="content-tab" data-content="loop"><b>Review Loop · 闭环记录</b><span>REVIEW → FIX → RECHECK</span></button>
+      </nav>
+      <div class="content-canvas">
+        <article class="content-paper" id="content-paper"></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="decision">
+    <div class="decision-box">
+      <div class="decision-title">拍板时只需要回答一件事<span>你希望团队首先看到的是“一个任务的完整故事”、 “两类产物的独立责任”，还是“交付 Gate 是否通过”？</span></div>
+      <div class="decision-col"><b>A · 一事一档</b><p>阅读成本最低；数据合并最深。适合需求量中等、希望业务和研发共读。</p></div>
+      <div class="decision-col"><b>B · 双轨泳道</b><p>审计最清楚；记录数量更多。适合多轮 Review、多 AI 或多人协作。</p></div>
+      <div class="decision-col"><b>C · Gate 驾驶舱</b><p>流程状态最醒目；需要维护 gate 事件。适合重流程、强交付治理。</p></div>
+    </div>
+  </section>
+  <p class="footer-note">选择方式示例：“选 A，但我想保留 B 的独立审查编号” / “选 C，颜色改成现在看板的纸面风格”。拍板前不会修改 project-html/ 正式外壳、board-add.js 或 Skill 写入规则。</p>
+
+  <script>
+    const aTasks = {
+      oom: {
+        kicker: "DD-027 · REVIEW GATE · 库存服务",
+        title: "批量导出 OOM 防护",
+        lead: "大批量导出会一次性物化全部明细，峰值内存不可控。方案改为按游标分段读取、逐批写出，并在 finally 中释放批次对象与分页状态。",
+        plan: "yan-dev-doc 给出流式分段、批次上限和异常清理边界。保持接口签名不变，不新增数据库结构，不改变现有权限判断。",
+        review: [
+          ["IM-1 · Fixed", "异常路径未清理分页状态；已在 finally 中补齐并增加回归测试。", true],
+          ["MI-1 · Accepted", "批次大小常量缺少原因说明；已补充内存预算注释。", false]
+        ],
+        verify: "ExportServiceTest：12/12 Passed · 100 万行压测峰值内存由 1.8 GB 降至 310 MB。",
+        model: "同一 entry 持续追加 sections.plan / sections.review[] / sections.verification；dev-doc 创建主记录，code-review 按 docPath 或 deliveryId 更新同一记录。"
+      },
+      quote: {
+        kicker: "DD-026 · IMPLEMENTATION · 报价模块",
+        title: "报价状态语义统一",
+        lead: "前后端对“已驳回”是否允许编辑理解不一致。本次先统一状态机与权限口径，再修改接口映射。",
+        plan: "dev-doc 已裁决状态机和角色权限，代码实现进行中；尚未进入实现审查。",
+        review: [["等待 Review", "实现完成后由 yan-code-review 在同一档案追加 findings。", false]],
+        verify: "NotRun · Implementation 未完成。",
+        model: "主记录当前只有 sections.plan；Review 尚未生成时保持空态，不伪造审查结果。"
+      },
+      archive: {
+        kicker: "DD-024 · COMPLETED · 订单服务",
+        title: "历史单据归档治理",
+        lead: "将已完成超过两年的单据从默认工作台隐藏，但仍可按编号检索并查看完整审计链。",
+        plan: "采用 lifecycle 字段治理展示范围，不迁移业务数据。",
+        review: [["NoEvidenceIssue", "实现审查未发现有证据的问题，验证与 VCS Gate 均通过。", true]],
+        verify: "ArchiveViewTest：8/8 Passed · 已提交 r18452。",
+        model: "完成后仍保留同一档案，通过 lifecycle=archived 从工作台迁入档案库。"
+      }
+    };
+
+    function renderA(key) {
+      const d = aTasks[key];
+      document.getElementById("a-content").innerHTML = `
+        <div class="a-kicker">${d.kicker}</div>
+        <h3>${d.title}</h3>
+        <p class="a-lead">${d.lead}</p>
+        <div class="a-progress">
+          <div class="a-step done">01 / 方案</div>
+          <div class="a-step done">02 / 实现</div>
+          <div class="a-step done">03 / 验证</div>
+          <div class="a-step ${key === "oom" ? "current" : key === "quote" ? "" : "done"}">04 / 审查</div>
+          <div class="a-step ${key === "archive" ? "done" : ""}">05 / 提交</div>
+        </div>
+        <div class="a-grid">
+          <section class="a-section"><h4>01. 开发方案</h4><p>${d.plan}</p><div class="a-mini"><b>边界：</b>业务同事看方案与取舍；精确文件清单和 Agent Todo 仍留在 md。</div></section>
+          <section class="a-section"><h4>02. Review 摘要</h4><div class="a-findings">${d.review.map(f => `<div class="a-finding ${f[2] ? "fixed" : ""}"><b>${f[0]}</b><br>${f[1]}</div>`).join("")}</div></section>
+          <section class="a-section"><h4>03. 验证证据</h4><p>${d.verify}</p></section>
+          <section class="a-section"><h4>04. 下一步</h4><p>${key === "oom" ? "精确纳管新增测试文件，重验 VCS Gate 后进入 Submit。" : key === "quote" ? "完成实现与目标测试，然后启动 ImplementationReview。" : "已完成，进入档案库。"}</p></section>
+          <div class="a-model"><strong>Skill 写入模型</strong><code>${d.model}</code></div>
+        </div>`;
+    }
+
+    const bDetails = {
+      "plan-oom": ["DEV-DOC / DD-027", "批量导出 OOM 防护", "方案定义了流式读取、批次上限和异常释放边界。它是主需求记录，不承载逐条 finding。", "RV-027.1 → RV-027.2", [["方案状态", "已实现"], ["关联审查", "2 轮"], ["验证", "12 tests passed"]], "dev-doc 与 review 各自新增 entry；通过 deliveryId=DD-027 和 sourceDocPath 建立关系。"],
+      "review-oom": ["CODE-REVIEW / RV-027.2", "OOM 防护 · 二次复审", "二次复审确认 IM-1 已关闭，MI-1 已接受；范围严格绑定 DD-027 的 changed 文件。", "SOURCE → DD-027", [["Critical", "0"], ["Important", "1 · Fixed"], ["Minor", "1 · Accepted"], ["VCS Gate", "Blocked"]], "每次 code-review 都生成独立 review entry，保留 reviewId、sourceDeliveryId、findings 与 gate 结论。"],
+      "plan-quote": ["DEV-DOC / DD-026", "报价状态语义统一", "方案已裁决状态与角色权限，仍在实现阶段。", "REVIEW → RV-026.1", [["方案状态", "开发中"], ["风险", "权限 / 状态"], ["验证", "NotRun"]], "方案卡长期存在；后续审查卡通过 sourceDeliveryId 关联，不覆盖方案历史。"],
+      "review-quote": ["CODE-REVIEW / RV-026.1", "报价状态 · 首轮审查", "首轮实现审查发现权限边界和驳回语义不一致。", "SOURCE → DD-026", [["Critical", "0"], ["Important", "2 · Open"], ["Review Gate", "Blocked"]], "修复后可更新当前 review 或新增 RV-026.2；两种策略需在拍板时确定。"]
+    };
+
+    function renderB(key) {
+      const d = bDetails[key];
+      document.getElementById("b-detail").innerHTML = `
+        <div class="b-detail-kicker">${d[0]}</div>
+        <h4>${d[1]}</h4>
+        <p>${d[2]}</p>
+        <div class="b-rel"><b>关联关系</b><br>${d[3]}</div>
+        <div class="b-checks">${d[4].map(row => `<div class="b-check"><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join("")}</div>
+        <div class="b-model"><b>Skill 写入模型</b><br>${d[5]}</div>`;
+    }
+
+    const gateDetails = {
+      plan: {
+        title: "Plan Gate · dev-doc 是这里的主证据",
+        rows: [["方案文档", "docs/2026-07-27/批量导出OOM防护.md", "PASSED"], ["业务裁决", "接口不变 / 不改 DB / 权限不变", "PASSED"], ["看板发布", "BoardPublishStatus: Published", "PASSED"]],
+        pulse: [["产物", "开发方案 + 人类看板说明"], ["责任", "yan-dev-doc 创建 delivery 与 Plan 事件"], ["下一步", "进入 Implementation"]]
+      },
+      implementation: {
+        title: "Implementation Gate · 只展示范围，不复制代码",
+        rows: [["生产代码", "ExportService.java", "CHANGED"], ["测试", "ExportServiceTest.java", "NEW"], ["配置", "ExportConstants.java", "CHANGED"]],
+        pulse: [["范围", "3 files / 1 module"], ["风险", "内存与异常清理"], ["下一步", "执行目标验证"]]
+      },
+      verification: {
+        title: "Verification Gate · 证据可复查",
+        rows: [["单元测试", "12 / 12 passed", "PASSED"], ["百万行压测", "峰值 310 MB", "PASSED"], ["异常路径", "分页状态已清理", "PASSED"]],
+        pulse: [["分类", "Hermetic + LocalResource"], ["命令", "mvn -pl export-service test"], ["下一步", "进入 Review"]]
+      },
+      review: {
+        title: "Review Gate · code-review 是这里的主证据",
+        rows: [["IM-1", "异常路径分页状态清理", "FIXED"], ["MI-1", "批次上限缺少预算说明", "ACCEPTED"], ["Recheck", "最新 diff 二次复审", "PASSED"]],
+        pulse: [["模式", "ImplementationReview"], ["范围", "绑定 DD-027 changed"], ["结论", "Review 通过，VCS 待处理"]]
+      },
+      submit: {
+        title: "Submit Gate · 当前唯一阻塞",
+        rows: [["新增测试", "ExportServiceTest.java", "UNTRACKED"], ["生产代码", "2 files", "TRACKED"], ["提交动作", "等待精确 svn add", "BLOCKED"]],
+        pulse: [["阻塞", "VCSGateBlocked"], ["禁止", "不得目录级 svn add"], ["下一步", "纳管后只重验 VCS"]]
+      }
+    };
+
+    function renderC(key) {
+      const d = gateDetails[key];
+      document.getElementById("c-panels").innerHTML = `
+        <section class="c-panel">
+          <h4>${d.title}</h4>
+          ${d.rows.map((r, i) => `<div class="c-row"><strong>${r[0]}</strong><code>${r[1]}</code><span class="c-pill ${/BLOCKED|UNTRACKED|ACCEPTED/.test(r[2]) ? "warn" : ""}">${r[2]}</span></div>`).join("")}
+        </section>
+        <section class="c-panel"><h4>Gate Pulse</h4><div class="c-pulse">${d.pulse.map(p => `<div class="c-pulse-item"><b>${p[0]}</b>${p[1]}</div>`).join("")}</div></section>
+        <div class="c-model"><b>Skill 写入模型：</b>dev-doc 与 code-review 不直接互相覆盖正文，而是向同一个 deliveryId 追加 gateEvents；首页按最新 Gate 投影状态，详情保留每个 Gate 的证据与结论。</div>`;
+    }
+
+    document.querySelectorAll(".choice").forEach(button => {
+      button.addEventListener("click", () => {
+        const option = button.dataset.option;
+        document.querySelectorAll(".choice").forEach(item => {
+          const active = item === button;
+          item.classList.toggle("active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+        document.querySelectorAll(".preview").forEach(item => item.classList.add("hidden"));
+        const target = document.getElementById(`preview-${option}`);
+        target.classList.remove("hidden");
+        target.style.animation = "none";
+        requestAnimationFrame(() => { target.style.animation = ""; });
+      });
+    });
+
+    document.querySelectorAll("[data-a-task]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-a-task]").forEach(item => item.classList.toggle("active", item === button));
+        renderA(button.dataset.aTask);
+      });
+    });
+    document.querySelectorAll("[data-b-card]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-b-card]").forEach(item => item.classList.toggle("active", item === button));
+        renderB(button.dataset.bCard);
+      });
+    });
+    document.querySelectorAll("[data-gate]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-gate]").forEach(item => item.classList.toggle("active", item === button));
+        renderC(button.dataset.gate);
+      });
+    });
+
+    renderA("oom");
+    renderB("review-oom");
+    renderC("review");
+
+    const contentTemplates = {
+      devdoc: {
+        kicker: "YAN-DEV-DOC · STANDARD · DD-027",
+        title: "批量导出 OOM 防护",
+        lead: "让没有参与开发的同事先理解风险、方案如何运转和为什么这样取舍；精确文件清单、Todo 与代码定位继续留在 md。",
+        status: "PLAN GATE · PASSED",
+        warn: false,
+        facts: [["记录类型", "开发方案"], ["服务 / 模块", "库存 / 导出"], ["复杂度", "中等"], ["接口 / DB", "不变 / 不变"]],
+        left: [
+          { title: "背景与目标", code: "WHY", text: "百万级明细导出会一次性物化全部数据，峰值内存超过容器上限。目标是在不改变接口与业务权限的前提下，把内存使用限制在可预测范围。"},
+          { title: "方案如何运转", code: "FLOW", text: "按稳定游标分段读取，每批完成转换后立即写入输出流并释放对象；异常和正常路径统一清理分页状态。", flow: ["游标读取", "批次转换", "流式写出", "释放批次", "推进游标"]},
+          { title: "核心取舍", code: "DECISION", text: "选择应用层流式分段而不是数据库临时表：改动面更小、无需 DBA 变更，但必须严格处理游标稳定性和异常释放。"}
+        ],
+        right: [
+          { title: "影响范围", code: "SCOPE", text: "仅影响导出服务内部实现和目标测试；下载协议、权限校验、查询条件及文件格式保持不变。"},
+          { title: "可观察验收", code: "ACCEPTANCE", items: [["AC-1", "100 万行导出成功，峰值内存低于 400 MB", "TARGET"], ["AC-2", "异常中断后分页状态与临时资源均释放", "TARGET"], ["AC-3", "现有小批量导出结果不变", "REGRESSION"]]}
+        ],
+        gate: ["下一步", "按 md 实现并运行目标测试；完成后进入 ImplementationReview。", "BoardPublishStatus: Published"],
+        density: "看板保留：背景、方案、取舍、范围、可观察验收。看板排除：changeList、todos、精确代码位置。"
+      },
+      check: {
+        kicker: "YAN-CODE-REVIEW · CHECK · RV-027.1",
+        title: "OOM 防护 · 首轮实现审查",
+        lead: "只读记录本次审查的范围、证据、finding 与 Gate 结论；不把“没有看到”写成“没有问题”，也不在看板里复制整段代码。",
+        status: "REVIEW GATE · BLOCKED",
+        warn: true,
+        facts: [["审查类型", "ImplementationReview"], ["范围", "3 changed files"], ["验证证据", "12 tests passed"], ["结论", "1 IM / 1 MI"]],
+        left: [
+          { title: "审查结论", code: "VERDICT", text: "主流程已改为分段处理，但异常分支没有保证分页状态清理；在 IM-1 关闭前不得给 Review Gate 通过。"},
+          { title: "Findings", code: "EVIDENCE", items: [["IM-1", "异常写出时可能残留分页上下文，影响同线程后续查询。", "OPEN"], ["MI-1", "批次上限缺少内存预算依据，后续维护者难以安全调整。", "ACCEPTED"]]}
+        ],
+        right: [
+          { title: "已核对范围", code: "SCOPE", text: "方案约束、导出主链路、异常释放、目标测试有效性、SVN 纳管状态。未审无关库存查询与前端下载页面。"},
+          { title: "验证证据", code: "TEST", items: [["TEST", "ExportServiceTest 12/12 通过", "PASSED"], ["VCS", "新增异常测试仍为 SVN ?", "BLOCKED"]]}
+        ],
+        gate: ["下一步", "修复 IM-1，精确纳管新增测试，重跑目标验证后再复审。", "TestEvidenceStatus: Passed · VCSGateBlocked"],
+        density: "看板保留：审查范围、finding ID、问题影响、状态、验证与 Gate。精确 File/Line 仍留在 review 输出或任务文档。"
+      },
+      package: {
+        kicker: "YAN-CODE-REVIEW · PACKAGE · RT-027",
+        title: "OOM 防护 · Review 任务已就绪",
+        lead: "这是“等别人来审”的任务卡，不提前编造 finding。看板重点让负责人知道审什么、证据在哪里、等谁返回。",
+        status: "AWAITING REVIEW",
+        warn: true,
+        facts: [["审查范围", "ImplementationReview"], ["证据包", "Ready"], ["计划审查者", "3"], ["Findings", "Pending"]],
+        left: [
+          { title: "审查目标", code: "MISSION", text: "核对分段导出是否真正限制内存、游标是否稳定、异常路径是否释放资源，以及新增测试是否调用真实被测逻辑。"},
+          { title: "重点问题", code: "QUESTIONS", items: [["Q-1", "批次之间是否仍持有上一批对象引用？", "CHECK"], ["Q-2", "写出异常后分页状态和临时资源是否释放？", "CHECK"], ["Q-3", "测试能否证明峰值内存与异常行为？", "CHECK"]]}
+        ],
+        right: [
+          { title: "证据包", code: "INPUT", text: "开发方案、changed 文件、SVN diff 摘要、目标测试命令与结果均已索引；审查者按 tokenHint 从这些入口读取。"},
+          { title: "回收格式", code: "OUTPUT", text: "返回 CR / IM / MI finding ID、证据、影响、建议与验证方式；无证据问题时明确输出 NoEvidenceIssue。"}
+        ],
+        gate: ["下一步", "分发给审查者；回收 findings 后进入 package 汇总或 repair。", "openFindings: Pending"],
+        density: "看板不展示 Agent 审查提示词全文，只展示任务目标、证据就绪度、负责人和当前等待状态。"
+      },
+      repair: {
+        kicker: "YAN-CODE-REVIEW · REPAIR · FX-027",
+        title: "OOM 防护 · Findings 修复结果",
+        lead: "这张卡回答“哪些问题接受了、怎么处理、验证是否足够、还剩什么阻塞”，保留原 finding ID 形成追踪链。",
+        status: "PARTIALLY FIXED",
+        warn: true,
+        facts: [["输入 Findings", "2"], ["已修复", "1"], ["已接受", "1"], ["剩余阻塞", "VCS Gate"]],
+        left: [
+          { title: "处理结果", code: "CLOSURE", items: [["IM-1", "用 finally 统一清理分页上下文，并补异常写出回归测试。", "FIXED"], ["MI-1", "补充批次上限的内存预算说明，不改变运行逻辑。", "ACCEPTED"]]},
+          { title: "修复边界", code: "BOUNDARY", text: "仅处理已接受 findings；没有顺带重构导出协议、查询 API 或权限链路。"}
+        ],
+        right: [
+          { title: "验证结果", code: "VERIFY", items: [["UNIT", "目标测试 13/13 通过", "PASSED"], ["RECHECK", "等待最新 diff 复审", "PENDING"], ["VCS", "新增测试尚未纳管", "BLOCKED"]]},
+          { title: "残余风险", code: "RISK", text: "本次没有在真实生产数据量上执行长时间压力测试；当前证据覆盖单测和本地百万行模拟。"}
+        ],
+        gate: ["下一步", "精确 svn add 新增测试，执行二次 review-check，只重验受影响结论。", "结论：PartiallyFixed"],
+        density: "看板突出 finding 关闭矩阵与验证，不复制补丁或逐行代码修改。"
+      },
+      loop: {
+        kicker: "YAN-CODE-REVIEW · LOOP · SR-027",
+        title: "OOM 防护 · 单 AI Review 闭环",
+        lead: "把首审、修复、验证和复审压缩成一条可读时间线，让负责人快速判断闭环是否真实完成，而不是只看到一句“已优化”。",
+        status: "REVIEW PASSED · VCS BLOCKED",
+        warn: true,
+        facts: [["模式", "SingleAgentReview"], ["修复循环", "1 / 2"], ["最终 Findings", "0 Open"], ["Submit", "Blocked"]],
+        left: [
+          { title: "闭环时间线", code: "CYCLES", flow: ["首审发现 IM-1", "接受并修复", "13 tests passed", "二次复审通过", "VCS 待纳管"]},
+          { title: "首审 → 修复", code: "ROUND 1", items: [["IM-1", "异常路径分页上下文未清理。", "FIXED"], ["MI-1", "批次预算说明不足。", "ACCEPTED"]]}
+        ],
+        right: [
+          { title: "二次复审", code: "RECHECK", text: "最新 diff 已重新核对异常路径、测试有效性与无关改动；未发现新的 Critical / Important。"},
+          { title: "最终 Gate", code: "FINAL", items: [["Review Gate", "有证据的问题均已关闭", "PASSED"], ["Verification Gate", "13/13 tests passed", "PASSED"], ["VCS Gate", "新增测试仍为 SVN ?", "BLOCKED"]]}
+        ],
+        gate: ["下一步", "纳管新增测试并重验 VCS；不重复已经通过的首审、修复与目标测试。", "RepairCycles: 1 · Recheck: Passed"],
+        density: "闭环卡只展示每轮输入、动作、证据和结论；完整 findings 与修复细节仍由 review 文档承载。"
+      }
+    };
+
+    function renderContent(key) {
+      const d = contentTemplates[key];
+      const block = item => `
+        <section class="ct-block">
+          <h4>${item.title}<span>${item.code}</span></h4>
+          ${item.text ? `<p>${item.text}</p>` : ""}
+          ${item.flow ? `<div class="ct-flow">${item.flow.map(step => `<span>${step}</span>`).join("")}</div>` : ""}
+          ${item.items ? `<div class="ct-list">${item.items.map(row => `<div class="ct-item"><span class="ct-item-id">${row[0]}</span><span>${row[1]}</span><span class="ct-item-state ${/OPEN|BLOCKED|PENDING|ACCEPTED|CHECK|TARGET|REGRESSION/.test(row[2]) ? "warn" : ""}">${row[2]}</span></div>`).join("")}</div>` : ""}
+        </section>`;
+      const renderId = `content-paper-${key}-${Date.now()}`;
+      const paper = document.getElementById("content-paper");
+      paper.id = renderId;
+      paper.innerHTML = `
+        <div class="ct-top">
+          <div><div class="ct-kicker">${d.kicker}</div><h3>${d.title}</h3><p>${d.lead}</p></div>
+          <span class="ct-status ${d.warn ? "warn" : ""}">${d.status}</span>
+        </div>
+        <div class="ct-facts">${d.facts.map(f => `<div class="ct-fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join("")}</div>
+        <div class="ct-grid"><div class="ct-stack">${d.left.map(block).join("")}</div><div class="ct-stack">${d.right.map(block).join("")}</div></div>
+        <div class="ct-gate"><b>${d.gate[0]}</b><span>${d.gate[1]}</span><code>${d.gate[2]}</code></div>
+        <div class="ct-density">${d.density}</div>`;
+      paper.id = "content-paper";
+    }
+
+    document.querySelectorAll("[data-content]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-content]").forEach(item => item.classList.toggle("active", item === button));
+        renderContent(button.dataset.content);
+      });
+    });
+    renderContent("devdoc");
+  </script>
+</body>
+</html>

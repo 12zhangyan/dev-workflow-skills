@@ -20,7 +20,7 @@ const checks = [
   ['node', ['scripts/check-interaction-policy-sync.js']],
   ['node', ['scripts/check-evals.js']],
   ['node', ['project-html/build.js']],
-  ['git', ['diff', '--check']]
+  ['node', ['scripts/check-git-diff.js']]
 ];
 
 let failed = false;

@@ -22,7 +22,7 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 先遵循 [../../../_shared/interaction-policy.md](../../../_shared/interaction-policy.md)：只基于已读取材料下结论；材料不足时输出"材料不足，无法下结论"，不要伪装成未发现问题；需求/实现/状态/权限/数据归属冲突要作为重点审查项。
 
-非交互/无人值守运行中不等待提问：入口或关键材料缺失时直接输出 `InsufficientMaterial`、最小缺失材料和受影响范围；不修改文件，也不给 Review Gate 通过结论。
+非交互/无人值守运行中不等待提问：入口或关键材料缺失时直接输出 `InsufficientMaterial`、最小缺失材料和受影响范围；不修改业务代码或正式文档，也不给 Review Gate 通过结论。若能确定主档案身份，仍登记一条材料不足的 Review 事件。
 
 同时遵循 [../../../_shared/workflow-gates.md](../../../_shared/workflow-gates.md)：本 skill 只执行 Review Gate 的只读审查；输出必须包含 `ReviewScopeType`、`VerificationStatus` 和 `TestEvidenceStatus`，说明本次审的是方案/实现/修复交接、已看到或未看到哪些验证命令/结果、测试是否真的验证目标逻辑；材料不足时不能给通过结论。
 
@@ -32,7 +32,7 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 `$entry` 为空时，先按同会话证据推断，不要机械追问“审查什么”：
 
-1. 同会话刚完成 Implementation，且已有明确 `yan-dev-doc`（或等价开发方案路径）与 `changed` 文件清单，或可定位到对应 VCS diff/status → **默认真对最近实现做 `ImplementationReview`**；将该文档当作文档模式入口，并告知用户："未给 entry，默认真对最近实现做 ImplementationReview"。
+1. 同会话刚完成 Implementation，且已有明确 `yan-dev-doc`（或等价开发方案路径）与 `changed` 文件清单，或可定位到对应 Git/SVN diff/status → **默认针对最近实现做 `ImplementationReview`**；优先绑定同会话已经确认的 `changed` 文件，将该文档当作文档模式入口，并告知用户："未给 entry，默认针对最近实现做 ImplementationReview"。不要因为用户最后只发送 `/yan-code-review` 或自然语言 Skill 名称，就丢失最近实现会话的范围并重新追问入口。
 2. 输入含 `【Workflow Brief】` 且 Brief 已给 `source` / `changed` → 走轻量交接模式，不追问入口。
 3. 否则（无同会话实现证据、无 Brief、也无可定位的任务包/文档/patch）才询问：
 
@@ -127,6 +127,18 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 - 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
 - 不输出大段源码，不复述全部 diff。
 
+### Step 4.5：更新同一研发档案
+
+加载并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md) 的“更新同一研发档案的 Review 生命周期”：
+
+- 若上层明确传入 `BoardPublishOwner: loop`，本子阶段只把结构化结果交回 loop，不自行写看板。
+- 优先从 yan-dev-doc、Review 任务包或 Workflow Brief 取得 `deliveryId`；没有时使用对应开发文档路径作为 `sourceDocPath`。
+- 写入 `mode:"check"` 的稳定事件；`eventId` 由 check + 审查范围 + 目标身份组成，重复审查同一轮时更新原事件。
+- `currentGate:"review"`；有 Critical/Important 或材料不足时 `gateStatus:"blocked"`，材料充分且无阻塞 finding 时为 `"passed"`。
+- 只把 finding ID、严重度、状态、面向人的问题/影响摘要和验证结论写入看板；精确 `File/Line`、完整证据、修复命令仍只保留在 check 输出。
+- 该步骤只允许通过 `board-add.js` 和 `build.js` 写看板元数据；不得借此修改业务代码、测试或正式文档。
+- 身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`，不得新建孤立档案。
+
 ### Step 5：结束提醒
 
 结尾输出：
@@ -138,7 +150,7 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 ## 禁止事项
 
-- 不修改代码，不写文件，不运行修复命令。
+- 不修改业务代码、测试或正式文档，不运行修复命令；唯一允许的写入是通过确定性脚本更新同一研发档案的看板元数据。
 - 不执行数据库写操作或 DDL；涉及数据库只允许只读分析。
 - 不把风格偏好包装成严重问题。
 - 不因为"可能"就输出 finding；证据不足放入 Notes。
@@ -152,7 +164,8 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 - [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试与提交完整性
 - [ ] 每条 finding 都有证据、影响、修复建议、验证方式
 - [ ] 已在 Findings / NoEvidenceIssue / InsufficientMaterial 三种结论中选择一种，并写明依据
-- [ ] 未修改任何代码或文档
+- [ ] 未修改任何业务代码、测试或正式文档
+- [ ] 已发布同一 `deliveryId` / `sourceDocPath` 的 check 事件，或明确输出 `BoardPublishStatus: Blocked`
 - [ ] 输出可直接交给 `yan-code-review mode=package`
 
 ## 相关资源

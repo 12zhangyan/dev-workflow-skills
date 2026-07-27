@@ -21,10 +21,12 @@ const BAK = DATA + '.bak';
 const CATALOG_KEYS = [
   'kind', 'service', 'module', 'title', 'date', 'updatedAt', 'createdAt',
   'type', 'complexity', 'status', 'severity', 'branch', 'docPath',
-  'apiSpecPath', 'apiIndexPath', 'apis', 'lifecycle', 'pinned'
+  'apiSpecPath', 'apiIndexPath', 'apis', 'lifecycle', 'pinned',
+  'deliveryId', 'currentGate', 'gateStatus', 'reviewState', 'reviewCounts'
 ];
 const EXECUTION_ONLY = new Set(['changeList', 'todos', 'stackTrace', 'codeLocation']);
 const GENERATED = new Set(['detailId', 'detailPath', 'summary', 'searchText']);
+const INPUT_ONLY = new Set(['sourceDocPath']);
 const CATALOG_HEADER = `
 
 // ─── 轻量目录数据 ────────────────────────────────────────────────────────────
@@ -38,9 +40,19 @@ function die(msg) { console.error('✗ ' + msg); process.exit(1); }
 function today() { return new Date().toISOString().slice(0, 10); }
 function exists(file) { try { fs.accessSync(file); return true; } catch (e) { return false; } }
 function emit(obj) { return JSON.stringify(obj, null, 2).split('\n').map(l => '  ' + l).join('\n'); }
+function stableHash(value) {
+  return crypto.createHash('sha1').update(String(value || '')).digest('hex');
+}
+function deliveryIdOf(entry) {
+  const stable = entry.docPath || entry.sourceDocPath ||
+    [entry.service, entry.module, entry.date, entry.title].filter(Boolean).join('::') ||
+    JSON.stringify(entry);
+  return 'DLV-' + stableHash(stable).slice(0, 10).toUpperCase();
+}
 function detailIdOf(entry) {
-  const stable = entry.docPath || [entry.service, entry.module, entry.date, entry.title].filter(Boolean).join('::');
-  return 'd-' + crypto.createHash('sha1').update(stable || JSON.stringify(entry)).digest('hex').slice(0, 16);
+  const stable = entry.deliveryId || entry.docPath || entry.sourceDocPath ||
+    [entry.service, entry.module, entry.date, entry.title].filter(Boolean).join('::');
+  return 'd-' + stableHash(stable || JSON.stringify(entry)).slice(0, 16);
 }
 function firstSentence(value) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
@@ -56,7 +68,7 @@ function humanDetailOf(entry, explicitDetail) {
   const source = explicitDetail && typeof explicitDetail === 'object' ? explicitDetail : entry;
   const detail = {};
   for (const [key, value] of Object.entries(source)) {
-    if (CATALOG_KEYS.includes(key) || GENERATED.has(key) || EXECUTION_ONLY.has(key)) continue;
+    if (CATALOG_KEYS.includes(key) || GENERATED.has(key) || EXECUTION_ONLY.has(key) || INPUT_ONLY.has(key)) continue;
     detail[key] = value;
   }
   return detail;
@@ -67,10 +79,18 @@ function splitEntry(entry, explicitDetail) {
   for (const key of CATALOG_KEYS) {
     if (Object.prototype.hasOwnProperty.call(entry, key)) catalog[key] = entry[key];
   }
+  const isDelivery = !['bug', 'reading', 'biz'].includes(entry.kind);
+  if (isDelivery && !catalog.deliveryId) catalog.deliveryId = deliveryIdOf(entry);
+  if (isDelivery && !catalog.currentGate) catalog.currentGate = 'plan';
   const detailId = entry.detailId || detailIdOf(entry);
-  const lead = entry.summary || detail.summary || detail.background || detail.symptom || detail.entry || detail.solution || entry.title;
+  const deliveryLead = detail.delivery && (
+    detail.delivery.plan && (detail.delivery.plan.summary || detail.delivery.plan.background) ||
+    detail.delivery.review && Array.isArray(detail.delivery.review.events) &&
+      detail.delivery.review.events.slice(-1)[0] && detail.delivery.review.events.slice(-1)[0].summary
+  );
+  const lead = entry.summary || detail.summary || deliveryLead || detail.background || detail.symptom || detail.entry || detail.solution || entry.title;
   const words = [entry.title, entry.service, entry.module, entry.type, firstSentence(lead)].filter(Boolean);
-  for (const key of ['goals', 'symptom', 'rootCause', 'solution', 'dataFlowSummary', 'coreDesign', 'keyImpl', 'acceptance', 'roles', 'validations']) {
+  for (const key of ['goals', 'symptom', 'rootCause', 'solution', 'dataFlowSummary', 'coreDesign', 'keyImpl', 'acceptance', 'roles', 'validations', 'delivery']) {
     collectStrings(detail[key], words, 120);
   }
   catalog.detailId = detailId;
@@ -112,6 +132,45 @@ function loadCurrent() {
     cur = new Function(raw + '\n;return { changes: typeof changes!=="undefined"?changes:[], htmlChangelog: typeof htmlChangelog!=="undefined"?htmlChangelog:[] };')();
   } catch (e) { die('现有 data/changes.js 解析失败，请先修复：' + e.message); }
   return { raw, changes: cur.changes, changelog: cur.htmlChangelog };
+}
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+function mergeHumanDetail(base, patch) {
+  if (!isPlainObject(base) || !isPlainObject(patch)) return patch;
+  const out = Object.assign({}, base);
+  for (const [key, value] of Object.entries(patch)) {
+    if (Array.isArray(value)) {
+      const old = Array.isArray(out[key]) ? out[key] : [];
+      const eventArray = value.every(item => isPlainObject(item) && item.eventId);
+      if (eventArray) {
+        const byId = new Map(old.filter(item => isPlainObject(item) && item.eventId).map(item => [item.eventId, item]));
+        for (const item of value) {
+          byId.set(item.eventId, byId.has(item.eventId) ? mergeHumanDetail(byId.get(item.eventId), item) : item);
+        }
+        out[key] = [...old.filter(item => !isPlainObject(item) || !item.eventId), ...byId.values()];
+      } else {
+        out[key] = value;
+      }
+    } else if (isPlainObject(value) && isPlainObject(out[key])) {
+      out[key] = mergeHumanDetail(out[key], value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+function findExistingIndex(changes, entry, catalog) {
+  if (catalog.deliveryId) {
+    const byDelivery = changes.findIndex(c => c.deliveryId && c.deliveryId === catalog.deliveryId);
+    if (byDelivery >= 0) return byDelivery;
+  }
+  if (entry.sourceDocPath) {
+    const bySource = changes.findIndex(c => c.docPath && c.docPath === entry.sourceDocPath);
+    if (bySource >= 0) return bySource;
+  }
+  if (catalog.docPath) return changes.findIndex(c => c.docPath && c.docPath === catalog.docPath);
+  return -1;
 }
 function compose(raw, changes, changelog) {
   const hcStart = raw.indexOf('const htmlChangelog');
@@ -167,18 +226,31 @@ function add(arg) {
   if (!entry || typeof entry !== 'object') die('输入缺少 entry/catalog 对象');
   const { raw, changes, changelog } = loadCurrent();
   const oldLen = changes.length;
-  const { catalog, detail } = splitEntry(entry, input.detail);
+  let { catalog, detail } = splitEntry(entry, input.detail);
   let action = 'append';
-  if (catalog.docPath) {
-    const idx = changes.findIndex(c => c.docPath && c.docPath === catalog.docPath);
-    if (idx >= 0) {
-      const old = changes[idx], stateful = {};
-      for (const key of ['lifecycle', 'pinned', 'createdAt']) {
-        if (!Object.prototype.hasOwnProperty.call(catalog, key) && Object.prototype.hasOwnProperty.call(old, key)) stateful[key] = old[key];
-      }
-      changes[idx] = Object.assign({}, catalog, stateful, { status: old.status, updatedAt: entry.updatedAt || today() });
-      action = 'update';
+  const idx = findExistingIndex(changes, entry, catalog);
+  if (idx >= 0) {
+    const old = changes[idx];
+    const oldDetail = loadDetail(old) || {};
+    const mergedDetail = mergeHumanDetail(oldDetail, detail);
+    const mergedEntry = Object.assign({}, old, catalog, {
+      detailId: old.detailId || catalog.detailId,
+      deliveryId: old.deliveryId || catalog.deliveryId,
+      docPath: old.docPath || catalog.docPath
+    });
+    const split = splitEntry(mergedEntry, mergedDetail);
+    catalog = split.catalog;
+    detail = split.detail;
+    catalog.detailId = old.detailId || catalog.detailId;
+    catalog.detailPath = old.detailPath || `data/details/${catalog.detailId}.js`;
+    for (const key of ['lifecycle', 'pinned', 'createdAt']) {
+      if (!Object.prototype.hasOwnProperty.call(entry, key) && Object.prototype.hasOwnProperty.call(old, key)) catalog[key] = old[key];
     }
+    changes[idx] = Object.assign({}, old, catalog, {
+      status: old.status,
+      updatedAt: entry.updatedAt || today()
+    });
+    action = 'update';
   }
   if (action === 'append') changes.push(Object.assign({ updatedAt: entry.date || today() }, catalog));
   writeDetail(catalog.detailId, detail);

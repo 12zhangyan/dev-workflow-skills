@@ -160,7 +160,7 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 
 ## HTML 看板
 
-`yan-dev-doc` 仅在用户明确要求或项目规则要求时登记看板；`yan-project-analysis` 的 incident/business/CodeMap 沿用原有看板语义。MD 是 Agent 执行文档；看板是独立的人类方案说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
+`yan-dev-doc` 的 Standard / IncrementalRevision 默认创建“一事一档”的研发变更主记录；用户明确要求不写或项目规则禁止时跳过，Compact 始终不发布。`yan-code-review` 的 package/check/repair/loop 直接调用时都凭 `deliveryId` 或主文档 `sourceDocPath` 更新同一档案的 Review 生命周期，不再创建孤立的审查条目；loop 作为唯一发布 owner 汇总内部子阶段。`yan-project-analysis` 的 incident/business/CodeMap 沿用各 mode 的看板语义。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
@@ -171,6 +171,8 @@ node project-html/build.js
 - 按服务 / 模块组织开发文档、Bug、代码地图、业务流。
 - 默认按工作台 / 待办库 / 档案库分层，支持搜索、类型和未完成筛选。
 - 首页只加载轻量目录，点击记录后才加载对应的人类方案详情；旧富记录可执行 `node project-html/board-add.js --migrate` 迁移。
+- 正式外壳采用 A 方案“研发变更档案馆”：一条记录串联方案、实现、验证、Review、提交五个 Gate；旧记录按 Plan 阶段兼容显示。
+- `board-add.js` 按 `deliveryId` / `sourceDocPath` / `docPath` 定位主档案，并按稳定 `eventId` 幂等合并 Review 事件。
 - 接口索引会聚合新增或签名变更的接口，并链接 OpenAPI YAML。
 - 每条记录生成引用共享资源的轻量详情页；需要单文件发送时运行 `node project-html/build.js --standalone <docPath|slug>` 按需导出。
 - 状态标签可在浏览器本地点击切换；要让团队都看到，需要修改 `data/changes.js` 中的 `status`。
@@ -253,7 +255,7 @@ node scripts/check-installers.js
 node scripts/check-interaction-policy-sync.js
 node scripts/check-evals.js
 node project-html/build.js
-git diff --check
+node scripts/check-git-diff.js
 ```
 
 `check-review-boundaries.js` 和 `check-document-boundaries.js` 校验的是高风险行为护栏，不是普通文案 lint；如果 Skill 正文等价改写了相关规则，要在同一轮同步更新脚本里的关键短语。
@@ -261,6 +263,7 @@ git diff --check
 维护规则：
 
 - 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
+- `node scripts/check-git-diff.js` 同时检查工作区、暂存区、HEAD，以及可解析到的 PR/push/`origin/main` 提交范围；GitHub Actions 必须使用完整历史，不能用干净 checkout 上的空 `git diff --check` 冒充提交范围检查。
 - 行为回归套件固定至少 100 个场景，覆盖全部正式 Skill 的触发边界、非交互阻塞、VCS/API/Review/token 关键分支；新增规则时同步补 `evals.json` 标签和契约断言。
 - 改看板外壳时，同步 `project-html/` 和 `skills/yan-dev-doc/assets/board/`。
 - 改仓库级 agent 指南时，先改 `AGENTS.md`，再同步 `CLAUDE.md`，并运行 `node scripts/check-agent-doc-sync.js`。

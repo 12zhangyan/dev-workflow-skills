@@ -43,6 +43,7 @@ TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown 
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable>
 TestSourcePathCheck: <NotApplicable / Checked / WindowsTestSourcePathMismatch；Windows Java testCompile 时写测试源根、真实文件路径与 javac/Maven 报错路径>
 RepairCycles: <0 / 1 / 2>
+BoardPublishStatus: <Published: deliveryId/sourceDocPath · loop / Blocked: IdentityMissing|BuildFailure>
 
 ReviewReceipt:
 - ScopeFiles: <本轮实际读取的实现/测试文件；含未跟踪文件，最多 8 个>

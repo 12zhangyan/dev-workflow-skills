@@ -47,6 +47,14 @@ if (!runnerText.includes("repeat with --allow-write") || !runnerText.includes("-
   console.error('FAIL: runner must reject implicit writes and result paths inside the supplied workspace');
   process.exit(1);
 }
+if (!runnerText.includes("args.push('-')")
+    || !runnerText.includes("input: Buffer.from(prompt, 'utf8')")
+    || !runnerText.includes('input: invocation.input')
+    || !runnerText.includes('function unwrapNodeShim(command)')
+    || !runnerText.includes('prefixArgs: [script]')) {
+  console.error('FAIL: Codex live evaluation must pass UTF-8 stdin directly to the Node CLI instead of through a multiline .cmd shell argument');
+  process.exit(1);
+}
 const writable = contracts.cases.filter((item) => item.write_scope !== 'none');
 if (!writable.length || !contracts.cases.some((item) => item.prompt_ref.startsWith('yan-dev-doc:'))) {
   console.error('FAIL: contracts must include writable and yan-dev-doc representative cases');
@@ -69,7 +77,7 @@ if (refused.status !== 2 || !(`${refused.stderr}${refused.stdout}`).includes('--
   console.error('FAIL: writable live evaluation must be refused before a host invocation unless --allow-write is explicit');
   process.exit(1);
 }
-const unsafeOutput = spawnSync(process.execPath, [runner, '--live', '--host', 'codex', '--case', 'review-check-read-only', '--workspace', root, '--output', path.join(root, 'host-eval-result.json')], {
+const unsafeOutput = spawnSync(process.execPath, [runner, '--live', '--host', 'codex', '--case', 'review-check-read-only', '--workspace', root, '--allow-write', '--output', path.join(root, 'host-eval-result.json')], {
   cwd: root,
   encoding: 'utf8',
   windowsHide: true,

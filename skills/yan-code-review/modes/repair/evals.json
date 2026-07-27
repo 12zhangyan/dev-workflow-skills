@@ -82,6 +82,12 @@
       "prompt": "当前没有 review findings。请一个 AI 审查当前改动、修复发现的问题、跑测试并复审，直到没有 Critical/Important",
       "expected_output": "不应使用 review-repair 从空 findings 开始猜修；这是同一 AI 的完整审查修复闭环，应路由 review-loop，由其先执行只读审查并保留 finding ID，再进入修复、验证和复审。",
       "tags": ["empty_findings", "routing_review_loop"]
+    },
+    {
+      "id": 16,
+      "prompt": "根据 DLV-ORDER 的 IM-1 修复并验证，把处理结果更新到看板",
+      "expected_output": "按 IM-1 最小修复和验证，保留 finding ID，并写入同一 DLV-ORDER 的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
+      "tags": ["board_lifecycle", "same_delivery", "finding_traceability"]
     }
   ]
 }

@@ -174,6 +174,12 @@
       "prompt": "Java 21 项目的 Maven Wrapper 当前被 PATH 上的 Java 17 启动，但本机 ~/.jdks 中其实安装了可用的 JDK 21。",
       "expected_output": "不得直接报告 EnvironmentBlocked 或只跑 Java 17 fallback。先执行只读 ToolchainRecovery，核对 JAVA_HOME、实际 java/mvn 版本和常见本机 JDK 安装位置；找到 JDK 21 后只为本轮验证命令临时切换 JAVA_HOME/PATH 并重跑正式测试，不修改项目或用户配置。",
       "tags": ["toolchain_recovery", "environment_blocked", "verification_evidence", "no_premature_fallback"]
+    },
+    {
+      "id": 30,
+      "prompt": "用 review-loop 闭环 DLV-ORDER；我只希望看板出现一条本轮汇总，不要 package/check/repair 各写一条",
+      "expected_output": "设置 BoardPublishOwner=loop，内部 package/check/repair 子阶段不重复写看板；loop 最终用稳定 eventId 向 DLV-ORDER 写一条汇总事件，包含循环次数、原 finding ID 状态、验证和 VCS Gate，并输出 BoardPublishStatus。",
+      "tags": ["board_lifecycle", "single_publish_owner", "same_delivery"]
     }
   ]
 }

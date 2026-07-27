@@ -279,6 +279,14 @@ function runSelfTest() {
 if (process.argv.includes('--self-test')) runSelfTest();
 
 const readme = read('README.md');
+const defaultBoardPolicy = 'Standard / IncrementalRevision 默认创建“一事一档”的研发变更主记录';
+const staleOptInBoardPolicy = '`yan-dev-doc` 仅在用户明确要求或项目规则要求时登记看板';
+if (!readme.includes(defaultBoardPolicy)) {
+  fail(`README.md missing current board publishing policy: ${defaultBoardPolicy}`);
+}
+if (readme.includes(staleOptInBoardPolicy)) {
+  fail(`README.md contains stale opt-in board publishing policy: ${staleOptInBoardPolicy}`);
+}
 for (const needle of [
   'install.ps1',
   'install.sh',

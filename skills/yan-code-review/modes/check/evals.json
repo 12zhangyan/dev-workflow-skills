@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-check skill 审查 docs/review-fix/2026-07-09/order-review-task.md",
-      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出 ReviewScopeType、VerificationStatus、TestEvidenceStatus，以及带 CR-/IM-/MI- ID 的结构化 findings；不修改任何代码或文档。"
+      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出 ReviewScopeType、VerificationStatus、TestEvidenceStatus，以及带 CR-/IM-/MI- ID 的结构化 findings；不修改业务代码或正式文档，并更新同一研发档案的 check 事件。"
     },
     {
       "id": 2,
@@ -76,8 +76,14 @@
     {
       "id": 14,
       "prompt": "同会话刚按 yan-dev-doc 完成实现；用户只发 /yan-code-review 或“使用 yan-code-review”，未给 entry；会话内已有明确 docs/.../*.md 与 changed 文件",
-      "expected_output": "应触发 review-check；不追问“审查什么”；默认真对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings。",
+      "expected_output": "应触发 review-check；不追问“审查什么”；默认真对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings，同时以该 yan-dev-doc 更新同一研发档案的 check 事件。",
       "tags": ["same_session_default", "implementation_review"]
+    },
+    {
+      "id": 15,
+      "prompt": "review-check 已从 yan-dev-doc 找到 deliveryId；业务代码必须保持只读，但我要在看板看到本轮结论",
+      "expected_output": "业务代码与正式文档保持只读；使用稳定 check eventId 更新同一 deliveryId，写入 ReviewScopeType、结论、finding ID/状态和验证摘要，不把精确 File/Line 或完整 diff 写入看板；输出 BoardPublishStatus。",
+      "tags": ["board_lifecycle", "same_delivery", "read_only"]
     }
   ]
 }

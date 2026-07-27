@@ -1,10 +1,10 @@
-/* 开发方案看板 — 渲染与交互逻辑
- * 数据在 data/changes.js（由 /yan-dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加，本文件不存数据）
+/* 研发变更档案馆 — 渲染与交互逻辑
+ * 数据在 data/changes.js（dev-doc 创建主档案，code-review 按 deliveryId/sourceDocPath 追加生命周期，本文件不存数据）
  * 与 skills/yan-dev-doc/assets/board/js/board.js 保持一致，修改时两处同步 */
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 24;
+const BOARD_VERSION = 27;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -21,6 +21,15 @@ function modOf(d) { return d.module || '通用'; }
 function keyOf(d) { return `${svcOf(d)}::${modOf(d)}::${d.date}::${d.title}`; }
 function effStatus(d) { return overrides[keyOf(d)] ?? d.status; }
 function statusColor(s) { return SC[s] || '#c8c9cc'; }
+const DELIVERY_GATES = ['plan', 'implementation', 'verification', 'review', 'submit'];
+const GATE_LABEL = { plan: '方案', implementation: '实现', verification: '验证', review: '审查', submit: '提交' };
+function gateLabel(gate) { return GATE_LABEL[gate] || gate || '方案'; }
+function currentGateOf(d) { return DELIVERY_GATES.includes(d.currentGate) ? d.currentGate : 'plan'; }
+function activateKey(ev) {
+  if (!ev || (ev.key !== 'Enter' && ev.key !== ' ')) return false;
+  ev.preventDefault();
+  return true;
+}
 const RECENT_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SCOPE_LABEL = { workspace: '工作台', backlog: '待办库', archive: '档案库', all: '全部记录' };
@@ -74,7 +83,8 @@ function icoOf(c) { return c.kind === 'bug' ? '🐛' : c.kind === 'reading' ? '�
 // 一句话导语：取主叙述字段的第一句，让人不点开也能扫读这条记录在讲什么。
 // 确定性提取（Rule 5），不依赖 skill 额外撰写字段。
 function leadOf(c) {
-  const raw = c.summary || (c.kind === 'bug' ? (c.symptom || c.rootCause || c.impact)
+  const plan = c.delivery && c.delivery.plan || {};
+  const raw = c.summary || plan.summary || plan.background || (c.kind === 'bug' ? (c.symptom || c.rootCause || c.impact)
     : c.kind === 'reading' ? (c.entry || c.background || c.solution)
     : c.kind === 'biz' ? (c.background || c.solution)
     : (c.background || c.solution || c.coreDesign));
@@ -120,6 +130,17 @@ function summaryRows(d) {
     if (locs.length) rows.push(['先看位置', locs.join('；')]);
     return rows;
   }
+  if (d.delivery) {
+    const plan = d.delivery.plan || {};
+    const review = d.delivery.review || {};
+    const events = Array.isArray(review.events) ? review.events : [];
+    const latest = events[events.length - 1];
+    if (plan.summary || plan.background) rows.push(['这次做什么', shortText(plan.summary || plan.background, 180)]);
+    if (plan.dataFlowSummary) rows.push(['数据怎么流转', shortText(plan.dataFlowSummary, 180)]);
+    if (plan.solution) rows.push(['实现方式', shortText(plan.solution, 180)]);
+    if (latest) rows.push(['最近审查', shortText(latest.summary || latest.conclusion || latest.title, 180)]);
+    return rows;
+  }
   const goals = firstItems(d.goals, 2);
   if (!goals.length && d.summary) rows.push(['这次做什么', d.summary]);
   if (goals.length) rows.push(['这次做什么', goals.join('；')]);
@@ -136,6 +157,12 @@ function nextAction(d) {
   if (d.kind === 'bug') return effStatus(d) === '已验证' ? '已验证：可沉淀复盘或关闭记录' : '建议先确认根因，再按验证步骤回归';
   if (d.kind === 'biz') return '建议测试先按业务流转图设计主流程，再补异常、边界、并发用例';
   if (d.kind === 'reading') return '建议 Review 先沿调用链读主路径，再核对状态流转和关键位置';
+  if (d.delivery) {
+    const events = d.delivery.review && d.delivery.review.events || [];
+    const latest = events[events.length - 1];
+    if (latest && latest.next) return latest.next;
+    return `当前位于${gateLabel(currentGateOf(d))}阶段，继续补齐该 Gate 的证据与结论`;
+  }
   if (DONE.has(effStatus(d))) return '已完成：可从源文档或详情页面复盘方案';
   return '建议评审先核对目标、方案边界、关键取舍和验收方式';
 }
@@ -188,17 +215,21 @@ function roleHint(d, role) {
     if (d.kind === 'bug') return shortText(d.impact || d.symptom || d.rootCause || leadOf(d), 118);
     if (d.kind === 'biz') return shortText(d.background || firstItems(d.testPoints, 1)[0] || leadOf(d), 118);
     if (d.kind === 'reading') return shortText(d.background || d.entry || leadOf(d), 118);
-    return shortText(d.background || firstItems(d.goals, 1)[0] || d.solution || leadOf(d), 118);
+    const plan = d.delivery && d.delivery.plan || {};
+    return shortText(plan.background || plan.summary || d.background || firstItems(d.goals, 1)[0] || d.solution || leadOf(d), 118);
   }
   if (d.kind === 'bug') return shortText(d.fixPlan || d.rootCause || firstItems(d.verifySteps, 1)[0] || leadOf(d), 118);
   if (d.kind === 'biz') return shortText(firstItems(d.testPoints, 1)[0] || firstItems(d.bizRules, 1).map(x => x.desc || x.title)[0] || leadOf(d), 118);
   if (d.kind === 'reading') return shortText(firstItems(d.keyImpl, 1).map(x => `${x.title || ''} ${x.desc || ''}`.trim())[0] || d.entry || leadOf(d), 118);
-  return shortText(d.solution || d.coreDesign || firstItems(d.keyImpl, 1).map(x => x.title || x.desc)[0] || leadOf(d), 118);
+  const plan = d.delivery && d.delivery.plan || {};
+  const reviewEvents = d.delivery && d.delivery.review && d.delivery.review.events || [];
+  const latest = reviewEvents[reviewEvents.length - 1];
+  return shortText(latest && (latest.summary || latest.conclusion) || plan.solution || plan.coreDesign || d.solution || d.coreDesign || firstItems(d.keyImpl, 1).map(x => x.title || x.desc)[0] || leadOf(d), 118);
 }
 function roleBoard(title, subtitle, ids, role, emptyText) {
   const rows = ids.slice(0, 4).map(i => {
     const c = changes[i], st = effStatus(c);
-    return `<div class="role-row" onclick="pick(${i})">
+    return `<div class="role-row" role="button" tabindex="0" onclick="pick(${i})" onkeydown="if(activateKey(event))pick(${i})">
       <div class="role-main">
         <div class="role-title"><span>${icoOf(c)}</span>${esc(c.title)}</div>
         <div class="role-desc">${esc(roleHint(c, role) || '暂无摘要')}</div>
@@ -221,6 +252,7 @@ let q = '', kindF = 'all', scopeF = 'workspace', openOnly = false, homeLimit = 3
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
 function searchHay(c) {
   const parts = [c.title, c.service, c.module, c.type, c.summary, c.searchText,
+    c.deliveryId, c.currentGate, c.gateStatus, c.reviewState,
     c.background, c.solution, c.coreDesign,            // doc
     c.symptom, c.trigger, c.impact, c.rootCause, c.fixPlan,  // bug
     c.entry];                                          // reading
@@ -229,6 +261,7 @@ function searchHay(c) {
   push(c.bizRules); push(c.keyImpl);
   push(c.roles); push(c.context); push(c.dataChanges); push(c.validations); push(c.dataObjects);
   push(c.assumptions); push(c.conflicts); push(c.blockers); push(c.openQuestions);
+  if (c.delivery) parts.push(JSON.stringify(c.delivery));
   parts.push(c.apiSpecPath, c.apiIndexPath);
   (c.apis || []).forEach(a => parts.push(a.url, a.desc, a.operationId, a.specPath));
   return parts.filter(Boolean).join(' ').toLowerCase();
@@ -298,32 +331,32 @@ function renderSidebar() {
         const limit = treeLimits.get(mk(svc, mod)) || 20;
         const shown = ids.slice(0, limit);
         return `<div>
-          <div class="mod-hd" onclick="togMod('${esc(svc)}','${esc(mod)}')">
+          <button type="button" class="mod-hd" onclick="togMod('${esc(svc)}','${esc(mod)}')" aria-expanded="${modOpen}">
             <span class="chev ${modOpen ? 'open' : ''}">▶</span>
             <span class="mod-ico">📁</span>
             <span class="mod-nm">${esc(mod)}</span>
             <span class="mod-badge">${ids.length}</span>
-          </div>
+          </button>
           <div style="display:${modOpen ? 'block' : 'none'}">
             ${shown.map(i => {
               const c = changes[i], isBug = c.kind === 'bug';
-              return `<div class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})" title="${esc(leadOf(c) || c.title)}">
+              return `<button type="button" class="doc-item ${sel === i ? 'active' : ''} ${isBug ? 'bug' : ''}" onclick="pick(${i})" title="${esc(leadOf(c) || c.title)}">
                 <span class="doc-ico">${icoOf(c)}</span>
                 <span class="doc-lbl">${esc(c.title)}</span>
                 <span class="sdot" style="background:${statusColor(effStatus(c))}" title="${esc(effStatus(c))}"></span>
-              </div>`;
+              </button>`;
             }).join('')}
             ${ids.length > shown.length ? `<button class="tree-more" onclick="showMoreMod(event,'${encArg(svc)}','${encArg(mod)}')">再显示 ${Math.min(20, ids.length - shown.length)} 条</button>` : ''}
           </div>
         </div>`;
       }).join('');
       return `<div>
-        <div class="svc-hd" onclick="togSvc('${esc(svc)}')">
+        <button type="button" class="svc-hd" onclick="togSvc('${esc(svc)}')" aria-expanded="${svcOpen}">
           <span class="chev ${svcOpen ? 'open' : ''}">▶</span>
           <span class="mod-ico">📦</span>
           <span class="mod-nm">${esc(svc)}</span>
           <span class="mod-badge">${total}</span>
-        </div>
+        </button>
         <div style="display:${svcOpen ? 'block' : 'none'}">${modsHtml}</div>
       </div>`;
     }).join('');
@@ -371,13 +404,15 @@ function pageLink(d) {
 
 function indexRow(i) {
   const c = changes[i], isBug = c.kind === 'bug';
-  const tag = isBug
+  const tag = c.deliveryId
+    ? `<span class="tag delivery-index-gate">${esc(gateLabel(currentGateOf(c)))} Gate</span>`
+    : isBug
     ? `<span class="tag t-${esc(tcls(c.severity || 'P2'))}">${esc(c.severity || 'P2')}</span>`
     : `<span class="tag t-${esc(tcls(c.type))}">${esc(c.type || '')}</span>`;
   const st = effStatus(c), lead = leadOf(c);
   return `<tr class="${DONE.has(st) ? '' : 'idx-open'}">
     <td style="width:20px">${icoOf(c)}</td>
-    <td><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span>${lead ? `<div class="idx-lead">${esc(lead)}</div>` : ''}</td>
+    <td><button type="button" class="idx-title" onclick="pick(${i})">${esc(c.title)}</button>${lead ? `<div class="idx-lead">${esc(lead)}</div>` : ''}</td>
     <td class="idx-path">${esc(svcOf(c))} / ${esc(modOf(c))}</td>
     <td style="width:90px">${tag}</td>
     <td style="width:90px"><span class="idx-status"><span class="sdot" style="background:${statusColor(st)}"></span>${esc(st)}</span></td>
@@ -403,19 +438,19 @@ function showHome() {
   const sortedVisible = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || ''));
   const businessIds = sortedVisible.filter(i => {
     const c = changes[i];
-    return c.kind === 'biz' || c.kind === 'bug' || c.summary || c.background || c.goals?.length;
+    return c.kind === 'biz' || c.kind === 'bug' || c.summary || c.background || c.goals?.length || c.deliveryId;
   });
   const devIds = sortedVisible.filter(i => {
     const c = changes[i];
-    return !DONE.has(effStatus(c)) || c.summary || c.keyImpl?.length || c.kind === 'reading';
+    return !DONE.has(effStatus(c)) || c.summary || c.keyImpl?.length || c.kind === 'reading' || c.deliveryId;
   });
 
   let h = `<div class="doc-view">
     <div class="home-hero">
       <div>
-        <div class="home-kicker">PROJECT SOLUTIONS</div>
-        <h1 class="doc-h1">开发方案看板</h1>
-        <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}。按服务和模块归档可评审的开发方案，先看目标、数据流和关键取舍，再进入详情核对实现边界与验收口径。</p>
+        <div class="home-kicker">ONE CHANGE · ONE STORY</div>
+        <h1 class="doc-h1">研发变更档案馆</h1>
+        <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}。每项变更只保留一份主档案，把开发方案、实现、验证、代码审查和提交状态串成可追踪的完整故事。</p>
       </div>
       <div class="home-health">
         <div class="health-num">${pct}%</div>
@@ -424,7 +459,7 @@ function showHome() {
       </div>
     </div>
     <div class="home-stats">
-      <div class="stat-card sc-accent"><div class="stat-num">${docCnt}</div><div class="stat-lbl">📄 开发文档</div></div>
+      <div class="stat-card sc-accent"><div class="stat-num">${docCnt}</div><div class="stat-lbl">🗂️ 研发档案</div></div>
       <div class="stat-card sc-red"><div class="stat-num">${bugCnt}</div><div class="stat-lbl">🐛 Bug 记录</div></div>
       ${readCnt ? `<div class="stat-card sc-purple"><div class="stat-num">${readCnt}</div><div class="stat-lbl">📖 代码阅读</div></div>` : ''}
       ${bizCnt ? `<div class="stat-card sc-teal"><div class="stat-num">${bizCnt}</div><div class="stat-lbl">🔀 业务流</div></div>` : ''}
@@ -436,13 +471,13 @@ function showHome() {
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     </div>
     <div class="role-grid">
-      ${roleBoard('业务人员先看', '影响范围、业务规则、测试重点、当前状态', businessIds, 'biz', '暂无业务视角记录')}
-      ${roleBoard('开发人员再看', '方案边界、设计取舍、接口与验收', devIds, 'dev', '暂无开发视角记录')}
+      ${roleBoard('变更概览', '背景、影响范围、当前 Gate 与下一步', businessIds, 'biz', '暂无可展示的变更档案')}
+      ${roleBoard('研发证据', '方案取舍、Review 结论与验证状态', devIds, 'dev', '暂无研发证据记录')}
     </div>
     <div class="reader-guide">
-      <div class="guide-card"><div class="guide-title">快速评审</div><div class="guide-text">先读方案摘要，确认目标、方案边界、关键取舍和下一步动作。</div></div>
-      <div class="guide-card"><div class="guide-title">深入阅读</div><div class="guide-text">沿章节目录阅读需求、技术方案、流程、关键实现与验收口径。</div></div>
-      <div class="guide-card"><div class="guide-title">交接读法</div><div class="guide-text">日常查看打开轻量详情页面；需要单文件外发时，使用构建脚本按需导出。</div></div>
+      <div class="guide-card"><div class="guide-title">先看 Gate</div><div class="guide-text">先确认变更现在走到哪一阶段，是否有阻塞项，以及下一步由谁处理。</div></div>
+      <div class="guide-card"><div class="guide-title">再读证据</div><div class="guide-text">开发方案解释为什么这样改；Review 和验证记录说明结论是否有证据支撑。</div></div>
+      <div class="guide-card"><div class="guide-title">按档交接</div><div class="guide-text">同一 deliveryId 持续更新，不再在多个孤立文档间寻找上下文。</div></div>
     </div>`;
 
   const recent = sortedVisible.slice(0, 8);
@@ -451,7 +486,7 @@ function showHome() {
       const c = changes[i];
       return `<div class="recent-item">
         <span class="doc-ico">${icoOf(c)}</span>
-        <span class="recent-title" onclick="pick(${i})">${esc(c.title)}</span>
+        <button type="button" class="recent-title" onclick="pick(${i})">${esc(c.title)}</button>
         <span class="recent-path">${esc(svcOf(c))} / ${esc(modOf(c))}</span>
         <span class="idx-date">${esc(c.date || '')}</span>
       </div>`;
@@ -590,6 +625,159 @@ function loadDetail(c, done) {
 function showDetailLoadError(c, error) {
   document.getElementById('main').innerHTML = `<div class="doc-view"><h1 class="doc-h1">详情加载失败</h1><p class="doc-intro">${esc(error.message || error)}</p><div class="doc-meta">${mdLink(c)} ${pageLink(c)}</div></div>`;
 }
+function deliveryModel(d) {
+  const raw = d.delivery || {};
+  const plan = Object.assign({
+    status: d.background || d.solution || d.goals?.length ? 'passed' : 'pending',
+    summary: d.summary || leadOf(d),
+    background: d.background,
+    goals: d.goals,
+    scopeIn: d.scopeIn,
+    scopeOut: d.scopeOut,
+    solution: d.solution,
+    dataFlowSummary: d.dataFlowSummary,
+    coreDesign: d.coreDesign,
+    keyImpl: d.keyImpl,
+    acceptance: d.acceptance,
+    flowchart: d.flowchart
+  }, raw.plan || {});
+  const review = raw.review || {};
+  const events = Array.isArray(review.events) ? review.events : [];
+  return {
+    plan,
+    implementation: raw.implementation || {},
+    verification: raw.verification || {},
+    review: Object.assign({}, review, { events }),
+    submit: raw.submit || {}
+  };
+}
+function gateClass(d, delivery, gate) {
+  const stage = delivery[gate] || {};
+  const explicit = String(stage.status || '').toLowerCase();
+  if (/passed|fixed|complete|completed|done/.test(explicit)) return 'done';
+  if (/blocked|failed|insufficient/.test(explicit)) return 'blocked';
+  if (/progress|running|active|findings|awaiting/.test(explicit)) return 'current';
+  const current = currentGateOf(d);
+  const targetIndex = DELIVERY_GATES.indexOf(gate);
+  const currentIndex = DELIVERY_GATES.indexOf(current);
+  if (targetIndex < currentIndex) return 'done';
+  if (targetIndex === currentIndex) return d.gateStatus === 'blocked' ? 'blocked' : 'current';
+  return 'pending';
+}
+function findingView(finding) {
+  if (typeof finding === 'string') return `<div class="finding-row"><span class="finding-id">NOTE</span><span>${esc(finding)}</span></div>`;
+  const id = finding.id || finding.findingId || finding.severity || 'Finding';
+  const state = finding.status || finding.state || 'open';
+  const problem = finding.problem || finding.summary || finding.impact || '';
+  return `<div class="finding-row finding-${esc(String(state).toLowerCase())}">
+    <span class="finding-id">${esc(id)}</span>
+    <span>${esc(problem)}</span>
+    <span class="finding-state">${esc(state)}</span>
+  </div>`;
+}
+function reviewEventView(event) {
+  const findings = Array.isArray(event.findings) ? event.findings : [];
+  const verification = event.verification || {};
+  return `<article class="review-event">
+    <div class="review-event-head">
+      <div><span class="review-mode">${esc(event.mode || 'review')}</span><strong>${esc(event.title || event.conclusion || '代码审查')}</strong></div>
+      <span class="review-date">${esc(event.date || '')}</span>
+    </div>
+    ${event.summary ? `<p>${esc(event.summary)}</p>` : ''}
+    ${findings.length ? `<div class="finding-list">${findings.map(findingView).join('')}</div>` : '<div class="review-empty">本轮没有记录有证据的 finding</div>'}
+    <div class="review-evidence">
+      ${event.scopeType ? `<span>范围 · ${esc(event.scopeType)}</span>` : ''}
+      ${verification.status ? `<span>验证 · ${esc(verification.status)}</span>` : ''}
+      ${event.gateStatus ? `<span>Gate · ${esc(event.gateStatus)}</span>` : ''}
+    </div>
+  </article>`;
+}
+function renderDelivery(d) {
+  const delivery = deliveryModel(d);
+  const plan = delivery.plan;
+  const events = delivery.review.events;
+  const latest = events[events.length - 1] || {};
+  const verification = Object.assign({}, delivery.verification, latest.verification || {});
+  const current = currentGateOf(d);
+  const st = effStatus(d);
+  const summary = plan.summary || plan.background || leadOf(d);
+  const next = latest.next || delivery[current]?.next ||
+    (current === 'submit' ? '完成 VCS 与人工确认后进入提交' : `继续补齐${gateLabel(current)}阶段证据`);
+  let h = `<div class="doc-view delivery-view">
+    <div class="breadcrumb"><span>🗂️ 研发变更档案</span><span class="bc-sep">/</span><span>${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>${esc(modOf(d))}</span></div>
+    <div class="delivery-kicker">${esc(d.deliveryId || 'LEGACY DELIVERY')} · ${esc(gateLabel(current).toUpperCase())} GATE</div>
+    <h1 class="doc-h1">${esc(d.title)}</h1>
+    ${summary ? `<p class="doc-lead">${esc(summary)}</p>` : ''}
+    <div class="tags">
+      ${d.type ? `<span class="tag t-${esc(tcls(d.type))}">${esc(d.type)}</span>` : ''}
+      ${d.complexity ? `<span class="tag t-cplx">${esc(d.complexity)}</span>` : ''}
+      <span class="tag delivery-gate-tag">${esc(gateLabel(current))}阶段</span>
+      ${d.reviewState ? `<span class="tag review-state-tag">${esc(d.reviewState)}</span>` : ''}
+      <button type="button" class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</button>
+    </div>
+    <div class="doc-meta">
+      <span>📅 ${esc(d.updatedAt || d.date || '')}</span>
+      ${d.branch ? `<span>🌿 ${esc(d.branch)}</span>` : ''}
+      ${mdLink(d)} ${apiSpecLink(d)} ${apiIndexLink(d)} ${pageLink(d)}
+    </div>
+    <div class="delivery-progress">
+      ${DELIVERY_GATES.map((gate, index) => `<div class="delivery-step ${gateClass(d, delivery, gate)}">
+        <span class="delivery-dot"></span><span class="delivery-step-num">0${index + 1}</span><strong>${esc(gateLabel(gate))}</strong>
+      </div>`).join('')}
+    </div>
+    <div class="delivery-overview">
+      <section class="delivery-card plan-card">
+        <div class="delivery-card-label">01 · 开发方案</div>
+        <h2>${esc(plan.title || '这次为什么改')}</h2>
+        ${plan.background ? para(plan.background) : summary ? para(summary) : '<p class="delivery-empty">尚未登记方案说明</p>'}
+        ${plan.coreDesign ? `<div class="delivery-callout"><b>核心取舍</b>${esc(plan.coreDesign)}</div>` : ''}
+      </section>
+      <section class="delivery-card review-card">
+        <div class="delivery-card-label">02 · Review 摘要</div>
+        <h2>${events.length ? `${events.length} 次审查记录` : '尚未进入审查'}</h2>
+        ${events.length ? reviewEventView(latest) : '<p class="delivery-empty">code-review 运行后会按同一 deliveryId 追加到这里。</p>'}
+      </section>
+      <section class="delivery-card verification-card">
+        <div class="delivery-card-label">03 · 验证证据</div>
+        <h2>${esc(verification.status || verification.testEvidenceStatus || '待补充')}</h2>
+        <p>${esc(verification.summary || verification.result || '尚未登记能够证明目标逻辑的验证结果。')}</p>
+        ${verification.dependencyClass ? `<code>${esc(verification.dependencyClass)}</code>` : ''}
+      </section>
+      <section class="delivery-card next-card">
+        <div class="delivery-card-label">04 · 下一步</div>
+        <h2>${esc(gateLabel(current))} → ${esc(gateLabel(DELIVERY_GATES[Math.min(DELIVERY_GATES.indexOf(current) + 1, 4)]))}</h2>
+        <p>${esc(next)}</p>
+      </section>
+    </div>`;
+
+  const hasPlan = plan.background || plan.goals?.length || plan.scopeIn?.length || plan.scopeOut?.length ||
+    plan.solution || plan.dataFlowSummary || plan.coreDesign;
+  if (hasPlan) {
+    let body = '';
+    if (plan.goals?.length) body += `<p class="sub-label">目标</p><ul class="checklist">${plan.goals.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    if (plan.scopeIn?.length || plan.scopeOut?.length) {
+      if (plan.scopeIn?.length) body += `<div class="scope-row"><span class="scope-label">✅ 包含</span>${plan.scopeIn.map(x => `<span class="scope-in">${esc(x)}</span>`).join('')}</div>`;
+      if (plan.scopeOut?.length) body += `<div class="scope-row"><span class="scope-label">❌ 不含</span>${plan.scopeOut.map(x => `<span class="scope-out">${esc(x)}</span>`).join('')}</div>`;
+    }
+    if (plan.solution) body += `<p class="sub-label">实现方式</p>${para(plan.solution)}`;
+    if (plan.dataFlowSummary) body += `<p class="sub-label">数据流转</p>${para(plan.dataFlowSummary)}`;
+    if (plan.coreDesign) body += `<p class="sub-label">关键边界与取舍</p>${para(plan.coreDesign)}`;
+    h += sec('完整开发方案', body);
+  }
+  if (d.apis?.length) h += sec('接口文档', apiTable(d.apis));
+  if (plan.flowchart) h += sec('数据流转与处理链路', '<div class="mermaid-wrap" id="mmd-wrap"></div>');
+  if (plan.keyImpl?.length) {
+    h += sec('关键实现决策', `<div class="keyimpl-list">${plan.keyImpl.map(k =>
+      `<div class="keyimpl-item"><div class="ki-title">${esc(k.title)}</div><div class="ki-desc">${esc(k.desc)}</div></div>`
+    ).join('')}</div>`);
+  }
+  if (events.length > 1) h += sec('Review 生命周期', `<div class="review-timeline">${events.map(reviewEventView).join('')}</div>`);
+  if (plan.acceptance?.length) h += sec('验收与回归', `<ul class="checklist">${plan.acceptance.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`);
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+  addToc();
+  if (plan.flowchart) renderMermaid(document.getElementById('mmd-wrap'), plan.flowchart);
+}
 function pick(i) {
   sel = i; renderSidebar();
   const catalog = changes[i];
@@ -605,6 +793,7 @@ function pick(i) {
   if (d.kind === 'bug') { renderBug(d); return; }
   if (d.kind === 'biz') { renderBiz(d); return; }
   const isReading = d.kind === 'reading';
+  if (!isReading) { renderDelivery(d); return; }
   const st = effStatus(d);
   const main = document.getElementById("main");
 
@@ -615,7 +804,7 @@ function pick(i) {
     <div class="tags">
       ${d.type ? `<span class="tag t-${esc(tcls(d.type))}">${esc(d.type)}</span>` : ''}
       ${d.complexity ? `<span class="tag t-cplx">${esc(d.complexity)}</span>` : ''}
-      <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
+      <button type="button" class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</button>
     </div>
     <div class="doc-meta">
       <span>📅 ${esc(d.date)}</span>
@@ -684,7 +873,7 @@ function renderBug(d) {
     ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
     <div class="tags">
       <span class="tag t-${esc(tcls(sev))}">${esc(sev)}</span>
-      <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
+      <button type="button" class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</button>
     </div>
     <div class="doc-meta">
       <span>📅 ${esc(d.date)}</span>
@@ -737,7 +926,7 @@ function renderBiz(d) {
     ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
     <div class="tags">
       <span class="tag t-业务流">业务流</span>
-      <span class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</span>
+      <button type="button" class="tag t-status-${esc(st)} clickable" title="点击切换状态" onclick="cycleStatus(event)">${esc(st)} ▾</button>
     </div>
     <div class="doc-meta">
       <span>📅 ${esc(d.date)}</span>
@@ -816,7 +1005,7 @@ function showApis() {
             <td style="width:72px"><span class="method ${mClass}">${esc(a.method)}</span></td>
             <td><code class="api-url">${esc(a.url)}</code></td>
             <td>${a.operationId ? `<code class="api-url">${esc(a.operationId)}</code><br>` : ''}${esc(a.desc || '')}${detail}</td>
-            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink({ apiSpecPath: a.specPath || c.apiSpecPath }, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
+            <td style="width:220px"><button type="button" class="idx-title" onclick="pick(${i})">${esc(c.title)}</button><div>${apiSpecLink({ apiSpecPath: a.specPath || c.apiSpecPath }, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
           </tr>`);
         });
@@ -826,7 +1015,7 @@ function showApis() {
             <td style="width:72px"><span class="method m-GET">YAML</span></td>
             <td><code class="api-url">${esc(c.apiSpecPath)}</code></td>
             <td>OpenAPI 规范文件已生成，但看板 entry 未登记具体接口；请回填 apis[] 以完善接口索引。</td>
-            <td style="width:220px"><span class="idx-title" onclick="pick(${i})">${esc(c.title)}</span><div>${apiSpecLink(c, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
+            <td style="width:220px"><button type="button" class="idx-title" onclick="pick(${i})">${esc(c.title)}</button><div>${apiSpecLink(c, 'YAML')} ${apiIndexLink(c, '索引')}</div></td>
             <td style="width:90px" class="idx-date">${esc(c.date || '')}</td>
           </tr>`);
         }

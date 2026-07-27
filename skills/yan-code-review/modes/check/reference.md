@@ -40,12 +40,13 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
+BoardPublishStatus: <Published: deliveryId/sourceDocPath / Blocked: IdentityMissing|BuildFailure>
 
 【Workflow Brief】
 stage: ReviewGate
 task: <任务名或审查对象>
 source: <review-task/yan-dev-doc/patch/diff 路径>
-artifacts: 本次只读审查输出；无文件写入
+artifacts: 本次只读审查输出；同一研发档案的 check 看板事件
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
@@ -104,12 +105,13 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；说明测试是否验证目标逻辑>
+BoardPublishStatus: <Published: deliveryId/sourceDocPath / Blocked: IdentityMissing|BuildFailure>
 
 【Workflow Brief】
 stage: ReviewGate
 task: <任务名或审查对象>
 source: <review-task/yan-dev-doc/patch/diff 路径>
-artifacts: 本次只读审查输出；无文件写入
+artifacts: 本次只读审查输出；同一研发档案的 check 看板事件
 changed: <审查到的源码/测试/配置/OpenAPI 文件>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
@@ -142,12 +144,13 @@ ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
 VerificationStatus: <已运行/未运行/未提供；命令、结果或未运行原因>
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable；说明默认命令边界>
 TestEvidenceStatus: <Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable；缺失或阻塞原因>
+BoardPublishStatus: <Published: deliveryId/sourceDocPath / Blocked: IdentityMissing|BuildFailure>
 
 【Workflow Brief】
 stage: ReviewGate
 task: <任务名或审查对象>
 source: <已提供材料路径>
-artifacts: 本次只读审查输出；无文件写入
+artifacts: 本次只读审查输出；能定位身份时写入同一研发档案的 InsufficientMaterial 事件
 changed: <已读取文件；未知写 未确认>
 vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>

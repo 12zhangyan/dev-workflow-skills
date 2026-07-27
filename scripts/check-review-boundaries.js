@@ -38,8 +38,12 @@ requireText('skills/yan-code-review/modes/check/mode.md', [
   'InsufficientMaterial',
   '可将以上 findings 原样交给 `yan-code-review mode=package`',
   '如果希望直接修复，可将 findings 交给 `yan-code-review mode=repair`',
-  '默认真对最近实现做 `ImplementationReview`',
+  '默认针对最近实现做 `ImplementationReview`',
+  '不要因为用户最后只发送 `/yan-code-review`',
+  '优先绑定同会话已经确认的 `changed` 文件',
   '不要机械追问“审查什么”',
+  '更新同一研发档案',
+  '唯一允许的写入是通过确定性脚本更新同一研发档案的看板元数据',
 ]);
 
 requireText('skills/yan-code-review/modes/repair/mode.md', [
@@ -50,6 +54,7 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
   '不会提交代码',
   '不得要求执行数据库写操作、DDL、数据修复 SQL',
   '单轮默认最多处理 5 条 accepted findings',
+  '回填同一研发档案',
 ]);
 
 requireText('skills/yan-code-review/modes/package/mode.md', [
@@ -58,6 +63,7 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
   '`yan-code-review mode=check`',
   '`yan-code-review mode=repair`',
   '阻塞项不下发修复',
+  '不把 fix-handoff 当成新的普通文档条目',
 ]);
 
 requireText('skills/yan-code-review/modes/loop/mode.md', [
@@ -66,6 +72,8 @@ requireText('skills/yan-code-review/modes/loop/mode.md', [
   '读取并执行 [check mode](../check/mode.md)',
   '没有 Critical/Important：跳过 repair',
   '不会自动 commit/push，不会执行数据库写入',
+  'BoardPublishOwner: loop',
+  '唯一发布所有权人',
 ]);
 
 requireText('skills/_shared/workflow-chain.md', [

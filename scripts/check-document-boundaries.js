@@ -207,9 +207,19 @@ requireText('skills/yan-dev-doc/publishing-board.md', [
   '../_shared/board-shell-bootstrap.md',
   '首屏只保留一层简洁方案摘要',
   '禁止再造“业务视角 / 研发视角 / 方案落点”等重复摘要',
-  '这次做什么 / 数据怎么流转 / 实现方式 / 关键边界与取舍 / 怎么验收',
+  '当前 Gate / 开发方案 / Review 摘要 / 验证证据 / 下一步',
+  'detail.delivery.plan',
+  'deliveryId` / `sourceDocPath` / `docPath',
   '精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md',
   'BoardVisualCheck: NotRun',
+]);
+
+requireText('skills/yan-dev-doc/completion.md', [
+  'BoardPublishStatus',
+  'BoardVisualCheck',
+  '逐文件最小清单',
+  '禁止 `git add .`、目录级路径',
+  '`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径',
 ]);
 
 requireText('skills/yan-project-analysis/modes/incident/mode.md', [
@@ -283,6 +293,9 @@ requireText('skills/_shared/board-publish-flow.md', [
   'BoardPublishBlocked',
   'BoardBuildBlocked',
   '不得降级为手工插入',
+  '更新同一研发档案的 Review 生命周期',
+  'BoardPublishOwner: loop',
+  'IdentityMissing',
 ]);
 
 smokeBoardShellBootstrap();

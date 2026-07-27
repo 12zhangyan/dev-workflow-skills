@@ -3,46 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>开发方案看板</title>
+  <title>研发变更档案馆</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <script src="js/vendor/mermaid.min.js"></script>
   <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\/script>');</script>
-  <link rel="stylesheet" href="css/board.css">
+  <link rel="stylesheet" href="css/board.css?v=27">
 </head>
 <body>
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <div class="sidebar-title">📚 开发方案看板</div>
+    <div class="sidebar-title"><span class="brand-mark">A</span><span>研发变更档案馆<small>ONE CHANGE · ONE STORY</small></span></div>
     <div class="sidebar-sub" id="sub"></div>
     <input class="search" id="q" placeholder="🔍 搜索标题 / 服务 / 模块 / 内容" oninput="onSearch(this.value)">
     <div class="scope-filters" aria-label="记录范围">
-      <span class="fpill" data-scope="workspace" onclick="setScope('workspace')">工作台</span>
-      <span class="fpill" data-scope="backlog" onclick="setScope('backlog')">待办库</span>
-      <span class="fpill" data-scope="archive" onclick="setScope('archive')">档案库</span>
-      <span class="fpill" data-scope="all" onclick="setScope('all')">全部</span>
+      <button type="button" class="fpill" data-scope="workspace" onclick="setScope('workspace')">工作台</button>
+      <button type="button" class="fpill" data-scope="backlog" onclick="setScope('backlog')">待办库</button>
+      <button type="button" class="fpill" data-scope="archive" onclick="setScope('archive')">档案库</button>
+      <button type="button" class="fpill" data-scope="all" onclick="setScope('all')">全部</button>
     </div>
     <div class="filters">
-      <span class="fpill" data-k="all" onclick="setKind('all')">全部</span>
-      <span class="fpill" data-k="doc" onclick="setKind('doc')">📄 文档</span>
-      <span class="fpill" data-k="bug" onclick="setKind('bug')">🐛 Bug</span>
-      <span class="fpill" data-k="reading" onclick="setKind('reading')">📖 阅读</span>
-      <span class="fpill" data-k="biz" onclick="setKind('biz')">🔀 业务流</span>
-      <span class="fpill toggle" id="openPill" onclick="toggleOpen()">仅未完成</span>
+      <button type="button" class="fpill" data-k="all" onclick="setKind('all')">全部</button>
+      <button type="button" class="fpill" data-k="doc" onclick="setKind('doc')">🗂️ 研发档案</button>
+      <button type="button" class="fpill" data-k="bug" onclick="setKind('bug')">🐛 Bug</button>
+      <button type="button" class="fpill" data-k="reading" onclick="setKind('reading')">📖 阅读</button>
+      <button type="button" class="fpill" data-k="biz" onclick="setKind('biz')">🔀 业务流</button>
+      <button type="button" class="fpill toggle" id="openPill" onclick="toggleOpen()">仅未完成</button>
     </div>
   </div>
   <div class="sidebar-body" id="sb"></div>
   <div class="sidebar-footer">
-    <div class="log-btn" id="home-btn" onclick="showHome()">📊 浏览索引</div>
-    <div class="log-btn" id="api-btn" onclick="showApis()">🔌 接口索引</div>
-    <div class="log-btn" id="log-btn" onclick="showLog()">📋 HTML 变更日志</div>
+    <button type="button" class="log-btn" id="home-btn" onclick="showHome()">📊 浏览索引</button>
+    <button type="button" class="log-btn" id="api-btn" onclick="showApis()">🔌 接口索引</button>
+    <button type="button" class="log-btn" id="log-btn" onclick="showLog()">📋 HTML 变更日志</button>
   </div>
 </aside>
 
 <main class="main" id="main"></main>
 
 <script src="data/changes.js"></script>
-<script src="js/board.js"></script>
+<script src="js/board.js?v=27"></script>
 </body>
 </html>

@@ -71,6 +71,7 @@ ID 前缀语义以 [../../../_shared/workflow-chain.md](../../../_shared/workflo
 工作流阶段：Review Repair 已完成；下一步回到 Verification Gate / 二次 review-check / Submit Gate
 TestDependencyClass: <Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown；说明默认 CI 与外部测试边界>
 TestEvidenceStatus: <Passed / Failed / NotRun / EnvironmentBlocked；说明验证是否证明目标逻辑>
+BoardPublishStatus: <Published: deliveryId/sourceDocPath · repair / Blocked: IdentityMissing|BuildFailure>
 
 【Workflow Brief】
 stage: ReviewRepair

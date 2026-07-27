@@ -175,6 +175,17 @@ Windows PowerShell 使用 Maven Wrapper 时，把 `-Dkey=value` 参数作为一�
 - 是否出现敏感信息、临时 patch、日志、凭证文件。
 - 修复前后 diff 是否只覆盖 accepted findings 和必要测试。
 
+### Step 6.5：回填同一研发档案
+
+加载并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)：
+
+- 若上层明确传入 `BoardPublishOwner: loop`，本子阶段只把 finding 状态和验证证据交回 loop，不自行写看板。
+- 从 findings、fix-handoff、Review task 或 Workflow Brief 取得 `deliveryId`；没有时用原 yan-dev-doc 路径作为 `sourceDocPath`。
+- 写入稳定 `mode:"repair"` 事件，按原 `CR/IM/MI/RJ/BK` ID 回填 `fixed / deferred / blocked / rejected`，不得重编号。
+- 摘要记录本轮最小修复范围、可观察结果、`TestDependencyClass`、`TestEvidenceStatus` 和未关闭项；不写完整 diff、精确 File/Line 或 Agent Todo。
+- 全部 accepted Critical/Important 关闭且目标验证通过时，`reviewState:"fixed"`、`gateStatus:"passed"`；否则按证据写 `partially-fixed|blocked` 和 `gateStatus:"blocked"`。
+- 身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`，不得创建一条以 repair 输出为主文档的孤立记录。
+
 ### Step 7：输出修复结果
 
 按 [reference.md](reference.md#完成输出格式) 输出：
@@ -210,6 +221,7 @@ Windows PowerShell 使用 Maven Wrapper 时，把 `-Dkey=value` 参数作为一�
 - [ ] 已按最小范围修改代码和必要测试。
 - [ ] 已运行针对性验证；无法验证时已说明原因。
 - [ ] 已复查 Git/SVN 状态和新增文件跟踪情况。
+- [ ] 已向同一研发档案回填 repair 事件和 finding 状态，或明确输出 `BoardPublishStatus: Blocked`。
 - [ ] 已输出每条 finding 的处理结果和后续建议。
 
 ## 相关资源

@@ -42,6 +42,8 @@ tokenHint: 下一位 AI 先读本 Brief -> 精简 md -> 首轮最多 5 个文件
 📚 Apifox 索引：<真实路径 / 未生成 + 原因>
 📚 文档总索引：<真实路径 / environment-blocked + 原因>
 📤 独立单页：<真实路径 / environment-blocked + 原因>
+📚 BoardPublishStatus：<Published: deliveryId=<DLV-...>, currentGate=plan / NotRequested / EnvironmentBlocked>
+👁 BoardVisualCheck：<Passed + 已检查页面与视口 / NotRun + 原因 / NotApplicable>
 🧭 工作流阶段：<Plan Gate 已完成，下一步进入 Implementation Gate / Plan Gate 未通过 / Plan Gate 已完成但派生产物 environment-blocked>
 
 【Workflow Brief】
@@ -72,8 +74,9 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技�
 完成后必须回填执行结果对照表：已完成 Todo、未完成/偏离项、变更文件、验证命令、风险/疑问。"
 
 📁 纳入版本控制并确认变更范围：
-- [ ] Git: `git add docs/<日期>/<任务名>.md project-html/data/changes.js project-html/data/details/ docs/INDEX.md`；如生成接口规范，再加 `docs/apifox/<日期>/<任务名>.openapi.yaml docs/apifox/INDEX.md`
-- [ ] SVN: `svn add <新文件>`；如生成接口规范，确认 `.openapi.yaml` 与 `docs/apifox/INDEX.md` 已纳入版本控制
+- [ ] 先根据本次 `artifacts` 和 VCS status 输出**逐文件最小清单**；只列本次真实生成或修改的文件，禁止 `git add .`、目录级路径或顺带纳管其他任务产物
+- [ ] Git: `git add <本次 md> <本次精确 detail sidecar> <本次实际变化的 changes.js / docs/INDEX.md / OpenAPI 文件>`；`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径
+- [ ] SVN: 对逐文件最小清单中的每个 `?` 新文件分别执行 `svn add <精确文件>`；未生成的看板/OpenAPI/索引不得出现在命令中
 - [ ] 查看完整变更：`git diff` / `svn diff`
 
 🧪 先验证（没有绿灯不进 Code Review）：
@@ -111,7 +114,7 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技�
 | Step 1 git 命令报 dubious ownership / safe.directory | 当前执行用户不是仓库拥有者 | 仍按 `.git` 判定为 Git；只在本次命令使用 `git -c "safe.directory=$vcs_root"`，不要改全局配置 |
 | 看板写入后打不开 | entry 字段或既有数据语法异常 | 保留 `_entry.json` 和脚本错误，修正标准 JSON 后重跑 `board-add.js`；禁止手工改 `changes.js` 绕过保护 |
 | 旧版单文件看板（数据内联在 index.html） | 看板是旧版结构 | Step 5.5 MISSING 分支自动迁移：数组搬入 `data/changes.js` 后覆盖外壳 |
-| 同一任务重复运行产生重复看板条目 | 冲突选 A/E 后仍追加 | `board-add.js` 按 `docPath` 查重，命中即就地更新（保留原 status） |
+| 同一任务重复运行或 Review 产生重复看板条目 | 未复用主档案身份 | `board-add.js` 按 `deliveryId` / `sourceDocPath` / `docPath` 查重；Review 事件再按稳定 `eventId` 幂等更新（保留原治理状态） |
 | Apifox YAML 只写在 md 里，后续不好导入/维护 | 没有生成独立 OpenAPI 产物 | 接口变更时必须生成 `docs/apifox/<日期>/<任务名>.openapi.yaml`，更新 `docs/apifox/INDEX.md`，并在看板写入 `apiSpecPath` |
 | 原接口只收紧行为却被全量写入 OpenAPI | 没有逐接口区分行为变更与契约变更 | 保留原接口契约不动，只在方案/兼容性/测试记录行为收紧；OpenAPI 和 `apis[]` 仅收新增或契约变更接口 |
 | 给了旧 md 和一句增量仍重走完整新文档 | 未识别 `IncrementalRevision` | 读取旧文档并继承证据，只补增量槽位；纯行为变更跳过 API/OpenAPI 章节，契约有变化则自动恢复 |
