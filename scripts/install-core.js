@@ -142,7 +142,7 @@ function copySkill(source, destination, stripSkillBom) {
   if (stripSkillBom) removeUtf8BomFromSkillFiles(destination);
 }
 
-function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
+function installTarget(sourceRoot, home, targetName, version) {
   const target = TARGETS[targetName];
   const skillsRoot = path.resolve(home, target.dotDir, 'skills');
   const expectedRoot = path.resolve(home, target.dotDir);
@@ -166,19 +166,37 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
     }
   }
 
-  const preservedLegacy = [];
+  // A reinstall is intentionally a clean replacement: remove every known
+  // directory from this distribution before copying any current Skill.
   for (const legacy of LEGACY_NAMES) {
     const legacyPath = path.join(skillsRoot, legacy);
     if (!fs.existsSync(legacyPath)) continue;
     const previouslyManaged = previous && Array.isArray(previous.managedLegacy)
       && previous.managedLegacy.includes(legacy);
-    if (previouslyManaged) {
-      backupDirectory(home, targetName, skillsRoot, legacy, 'managed legacy migration');
-    } else if (migrateLegacy) {
-      backupDirectory(home, targetName, skillsRoot, legacy, 'explicit legacy migration');
+    backupDirectory(
+      home,
+      targetName,
+      skillsRoot,
+      legacy,
+      previouslyManaged ? 'managed legacy cleanup' : 'known legacy cleanup',
+    );
+  }
+
+  for (const name of names) {
+    const destination = path.join(skillsRoot, name);
+    if (!fs.existsSync(destination)) continue;
+    const currentHash = hashTree(destination);
+    if (previousHashes[name] && previousHashes[name] === currentHash) {
+      fs.rmSync(destination, { recursive: true, force: true });
+      process.stdout.write(`  [CLEAN] ${name} (previous managed install)\n`);
     } else {
-      preservedLegacy.push(legacy);
-      process.stdout.write(`  [KEEP] ${legacy} (unowned legacy name; use --migrate-legacy to back it up)\n`);
+      backupDirectory(
+        home,
+        targetName,
+        skillsRoot,
+        name,
+        previousHashes[name] ? 'locally modified managed skill' : 'pre-manifest skill',
+      );
     }
   }
 
@@ -186,14 +204,6 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
   for (const name of names) {
     const source = path.join(sourceRoot, 'skills', name);
     const destination = path.join(skillsRoot, name);
-    if (fs.existsSync(destination)) {
-      const currentHash = hashTree(destination);
-      if (previousHashes[name] && previousHashes[name] === currentHash) {
-        fs.rmSync(destination, { recursive: true, force: true });
-      } else {
-        backupDirectory(home, targetName, skillsRoot, name, previousHashes[name] ? 'locally modified managed skill' : 'pre-manifest skill');
-      }
-    }
     copySkill(source, destination, target.stripSkillBom);
     installedHashes[name] = hashTree(destination);
     process.stdout.write(`  [OK] ${name}\n`);
@@ -206,10 +216,11 @@ function installTarget(sourceRoot, home, targetName, version, migrateLegacy) {
     sourceVersion: version,
     sourceTreeHash: hashTree(path.join(sourceRoot, 'skills')),
     installedAt: new Date().toISOString(),
+    installMode: 'clean-replace',
     managedSkills: names,
     installedHashes,
     managedLegacy: [],
-    preservedLegacy,
+    preservedLegacy: [],
   };
   fs.writeFileSync(path.join(skillsRoot, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   process.stdout.write(`  [MANIFEST] ${MANIFEST}\n\n`);
@@ -308,7 +319,7 @@ function doctor(sourceRoot, home, targets) {
 
 const options = parseArgs(process.argv.slice(2));
 if (!['install', 'status', 'doctor'].includes(options.command)) {
-  fail('usage: install-core.js <install|status|doctor> --source <repo-root> --home <home> [--targets ...] [--migrate-legacy]');
+  fail('usage: install-core.js <install|status|doctor> --source <repo-root> --home <home> [--targets ...]');
 }
 const home = path.resolve(options.home || process.env.USERPROFILE || process.env.HOME || '');
 if (!home) fail('home directory is required');
@@ -318,7 +329,7 @@ if (options.command === 'install') {
   if (!options.source) fail('--source is required for install');
   const sourceRoot = path.resolve(options.source);
   const version = sourceVersion(sourceRoot, options.version);
-  for (const target of targets) installTarget(sourceRoot, home, target, version, options.migrateLegacy);
+  for (const target of targets) installTarget(sourceRoot, home, target, version);
   process.stdout.write('Done. Open a new host session if the current one does not refresh its skill catalog.\n');
 } else if (options.command === 'status') {
   const sourceRoot = options.source ? path.resolve(options.source) : null;

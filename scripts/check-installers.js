@@ -108,6 +108,18 @@ function seedRemovedManagedSkill(home) {
   }
 }
 
+function seedStaleManagedFile(home) {
+  for (const target of targets) {
+    const skillsRoot = path.join(home, target.dotDir, 'skills');
+    const managed = path.join(skillsRoot, 'yan-code-review');
+    fs.writeFileSync(path.join(managed, 'stale-from-previous-release.txt'), 'remove me before reinstall\n');
+    const manifestPath = path.join(skillsRoot, '.yan-dev-workflow-skills.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.installedHashes['yan-code-review'] = hashTree(managed);
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+}
+
 function seedHome(home) {
   for (const target of targets) {
     const skillsRoot = path.join(home, target.dotDir, 'skills');
@@ -139,7 +151,7 @@ function backupRoot(home, target) {
   return path.join(home, '.yan-dev-workflow-skills-backups', target.name);
 }
 
-function assertInstall(home, { legacyMigrated = false } = {}) {
+function assertInstall(home) {
   for (const target of targets) {
     const skillsRoot = path.join(home, target.dotDir, 'skills');
     if (!fs.existsSync(path.join(skillsRoot, 'user-owned-skill', 'marker.txt'))) {
@@ -157,14 +169,16 @@ function assertInstall(home, { legacyMigrated = false } = {}) {
     if (!manifest.sourceVersion || !manifest.sourceTreeHash || !manifest.installedAt) {
       fail(`${target.name} manifest missing version/hash/time`);
     }
+    if (manifest.installMode !== 'clean-replace') {
+      fail(`${target.name} manifest did not record clean replacement mode`);
+    }
 
     for (const legacy of legacyNames) {
       const exists = fs.existsSync(path.join(skillsRoot, legacy));
-      if (legacyMigrated && exists) fail(`${target.name} explicit migration kept legacy: ${legacy}`);
-      if (!legacyMigrated && !exists) fail(`${target.name} default install deleted unowned legacy: ${legacy}`);
+      if (exists) fail(`${target.name} clean install kept known legacy directory: ${legacy}`);
     }
-    if (legacyMigrated && findFile(backupRoot(home, target), 'legacy-marker.txt').length < legacyNames.length) {
-      fail(`${target.name} did not back up every explicitly migrated legacy directory`);
+    if (findFile(backupRoot(home, target), 'legacy-marker.txt').length < legacyNames.length) {
+      fail(`${target.name} did not move every known legacy directory out of discovery roots`);
     }
     if (findFile(backupRoot(home, target), 'stale-from-old-install.txt').length < 1) {
       fail(`${target.name} did not back up a pre-manifest same-name skill`);
@@ -213,16 +227,17 @@ function smokeWindows(tempRoot) {
     { cwd: root, env: cmdEnv }, 'install-local.cmd doctor');
   if (!doctor.stdout.includes('ROOT\tclaude\tPRESENT')
     || !doctor.stdout.includes('MANIFEST\tcodex\tCURRENT')
-    || !doctor.stdout.includes('LEGACY\tclaude\tdev-doc\tPRESENT')
     || !doctor.stdout.includes('MIRROR\tyan-dev-doc\tclaude,cursor,codex')
     || !doctor.stdout.includes('DUPLICATE\tuser-owned-skill\tclaude,cursor,codex')) {
     fail('install-local.cmd doctor did not distinguish managed mirrors from unmanaged duplicates');
   }
+  if (doctor.stdout.includes('LEGACY\t')) fail('clean install left a known legacy directory discoverable');
   if (JSON.stringify(listTree(cmdHome)) !== beforeDoctor) fail('install-local.cmd doctor modified the home directory');
   seedRemovedManagedSkill(cmdHome);
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd --migrate-legacy claude cursor codex'],
-    { cwd: root, env: cmdEnv }, 'install-local.cmd explicit migration');
-  assertInstall(cmdHome, { legacyMigrated: true });
+  seedStaleManagedFile(cmdHome);
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude cursor codex'],
+    { cwd: root, env: cmdEnv }, 'install-local.cmd clean reinstall');
+  assertInstall(cmdHome);
   for (const target of targets) {
     const skillsRoot = path.join(cmdHome, target.dotDir, 'skills');
     if (fs.existsSync(path.join(skillsRoot, 'yan-removed-skill'))) {
@@ -230,6 +245,9 @@ function smokeWindows(tempRoot) {
     }
     if (findFile(backupRoot(cmdHome, target), 'removed-marker.txt').length !== 1) {
       fail(`${target.name} did not back up a Skill removed from the managed distribution`);
+    }
+    if (fs.existsSync(path.join(skillsRoot, 'yan-code-review', 'stale-from-previous-release.txt'))) {
+      fail(`${target.name} clean reinstall retained a stale managed file`);
     }
   }
   const status = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd status'],
@@ -290,7 +308,8 @@ requireText('scripts/install-core.js', [
   'function doctor',
   'MIRROR',
   'DUPLICATE',
-  'unowned legacy name',
+  'known legacy cleanup',
+  'clean-replace',
   'removeUtf8BomFromSkillFiles',
   'sourceTreeHash',
 ]);
@@ -312,4 +331,4 @@ try {
 }
 
 if (failed) process.exit(1);
-console.log(`ok safe installer manifest, backup, status, migration, BOM, and ${process.platform} smoke passed`);
+console.log(`ok clean-replace installer manifest, backup, status, BOM, and ${process.platform} smoke passed`);
