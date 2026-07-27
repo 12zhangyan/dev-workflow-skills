@@ -190,11 +190,26 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '数据库操作始终只读',
   '不得执行 DDL、数据修复',
   '禁止用宿主文件能力整体重写',
+  '纯配置/提示词变更',
+  '生产代码：不改',
+  '主键（复合主键须列全）',
+]);
+
+requireText('skills/yan-dev-doc/template-standard.md', [
+  '仅配置 UPDATE',
+  '禁止留空表或删掉本节',
+  '目标主键/唯一定位键',
+  'WHERE 必须包含完整主键',
 ]);
 
 requireText('skills/yan-dev-doc/publishing-board.md', [
   'node project-html/board-add.js',
   '../_shared/board-shell-bootstrap.md',
+  '首屏只保留一层简洁方案摘要',
+  '禁止再造“业务视角 / 研发视角 / 方案落点”等重复摘要',
+  '这次做什么 / 数据怎么流转 / 实现方式 / 关键边界与取舍 / 怎么验收',
+  '精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md',
+  'BoardVisualCheck: NotRun',
 ]);
 
 requireText('skills/yan-project-analysis/modes/incident/mode.md', [

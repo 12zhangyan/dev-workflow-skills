@@ -1,6 +1,6 @@
 ﻿---
 name: yan-dev-doc
-description: 在编码前生成有证据、可执行、可验收的开发方案。用户明确要求开发/改造/实施方案、先设计再编码，或接口、权限、状态、DB、事务、跨模块决策尚未裁决时使用；需求和验收已清楚且用户要求直接实现时不要触发。Bug/事故、业务流、代码影响分析使用 yan-project-analysis；代码审查与 findings 修复使用 yan-code-review。
+description: 在编码前生成有证据、可执行、可验收的开发方案。用户明确要求开发/改造/实施方案、先设计再编码，或接口、权限、状态、DB、事务、跨模块决策尚未裁决时使用；事故根因已由对话或证据坐实、需要评审修复方案时也使用。需求和验收已清楚且用户要求直接实现时不要触发。待分析根因的 Bug/事故、业务流、代码影响分析使用 yan-project-analysis；代码审查与 findings 修复使用 yan-code-review。
 ---
 
 # Yan Dev Doc
@@ -19,10 +19,11 @@ description: 在编码前生成有证据、可执行、可验收的开发方案�
 
 - 范围与验收已明确，用户要求直接实现；
 - 只解释代码或回答单点问题；
-- 记录 Bug/事故、梳理业务流、生成代码地图或影响分析：使用 `yan-project-analysis`；
+- 根因尚未坐实的 Bug/事故记录与分析、业务流梳理、代码地图或影响分析：使用 `yan-project-analysis`；
+- Bug/事故的根因已由对话、日志、堆栈、复现或代码证据坐实，用户要修复/改造方案：保留在本 skill，按 `Standard` 生成修复方案；根因证据、修复边界和回归风险必须写入方案，不能再提示切换 `incident`；
 - 审查、修复 findings 或审查并修复：使用 `yan-code-review`。
 
-HTML 看板仅在用户明确要求，或项目级规则明确要求时发布。普通方案不初始化、不升级、不写看板。
+HTML 看板默认随 `Standard` / `IncrementalRevision` 方案发布；只有用户明确要求不写看板，或项目级规则禁止时才跳过并记录 `BoardPublishStatus: NotRequested`。`Compact` 仍不发布看板。
 
 ## 共享协议
 
@@ -57,6 +58,22 @@ HTML 看板仅在用户明确要求，或项目级规则明确要求时发布。
 2. Git 读取分支、`status --short`、最近 3 条日志；SVN 读取 revision 和最近 3 条日志。命令失败记录 `VCSStatusUnknown`，不把空输出当 clean。
 3. 用宿主搜索能力在 root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，识别模块和验证命令。
 
+`detect-vcs` 的 JSON 结果必须按当前 shell 解析；不要把 Bash 语法粘到 Windows PowerShell。`<helper>` 指向共享协议中定位到的 `workflow-fs.js`：
+
+```bash
+# Bash / POSIX shell
+vcs_json="$(node "$helper" detect-vcs)"
+VCS_TYPE="$(node -e 'const x=JSON.parse(process.argv[1]); console.log(x.type)' "$vcs_json")"
+VCS_ROOT="$(node -e 'const x=JSON.parse(process.argv[1]); console.log(x.root)' "$vcs_json")"
+```
+
+```powershell
+# Windows PowerShell
+$vcs = node $helper detect-vcs | ConvertFrom-Json
+$VCS_TYPE = $vcs.type
+$VCS_ROOT = $vcs.root
+```
+
 Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VCS_ROOT>"`，不改全局配置。
 
 ### 2. 建立证据草稿
@@ -88,6 +105,12 @@ Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VC
 
 新增库/表/字段/索引/约束未获明确同意时记为 blocker，不进入 Implementation Gate。
 
+变更产物类型（与接口分类并列，按证据选用）：
+
+| 类型 | 判定 | 文档处理 |
+|---|---|---|
+| 纯配置/提示词变更 | 无生产代码切点；仅 yml/env/Nacos/Apollo，或 DB 配置表/提示词模板等**数据** UPDATE | 用 `Standard` / `IncrementalRevision`（不得用 `Compact`）；跳过 API/OpenAPI；「六、代码变更清单」必须显式写「生产代码：不改」+ 配置/提示词 UPDATE 对象，禁止空表；「四、数据库变更」写建议 UPDATE/回滚/只读验证（非 DDL），并用主键（复合主键须列全）定位目标行；确无主键时只能使用有唯一约束证据的业务键，定位证据不足记为 blocker；Todo 只含授权人员执行与只读核对，AI 不写库 |
+
 ### 4. 确定产物路径
 
 运行：
@@ -118,6 +141,8 @@ node <helper> file-state docs/<日期>/<任务名>.md
 - 事实带证据；未知写 `待补充` 或假设；
 - 技术方案写清前置条件、执行顺序、最小改动、禁止改动和完成判定；
 - 开闭原则、兼容性、事务/并发、错误路径、回滚和可观察验收必须落到具体位置；
+- 纯配置/提示词变更时，「六、代码变更清单」允许且应当写「无代码、仅配置/DB UPDATE」；用显式「不改」行代替空表，避免执行方误以为漏写切点；
+- 涉及配置表/提示词数据 UPDATE 时，必须记录目标表主键、主键值来源和精确 `WHERE`；复合主键列全，缺少主键时只能改用有唯一约束证据的业务键，禁止用非唯一条件下发更新方案；
 - Todo 不得包含数据库写入、DDL 或未获授权的数据修复；
 - 验证命令标记 `TestDependencyClass: Hermetic | ServiceBacked | LiveExternal | Mixed`；
 - 默认 test/verify 不得依赖真实 AI/SaaS 密钥。
@@ -125,7 +150,7 @@ node <helper> file-state docs/<日期>/<任务名>.md
 ### 5.1 可选发布
 
 - 存在新增接口或契约变更时，才读取并执行 [OpenAPI/Apifox 发布流程](publishing-openapi.md)。纯行为变更或仅调用跳过。
-- 用户或项目规则明确要求看板时，才读取并执行 [HTML 看板发布流程](publishing-board.md)。否则记录 `BoardPublishStatus: NotRequested`。
+- 除 `Compact` 外，默认读取并执行 [HTML 看板发布流程](publishing-board.md)；只有用户明确要求不写看板，或项目级规则禁止时跳过并记录 `BoardPublishStatus: NotRequested`。
 - `Compact` 跳过全部发布流程。
 
 ### 6. 完成输出
@@ -163,5 +188,5 @@ node <helper> file-state docs/<日期>/<任务名>.md
 - [reference.md](reference.md)：兼容索引，不作为运行时模板加载
 - [examples.md](examples.md)：按需示例
 - [publishing-openapi.md](publishing-openapi.md)：条件 OpenAPI 发布
-- [publishing-board.md](publishing-board.md)：条件看板发布
+- [publishing-board.md](publishing-board.md)：默认看板发布
 - [scripts/validate-openapi.js](scripts/validate-openapi.js)：确定性 OpenAPI 校验

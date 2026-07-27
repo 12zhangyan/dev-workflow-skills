@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 yan-dev-doc skill 给'询价详情新增报价标识'生成开发文档",
-      "expected_output": "应触发 yan-dev-doc；先静默收集 VCS/项目类型和代码线索预填，只对影响执行方向的问题单点确认；生成 docs/<日期>/询价详情新增报价标识.md，用 board-add.js 写看板并运行 build.js，完成输出含 Plan Gate、验证命令、回填要求和 Workflow Brief。"
+      "expected_output": "应触发 yan-dev-doc；先静默收集 VCS/项目类型和代码线索预填，只对影响执行方向的问题单点确认；生成 docs/<日期>/询价详情新增报价标识.md，并因未明确要求跳过而默认用 board-add.js 写看板、运行 build.js，完成输出含 Plan Gate、验证命令、回填要求和 Workflow Brief。"
     },
     {
       "id": 2,
@@ -193,6 +193,24 @@
       "prompt": "使用 yan-dev-doc 给现有后端限流改造写一份开发方案，不用登记 HTML 看板，也不要生成展示页",
       "expected_output": "应生成合适的 md 方案，但记录 BoardPublishStatus: NotRequested；不得因为仓库存在 project-html 就初始化、升级、迁移或写入看板，也不得运行 build.js。看板未发布不是失败或后续 blocker。",
       "tags": ["board_opt_in", "skip_board", "plan_artifact", "token_budget"]
+    },
+    {
+      "id": 34,
+      "prompt": "基于既有 yan-dev-doc 做 IncrementalRevision：仅修复 DB 配置表里的提示词文案 Bug，零 Java 改动；用户已单点确认汇总口径",
+      "expected_output": "应选用 IncrementalRevision + 纯配置/提示词变更产物类型，不得用 Compact。跳过 API/OpenAPI；「六、代码变更清单」必须显式写「生产代码：不改」和「仅配置 UPDATE」对象，禁止空表；「四、数据库变更」写建议 UPDATE/回滚/只读验证且非 DDL，并记录完整主键和按主键定位的精确 WHERE；无主键时只能使用有唯一约束证据的业务键，否则记为 blocker；Todo 不含 AI 执行 UPDATE。",
+      "tags": ["incremental_revision", "config_prompt_only", "no_code_change", "db_config_update", "primary_key_guard"]
+    },
+    {
+      "id": 35,
+      "prompt": "订单状态错乱事故已通过日志、复现和代码定位确认：重试回调在订单关闭后仍覆盖状态。使用 yan-dev-doc 生成修复方案。",
+      "expected_output": "应触发 yan-dev-doc 的 Standard 修复方案，不再提示切换 incident；方案必须记录根因证据、仅阻止关闭订单被过期回调覆盖的修复边界、并发/幂等风险和回归验证。",
+      "tags": ["bug_repair_plan", "root_cause_evidenced", "incident_routing"]
+    },
+    {
+      "id": 36,
+      "prompt": "使用 yan-dev-doc 生成订单回调改造方案并默认发布看板；看板给开发人员快速理解，md 给 AI 执行。",
+      "expected_output": "看板首屏必须直接回答这次做什么、数据怎么流转、实现方式、关键边界与取舍、怎么验收；entry 使用 dataFlowSummary、flowchart、acceptance 等人类方案字段，正文保留组件关系、接口、状态和数据链路。精确文件改动、类/方法级步骤、命令、Todo 与逐步执行流程只进入 md，不得复制到看板。",
+      "tags": ["developer_board_summary", "human_plan", "agent_md_boundary", "data_flow"]
     }
   ]
 }

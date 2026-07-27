@@ -56,6 +56,8 @@ const devDocRequiredTags = new Set([
   'compact_upgrade_guard',
   'resolved_conflict',
   'superpowers_bridge',
+  'developer_board_summary',
+  'agent_md_boundary',
 ]);
 const devDocSeenTags = new Set();
 const reviewLoopRequiredTags = new Set([
@@ -308,7 +310,7 @@ const devDocExamplesPath = path.join(skillsDir, 'yan-dev-doc', 'examples.md');
 const devDocOpenApiPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-openapi.md');
 const devDocBoardPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-board.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 申请草案', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
+  [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'DBA 申请草案', 'PowerShell', 'ConvertFrom-Json', '根因已由对话、日志、堆栈、复现或代码证据坐实', '看板默认随 `Standard` / `IncrementalRevision` 方案发布', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
   [devDocReferencePath, ['Compatibility index only', 'planning-slots.md', 'template-compact.md', 'template-standard.md', 'completion.md']],
   [devDocSlotsPath, ['Step 3 查漏槽位', '不是逐条必问题卷']],
   [devDocCompactPath, ['精简文档模板', '文档模式：Compact', '最多两个生产代码切点', '## 五、决策与 Plan Gate', '**assumptions**', '**blockers**']],

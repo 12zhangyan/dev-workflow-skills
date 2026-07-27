@@ -30,7 +30,11 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 ### Step 0：入口识别
 
-`$entry` 为空时询问：
+`$entry` 为空时，先按同会话证据推断，不要机械追问“审查什么”：
+
+1. 同会话刚完成 Implementation，且已有明确 `yan-dev-doc`（或等价开发方案路径）与 `changed` 文件清单，或可定位到对应 VCS diff/status → **默认真对最近实现做 `ImplementationReview`**；将该文档当作文档模式入口，并告知用户："未给 entry，默认真对最近实现做 ImplementationReview"。
+2. 输入含 `【Workflow Brief】` 且 Brief 已给 `source` / `changed` → 走轻量交接模式，不追问入口。
+3. 否则（无同会话实现证据、无 Brief、也无可定位的任务包/文档/patch）才询问：
 
 > "这次要审查什么？请给 Review 任务包路径、yan-dev-doc 路径、patch/diff 路径，或一句功能描述。"
 
@@ -40,6 +44,11 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 - 含 `.patch` / `.diff` 或文件名含 `changes.patch` → **patch 模式**
 - 含 `.md` 且路径在 `docs/` 下 → **文档模式**
 - 其他自然语言 → **上下文模式**
+
+判定 `ReviewScopeType`：
+- 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或同会话/Brief 已给出明确 `changed` 文件 → `ImplementationReview`。
+- 只有 yan-dev-doc / 需求描述，没有实现证据 → `PlanReview`，并明确说明未审实现代码。
+- 审查对象是 fix-handoff / 已定位 findings 的修复交接 → `FixHandoffReview`。
 
 告知用户："检测到入口模式：[模式名]，开始只读审查。"
 
@@ -138,7 +147,7 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 ## 检查清单
 
-- [ ] 已识别入口模式
+- [ ] 已识别入口模式（含 `$entry` 为空时的同会话 ImplementationReview 默认）
 - [ ] 已读取任务包 / yan-dev-doc / patch / 关键源码
 - [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试与提交完整性
 - [ ] 每条 finding 都有证据、影响、修复建议、验证方式

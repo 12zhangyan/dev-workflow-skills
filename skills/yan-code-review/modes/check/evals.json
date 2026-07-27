@@ -72,6 +72,12 @@
       "prompt": "请用一个 AI 审查当前改动，发现问题就直接修复、跑验证，再复审一遍直到关闭 Critical/Important",
       "expected_output": "不应使用只读的 review-check；应路由到 review-loop，由同一 AI 按最多两轮的上限完成审查、修复、验证和复审闭环。",
       "tags": ["routing_review_loop"]
+    },
+    {
+      "id": 14,
+      "prompt": "同会话刚按 yan-dev-doc 完成实现；用户只发 /yan-code-review 或“使用 yan-code-review”，未给 entry；会话内已有明确 docs/.../*.md 与 changed 文件",
+      "expected_output": "应触发 review-check；不追问“审查什么”；默认真对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings。",
+      "tags": ["same_session_default", "implementation_review"]
     }
   ]
 }

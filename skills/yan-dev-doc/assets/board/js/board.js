@@ -1,10 +1,10 @@
-/* AI 变更记录看板 — 渲染与交互逻辑
+/* 开发方案看板 — 渲染与交互逻辑
  * 数据在 data/changes.js（由 /yan-dev-doc、/bug-fix、/code-reading、/biz-flow 自动追加；/review-fix 仅在修复交接阶段追加，本文件不存数据）
  * 与 skills/yan-dev-doc/assets/board/js/board.js 保持一致，修改时两处同步 */
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 23;
+const BOARD_VERSION = 24;
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -121,11 +121,15 @@ function summaryRows(d) {
     return rows;
   }
   const goals = firstItems(d.goals, 2);
-  if (!goals.length && d.summary) rows.push(['方案摘要', d.summary]);
-  if (goals.length) rows.push(['目标', goals.join('；')]);
-  if (d.solution) rows.push(['方案', shortText(d.solution)]);
+  if (!goals.length && d.summary) rows.push(['这次做什么', d.summary]);
+  if (goals.length) rows.push(['这次做什么', goals.join('；')]);
+  if (d.dataFlowSummary) rows.push(['数据怎么流转', shortText(d.dataFlowSummary, 180)]);
+  if (d.solution) rows.push(['实现方式', shortText(d.solution, 180)]);
+  if (d.coreDesign) rows.push(['关键边界与取舍', shortText(d.coreDesign, 180)]);
   const impl = firstItems(d.keyImpl, 2).map(x => x.title || x.desc).filter(Boolean);
-  if (impl.length) rows.push(['关键设计', impl.join('；')]);
+  if (!d.coreDesign && impl.length) rows.push(['关键边界与取舍', impl.join('；')]);
+  const acceptance = firstItems(d.acceptance, 2);
+  if (acceptance.length) rows.push(['怎么验收', acceptance.join('；')]);
   return rows;
 }
 function nextAction(d) {
@@ -144,40 +148,6 @@ function quickBrief(d, title) {
     ${rows.length ? `<div class="qb-grid">${rows.map(([k, v]) =>
       `<div class="qb-item"><div class="qb-k">${esc(k)}</div><div class="qb-v">${esc(v)}</div></div>`
     ).join('')}</div>` : ''}
-  </div>`;
-}
-function solutionBrief(d) {
-  const lanes = [];
-  const listText = items => items.filter(Boolean).slice(0, 3).map(x => `<li>${esc(x)}</li>`).join('');
-  if (d.kind === 'bug') {
-    const verify = firstItems(d.verifySteps, 3);
-    if (d.rootCause) lanes.push(['根因结论', [shortText(d.rootCause, 140)]]);
-    if (d.fixPlan) lanes.push(['修复思路', [shortText(d.fixPlan, 140)]]);
-    if (verify.length) lanes.push(['验证重点', verify]);
-  } else if (d.kind === 'biz') {
-    const api = (d.apis || []).map(a => `${a.method || ''} ${a.url || ''}：${a.desc || ''}`.trim()).slice(0, 3);
-    const stages = firstItems(d.dataChanges, 3).map(x => `${x.stage || x.title || '阶段'}：${x.summary || firstItems(x.operations, 1).map(op => `${op.action || ''} ${op.target || ''}`.trim())[0] || ''}`).filter(Boolean);
-    const rules = firstItems(d.bizRules, 3).map(x => x.title ? `${x.title}：${x.desc || ''}` : x.desc).filter(Boolean);
-    const tests = firstItems(d.testPoints, 3);
-    if (api.length) lanes.push(['接口顺序', api]);
-    if (stages.length) lanes.push(['数据变动', stages]);
-    else if (rules.length) lanes.push(['业务规则', rules]);
-    if (tests.length) lanes.push(['测试落点', tests]);
-  } else if (d.kind !== 'reading') {
-    const goals = firstItems(d.goals, 3);
-    const decisions = firstItems(d.keyImpl, 3).map(x => x.title ? `${x.title}：${x.desc || ''}` : x.desc).filter(Boolean);
-    if (decisions.length) lanes.push(['设计亮点', decisions]);
-    if (goals.length) lanes.push(['验收目标', goals]);
-    if (d.coreDesign) lanes.push(['关键取舍', [shortText(d.coreDesign, 160)]]);
-  }
-  if (!lanes.length) return '';
-  return `<div class="exec-brief">
-    <div class="exec-title">方案落点</div>
-    <div class="exec-grid">${lanes.map(([title, items]) => `
-      <div class="exec-lane">
-        <div class="exec-lane-title">${esc(title)}</div>
-        <ul>${listText(items)}</ul>
-      </div>`).join('')}</div>
   </div>`;
 }
 function noteText(x) {
@@ -246,55 +216,6 @@ function roleBoard(title, subtitle, ids, role, emptyText) {
     </div>
     ${rows || `<div class="role-empty">${esc(emptyText)}</div>`}
   </section>`;
-}
-function fieldList(items) {
-  return items.filter(x => x && x.value).map(x => `
-    <div class="aud-item">
-      <div class="aud-k">${esc(x.key)}</div>
-      <div class="aud-v">${esc(x.value)}</div>
-    </div>`).join('');
-}
-function audienceBrief(d) {
-  const business = [];
-  const developer = [];
-  if (d.kind === 'bug') {
-    business.push({ key: '业务影响', value: shortText(d.impact || d.symptom || '待补充', 140) });
-    business.push({ key: '期望结果', value: shortText(d.expected || '恢复预期业务行为', 120) });
-    business.push({ key: '验收方式', value: shortText(firstItems(d.verifySteps, 1)[0] || '按验证步骤回归', 120) });
-    developer.push({ key: '根因结论', value: shortText(d.rootCause || '待分析', 140) });
-    developer.push({ key: '修复方向', value: shortText(d.fixPlan || '待补充', 140) });
-    developer.push({ key: '验证重点', value: shortText(firstItems(d.verifySteps, 2).join('；') || '按验证步骤回归', 140) });
-  } else if (d.kind === 'biz') {
-    business.push({ key: '业务主线', value: shortText(d.background || '待补充', 150) });
-    business.push({ key: '参与角色', value: shortText(firstItems(d.roles, 2).map(x => x.name || x.role || x.actor).filter(Boolean).join('；') || '待补充', 140) });
-    business.push({ key: '业务规则', value: shortText(firstItems(d.bizRules, 2).map(x => x.title || x.desc).join('；') || '待补充', 140) });
-    developer.push({ key: '接口链路', value: shortText((d.apis || []).slice(0, 3).map(a => `${a.method || ''} ${a.url || ''}`.trim()).join(' → ') || '待补充', 140) });
-    developer.push({ key: '数据/状态', value: d.dataChanges?.length ? `查看 ${d.dataChanges.length} 个阶段的数据变动` : d.dataFlow ? '查看数据流图' : d.stateMachine ? '查看状态流转图' : '待补充' });
-    developer.push({ key: '联调关注', value: shortText(firstItems(d.testPoints, 1)[0] || '按测试关注点联调验证', 130) });
-  } else if (d.kind === 'reading') {
-    business.push({ key: '整体说明', value: shortText(d.background || d.entry || '待补充', 150) });
-    business.push({ key: '当前状态', value: '用于 Review 前理解，不直接代表变更完成' });
-    developer.push({ key: '追踪入口', value: shortText(d.entry || '待补充', 140) });
-    developer.push({ key: '先看位置', value: shortText(firstItems(d.keyImpl, 2).map(x => x.title || x.desc).join('；') || '待补充', 140) });
-    developer.push({ key: '阅读方式', value: '沿调用链读主路径，再核对状态和关键变量' });
-  } else {
-    business.push({ key: '为什么做', value: shortText(d.background || firstItems(d.goals, 1)[0] || '待补充', 150) });
-    business.push({ key: '业务目标', value: shortText(firstItems(d.goals, 2).join('；') || '待补充', 140) });
-    business.push({ key: '不包含', value: shortText(firstItems(d.scopeOut, 2).join('；') || '未特别排除', 120) });
-    developer.push({ key: '实现方案', value: shortText(d.solution || d.coreDesign || '待补充', 150) });
-    developer.push({ key: '设计亮点', value: shortText(firstItems(d.keyImpl, 2).map(x => x.title || x.desc).join('；') || '待补充', 150) });
-    developer.push({ key: '验收口径', value: shortText(firstItems(d.goals, 2).join('；') || '待补充', 140) });
-  }
-  return `<div class="audience-grid">
-    <section class="aud-card aud-biz">
-      <div class="aud-head"><span>业务人员看这里</span><em>影响 / 目标 / 验收</em></div>
-      ${fieldList(business)}
-    </section>
-    <section class="aud-card aud-dev">
-      <div class="aud-head"><span>研发人员看这里</span><em>方案 / 取舍 / 验收</em></div>
-      ${fieldList(developer)}
-    </section>
-  </div>`;
 }
 let q = '', kindF = 'all', scopeF = 'workspace', openOnly = false, homeLimit = 30;
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
@@ -493,8 +414,8 @@ function showHome() {
     <div class="home-hero">
       <div>
         <div class="home-kicker">PROJECT SOLUTIONS</div>
-        <h1 class="doc-h1">业务和研发共读的变更看板</h1>
-        <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}。工作台聚焦近期和置顶事项，长期未完成进入待办库，已完成历史进入档案库；需要外发时可按需导出自包含页面。</p>
+        <h1 class="doc-h1">开发方案看板</h1>
+        <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}。按服务和模块归档可评审的开发方案，先看目标、数据流和关键取舍，再进入详情核对实现边界与验收口径。</p>
       </div>
       <div class="home-health">
         <div class="health-num">${pct}%</div>
@@ -519,8 +440,8 @@ function showHome() {
       ${roleBoard('开发人员再看', '方案边界、设计取舍、接口与验收', devIds, 'dev', '暂无开发视角记录')}
     </div>
     <div class="reader-guide">
-      <div class="guide-card"><div class="guide-title">业务读法</div><div class="guide-text">先看标题、读者速览和业务视角，确认为什么改、影响谁、怎么验收。</div></div>
-      <div class="guide-card"><div class="guide-title">研发读法</div><div class="guide-text">再看方案、核心取舍和验收边界，确认为什么这样设计、影响哪里、如何判断结果。</div></div>
+      <div class="guide-card"><div class="guide-title">快速评审</div><div class="guide-text">先读方案摘要，确认目标、方案边界、关键取舍和下一步动作。</div></div>
+      <div class="guide-card"><div class="guide-title">深入阅读</div><div class="guide-text">沿章节目录阅读需求、技术方案、流程、关键实现与验收口径。</div></div>
       <div class="guide-card"><div class="guide-title">交接读法</div><div class="guide-text">日常查看打开轻量详情页面；需要单文件外发时，使用构建脚本按需导出。</div></div>
     </div>`;
 
@@ -705,9 +626,7 @@ function pick(i) {
       ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
-  h += quickBrief(d, isReading ? "代码阅读速览" : "读者速览");
-  h += audienceBrief(d);
-  h += solutionBrief(d);
+  h += quickBrief(d, isReading ? "代码导读" : "方案摘要");
   h += riskNotes(d);
 
   const hasReq = d.background || d.goals?.length || d.scopeIn?.length || d.scopeOut?.length;
@@ -726,21 +645,26 @@ function pick(i) {
 
   if (d.apis?.length) h += sec("接口文档", apiTable(d.apis));
 
-  if (d.solution || d.coreDesign) {
+  if (d.solution || d.coreDesign || d.dataFlowSummary) {
     let body = '';
-    if (d.solution)   body += para(d.solution);
-    if (d.coreDesign) body += para(d.coreDesign);
+    if (d.solution) body += `<p class="sub-label">实现方式</p>${para(d.solution)}`;
+    if (d.dataFlowSummary) body += `<p class="sub-label">数据流转</p>${para(d.dataFlowSummary)}`;
+    if (d.coreDesign) body += `<p class="sub-label">关键边界与取舍</p>${para(d.coreDesign)}`;
     h += sec("技术方案", body);
   }
 
   if (d.flowchart) {
-    h += sec(isReading ? "调用链" : "流程图", `<div class="mermaid-wrap" id="mmd-wrap"></div>`);
+    h += sec(isReading ? "调用链" : "数据流转与处理链路", `<div class="mermaid-wrap" id="mmd-wrap"></div>`);
   }
 
   if (d.keyImpl?.length) {
     h += sec(isReading ? "代码位置索引" : "关键实现", `<div class="keyimpl-list">${d.keyImpl.map(k =>
       `<div class="keyimpl-item"><div class="ki-title">${esc(k.title)}</div><div class="ki-desc">${esc(k.desc)}</div></div>`
     ).join('')}</div>`);
+  }
+
+  if (d.acceptance?.length) {
+    h += sec("验收与回归", `<ul class="checklist">${d.acceptance.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`);
   }
 
   h += '</div>';
@@ -770,9 +694,7 @@ function renderBug(d) {
       ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
-  h += quickBrief(d, "Bug 速览");
-  h += audienceBrief(d);
-  h += solutionBrief(d);
+  h += quickBrief(d, "事故摘要");
   h += riskNotes(d);
 
   const hasSym = d.symptom || d.reproSteps?.length || d.trigger || d.expected || d.actual;
@@ -825,9 +747,7 @@ function renderBiz(d) {
       ${apiIndexLink(d)}
       ${pageLink(d)}
     </div>`;
-  h += quickBrief(d, "测试速览");
-  h += audienceBrief(d);
-  h += solutionBrief(d);
+  h += quickBrief(d, "业务摘要");
   h += riskNotes(d);
 
   const mmds = [];

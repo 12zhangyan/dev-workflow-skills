@@ -532,7 +532,7 @@ const agentPromptRequirements = {
   ],
   'yan-dev-doc': [
     'Do not invoke it for a direct implementation request',
-    'publish or upgrade the HTML board only when the user explicitly requests it',
+    'publish or upgrade the HTML board by default',
     'yan-project-analysis',
     'yan-code-review',
   ],

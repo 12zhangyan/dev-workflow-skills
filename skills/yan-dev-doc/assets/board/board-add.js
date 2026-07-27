@@ -70,7 +70,7 @@ function splitEntry(entry, explicitDetail) {
   const detailId = entry.detailId || detailIdOf(entry);
   const lead = entry.summary || detail.summary || detail.background || detail.symptom || detail.entry || detail.solution || entry.title;
   const words = [entry.title, entry.service, entry.module, entry.type, firstSentence(lead)].filter(Boolean);
-  for (const key of ['goals', 'symptom', 'rootCause', 'solution', 'roles', 'validations']) {
+  for (const key of ['goals', 'symptom', 'rootCause', 'solution', 'dataFlowSummary', 'coreDesign', 'keyImpl', 'acceptance', 'roles', 'validations']) {
     collectStrings(detail[key], words, 120);
   }
   catalog.detailId = detailId;

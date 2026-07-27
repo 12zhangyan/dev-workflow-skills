@@ -1,6 +1,6 @@
 ﻿# HTML 看板发布流程
 
-仅在用户明确要求登记/更新/发布看板，或项目级规则明确要求时读取。仓库里已有 `project-html/` 不是进入条件。
+`Standard` / `IncrementalRevision` 默认读取并执行；仅在用户明确要求不写看板，或项目级规则禁止时跳过。`Compact` 不进入本流程。
 
 ## 边界
 
@@ -36,10 +36,21 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
 
 - `background`：业务痛点和触发原因；
 - `goals`、`scopeIn`、`scopeOut`：业务和方案边界；
-- `solution`：整体数据流和实现方式；
+- `solution`：整体实现方式，说明核心组件如何协作；
+- `dataFlowSummary`：用一段话写清“入口/来源 → 校验与转换 → 核心处理 → 持久化或外部调用 → 返回/事件”的主数据链路；
 - `coreDesign`：真正存在的技术取舍；
 - `keyImpl`：3–6 个“问题 → 做法 → 原因”决策点；
-- `flowchart`：无代码围栏的 Mermaid。
+- `flowchart`：无代码围栏的 Mermaid，默认画数据流转与处理链路；
+- `acceptance`：开发人员可以直接核对的验收与回归结论。
+
+阅读质量约束：
+
+- 把 entry 写成开发人员可独立评审的方案，而不是业务汇报页或数据仪表盘；读者不打开 md 也能理解这次做什么、数据怎么流转、为什么这样设计、边界和验收是什么；
+- 首屏只保留一层简洁方案摘要；摘要给结论，正文按需求、方案、流程、关键实现和验收展开，禁止再造“业务视角 / 研发视角 / 方案落点”等重复摘要；
+- 同一信息只在一个正文位置完整解释；其他位置需要引用时只写一句结论，不复制整段；
+- `background`、`solution`、`dataFlowSummary`、`coreDesign` 使用连续、可阅读的段落；`keyImpl` 每项写清“问题 → 选择 → 原因/取舍”，不堆文件清单或 Agent Todo；
+- 看板保留开发理解所需的组件关系、接口、状态、数据流和验收；精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md，禁止复制到看板；
+- 标题和小标题使用同事能理解的业务/技术语言，避免把字段名、流水账或模板占位符直接展示给人类。
 
 使用当前宿主文件能力把标准 JSON 写入 `project-html/data/_entry.json`。字符串双引号，换行写 `\n`，不使用反引号；空字段省略。
 
@@ -62,8 +73,11 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
     "scopeOut": ["<non-goal>"],
     "apis": [],
     "solution": "<solution>",
+    "dataFlowSummary": "<source -> validation/transform -> processing -> persistence/outbound -> result/event>",
+    "coreDesign": "<boundary and trade-off>",
     "keyImpl": [{"title": "<decision>", "desc": "<problem -> choice -> reason>"}],
-    "flowchart": "<mermaid>"
+    "flowchart": "<mermaid data flow>",
+    "acceptance": ["<observable acceptance result>"]
   }
 }
 ```
@@ -82,5 +96,7 @@ node <_shared/scripts/board-bootstrap.js> status <项目根目录>
 - entry 是独立的人类方案，不是 md 摘录；
 - `data/changes.js` 未被整体重写；
 - `board-add.js` 与 `build.js` 均成功；
+- 详情页首屏能直接回答“这次做什么 / 数据怎么流转 / 实现方式 / 关键边界与取舍 / 怎么验收”，正文标题、段落、章节导航和 Mermaid/表格可正常阅读；
+- 有真实浏览器能力时至少打开一条详情检查首屏与正文；无法浏览器复核时标记 `BoardVisualCheck: NotRun`，不得声称视觉已验证；
 - 输出 `BoardPublishStatus: Published` 和目录/详情/索引路径；
 - 新建看板时只提示精确 VCS 纳管命令，不代用户执行。

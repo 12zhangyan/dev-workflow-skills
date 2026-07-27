@@ -71,7 +71,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 | 你要做什么 | 用哪个 skill | 主要产物 |
 |------------|--------------|----------|
-| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；看板仅在明确请求/项目规则要求时发布；适用时生成 OpenAPI |
+| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；Standard / IncrementalRevision 默认发布看板，用户明确要求不写或项目规则禁止时跳过；适用时生成 OpenAPI |
 | 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `yan-project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
 | 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
 | 把当前对话交给另一段 AI 对话继续 | `yan-conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |

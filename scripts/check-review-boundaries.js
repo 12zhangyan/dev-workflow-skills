@@ -38,6 +38,8 @@ requireText('skills/yan-code-review/modes/check/mode.md', [
   'InsufficientMaterial',
   '可将以上 findings 原样交给 `yan-code-review mode=package`',
   '如果希望直接修复，可将 findings 交给 `yan-code-review mode=repair`',
+  '默认真对最近实现做 `ImplementationReview`',
+  '不要机械追问“审查什么”',
 ]);
 
 requireText('skills/yan-code-review/modes/repair/mode.md', [

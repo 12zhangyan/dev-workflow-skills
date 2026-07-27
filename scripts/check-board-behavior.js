@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(ROOT, 'project-html/js/board.js'), 'utf8');
+assert(!source.includes('function audienceBrief') && !source.includes('function solutionBrief'), 'obsolete duplicate-summary renderers should be removed from the board shell');
 const elements = new Map();
 
 function element(id) {
@@ -115,6 +116,42 @@ assert(detailScriptsLoaded === 0, 'home should not load any human detail sidecar
 lazyContext.pick(0);
 assert(detailScriptsLoaded === 1, 'selecting one entry should load exactly one detail sidecar');
 assert(!lazyElement('main').innerHTML.includes('详情加载中'), 'selected detail should replace the loading state');
+assert((lazyElement('main').innerHTML.match(/class="quick-brief"/g) || []).length === 1, 'human detail should expose one concise plan summary');
+assert(!lazyElement('main').innerHTML.includes('audience-grid'), 'human detail should not duplicate the plan in role-based summary cards');
+assert(!lazyElement('main').innerHTML.includes('exec-brief'), 'human detail should not duplicate the plan in execution summary cards');
+
+const devElements = new Map();
+const devElement = id => {
+  if (!devElements.has(id)) devElements.set(id, { id, innerHTML: '', textContent: '', className: '', classList: { toggle() {} } });
+  return devElements.get(id);
+};
+const devContext = {
+  changes: [{
+    service: 'order', module: 'callback', title: 'callback repair', date: today, status: '草稿',
+    goals: ['阻止关闭订单被过期回调覆盖'],
+    dataFlowSummary: '回调入口 → 签名校验 → 订单状态判断 → 条件更新 → 返回处理结果',
+    solution: '在状态转换前增加关闭态保护，并保留合法重试的幂等处理。',
+    coreDesign: '只收紧关闭态更新边界，不改变回调契约。',
+    acceptance: ['关闭订单保持关闭', '合法重试仍可幂等成功']
+  }],
+  htmlChangelog: [], console,
+  localStorage: { getItem() { return null; }, setItem() {} },
+  document: {
+    getElementById: devElement,
+    querySelector() { return null; },
+    querySelectorAll() { return []; }
+  }
+};
+vm.createContext(devContext);
+vm.runInContext(source, devContext, { filename: 'board-developer-brief.js' });
+devContext.pick(0);
+const devHtml = devElement('main').innerHTML;
+for (const label of ['这次做什么', '数据怎么流转', '实现方式', '关键边界与取舍', '怎么验收', '验收与回归']) {
+  assert(devHtml.includes(label), `developer detail should expose ${label}`);
+}
+for (const label of ['class="sub-label">实现方式', 'class="sub-label">数据流转', 'class="sub-label">关键边界与取舍']) {
+  assert(devHtml.includes(label), `technical solution should separate ${label}`);
+}
 
 // board-add 更新同一 docPath 时必须保留人工治理字段和原 status。
 const temp = fs.mkdtempSync(path.join(ROOT, '.tmp-board-behavior-'));
@@ -131,13 +168,18 @@ try {
   runAdd({ title: 'stateful', date: '2020-01-01', docPath: 'docs/stateful.md', status: '草稿', lifecycle: 'archived', pinned: true,
     background: 'human background', solution: 'human solution', changeList: [{ file: 'AgentOnly.java' }], todos: ['agent only'] });
   runAdd({ title: 'stateful updated', date: today, docPath: 'docs/stateful.md', status: '进行中',
-    background: 'updated human background', solution: 'updated human solution', stackTrace: 'agent only', codeLocation: 'AgentOnly.java:1' });
+    background: 'updated human background', solution: 'updated human solution',
+    dataFlowSummary: 'request to service to storage to response',
+    coreDesign: 'unique state boundary', keyImpl: [{ title: 'idempotent guard', desc: 'protect closed state' }],
+    acceptance: ['observable result'],
+    stackTrace: 'agent only', codeLocation: 'AgentOnly.java:1' });
   const dataSource = fs.readFileSync(path.join(temp, 'data/changes.js'), 'utf8');
   const entry = new Function(dataSource + ';return changes[0]')();
   assert(entry.status === '草稿', 'board-add should preserve original status on update');
   assert(entry.lifecycle === 'archived' && entry.pinned === true, 'board-add should preserve omitted lifecycle governance fields');
   assert(entry.updatedAt === today, 'board-add should refresh updatedAt on update');
   assert(entry.detailId && entry.detailPath && entry.summary && entry.searchText, 'catalog should contain detail pointers and a compact search summary');
+  assert(entry.searchText.includes('unique state boundary') && entry.searchText.includes('idempotent guard'), 'catalog search text should include developer design decisions');
   for (const key of ['background', 'solution', 'changeList', 'todos', 'stackTrace', 'codeLocation']) {
     assert(!Object.prototype.hasOwnProperty.call(entry, key), `catalog should not contain ${key}`);
   }
@@ -146,6 +188,7 @@ try {
   new Function('window', detailSource)(holder);
   const detail = holder.BOARD_DETAILS[entry.detailId];
   assert(detail.background === 'updated human background' && detail.solution === 'updated human solution', 'detail sidecar should contain independent human narrative');
+  assert(detail.dataFlowSummary.includes('service') && detail.acceptance[0] === 'observable result', 'detail sidecar should preserve developer data-flow and acceptance fields');
   for (const key of ['changeList', 'todos', 'stackTrace', 'codeLocation']) {
     assert(!Object.prototype.hasOwnProperty.call(detail, key), `human detail should not contain Agent-only field ${key}`);
   }
