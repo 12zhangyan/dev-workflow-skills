@@ -90,6 +90,12 @@
       "prompt": "执行 check 只读审查；请同时加载 package/repair/loop 的 reference、模板和全部示例以统一格式。",
       "expected_output": "只加载 check 自己的审查清单/输出 reference 和共享门禁；examples 仅在首次审查或 finding 格式仍歧义时读取一个对应示例。不得加载其他 mode 的 reference、模板或 examples。",
       "tags": ["route_minimal_loading", "read_only", "lazy_examples"]
+    },
+    {
+      "id": 17,
+      "prompt": "ImplementationReview 已核对 yan-dev-doc、SVN diff 和两个 Java 文件，17 个 Hermetic 测试全部通过，结论为 NoEvidenceIssue。请输出审查结果。",
+      "expected_output": "第一屏必须用普通中文说明“审查通过、17 个测试通过、没有需要修复的问题”，并只给一个真实下一步（如人工复核并提交两个 Java 文件）；检查范围和关键确认点用短列表。Workflow Brief、NoEvidenceIssue、TestDependencyClass 等放到“技术回执（供后续 AI / 审计，可跳过）”之后。不得输出空 Critical/Important/Minor 分组，不得声称可交付 findings，不得建议 repair；用户未要求归档时也不推荐 package。",
+      "tags": ["human_readable_no_findings", "no_false_repair_handoff", "implementation_review"]
     }
   ]
 }

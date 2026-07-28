@@ -32,6 +32,12 @@
 **Finding ID 规则（全链路可追溯的起点）**：每条 finding 必须带稳定 ID，`Critical → CR-n`、`Important → IM-n`、`Minor → MI-n`，n 在本级别内从 1 递增。这个 ID 会被 `review-fix` 汇总时原样保留、被 `review-repair` 修复时按 ID 回填状态，保证"发现→修复→关闭"一一对应。`openFindings` 里只写 ID 摘要（如 `CR-1, IM-2`），不复述问题正文。
 
 ```text
+审查结论：发现 <数量> 个需要处理的问题（Critical <n> / Important <n> / Minor <n>）。
+你现在需要做什么：<最优先处理项；用户已要求修改时写 repair，要求多 AI/归档时写 package，否则写人工确认处理方式>
+验证结果：<一句话说明测试是否运行及结果>
+
+以下是技术回执（供后续 AI / 审计，可跳过）。
+
 来源：Code Review
 审查对象：<review-task/yan-dev-doc/patch/功能描述>
 ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
@@ -52,8 +58,8 @@ vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳�
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <Critical/Important/Minor ID 摘要，如 CR-1, IM-2；没有写 无>
-next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-nextCommand: 使用 yan-code-review skill，mode=repair，根据本输出 openFindings 中的 <CR/IM/MI ID> 直接修复并验证
+next: <按用户当前目标只选一项：package 汇总/归档；repair 直接修复；人工确认>
+nextCommand: <与 next 对应的一条命令；不要同时给 package 和 repair>
 tokenHint: 下一位 AI 先读本 Brief -> finding 指向文件 -> review-task 中证据包；只在冲突时扩展读取全文；首轮最多 5 个文件
 
 Critical:
@@ -89,14 +95,29 @@ Notes:
 OpenQuestions:
 - <材料不足或需要业务确认的问题；阻塞项标注 blocking>
 
-可将以上 findings 原样交给 `yan-code-review mode=package`，用于生成修复交接文档。
-如果希望直接修复，可将 findings 交给 `yan-code-review mode=repair`；它会修改代码并运行验证。
+下一步：<只保留与用户当前目标一致的一项：package / repair / 人工确认>
 
 ```
 
 没有 findings 时：
 
 ```text
+审查结论：通过——在已检查范围内未发现需要修复的问题。
+你现在需要做什么：<Review Gate 满足时写“人工复核并按项目流程提交范围内文件”；否则写唯一未完成动作>
+验证结果：<例如“17 个测试全部通过”；未运行时说明原因，不能写通过>
+
+检查范围：
+- <面向人的文件/功能范围，最多 5 项>
+
+已确认：
+- <关键规则或回归点 1>
+- <关键规则或回归点 2>
+
+需要人工留意：
+- <真正仍需人工确认的非阻塞项；没有写“无”>
+
+以下是技术回执（供后续 AI / 审计，可跳过）。
+
 来源：Code Review
 审查对象：<...>
 ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
@@ -117,25 +138,23 @@ vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳�
 tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未提供写未提供；environment-blocked 写工具链版本>
 api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: 无
-next: 可进入 code-reading / 人工 review；若后续改动扩大则重新 review-check
-nextCommand: 使用 yan-project-analysis skill，mode=understanding，基于 source 和当前实现生成代码地图
+next: 本次没有需要修复的 findings；<人工复核并提交 / 当前既定下一步>
+nextCommand: <一条人工或 skill 命令；用户未要求归档时不要推荐 package>
 tokenHint: 下一位 AI 先读本 Brief -> review-task -> changed 文件；无须重复粘贴 findings；首轮最多 5 个文件
 
-未发现有证据的阻塞问题。
-
-已检查：
-- 需求一致性：<说明>
-- 业务正确性：<说明>
-- 边界/事务/并发/安全/前端/SSE/AI 文件沙箱/性能/兼容/测试/提交完整性：<说明>
-
-Notes:
-- <仍建议人工关注的不确定点>
+本次没有需要修复的 findings，不进入 repair；未明确要求审查归档时不进入 package。
 
 ```
 
 材料不足时：
 
 ```text
+审查结论：暂时无法判断——关键材料不足。
+你现在需要做什么：<只列最小缺失材料和补充方式>
+验证结果：<未运行/未提供/environment-blocked 及原因>
+
+以下是技术回执（供后续 AI / 审计，可跳过）。
+
 来源：Code Review
 审查对象：<...>
 ReviewScopeType: <PlanReview / ImplementationReview / FixHandoffReview>
@@ -173,6 +192,6 @@ tokenHint: 下一位 AI 先读本 Brief -> 缺失材料清单 -> 补齐后的 re
 OpenQuestions:
 - blocking: <必须补充的问题>
 
-可将以上材料不足结论交给 `yan-code-review mode=package`，用于补齐证据包。
+下一步：补齐上述材料后重新运行 `yan-code-review mode=check`；不得进入 repair。
 
 ```

@@ -120,11 +120,14 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 按模板输出：[reference.md](reference.md#输出格式)
 
 要求：
+- 第一屏先用普通中文输出三项：`审查结论`、`你现在需要做什么`、`验证结果`；不得要求用户先理解 `NoEvidenceIssue`、`TestDependencyClass`、`Workflow Brief` 等内部字段。
+- `Workflow Brief` 和审计字段放在“技术回执（供后续 AI / 审计，可跳过）”之后，不得抢在用户结论前面。
 - findings 按 `Critical / Important / Minor` 分组。
 - 固定输出 `VerificationStatus`：已运行/未运行/未提供；命令、结果或未运行原因。
 - 固定输出 `TestDependencyClass`：`Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable`，说明默认命令与独立外部测试的边界。
 - 每条包含 `File/Line`、`Problem`、`Evidence`、`Impact`、`Fix`、`Verify`。
 - 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
+- `NoEvidenceIssue` 不输出空的 `Critical / Important / Minor` 分组，不把 Notes 冒充 findings，也不得建议 `repair`、声称“可将以上 findings 原样交付”或同时给 package/repair 两条分叉。
 - 不输出大段源码，不复述全部 diff。
 
 ### Step 4.5：更新同一研发档案
@@ -141,12 +144,11 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 
 ### Step 5：结束提醒
 
-结尾输出：
+按结论只输出一个与当前 Gate 一致的下一步：
 
-```text
-可将以上 findings 原样交给 `yan-code-review mode=package`，用于生成修复交接文档。
-如果希望直接修复，可将 findings 交给 `yan-code-review mode=repair`；它会修改代码并运行验证。
-```
+- 只有结论状态为 `Findings` 时，才可说明 findings 可交给 `package` 汇总/归档，或在用户明确要求修改时交给 `repair`；不要替用户同时选择两条路径。
+- `NoEvidenceIssue`：明确说“本次没有需要修复的 findings”，Review Gate 满足时只给人工复核/提交或既定下一步；用户未要求归档时不推荐 `package`。
+- `InsufficientMaterial`：只要求补齐缺失材料后重新 `check`，不得建议 `repair`。
 
 ## 禁止事项
 
@@ -166,12 +168,13 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 - [ ] 已在 Findings / NoEvidenceIssue / InsufficientMaterial 三种结论中选择一种，并写明依据
 - [ ] 未修改任何业务代码、测试或正式文档
 - [ ] 已发布同一 `deliveryId` / `sourceDocPath` 的 check 事件，或明确输出 `BoardPublishStatus: Blocked`
-- [ ] 输出可直接交给 `yan-code-review mode=package`
+- [ ] 第一屏为普通中文结论；技术回执位于其后
+- [ ] 仅 Findings 输出 finding ID 与修复/汇总路径；NoEvidenceIssue 未输出空分组或 repair 建议
 
 ## 相关资源
 
 - 审查清单与输出模板：[reference.md](reference.md)
 - 示例：[examples.md](examples.md)（仅在首次审查或 finding 格式仍歧义时读取一个对应示例）
-- 组织多 AI review 与修复交接：`yan-code-review mode=package`
-- Review 后直接修复：`yan-code-review mode=repair`
+- 有 findings 时组织多 AI review 与修复交接：`yan-code-review mode=package`
+- 有明确 findings 且用户要求修改时直接修复：`yan-code-review mode=repair`
 - Review 前代码地图：`yan-project-analysis mode=understanding`

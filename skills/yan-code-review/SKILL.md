@@ -27,7 +27,9 @@ description: 统一处理代码审查相关任务，并根据用户是否允许�
 - `review-loop` → `loop`
 - `review-fix` → `package`
 
-“review 一下”“看看有没有问题”等模糊表达默认 `check`，因为业务代码只读是最小权限。看板生命周期元数据是所有模式的标准产物，不视为修改业务实现的授权。只有模式会改变代码/正式文档写权限且用户意图无法从原话确定时，才问一个问题确认是否允许修改。
+“review 一下”“看看有没有问题”等模糊表达默认 `check`，因为业务代码只读是最小权限。例外：当前输入只有未指定 mode 的统一入口（如仅发 `/yan-code-review`），且最近一份**同任务** `Workflow Brief.nextCommand` 明确指定 `yan-code-review mode=package`，同时 `source` / `artifacts` / `changed` 能与当前 yan-dev-doc 和实现 diff 对应时，优先跟随 Brief 选择 `package`，避免实现后先做一次纯 check 再生成审查任务包。显式要求 `check`/只读审查始终优先；Brief 跨任务、已过期、与当前 diff 不一致或多份 Brief 冲突时，不猜测继承，回退 `check` 并说明依据。该例外只授权选择不改业务代码的 `package`，不得据此进入 `repair` / `loop` 或扩大证据范围。
+
+看板生命周期元数据是所有模式的标准产物，不视为修改业务实现的授权。只有模式会改变代码/正式文档写权限且用户意图无法从原话确定时，才问一个问题确认是否允许修改。
 
 ## 渐进加载
 

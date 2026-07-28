@@ -10,6 +10,7 @@
     {"id": "review-ambiguous-safe-default", "prompt_ref": "yan-code-review:5", "route": "check", "write_scope": "docs-and-board"},
     {"id": "review-recent-implementation-default", "prompt_ref": "yan-code-review:8", "route": "check", "write_scope": "docs-and-board"},
     {"id": "review-recent-svn-implementation-default", "prompt_ref": "yan-code-review:9", "route": "check", "write_scope": "docs-and-board"},
+    {"id": "review-workflow-brief-package-follow", "prompt_ref": "yan-code-review:11", "route": "package", "write_scope": "docs-and-board"},
     {"id": "analysis-impact-zero-write", "prompt_ref": "yan-project-analysis:1", "route": "understanding", "write_scope": "none"},
     {"id": "analysis-incident-artifacts", "prompt_ref": "yan-project-analysis:3", "route": "incident", "write_scope": "docs-and-board"},
     {"id": "analysis-business-artifacts", "prompt_ref": "yan-project-analysis:4", "route": "business", "write_scope": "docs-and-board"},

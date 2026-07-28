@@ -47,19 +47,31 @@ CR-1. Severity: Critical
 ## 示例 2：没有发现阻塞问题
 
 ```text
+审查结论：通过——在已检查范围内未发现需要修复的问题。
+你现在需要做什么：人工复核后，按项目流程提交 OrderQueryService.java 和 OrderQueryMapper.xml。
+验证结果：聚焦测试已通过。
+
+检查范围：
+- OrderQueryService.java
+- OrderQueryMapper.xml
+
+已确认：
+- 查询条件符合 yan-dev-doc 范围，状态过滤仍复用原枚举。
+- 未改变事务、接口契约和主流程。
+
+需要人工留意：
+- 测试数据是否覆盖空查询条件。
+
+以下是技术回执（供后续 AI / 审计，可跳过）。
+
 来源：Code Review
 审查对象：changes.patch
 审查范围：OrderQueryService.java, OrderQueryMapper.xml
+结论状态：NoEvidenceIssue
+openFindings: 无
+next: 本次没有需要修复的 findings；人工复核并提交
 
-未发现有证据的阻塞问题。
-
-已检查：
-- 需求一致性：patch 只修改查询条件，符合 yan-dev-doc 的范围。
-- 业务正确性：状态过滤仍复用原枚举，未改变主流程。
-- 边界/事务/并发/安全/性能/兼容/测试：未发现可定位问题。
-
-Notes:
-- 建议人工确认测试数据是否覆盖空查询条件。
+本次不进入 repair；用户未要求审查归档，不进入 package。
 ```
 
 ## 示例 3：前端 SSE / Token 审查
