@@ -84,6 +84,12 @@
       "prompt": "review-check 已从 yan-dev-doc 找到 deliveryId；业务代码必须保持只读，但我要在看板看到本轮结论",
       "expected_output": "业务代码与正式文档保持只读；使用稳定 check eventId 更新同一 deliveryId，写入 ReviewScopeType、结论、finding ID/状态和验证摘要，不把精确 File/Line 或完整 diff 写入看板；输出 BoardPublishStatus。",
       "tags": ["board_lifecycle", "same_delivery", "read_only"]
+    },
+    {
+      "id": 16,
+      "prompt": "执行 check 只读审查；请同时加载 package/repair/loop 的 reference、模板和全部示例以统一格式。",
+      "expected_output": "只加载 check 自己的审查清单/输出 reference 和共享门禁；examples 仅在首次审查或 finding 格式仍歧义时读取一个对应示例。不得加载其他 mode 的 reference、模板或 examples。",
+      "tags": ["route_minimal_loading", "read_only", "lazy_examples"]
     }
   ]
 }

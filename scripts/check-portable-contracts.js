@@ -111,6 +111,31 @@ for (const contract of contracts.cases || []) {
       }
     }
   }
+  if (contract.route_loading !== undefined) {
+    const loading = contract.route_loading;
+    if (!loading || typeof loading !== 'object'
+        || !Number.isInteger(loading.max_resources) || loading.max_resources < 1
+        || !Array.isArray(loading.required) || loading.required.length === 0
+        || !Array.isArray(loading.forbidden_patterns) || loading.forbidden_patterns.length === 0) {
+      fail(`${contract.id} has an invalid route_loading contract`);
+    } else {
+      if (new Set(loading.required).size !== loading.required.length) {
+        fail(`${contract.id} route_loading.required contains duplicates`);
+      }
+      for (const required of loading.required) {
+        if (!/^skills\/yan-[^/]+\/.+\.md$/.test(required)) {
+          fail(`${contract.id} has an invalid required loading path: ${required}`);
+        }
+      }
+      for (const pattern of loading.forbidden_patterns) {
+        try {
+          new RegExp(pattern);
+        } catch (error) {
+          fail(`${contract.id} has invalid forbidden loading pattern ${pattern}: ${error.message}`);
+        }
+      }
+    }
+  }
   const ref = /^([^:]+):(\d+)$/.exec(contract.prompt_ref || '');
   if (!ref) {
     fail(`${contract.id} has invalid prompt_ref`);

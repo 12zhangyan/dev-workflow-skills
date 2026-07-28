@@ -55,12 +55,28 @@ if (!runnerText.includes("args.push('-')")
   console.error('FAIL: Codex live evaluation must pass UTF-8 stdin directly to the Node CLI instead of through a multiline .cmd shell argument');
   process.exit(1);
 }
+if (!runnerText.includes('LOADED_RESOURCES:')
+    || !runnerText.includes('function assessRouteLoading(contract, output)')
+    || !runnerText.includes('loadedResourceCount: routeLoading.count')) {
+  console.error('FAIL: host eval runner must collect route-loading receipts and baseline metrics');
+  process.exit(1);
+}
+const loadingCases = contracts.cases.filter((item) => item.route_loading);
+if (loadingCases.length < 4
+    || !['yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-dev-doc'].every(
+      (skill) => loadingCases.some((item) => item.prompt_ref.startsWith(`${skill}:`)),
+    )) {
+  console.error('FAIL: host contracts need minimal-loading samples for all four public skills');
+  process.exit(1);
+}
 const writable = contracts.cases.filter((item) => item.write_scope !== 'none');
 if (!writable.length || !contracts.cases.some((item) => item.prompt_ref.startsWith('yan-dev-doc:'))) {
   console.error('FAIL: contracts must include writable and yan-dev-doc representative cases');
   process.exit(1);
 }
-for (const contract of contracts.cases.filter((item) => item.prompt_ref.startsWith('yan-dev-doc:'))) {
+for (const contract of contracts.cases.filter(
+  (item) => item.prompt_ref.startsWith('yan-dev-doc:') && item.write_scope !== 'none',
+)) {
   if (!contract.assertions || !Array.isArray(contract.assertions.artifacts) || !contract.assertions.artifacts.length) {
     console.error(`FAIL: writable contract ${contract.id} needs deterministic artifact assertions`);
     process.exit(1);

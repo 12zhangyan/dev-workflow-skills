@@ -74,7 +74,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/bugs
 ### Step 5：生成文档
 
 加载模板：[reference.md](reference.md#文档模板)
-参考已填示例：[examples.md](examples.md)
+仅在首次生成或字段边界仍歧义时，读取一个对应的已填示例：[examples.md](examples.md)
 
 **核心规则**：
 - 只使用用户提供的信息和代码/日志证据；未确认的标 `待补充` 或明确写为"推断，待验证"，不能把猜测写成事实

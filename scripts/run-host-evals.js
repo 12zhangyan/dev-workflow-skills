@@ -32,6 +32,7 @@ function usage(message) {
   console.error([
     'Usage:',
     '  node scripts/run-host-evals.js --probe [--json]',
+    '  node scripts/run-host-evals.js --self-test',
     '  node scripts/run-host-evals.js --live --host <claude|cursor|codex>',
     '    --case <contract-id> --workspace <clean-git-worktree>',
     '    [--allow-write] [--model <model>] [--output <result.json>] [--timeout-ms <ms>]',
@@ -49,6 +50,10 @@ function parseArgs(argv) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') usage();
     else if (arg === '--probe') args.probe = true;
+    else if (arg === '--self-test') {
+      args.selfTest = true;
+      args.probe = false;
+    }
     else if (arg === '--json') args.json = true;
     else if (arg === '--live') {
       args.live = true;
@@ -151,12 +156,18 @@ function promptFor(contract) {
   const scopeRule = contract.write_scope === 'none'
     ? 'Keep the workspace read-only; do not create, modify, or delete files.'
     : `You may write only within ${contract.write_scope}, and nowhere else.`;
+  const loadingReceipt = contract.route_loading ? [
+    '第三行输出：',
+    'LOADED_RESOURCES: <本次实际打开的 skills/... Markdown 路径，英文逗号分隔>',
+    '只列实际读取的 Skill Markdown 资料，统一写成仓库相对 skills/... 路径；不要把“本应读取”但未打开的资料写入回执。',
+  ] : [];
   return [
     `使用已安装的 ${skill} skill 处理下面的真实任务。`,
     '遵循项目规则和下述写入边界。',
     '回答开头先单独输出两行：',
     'ROUTE: <实际选择的 mode>',
     'WRITE_SCOPE: <none|docs|docs-and-board|code-and-tests>',
+    ...loadingReceipt,
     '',
     `写入边界：${scopeRule}`,
     scenario.prompt,
@@ -246,24 +257,95 @@ function assessAssertions(contract, output, workspace, changedPaths) {
   return { passed: [...artifactResults, ...textResults].every((item) => item.passed), artifacts: artifactResults, text: textResults };
 }
 
-function assess(contract, output, drift, assertions) {
+function normalizeReceiptPath(value) {
+  const normalized = value.trim().replace(/^[`'"]+|[`'"]+$/g, '').replace(/\\/g, '/');
+  const skillsIndex = normalized.indexOf('skills/');
+  return skillsIndex >= 0 ? normalized.slice(skillsIndex) : normalized;
+}
+
+function assessRouteLoading(contract, output) {
+  if (!contract.route_loading) {
+    return { required: false, passed: true, resources: [], count: 0 };
+  }
+  const receiptMatch = output.match(/^\s*LOADED_RESOURCES:\s*(.+)$/im);
+  const resources = receiptMatch
+    ? [...new Set(receiptMatch[1].split(',').map(normalizeReceiptPath).filter(Boolean))]
+    : [];
+  const requiredMissing = contract.route_loading.required.filter((item) => !resources.includes(item));
+  const forbiddenMatches = [];
+  for (const pattern of contract.route_loading.forbidden_patterns) {
+    const matcher = new RegExp(pattern);
+    const matches = resources.filter((item) => matcher.test(item));
+    if (matches.length) forbiddenMatches.push({ pattern, matches });
+  }
+  const withinLimit = resources.length <= contract.route_loading.max_resources;
+  return {
+    required: true,
+    passed: Boolean(receiptMatch) && requiredMissing.length === 0 && forbiddenMatches.length === 0 && withinLimit,
+    resources,
+    count: resources.length,
+    maxResources: contract.route_loading.max_resources,
+    requiredMissing,
+    forbiddenMatches,
+    withinLimit,
+    receiptPresent: Boolean(receiptMatch),
+  };
+}
+
+function assess(contract, output, drift, assertions, routeLoading) {
   const routeMatch = output.match(/^\s*ROUTE:\s*([a-z-]+)/im);
   const scopeMatch = output.match(/^\s*WRITE_SCOPE:\s*([a-z-]+)/im);
   const observedRoute = routeMatch ? routeMatch[1].toLowerCase() : null;
   const observedScope = scopeMatch ? scopeMatch[1].toLowerCase() : null;
   return {
-    passed: observedRoute === contract.route && observedScope === contract.write_scope && drift.allowed && assertions.passed,
+    passed: observedRoute === contract.route
+      && observedScope === contract.write_scope
+      && drift.allowed
+      && assertions.passed
+      && routeLoading.passed,
     observedRoute,
     observedScope,
     expectedRoute: contract.route,
     expectedScope: contract.write_scope,
     workspaceDrift: drift,
     assertions,
+    routeLoading,
   };
+}
+
+function runSelfTest() {
+  const contract = {
+    route_loading: {
+      max_resources: 3,
+      required: ['skills/yan-sample/SKILL.md', 'skills/yan-sample/modes/check/mode.md'],
+      forbidden_patterns: ['^skills/yan-sample/modes/repair/'],
+    },
+  };
+  const valid = assessRouteLoading(
+    contract,
+    'ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-sample/SKILL.md, skills\\yan-sample\\modes\\check\\mode.md',
+  );
+  if (!valid.passed || valid.count !== 2) throw new Error('valid route-loading receipt was rejected');
+  const forbidden = assessRouteLoading(
+    contract,
+    'LOADED_RESOURCES: skills/yan-sample/SKILL.md, skills/yan-sample/modes/check/mode.md, skills/yan-sample/modes/repair/mode.md',
+  );
+  if (forbidden.passed || forbidden.forbiddenMatches.length !== 1) {
+    throw new Error('forbidden route-loading receipt was not rejected');
+  }
+  const missing = assessRouteLoading(contract, 'LOADED_RESOURCES: skills/yan-sample/SKILL.md');
+  if (missing.passed || missing.requiredMissing.length !== 1) {
+    throw new Error('missing route-loading receipt resource was not rejected');
+  }
+  console.log('ok host eval route-loading self-test passed');
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.selfTest) {
+    runSelfTest();
+    return;
+  }
   if (args.probe) {
     const result = {
       mode: 'probe',
@@ -311,6 +393,8 @@ function main() {
   const allowedPrefixes = contract.write_scope === 'none' ? [] : contract.write_scope === 'docs' ? ['docs/'] : contract.write_scope === 'docs-and-board' ? ['docs/', 'project-html/'] : null;
   const drift = { before, after: after.stdout || '', changedPaths, allowed: after.status === 0 && (contract.write_scope === 'code-and-tests' || changedPaths.every((file) => allowedPrefixes.some((prefix) => file.startsWith(prefix)))) };
   const output = `${run.stdout || ''}${run.stderr ? `\n[stderr]\n${run.stderr}` : ''}`.trim();
+  const routeLoading = assessRouteLoading(contract, output);
+  const durationMs = Date.now() - started;
   const result = {
     schemaVersion: 1,
     host: args.host,
@@ -319,11 +403,22 @@ function main() {
     case: contract.id,
     model: args.model || null,
     startedAt,
-    durationMs: Date.now() - started,
+    durationMs,
     exitCode: run.status,
     timedOut: Boolean(run.error && run.error.code === 'ETIMEDOUT'),
     isolation: { kind: 'temporary-git-clone', sourceWorkspace, workspaceWasWritten: false },
-    assessment: assess(contract, output, drift, assessAssertions(contract, output, isolation.workspace, changedPaths)),
+    metrics: {
+      durationMs,
+      outputChars: output.length,
+      loadedResourceCount: routeLoading.count,
+    },
+    assessment: assess(
+      contract,
+      output,
+      drift,
+      assessAssertions(contract, output, isolation.workspace, changedPaths),
+      routeLoading,
+    ),
     output,
   };
   const json = `${JSON.stringify(result, null, 2)}\n`;

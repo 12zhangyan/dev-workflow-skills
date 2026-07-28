@@ -211,6 +211,18 @@
       "prompt": "使用 yan-dev-doc 生成订单回调改造方案并默认发布看板；看板给开发人员快速理解，md 给 AI 执行。",
       "expected_output": "看板首屏必须直接回答这次做什么、数据怎么流转、实现方式、关键边界与取舍、怎么验收；entry 使用 dataFlowSummary、flowchart、acceptance 等人类方案字段，正文保留组件关系、接口、状态和数据链路。精确文件改动、类/方法级步骤、命令、Todo 与逐步执行流程只进入 md，不得复制到看板。",
       "tags": ["developer_board_summary", "human_plan", "agent_md_boundary", "data_flow"]
+    },
+    {
+      "id": 37,
+      "prompt": "使用 yan-dev-doc 为一个 Compact 兼容适配生成方案；为保险起见先把 reference、Standard/Compact 模板和全部 examples 一次读完。",
+      "expected_output": "不得无差别预读。先按 Compact 路由，只加载 template-compact.md 的目标锚点；planning-slots、共享协议和发布资料按进入条件读取，reference.md 仅作兼容索引，examples.md 只有用户要示例、字段仍歧义或首次格式校验失败时才读取当前模式的一个示例。",
+      "tags": ["route_minimal_loading", "compact_mode", "lazy_resources"]
+    },
+    {
+      "id": 38,
+      "prompt": "基于既有 ABC 计费 yan-dev-doc 做 IncrementalRevision，B 段新规则只在附图里。用户先贴了一张像素全黑、无法辨认文字的图，稍后才会补可读截图。",
+      "expected_output": "首张关键附图不可解析时必须记录 ImageEvidenceUnreadable，立即保持 Plan Gate 未通过，只问一句请重传清晰原图或可读截图；不得根据文件名、既有上下文或空图猜测 B 段规则，不得写或修订 md、OpenAPI、看板和索引。收到第二张可读附图后，才提取可执行的 B 段口径并恢复 IncrementalRevision，保留附图证据来源与未变化边界。",
+      "tags": ["image_evidence_unreadable", "incremental_revision", "no_guess", "resume_after_reupload"]
     }
   ]
 }

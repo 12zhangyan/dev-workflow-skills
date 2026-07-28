@@ -81,7 +81,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/biz-fl
 ### Step 5：生成文档
 
 加载模板：[reference.md](reference.md#文档模板)
-参考已填示例：[examples.md](examples.md)
+仅在首次生成或字段边界仍歧义时，读取一个对应的已填示例：[examples.md](examples.md)
 
 **核心规则**：
 - 面向测试人员撰写：每个图配一段大白话说明「这张图在讲什么、测试该重点看哪里」
@@ -182,7 +182,7 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/biz-fl
 ## 相关资源
 
 - 完整文档模板与信息槽位：[reference.md](reference.md)
-- 已填示例：[examples.md](examples.md)
+- 已填示例：[examples.md](examples.md)（仅在首次生成或字段边界仍歧义时按需读取）
 - 看板模板与 build.js：复用 `../../../yan-dev-doc/assets/board/`
 - 相邻 skill/mode：`yan-project-analysis mode=understanding`（开发代码地图）、`yan-dev-doc`（开发文档）
 

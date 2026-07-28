@@ -85,6 +85,12 @@
       "prompt": "基于 docs/2026-07-27/order.md 生成多 AI review task，并把进度放到原研发档案里",
       "expected_output": "第一阶段生成 review-task，同时用 sourceDocPath 更新原档案的稳定 package-task 事件；贴回 findings 后用 package-handoff 事件更新同一 deliveryId，不把 fix-handoff 建成第二条普通看板记录。",
       "tags": ["board_lifecycle", "same_delivery", "package_two_stage"]
+    },
+    {
+      "id": 16,
+      "prompt": "只生成第一阶段 review task；开始前加载 aggregation、fix-handoff 模板和全部 examples。",
+      "expected_output": "第一阶段只加载 review-task-template.md 与对应 completion 锚点；不得预加载第二阶段 aggregation.md、fix-handoff-template.md。examples 仅在首次生成该阶段产物或格式仍歧义时读取一个对应示例，reference.md 仅作兼容索引。",
+      "tags": ["route_minimal_loading", "package_first_stage", "lazy_templates"]
     }
   ]
 }

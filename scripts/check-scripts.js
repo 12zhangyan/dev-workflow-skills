@@ -51,7 +51,7 @@ if (selfTest.status !== 0) {
   if (selfTest.stderr) process.stderr.write(selfTest.stderr);
 }
 
-for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js', 'scripts/check-git-diff.js', 'scripts/check-skill-metadata.js', 'scripts/check-skill-inventory.js', 'scripts/check-workflow-briefs.js']) {
+for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js', 'scripts/check-git-diff.js', 'scripts/check-route-loading.js', 'scripts/check-skill-metadata.js', 'scripts/check-skill-inventory.js', 'scripts/check-workflow-briefs.js', 'scripts/run-host-evals.js']) {
   const result = spawnSync('node', [scriptSelfTest, '--self-test'], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {
     fail(`${scriptSelfTest} self-test failed`);

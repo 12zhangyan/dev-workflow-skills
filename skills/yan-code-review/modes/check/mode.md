@@ -171,7 +171,7 @@ description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区�
 ## 相关资源
 
 - 审查清单与输出模板：[reference.md](reference.md)
-- 示例：[examples.md](examples.md)
+- 示例：[examples.md](examples.md)（仅在首次审查或 finding 格式仍歧义时读取一个对应示例）
 - 组织多 AI review 与修复交接：`yan-code-review mode=package`
 - Review 后直接修复：`yan-code-review mode=repair`
 - Review 前代码地图：`yan-project-analysis mode=understanding`

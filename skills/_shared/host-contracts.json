@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "hosts": ["claude", "cursor", "codex"],
   "description": "Offline routing and side-effect contracts shared by all supported hosts. These are static contracts, not claims that a live model completed the scenario.",
   "cases": [
@@ -19,6 +19,75 @@
     {"id": "dev-doc-api-artifacts", "prompt_ref": "yan-dev-doc:3", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "docs/apifox/**/*.openapi.yaml", "min_matches": 1}, {"glob": "docs/apifox/INDEX.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
     {"id": "dev-doc-compact-artifact", "prompt_ref": "yan-dev-doc:28", "route": "yan-dev-doc", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
     {"id": "dev-doc-explicit-board-opt-out", "prompt_ref": "yan-dev-doc:33", "route": "yan-dev-doc", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "text": [{"pattern": "BoardPublishStatus:\\s*NotRequested", "min_matches": 1}]}},
-    {"id": "dev-doc-evidenced-incident-plan", "prompt_ref": "yan-dev-doc:35", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "project-html/data/changes.js", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}}
+    {"id": "dev-doc-evidenced-incident-plan", "prompt_ref": "yan-dev-doc:35", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "project-html/data/changes.js", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
+    {
+      "id": "review-check-minimal-loading",
+      "prompt_ref": "yan-code-review:10",
+      "route": "check",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 8,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md",
+          "skills/yan-code-review/modes/check/reference.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(repair|loop|package)/",
+          "^skills/yan-code-review/modes/check/examples\\.md$"
+        ]
+      }
+    },
+    {
+      "id": "analysis-incident-minimal-loading",
+      "prompt_ref": "yan-project-analysis:7",
+      "route": "incident",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 7,
+        "required": [
+          "skills/yan-project-analysis/SKILL.md",
+          "skills/yan-project-analysis/modes/incident/mode.md",
+          "skills/yan-project-analysis/modes/incident/reference.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-project-analysis/modes/(understanding|business)/",
+          "^skills/yan-project-analysis/modes/incident/examples\\.md$"
+        ]
+      }
+    },
+    {
+      "id": "handoff-minimal-loading",
+      "prompt_ref": "yan-conversation-handoff:12",
+      "route": "handoff",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 5,
+        "required": [
+          "skills/yan-conversation-handoff/SKILL.md",
+          "skills/yan-conversation-handoff/reference.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-conversation-handoff/examples\\.md$",
+          "^skills/(yan-code-review|yan-dev-doc|yan-project-analysis)/"
+        ]
+      }
+    },
+    {
+      "id": "dev-doc-compact-minimal-loading",
+      "prompt_ref": "yan-dev-doc:37",
+      "route": "yan-dev-doc",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 8,
+        "required": [
+          "skills/yan-dev-doc/SKILL.md",
+          "skills/yan-dev-doc/template-compact.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-dev-doc/(reference|examples|template-standard|publishing-openapi|publishing-board)\\.md$"
+        ]
+      }
+    }
   ]
 }

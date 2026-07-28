@@ -1,0 +1,371 @@
+{
+  "schema_version": 2,
+  "budgets": {
+    "max_chars": {
+      "public_entry": 8000,
+      "mode": 12000,
+      "reference": 9000,
+      "examples": 15000,
+      "template": 8000
+    }
+  },
+  "routes": [
+    {
+      "id": "yan-dev-doc",
+      "source": "skills/yan-dev-doc/SKILL.md",
+      "eval": {
+        "suite": "skills/yan-dev-doc/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/yan-dev-doc/completion.md"
+        ],
+        "routed": [
+          {
+            "name": "document-mode-template",
+            "guard": "按模式只加载模板锚点",
+            "targets": [
+              "skills/yan-dev-doc/template-standard.md",
+              "skills/yan-dev-doc/template-compact.md"
+            ]
+          }
+        ],
+        "conditional": [
+          {
+            "target": "skills/_shared/host-capabilities.md",
+            "guard": "执行前按需读取"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "执行前按需读取"
+          },
+          {
+            "target": "skills/_shared/workflow-gates.md",
+            "guard": "执行前按需读取"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "执行前按需读取"
+          },
+          {
+            "target": "skills/yan-dev-doc/planning-slots.md",
+            "guard": "它是查漏表，不是问卷"
+          },
+          {
+            "target": "skills/yan-dev-doc/examples.md",
+            "guard": "仅在用户要示例、字段仍歧义或首次结果未通过格式校验时"
+          },
+          {
+            "target": "skills/yan-dev-doc/publishing-openapi.md",
+            "guard": "存在新增接口或契约变更时，才读取并执行"
+          },
+          {
+            "target": "skills/yan-dev-doc/publishing-board.md",
+            "guard": "除 `Compact` 外，默认读取并执行"
+          }
+        ],
+        "index_only": [
+          {
+            "target": "skills/yan-dev-doc/reference.md",
+            "guard": "兼容索引，不作为运行时模板加载"
+          }
+        ]
+      }
+    },
+    {
+      "id": "yan-conversation-handoff",
+      "source": "skills/yan-conversation-handoff/SKILL.md",
+      "eval": {
+        "suite": "skills/yan-conversation-handoff/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/host-capabilities.md",
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/yan-conversation-handoff/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-conversation-handoff/examples.md",
+            "guard": "首次生成，或“已证实/推断/待确认”与无人值守停机边界容易混淆时"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-code-review",
+      "source": "skills/yan-code-review/SKILL.md",
+      "eval": {
+        "suite": "skills/yan-code-review/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/host-capabilities.md",
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/board-publish-flow.md"
+        ],
+        "routed": [
+          {
+            "name": "review-mode",
+            "guard": "选定模式后只读取对应文件",
+            "targets": [
+              "skills/yan-code-review/modes/check/mode.md",
+              "skills/yan-code-review/modes/repair/mode.md",
+              "skills/yan-code-review/modes/loop/mode.md",
+              "skills/yan-code-review/modes/package/mode.md"
+            ]
+          }
+        ],
+        "conditional": [
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "输入或输出含 `【Workflow Brief】` 时同时遵循"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-code-review-check",
+      "source": "skills/yan-code-review/modes/check/mode.md",
+      "eval": {
+        "suite": "skills/yan-code-review/modes/check/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-code-review/modes/check/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-code-review/modes/check/examples.md",
+            "guard": "仅在首次审查或 finding 格式仍歧义时"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-code-review-repair",
+      "source": "skills/yan-code-review/modes/repair/mode.md",
+      "eval": {
+        "suite": "skills/yan-code-review/modes/repair/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-code-review/modes/repair/reference.md"
+        ],
+        "routed": [],
+        "conditional": [],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-code-review-loop",
+      "source": "skills/yan-code-review/modes/loop/mode.md",
+      "eval": {
+        "suite": "skills/yan-code-review/modes/loop/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-code-review/modes/loop/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-code-review/modes/package/mode.md",
+            "guard": "仅 standard 读取"
+          },
+          {
+            "target": "skills/yan-code-review/modes/package/reference.md",
+            "guard": "仅 standard 读取"
+          },
+          {
+            "target": "skills/yan-code-review/modes/check/mode.md",
+            "guard": "再读取并执行"
+          },
+          {
+            "target": "skills/yan-code-review/modes/check/reference.md",
+            "guard": "再读取并执行"
+          },
+          {
+            "target": "skills/yan-code-review/modes/repair/mode.md",
+            "guard": "存在 Critical/Important"
+          },
+          {
+            "target": "skills/yan-code-review/modes/repair/reference.md",
+            "guard": "存在 Critical/Important"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-code-review-package",
+      "source": "skills/yan-code-review/modes/package/mode.md",
+      "eval": {
+        "suite": "skills/yan-code-review/modes/package/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-code-review/modes/package/completion.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-code-review/modes/package/review-task-template.md",
+            "guard": "### Step 2：生成 Review 任务包"
+          },
+          {
+            "target": "skills/yan-code-review/modes/package/aggregation.md",
+            "guard": "### Step 3：汇总 Review 结果（仅在用户贴回结果后执行）"
+          },
+          {
+            "target": "skills/yan-code-review/modes/package/fix-handoff-template.md",
+            "guard": "### Step 4：生成修复交接文档（第二阶段）"
+          },
+          {
+            "target": "skills/yan-code-review/modes/package/examples.md",
+            "guard": "仅在首次生成对应阶段产物或格式仍歧义时"
+          }
+        ],
+        "index_only": [
+          {
+            "target": "skills/yan-code-review/modes/package/reference.md",
+            "guard": "兼容索引"
+          }
+        ]
+      }
+    },
+    {
+      "id": "yan-project-analysis",
+      "source": "skills/yan-project-analysis/SKILL.md",
+      "eval": {
+        "suite": "skills/yan-project-analysis/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/host-capabilities.md",
+          "skills/_shared/interaction-policy.md"
+        ],
+        "routed": [
+          {
+            "name": "analysis-mode",
+            "guard": "选定模式后只读取",
+            "targets": [
+              "skills/yan-project-analysis/modes/understanding/mode.md",
+              "skills/yan-project-analysis/modes/incident/mode.md",
+              "skills/yan-project-analysis/modes/business/mode.md"
+            ]
+          }
+        ],
+        "conditional": [
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "输入或输出含 `【Workflow Brief】` 时同时遵循"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-project-analysis-understanding",
+      "source": "skills/yan-project-analysis/modes/understanding/mode.md",
+      "eval": {
+        "suite": "skills/yan-project-analysis/modes/understanding/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/workflow-brief.md",
+          "skills/yan-project-analysis/modes/understanding/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-project-analysis/modes/understanding/examples.md",
+            "guard": "首次执行或两种模式边界容易混淆时"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-project-analysis-incident",
+      "source": "skills/yan-project-analysis/modes/incident/mode.md",
+      "eval": {
+        "suite": "skills/yan-project-analysis/modes/incident/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-project-analysis/modes/incident/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-project-analysis/modes/incident/examples.md",
+            "guard": "仅在首次生成或字段边界仍歧义时"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
+      "id": "yan-project-analysis-business",
+      "source": "skills/yan-project-analysis/modes/business/mode.md",
+      "eval": {
+        "suite": "skills/yan-project-analysis/modes/business/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [
+          "skills/_shared/interaction-policy.md",
+          "skills/_shared/workflow-gates.md",
+          "skills/_shared/board-publish-flow.md",
+          "skills/yan-project-analysis/modes/business/reference.md"
+        ],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/yan-project-analysis/modes/business/examples.md",
+            "guard": "仅在首次生成或字段边界仍歧义时"
+          }
+        ],
+        "index_only": []
+      }
+    }
+  ]
+}

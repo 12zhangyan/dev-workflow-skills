@@ -74,6 +74,12 @@
       "prompt": "给测试人员梳理扫码审批从 App 到 PC 的业务流、数据流、时序和状态变化",
       "expected_output": "不应使用 code-reading；面向测试人员的业务流、数据流、时序和状态说明应路由到 biz-flow。",
       "tags": ["routing_biz_flow"]
+    },
+    {
+      "id": 14,
+      "prompt": "执行一次普通 ImpactAnalysis；先加载 CodeMap/ImpactAnalysis 全部示例和其他 analysis mode 的 reference。",
+      "expected_output": "只使用 understanding 的 reference 中 ImpactAnalysis 输出锚点；不得加载 incident/business 资料。examples 仅在首次执行或双模式边界容易混淆时读取当前模式的一个示例，不得无差别读取两份示例。",
+      "tags": ["route_minimal_loading", "impact_analysis", "chat_only"]
     }
   ]
 }

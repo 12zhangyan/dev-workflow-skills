@@ -180,6 +180,12 @@
       "prompt": "用 review-loop 闭环 DLV-ORDER；我只希望看板出现一条本轮汇总，不要 package/check/repair 各写一条",
       "expected_output": "设置 BoardPublishOwner=loop，内部 package/check/repair 子阶段不重复写看板；loop 最终用稳定 eventId 向 DLV-ORDER 写一条汇总事件，包含循环次数、原 finding ID 状态、验证和 VCS Gate，并输出 BoardPublishStatus。",
       "tags": ["board_lifecycle", "single_publish_owner", "same_delivery"]
+    },
+    {
+      "id": 31,
+      "prompt": "用 quick loop 审查并在必要时修复；开始就把 package、check、repair 三套 mode/reference 全部加载。",
+      "expected_output": "不得一次预加载全部阶段。先加载 loop 自身 reference；quick 进入审查阶段时再加载 check mode/reference，只有出现 accepted Critical/Important 才加载 repair mode/reference；package mode/reference 仅 standard 路由进入任务包阶段时读取。",
+      "tags": ["route_minimal_loading", "quick", "stage_lazy_loading"]
     }
   ]
 }

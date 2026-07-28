@@ -219,6 +219,6 @@ node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review
 - 修复交接与操作码：[fix-handoff-template.md](fix-handoff-template.md)
 - 两阶段完成输出：[completion.md](completion.md)
 - 兼容索引：[reference.md](reference.md)（不作为运行时模板加载）
-- 示例：[examples.md](examples.md)
+- 示例：[examples.md](examples.md)（仅在首次生成对应阶段产物或格式仍歧义时读取一个对应示例）
 - 工作流背景：仓库 `docs/workflow-guide.md`
 - 相邻 skill：`yan-dev-doc`、`yan-code-review mode=check/repair`、`yan-project-analysis mode=understanding/incident`

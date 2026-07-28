@@ -6,6 +6,7 @@
     {"id": 3, "prompt": "线上结算重复扣款，记录现象、复现、根因证据和修复边界。", "expected_output": "选择 incident；根因不足时只写诊断计划。", "tags": ["route_incident", "evidence_boundary"]},
     {"id": 4, "prompt": "给测试讲清退款提交、审批、驳回和归档怎么走，状态和数据每步怎么变。", "expected_output": "选择 business；输出面向测试的业务/数据/状态流与测试关注点。", "tags": ["route_business", "tester_audience"]},
     {"id": 5, "prompt": "使用 bug-fix skill 记录登录失败事故。", "expected_output": "把旧名称映射为 incident，并记录 LegacyAlias=bug-fix。", "tags": ["legacy_alias", "route_incident"]},
-    {"id": 6, "prompt": "解释一下 PaymentFacade.generate 这个方法。", "expected_output": "简单聊天解释不触发 yan-project-analysis，不得生成文档或看板，避免把单步任务升级为工作流。", "tags": ["should_not_trigger", "simple_explanation"]}
+    {"id": 6, "prompt": "解释一下 PaymentFacade.generate 这个方法。", "expected_output": "简单聊天解释不触发 yan-project-analysis，不得生成文档或看板，避免把单步任务升级为工作流。", "tags": ["should_not_trigger", "simple_explanation"]},
+    {"id": 7, "prompt": "使用 yan-project-analysis 复盘一次线上故障；开始前把 understanding、incident、business 的 mode、reference 和 examples 全部加载。", "expected_output": "先确定为 incident，只读取 modes/incident/mode.md；根入口不得绕过 mode 直接加载任何模式的 reference/examples，也不得预加载 understanding/business。进入 incident 后再按该 mode 的最小资料规则读取。", "tags": ["route_minimal_loading", "route_incident", "evidence_boundary"]}
   ]
 }

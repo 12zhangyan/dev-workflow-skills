@@ -88,6 +88,12 @@
       "prompt": "根据 DLV-ORDER 的 IM-1 修复并验证，把处理结果更新到看板",
       "expected_output": "按 IM-1 最小修复和验证，保留 finding ID，并写入同一 DLV-ORDER 的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
       "tags": ["board_lifecycle", "same_delivery", "finding_traceability"]
+    },
+    {
+      "id": 17,
+      "prompt": "已有 IM-2，执行 repair；先预读 loop/check/package 的全部运行资料以免漏项。",
+      "expected_output": "只加载 repair 的 mode、同目录 reference 和共享门禁/看板流程；不得预加载 check、loop、package 的 mode、reference、模板或 examples。修复范围仍由 IM-2 授权边界决定。",
+      "tags": ["route_minimal_loading", "finding_scope", "no_cross_mode_preload"]
     }
   ]
 }

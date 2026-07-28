@@ -55,6 +55,12 @@
       "prompt": "给测试人员梳理正常退款审批从 App 到 PC 的业务流、数据流、状态变化和测试关注点，不分析某次线上故障",
       "expected_output": "不应使用 bug-fix；主交付物是面向测试的正常业务流说明，且明确不诊断单次故障，应路由到 biz-flow。",
       "tags": ["routing_biz_flow"]
+    },
+    {
+      "id": 11,
+      "prompt": "按 incident 记录一个证据充分的事故；先加载 understanding/business reference 和全部 examples。",
+      "expected_output": "只加载 incident 同目录 reference 与共享流程；不得加载 understanding/business 的 reference 或 examples。incident examples 仅在首次生成或字段边界仍歧义时读取一个对应示例。",
+      "tags": ["route_minimal_loading", "incident", "lazy_examples"]
     }
   ]
 }
