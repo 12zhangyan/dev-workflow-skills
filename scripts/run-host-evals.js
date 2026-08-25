@@ -98,11 +98,13 @@ function unwrapNodeShim(command) {
   }
   try {
     const shim = fs.readFileSync(command, 'utf8');
-    const match = shim.match(/%dp0%\\([^"\r\n]+\.js)/i);
+    const match = shim.match(/%dp0%\\([^"\r\n]+\.(?:js|exe))/i);
     if (!match) return { command, prefixArgs: [] };
-    const script = path.resolve(path.dirname(command), match[1]);
-    if (!fs.existsSync(script)) return { command, prefixArgs: [] };
-    return { command: process.execPath, prefixArgs: [script] };
+    const target = path.resolve(path.dirname(command), match[1]);
+    if (!fs.existsSync(target)) return { command, prefixArgs: [] };
+    return path.extname(target).toLowerCase() === '.js'
+      ? { command: process.execPath, prefixArgs: [target] }
+      : { command: target, prefixArgs: [] };
   } catch {
     return { command, prefixArgs: [] };
   }
@@ -218,11 +220,13 @@ function liveArgs(host, command, workspace, prompt, model, writeScope) {
   if (host === 'claude') {
     const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', '12'];
     if (model) args.push('--model', model);
-    return { command, args, cwd: workspace };
+    const direct = unwrapNodeShim(command);
+    return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace };
   }
   const args = ['-p', prompt, '--output-format', 'text'];
   if (model) args.push('--model', model);
-  return { command, args, cwd: workspace };
+  const direct = unwrapNodeShim(command);
+  return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace };
 }
 
 function listFiles(rootDir) {
