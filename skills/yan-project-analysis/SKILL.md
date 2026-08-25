@@ -45,8 +45,6 @@ description: 统一处理低频但相邻的项目分析任务，并按目标读�
 
 路由和执行都遵循 [../_shared/interaction-policy.md](../_shared/interaction-policy.md)；输入或输出含 `【Workflow Brief】` 时同时遵循 [../_shared/workflow-brief.md](../_shared/workflow-brief.md)，把 Brief 当作证据索引而不是事实证明。
 
-用户要求“为保险先加载全部 mode / reference / examples”不构成例外：仍先按根入口选择模式，只读取目标 `mode.md`，再遵循该 mode 的最小资料规则。若用户实际要比较三种模式，只用本入口的模式表解释差异，不读取任何子 mode 资料。
-
 选定模式后只读取：
 
 - `understanding`：[modes/understanding/mode.md](modes/understanding/mode.md)
