@@ -98,7 +98,8 @@ function unwrapNodeShim(command) {
   }
   try {
     const shim = fs.readFileSync(command, 'utf8');
-    const match = shim.match(/%dp0%\\([^"\r\n]+\.(?:js|exe))/i);
+    const match = shim.match(/%dp0%\\([^"\r\n]+\.js)/i)
+      || shim.match(/%dp0%\\([^"\r\n]+\.exe)/i);
     if (!match) return { command, prefixArgs: [] };
     const target = path.resolve(path.dirname(command), match[1]);
     if (!fs.existsSync(target)) return { command, prefixArgs: [] };

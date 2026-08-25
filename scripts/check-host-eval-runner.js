@@ -53,7 +53,8 @@ if (!runnerText.includes("args.push('-')")
     || !runnerText.includes('input: invocation.input')
     || !runnerText.includes('function unwrapNodeShim(command)')
     || !runnerText.includes("path.extname(target).toLowerCase() === '.js'")
-    || !runnerText.includes("\\.(?:js|exe)")
+    || !runnerText.includes("+\\.js)/i)\n      || shim.match")
+    || !runnerText.includes("+\\.exe)/i)")
     || directNodeShimInvocations < 3) {
   console.error('FAIL: live evaluation must unwrap Windows Node CLI shims; Codex must also pass UTF-8 stdin instead of a multiline .cmd shell argument');
   process.exit(1);
