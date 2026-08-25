@@ -30,6 +30,15 @@ description: 统一处理低频但相邻的项目分析任务，并按目标读�
 - 用户只要聊天解释一个简单方法且不需要系统性追踪时，不触发本 skill。
 - 用户要求直接改代码时退出本 skill；已有 review findings 交给 `yan-code-review repair`。
 
+## 路由与证据失败分支
+
+| 触发条件 | 一线处理 | 仍失败时的兜底 |
+|---|---|---|
+| 两个及以上模式都可能命中 | 先按用户要求的主要产物和目标读者选择，并输出选择依据；此时不预加载任何 mode | 若歧义会改变写权限、产物路径或分析边界，交互会话只问一个阻塞问题；非交互运行输出 `Blocked: AnalysisModeAmbiguous`，保持零写入 |
+| 关键代码、日志、接口或状态证据缺失、不可读 | 只用可复核证据标记已证实项，把缺口列为待确认，不跨 mode 猜测 | 若证据不足以支撑该 mode 的核心结论，`understanding` 只给最小取证清单，`incident` 只给诊断计划，`business` 只给草稿/blocker；不得编造调用链、根因或业务闭环 |
+| 用户在分析过程中要求直接实现或修复 | 立即停止分析产物写入，按已有授权路由普通实现流程或 `yan-code-review repair` | 修改授权、findings 或实施边界不完整时保持只读，列出缺失输入；不得把分析请求升级为代码修改授权 |
+| 选定的 `mode.md` 缺失或不可读 | 输出 `Blocked: AnalysisModeResourceUnavailable` 和目标资源路径，不加载其他 mode 代替 | 做一次最小路径复核后仍不可读则终止该 skill，保持零写入，不用根入口臆造子模式流程 |
+
 ## 渐进加载
 
 先遵循 [三端宿主能力协议](../_shared/host-capabilities.md)，不臆造 Claude Code、Cursor 或 Codex 的工具名。

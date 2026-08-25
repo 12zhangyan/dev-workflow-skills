@@ -47,12 +47,16 @@ if (!runnerText.includes("repeat with --allow-write") || !runnerText.includes("-
   console.error('FAIL: runner must reject implicit writes and result paths inside the supplied workspace');
   process.exit(1);
 }
+const directNodeShimInvocations = (runnerText.match(/const direct = unwrapNodeShim\(command\);/g) || []).length;
 if (!runnerText.includes("args.push('-')")
     || !runnerText.includes("input: Buffer.from(prompt, 'utf8')")
     || !runnerText.includes('input: invocation.input')
     || !runnerText.includes('function unwrapNodeShim(command)')
-    || !runnerText.includes('prefixArgs: [script]')) {
-  console.error('FAIL: Codex live evaluation must pass UTF-8 stdin directly to the Node CLI instead of through a multiline .cmd shell argument');
+    || !runnerText.includes("path.extname(target).toLowerCase() === '.js'")
+    || !runnerText.includes("+\\.js)/i)\n      || shim.match")
+    || !runnerText.includes("+\\.exe)/i)")
+    || directNodeShimInvocations < 3) {
+  console.error('FAIL: live evaluation must unwrap Windows Node CLI shims; Codex must also pass UTF-8 stdin instead of a multiline .cmd shell argument');
   process.exit(1);
 }
 if (!runnerText.includes('LOADED_RESOURCES:')
