@@ -57,6 +57,8 @@ description: 基于当前对话、已读取文件、命令结果和当前工作�
 node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/handoffs
 ```
 
+**🔴 CHECKPOINT · 路径冲突**
+
 目标为 `docs/handoffs/<日期>/<任务名>-handoff.md`。写入前检查目标：不存在才创建；已存在且可读时，在交互会话中询问覆盖、时间戳后缀或取消；不可读、状态未知，或无人值守遇到同名文件时输出 `Blocked`，不覆盖。
 
 若当前目录不是用户项目、用户只要求聊天内文本，或没有写入权限，直接输出完整 Markdown 和建议保存路径，不假称文件已写入。
