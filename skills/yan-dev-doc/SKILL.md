@@ -86,6 +86,8 @@ Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VC
 - 改动文件、测试关注点和验收标准；
 - `assumptions`、`conflicts`、`blockers`、`openQuestions`。
 
+**🔴 CHECKPOINT · 高风险未知**
+
 能从证据确定的直接填；低风险未知写显式假设；高风险未知暂停并一次只问一个。非交互/无人值守运行中不等待提问：缺少阻塞决策时输出 `Blocked`，不写 md、OpenAPI、看板或索引。
 
 既有多篇文档必须全部读取并逐项标注承接范围。口径冲突按证据优先级记录；用户已否决的旧方案保留为 `conflicts(status=resolved)`，写清旧口径、否决证据、最终口径和实现禁令，不再计入 blocker。
