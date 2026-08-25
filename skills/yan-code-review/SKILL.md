@@ -46,7 +46,7 @@ description: 统一处理代码审查相关任务，并根据用户是否允许�
 
 ## 统一边界
 
-- 启动时输出 `ReviewMode: check|repair|loop|package` 和选择依据。
+- 启动时输出 `CodeReviewMode: check|repair|loop|package` 和选择依据。
 - `check` 期间不得修改业务代码或正式文档；若发现问题，只输出有证据的 finding，但必须按共享发布流程更新同一研发档案的 Review 事件。
 - `repair` 必须有现成 finding/问题清单；没有时停止并建议 `check` 或 `loop`。
 - `loop` 最多两个修复循环，不自动提交；小范围单模块默认 quick。
