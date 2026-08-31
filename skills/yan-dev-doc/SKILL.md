@@ -54,9 +54,9 @@ HTML 看板默认随 `Standard` / `IncrementalRevision` 方案发布；只有用
 
 静默收集：
 
-1. 运行 `node <helper> detect-vcs`，记录 `VCS_TYPE` / `VCS_ROOT`。
-2. Git 读取分支、`status --short`、最近 3 条日志；SVN 读取 revision 和最近 3 条日志。命令失败记录 `VCSStatusUnknown`，不把空输出当 clean。
-3. 用宿主搜索能力在 root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，识别模块和验证命令。
+1. 先读取任务目录及候选改动模块层级中当前生效的 `CLAUDE.md` / `AGENTS.md`，记录来源，并把 docs、project-html、OpenAPI 等工作流产物分别判为 `VcsArtifactPolicy: Allowed | Excluded | Unspecified`。明确排除时后续纳管步骤写 `NotApplicable`；未规定时写 `RequiresConfirmation`，不得生成 add 命令。
+2. 在任务目录运行 `node <helper> detect-vcs`，只把结果作为根级初始证据；根级 `VCSStatusUnknown` / `type=none` 不能代表子模块未知。
+3. 用宿主搜索能力在任务目录下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，初步识别模块和构建入口。最终 VCS 与验证命令在改动范围确定后逐模块收敛。
 
 `detect-vcs` 的 JSON 结果必须按当前 shell 解析；不要把 Bash 语法粘到 Windows PowerShell。`<helper>` 指向共享协议中定位到的 `workflow-fs.js`：
 
@@ -85,6 +85,14 @@ Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VC
 - 接口分类、事务/副作用、兼容性和回滚；
 - 改动文件、测试关注点和验收标准；
 - `assumptions`、`conflicts`、`blockers`、`openQuestions`。
+
+根据候选变更文件先确定实际涉及模块，再为每个模块运行 `node <helper> detect-vcs <模块目录>`，按返回 root 去重并记录 `VCS_OWNER`：
+
+- Git 单仓库：同一 root 只读取一次分支、`status --short`、最近 3 条日志，保持现有行为；
+- 独立 SVN 模块：逐个 working-copy root 执行只读 `svn info`、`svn status`、`svn log -l 3`；
+- 某个 owner 失败只给该 owner 标 `VCSStatusUnknown`，不得跳过其他模块。跨模块文档分别记录模块、working-copy root、revision/branch、status 和日志证据，不能只保留单个 `VCS_TYPE` / `VCS_ROOT`。
+
+逐个目标 Maven 模块核对 POM：只有所选聚合 POM 的 `<modules>` 经路径解析确实包含目标模块时才允许 `mvn -f <聚合POM> -pl <模块> -am ...`；父 POM 无 `<modules>` 不是 reactor。业务域有聚合 POM时从该 POM运行；没有时使用目标模块自己的 `mvn -f <目标模块>/pom.xml ...`。跨业务域依赖不在同一 reactor 时，按依赖证据列出需预先 `install` 的依赖模块，禁止用 `-am` 假装覆盖。每条命令保留 `TestDependencyClass`。
 
 **🔴 CHECKPOINT · 高风险未知**
 
