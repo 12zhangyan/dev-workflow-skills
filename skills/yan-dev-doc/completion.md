@@ -14,7 +14,7 @@ task: <任务名>
 source: <用户需求 + 两个以内代码证据点>
 artifacts: docs/<日期>/<任务名>.md
 changed: 无（方案阶段未改业务代码）
-vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<精简 md 待纳管或 无>
+vcs: owner=<primary Git/SVN root、multiple 或 none>; owners=<按模块列 Git/SVN root>; artifactPolicy=<Allowed/Excluded/Unspecified + 规则来源>; tracked=<已纳管范围>; untracked=<精简 md 待纳管或 无>
 tests: class=NotApplicable; command/result=未运行（方案阶段；计划命令=<模块级命令>）
 api: spec=无; index=无; operationIds=无
 openFindings: 无
@@ -52,7 +52,7 @@ task: <任务名>
 source: <用户原始需求 / 参考文档 / 代码线索>
 artifacts: <只列真实生成并检查过的路径；没有写 无>
 changed: 无（方案阶段未改业务代码）
-vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管文件>; untracked=<开发文档、OpenAPI、看板/索引待纳管或 无>
+vcs: owner=<primary Git/SVN root、multiple 或 none>; owners=<按模块列 Git/SVN root>; artifactPolicy=<Allowed/Excluded/Unspecified + 规则来源>; tracked=<已纳管文件>; untracked=<开发文档、OpenAPI、看板/索引待纳管或 无>
 tests: class=NotApplicable; command/result=未运行（方案阶段）
 api: spec=<docs/apifox/<日期>/<任务名>.openapi.yaml 或 无>; index=<docs/apifox/INDEX.md 或 无>; operationIds=<新增/变更接口 ID 或 无>
 openFindings: <仅列未裁决的阻塞项/需求冲突/待确认；已裁决冲突不进入；没有写 无>
@@ -73,14 +73,16 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技�
 按「十一、实现 Todo」逐项完成，每完成一项运行对应验证；若文档存在阻塞问题或阻塞型需求冲突，先输出确认问题，不得开始编码；低风险假设按文档记录执行。对“需求冲突（已裁决）”只采用最终口径，禁止从聊天或旧文档恢复已否决方案。
 完成后必须回填执行结果对照表：已完成 Todo、未完成/偏离项、变更文件、验证命令、风险/疑问。"
 
-📁 纳入版本控制并确认变更范围：
-- [ ] 先根据本次 `artifacts` 和 VCS status 输出**逐文件最小清单**；只列本次真实生成或修改的文件，禁止 `git add .`、目录级路径或顺带纳管其他任务产物
-- [ ] Git: `git add <本次 md> <本次精确 detail sidecar> <本次实际变化的 changes.js / docs/INDEX.md / OpenAPI 文件>`；`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径
-- [ ] SVN: 对逐文件最小清单中的每个 `?` 新文件分别执行 `svn add <精确文件>`；未生成的看板/OpenAPI/索引不得出现在命令中
-- [ ] 查看完整变更：`git diff` / `svn diff`
+📁 VCS 策略与变更范围：
+- [ ] 先输出 `VcsArtifactPolicy` 及生效的 `CLAUDE.md` / `AGENTS.md` 证据；docs、project-html、OpenAPI 可分别判定
+- [ ] `Excluded`：对应产物写 `NotApplicable (project VCS rule: <文件:条款>)`，省略全部纳管建议；禁止因文件已生成而改口建议 add
+- [ ] `Unspecified`：写 `RequiresConfirmation`，只报告本次文件和 owner，不生成或执行 add 命令
+- [ ] 仅 `Allowed` 才根据本次 `artifacts` 与各 owner status 输出**逐文件最小清单和建议命令**：Git 用 `git add -- <精确文件...>`；SVN 为清单内每个 `?` 新文件分别建议 `svn add <精确文件>`；本 skill 不执行 add
+- [ ] 所有分支都禁止 `git add .`、目录级路径（含目录级 `svn add`）、顺带纳管、自动 commit/push；`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径
+- [ ] 按每个 VCS owner 查看完整变更：`git diff` / `svn diff`
 
 🧪 先验证（没有绿灯不进 Code Review）：
-- [ ] <验证命令>：**优先填 Step 1 探测到的构建文件对应的模块级命令**——多模块 Maven 用 `mvn -pl <改动模块> -am test` 或 `mvn -f <module-pom> test`，单模块用 `mvn test`；Gradle 用 `./gradlew :<module>:test`，Node 用 `npm test`。泛化的 `mvn test` / `./gradlew test` 只在无法定位改动模块时兜底。每条命令同时写 `TestDependencyClass` 和依赖；默认 CI 不得混入需要真实密钥的 `LiveExternal` 测试。
+- [ ] <验证命令>：逐个目标模块核对 POM。只有聚合 POM 的 `<modules>` 确实包含目标 service 时使用 `mvn -f <业务域>/pom.xml -pl <service> -am test ...`；父 POM无 `<modules>` 或没有可用聚合 POM时使用 `mvn -f <目标模块>/pom.xml test ...`。跨业务域依赖不在同一 reactor 时，先列出并运行有依赖证据的 `mvn -f <依赖模块>/pom.xml install ...`，不得错误依赖 `-am`。Gradle 用 `./gradlew :<module>:test`，Node 用 `npm test`。每条命令同时写 `TestDependencyClass` 和依赖；默认 CI 不得混入需要真实密钥的 `LiveExternal` 测试。
 - [ ] 测试全绿 → 继续；有失败 → 先修复再验证
 
 🤖 AI 代码审查（Review Gate；调用映射以 `skills/_shared/workflow-chain.md` 为准）：
@@ -91,11 +93,11 @@ tokenHint: 下一位 AI 先读本 Brief -> docs/<日期>/<任务名>.md 的技�
 👁 生成代码地图，自己 Review（Understanding Gate）：
 - [ ] Claude Code / Codex / Cursor：`使用 yan-project-analysis skill，mode=understanding，基于 docs/<日期>/<任务名>.md 生成代码地图`
 - [ ] 对照地图检查业务逻辑、事务边界、关键注意点
-- [ ] /chinese-yan-code-review 整理评论话术（如有问题）
+- [ ] 可选评论话术整理：先解析当前宿主实际提供的 Skill 名；存在 `chinese-code-review` 时才调用，不存在则写 `ReviewWordingSkill: NotAvailable` 并跳过，禁止臆造名称
 
-🏁 收尾（提交/合并后，让状态全员可见）：
-- [ ] 看板里点状态标签只存浏览器本地；要让团队都看到，直接对当前 AI 宿主说：
-      "把 project-html/data/changes.js 中标题为「<任务名>」的记录 status 改为 \"已完成\"，改完跑 node --check"
+🏁 收尾（提交/合并后，按项目规则更新状态）：
+- [ ] 看板被项目规则排除或明确仅本地保留时，写 `BoardStatusVisibility: LocalOnly`；只在需要时更新本地状态，省略团队共享表述和纳管建议
+- [ ] 看板允许纳管且团队实际共享该文件时，才可更新 `project-html/data/changes.js` 中本任务状态并运行 `node --check`；可见性仍以项目真实提交/分享流程为准
 
 ```
 

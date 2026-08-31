@@ -193,6 +193,9 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '纯配置/提示词变更',
   '生产代码：不改',
   '主键（复合主键须列全）',
+  'VcsArtifactPolicy: Allowed | Excluded | Unspecified',
+  'svn info`、`svn status`、`svn log -l 3',
+  '父 POM 无 `<modules>` 不是 reactor',
 ]);
 
 requireText('skills/yan-dev-doc/template-standard.md', [
@@ -220,6 +223,10 @@ requireText('skills/yan-dev-doc/completion.md', [
   '逐文件最小清单',
   '禁止 `git add .`、目录级路径',
   '`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径',
+  'NotApplicable (project VCS rule:',
+  'ReviewWordingSkill: NotAvailable',
+  'BoardStatusVisibility: LocalOnly',
+  'mvn -f <业务域>/pom.xml -pl <service> -am test',
 ]);
 
 requireText('skills/yan-project-analysis/modes/incident/mode.md', [

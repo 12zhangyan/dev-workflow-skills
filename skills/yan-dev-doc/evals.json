@@ -223,6 +223,36 @@
       "prompt": "基于既有 ABC 计费 yan-dev-doc 做 IncrementalRevision，B 段新规则只在附图里。用户先贴了一张像素全黑、无法辨认文字的图，稍后才会补可读截图。",
       "expected_output": "首张关键附图不可解析时必须记录 ImageEvidenceUnreadable，立即保持 Plan Gate 未通过，只问一句请重传清晰原图或可读截图；不得根据文件名、既有上下文或空图猜测 B 段规则，不得写或修订 md、OpenAPI、看板和索引。收到第二张可读附图后，才提取可执行的 B 段口径并恢复 IncrementalRevision，保留附图证据来源与未变化边界。",
       "tags": ["image_evidence_unreadable", "incremental_revision", "no_guess", "resume_after_reupload"]
+    },
+    {
+      "id": 39,
+      "prompt": "使用 yan-dev-doc 生成方案。项目 AGENTS.md 明确规定 docs、project-html 和 docs/apifox 都只在本地保留，不纳入 Git/SVN，也不对团队分享。",
+      "expected_output": "必须先读取并引用该项目规则，把三类工作流产物分别标记 VcsArtifactPolicy=Excluded；完成输出写 NotApplicable (project VCS rule: <规则证据>)，省略 git add/svn add 清单和命令，不得把未跟踪等同于待纳管。看板状态只能写 BoardStatusVisibility: LocalOnly 或省略共享收尾，不得声称更新后全员可见。",
+      "tags": ["vcs_artifact_excluded", "project_rules", "local_board", "no_vcs_add"]
+    },
+    {
+      "id": 40,
+      "prompt": "使用 yan-dev-doc 规划跨 hlcloud-eam 与 hlcloud-plm 的改造：项目根目录不是 SVN 工作副本，hlcloud-eam 和 hlcloud-plm 各自是独立 SVN working copy。",
+      "expected_output": "根目录 detect-vcs 返回 none 或 VCSStatusUnknown 不能结束探测。必须先从候选变更文件识别两个实际模块，再分别从模块目录解析最近 VCS owner，并对两个 working-copy root 各自只读执行 svn info、svn status、svn log -l 3。跨模块文档分别记录 root、revision、status、日志证据；一个模块失败只标该 owner 的 VCSStatusUnknown，不能跳过另一个。",
+      "tags": ["multi_svn_owner", "nested_vcs", "vcs_status_unknown", "cross_module"]
+    },
+    {
+      "id": 41,
+      "prompt": "为 order-service 生成 yan-dev-doc：仓库父 pom.xml 没有 modules；业务域 order/pom.xml 的 modules 明确包含 order-service；另一个 finance-client 依赖不在 order reactor。",
+      "expected_output": "不得从无 modules 的父 POM 运行 -pl。必须核对 order/pom.xml 的 modules 路径后生成 mvn -f order/pom.xml -pl order-service -am test，并保留 TestDependencyClass。finance-client 不在同一 reactor 时，应按依赖证据单列预先 install 命令，再运行 order reactor 验证，不得声称 -am 会跨业务域构建它；若业务域聚合关系也不存在，则回退 mvn -f <目标模块>/pom.xml test。",
+      "tags": ["maven_reactor_detection", "maven_modules", "cross_reactor_dependency", "test_dependency_class"]
+    },
+    {
+      "id": 42,
+      "prompt": "yan-dev-doc 完成后想用旧文档里写的 chinese-yan-code-review 整理评论，但当前宿主技能清单没有它，也没有 chinese-code-review。",
+      "expected_output": "必须以当前宿主实际提供的 Skill 清单为准，不得调用或继续传播不存在的旧名称。只有真实存在 chinese-code-review 时才可作为可选话术整理步骤；当前两者都不存在时输出 ReviewWordingSkill: NotAvailable 并跳过，不影响 yan-code-review 与 understanding 主流程。",
+      "tags": ["optional_skill_resolution", "skill_not_available", "cross_host_output"]
+    },
+    {
+      "id": 43,
+      "prompt": "使用 yan-dev-doc 为普通 Git 单仓库中的单模块 Spring Boot 改造生成方案；根目录 Git 正常，项目规则明确允许开发文档纳管，目标模块自己的 pom.xml 可独立测试。",
+      "expected_output": "保持普通 Git 行为：同一 Git root 去重后读取一次分支、git status --short 和最近 3 条日志，Workflow Brief 记录该 owner。因项目规则明确 Allowed，可对本次真实产物输出逐文件最小 git add -- 清单，但不得 git add .、自动 commit/push。目标模块没有已证实的聚合 reactor 时使用 mvn -f <目标模块>/pom.xml test，并标记 TestDependencyClass。",
+      "tags": ["git_single_repo", "vcs_artifact_allowed", "maven_module_pom", "backward_compatibility"]
     }
   ]
 }

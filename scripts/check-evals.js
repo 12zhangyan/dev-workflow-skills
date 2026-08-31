@@ -90,7 +90,7 @@ const additionalRequiredTags = {
   'code-reading': ['non_interactive_blocker', 'ambiguous_entry', 'exists_unreadable', 'token_budget', 'impact_analysis', 'chat_only', 'routing_dev_doc', 'routing_review_check', 'routing_review_repair', 'routing_biz_flow'],
   'yan-code-review': ['workflow_brief_package_handoff'],
   'yan-conversation-handoff': ['template_path', 'non_interactive_blocker'],
-  'yan-dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency', 'routing_code_reading'],
+  'yan-dev-doc': ['api_artifact_index', 'operation_id_consistency', 'vcs_untracked', 'next_command', 'external_test_dependency', 'routing_code_reading', 'vcs_artifact_excluded', 'multi_svn_owner', 'maven_reactor_detection', 'optional_skill_resolution', 'git_single_repo'],
   'review-check': ['nested_vcs', 'vcs_gate', 'non_interactive', 'vcs_status_unknown', 'external_test_dependency', 'routing_review_repair', 'routing_review_loop', 'human_readable_no_findings'],
   'review-fix': ['independent_review', 'finding_ids', 'nested_vcs', 'non_interactive', 'external_test_dependency', 'superpowers_review_bridge', 'routing_review_check', 'routing_review_repair', 'routing_review_loop'],
   'review-loop': ['no_findings_unverified', 'repair_cycle_limit', 'recheck_id', 'non_interactive', 'token_budget', 'external_test_dependency', 'windows_test_source_walk', 'legacy_review_form_input', 'host_isolation', 'vcs_add_policy', 'review_fix_path_canonical'],
@@ -312,12 +312,12 @@ const devDocExamplesPath = path.join(skillsDir, 'yan-dev-doc', 'examples.md');
 const devDocOpenApiPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-openapi.md');
 const devDocBoardPath = path.join(skillsDir, 'yan-dev-doc', 'publishing-board.md');
 for (const [file, needles] of [
-  [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'ImageEvidenceUnreadable', '不得根据文件名、上下文或空白图像猜测业务规则', 'DBA 申请草案', 'PowerShell', 'ConvertFrom-Json', '根因已由对话、日志、堆栈、复现或代码证据坐实', '看板默认随 `Standard` / `IncrementalRevision` 方案发布', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
+  [devDocSkillPath, ['IncrementalRevision', 'conflicts(status=resolved)', '`Compact`', '最多 2 个生产代码切点', '升级为 `Standard`', '前置文档', '新增接口', '契约变更', '行为变更', '仅调用', '非交互/无人值守', 'EXISTS_UNREADABLE_OR_UNKNOWN', '不写 md、OpenAPI、看板或索引', 'ImageEvidenceUnreadable', '不得根据文件名、上下文或空白图像猜测业务规则', 'DBA 申请草案', 'PowerShell', 'ConvertFrom-Json', '根因已由对话、日志、堆栈、复现或代码证据坐实', '看板默认随 `Standard` / `IncrementalRevision` 方案发布', 'VcsArtifactPolicy', 'svn log -l 3', '父 POM 无 `<modules>` 不是 reactor', 'publishing-openapi.md', 'publishing-board.md', 'TestDependencyClass']],
   [devDocReferencePath, ['Compatibility index only', 'planning-slots.md', 'template-compact.md', 'template-standard.md', 'completion.md']],
   [devDocSlotsPath, ['Step 3 查漏槽位', '不是逐条必问题卷']],
   [devDocCompactPath, ['精简文档模板', '文档模式：Compact', '最多两个生产代码切点', '## 五、决策与 Plan Gate', '**assumptions**', '**blockers**']],
   [devDocStandardPath, ['文档模式：<Standard | IncrementalRevision>', '前置文档（全部必读', '需求冲突（已裁决）', 'conflicts(status=resolved)', '承接：<主题/约束范围>', '接口影响分类（涉及接口时保留）', '行为变更接口不进入 OpenAPI', '数据库变更（DBA 申请草案）']],
-  [devDocCompletionPath, ['NotApplicable (Compact)', '已裁决冲突不进入', 'Plan Gate 未通过']],
+  [devDocCompletionPath, ['NotApplicable (Compact)', '已裁决冲突不进入', 'Plan Gate 未通过', 'NotApplicable (project VCS rule:', 'ReviewWordingSkill: NotAvailable', 'BoardStatusVisibility: LocalOnly', 'mvn -f <业务域>/pom.xml -pl <service> -am test']],
   [devDocExamplesPath, ['DBA 申请草案', '后续执行 AI 不得直接运行']],
   [devDocOpenApiPath, ['scripts/validate-openapi.js', 'operationId` 非空/唯一', 'Apifox 实际导入未验证', 'OPENAPI_VALIDATION_MODE=light:workspace-inline']],
   [devDocBoardPath, ['node project-html/board-add.js', '禁止用宿主文件能力整体重写', 'node project-html/build.js']],
