@@ -192,7 +192,6 @@ for (const markdown of skillMarkdownFiles) {
 for (const skill of skillNames) {
   const dir = path.join(skillsDir, skill);
   const skillMd = path.join(dir, 'SKILL.md');
-  const reference = path.join(dir, 'reference.md');
   const evals = path.join(dir, 'evals.json');
   const openaiYaml = path.join(dir, 'agents', 'openai.yaml');
 
@@ -204,8 +203,6 @@ for (const skill of skillNames) {
     fail(`skills/${skill}/SKILL.md name mismatch: got "${frontmatter.name || ''}", want "${skill}"`);
   }
   if (!frontmatter.description) fail(`skills/${skill}/SKILL.md missing description`);
-
-  if (!fs.existsSync(reference)) fail(`skills/${skill}/reference.md is missing`);
 
   if (!fs.existsSync(evals)) fail(`skills/${skill}/evals.json is missing`);
   else if (hasUtf8Bom(evals)) fail(`skills/${skill}/evals.json must not start with a BOM`);

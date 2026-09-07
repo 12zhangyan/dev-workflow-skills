@@ -1,12 +1,102 @@
 {
   "skill_name": "yan-project-analysis",
   "evals": [
-    {"id": 1, "prompt": "只读分析 UserDTO.email 改成可空会影响哪些调用方，不写文档。", "expected_output": "选择 understanding 的 ImpactAnalysis，仓库零写入。", "tags": ["route_understanding", "zero_write"]},
-    {"id": 2, "prompt": "生成支付回调模块的代码地图，方便人工 Review。", "expected_output": "选择 understanding 的 CodeMap，生成持久化代码地图并按该 mode 的既有规则登记看板。", "tags": ["route_understanding", "code_map"]},
-    {"id": 3, "prompt": "线上结算重复扣款，记录现象、复现、根因证据和修复边界。", "expected_output": "选择 incident；根因不足时只写诊断计划。", "tags": ["route_incident", "evidence_boundary"]},
-    {"id": 4, "prompt": "给测试讲清退款提交、审批、驳回和归档怎么走，状态和数据每步怎么变。", "expected_output": "选择 business；输出面向测试的业务/数据/状态流与测试关注点。", "tags": ["route_business", "tester_audience"]},
-    {"id": 5, "prompt": "使用 bug-fix skill 记录登录失败事故。", "expected_output": "把旧名称映射为 incident，并记录 LegacyAlias=bug-fix。", "tags": ["legacy_alias", "route_incident"]},
-    {"id": 6, "prompt": "解释一下 PaymentFacade.generate 这个方法。", "expected_output": "简单聊天解释不触发 yan-project-analysis，不得生成文档或看板，避免把单步任务升级为工作流。", "tags": ["should_not_trigger", "simple_explanation"]},
-    {"id": 7, "prompt": "使用 yan-project-analysis 复盘一次线上故障；只读取完成 incident 分析必需的 Skill 资料，不加载其他模式。", "expected_output": "先确定为 incident，只读取 modes/incident/mode.md；根入口不得绕过 mode 直接加载任何模式的 reference/examples，也不得预加载 understanding/business。进入 incident 后再按该 mode 的最小资料规则读取。", "tags": ["route_minimal_loading", "route_incident", "evidence_boundary"]}
+    {
+      "id": 1,
+      "prompt": "只读分析 UserDTO.email 改成可空会影响哪些调用方，不写文档。",
+      "expected_output": "选择 understanding 的 ImpactAnalysis，仓库零写入。",
+      "tags": [
+        "route_understanding",
+        "zero_write"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "生成支付回调模块的代码地图，方便人工 Review。",
+      "expected_output": "选择 understanding 的 CodeMap，生成持久化代码地图；未明确要求时不把登记看板作为隐含副作用。",
+      "tags": [
+        "route_understanding",
+        "code_map"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "线上结算重复扣款，记录现象、复现、根因证据和修复边界。",
+      "expected_output": "选择 incident；根因不足时只写诊断计划。",
+      "tags": [
+        "route_incident",
+        "evidence_boundary"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "给测试讲清退款提交、审批、驳回和归档怎么走，状态和数据每步怎么变。",
+      "expected_output": "选择 business；输出面向测试的业务/数据/状态流与测试关注点。",
+      "tags": [
+        "route_business",
+        "tester_audience"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "使用 bug-fix skill 记录登录失败事故。",
+      "expected_output": "把旧名称映射为 incident，并记录 LegacyAlias=bug-fix。",
+      "tags": [
+        "legacy_alias",
+        "route_incident"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "解释一下 PaymentFacade.generate 这个方法。",
+      "expected_output": "简单聊天解释不触发 yan-project-analysis，不得生成文档或看板，避免把单步任务升级为工作流。",
+      "tags": [
+        "should_not_trigger",
+        "simple_explanation"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "使用 yan-project-analysis 复盘一次线上故障；只读取完成 incident 分析必需的 Skill 资料，不加载其他模式。",
+      "expected_output": "先确定为 incident，只读取 modes/incident/mode.md；根入口不得绕过 mode 直接加载任何模式的 reference/examples，也不得预加载 understanding/business。进入 incident 后再按该 mode 的最小资料规则读取。",
+      "tags": [
+        "route_minimal_loading",
+        "route_incident",
+        "evidence_boundary"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "只读分析 MissingUserDTO.email 改成可空的兼容影响；当前工作区没有该类型，也不要写任何文件。只加载得出 Blocked 结论必需的 Skill 资料。",
+      "expected_output": "应路由到 understanding，保持零写入并只加载根入口和 understanding mode；说明缺少可定位类型使影响结论无法成立，不加载 CodeMap 模板、看板或其他模式。",
+      "tags": [
+        "route_minimal_loading",
+        "route_understanding",
+        "zero_write",
+        "missing_evidence"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "无人值守梳理 MissingRefundFlow 给测试，但当前没有业务入口、接口或代码证据。只加载得出 blocker 必需的 Skill 资料，不写文档或看板。",
+      "expected_output": "应路由到 business，保持零写入并只加载根入口和 business mode；报告缺失入口及闭环证据，不加载业务模板、看板或其他模式。",
+      "tags": [
+        "route_minimal_loading",
+        "route_business",
+        "zero_write",
+        "missing_evidence"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "同一个结算异常既要给开发沉淀事故证据，也要给测试梳理正常与异常业务流；两部分证据独立。当前只需给出分析切片、并行协作与整合边界，不搜索不存在的业务源码，也无需实际启动子 Agent。",
+      "expected_output": "应把目标拆成 incident 与 business 两个边界清楚的分析切片，可按可用容量并行只读取证；每个产物只有一个整合者，统一时间窗、版本和术语后分别交付。不得把多数意见当根因证据，也不直接修改业务代码。",
+      "tags": [
+        "composite_routing",
+        "parallel_delegation",
+        "single_writer",
+        "evidence_merge"
+      ]
+    }
   ]
 }

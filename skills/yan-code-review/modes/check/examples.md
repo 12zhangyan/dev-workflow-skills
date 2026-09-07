@@ -18,18 +18,14 @@
 VerificationStatus: 未运行；任务包未附测试结果，建议修复方运行 mvn -pl auth-service test
 
 【Workflow Brief】
-stage: ReviewGate
 task: sms-login 短信登录
-source: docs/review-fix/2026-07-02/sms-login-review-task.md
-artifacts: 本次只读审查输出；无文件写入
-changed: SmsLoginService.java, AuthController.java, SmsLoginRequest.java
-vcs: owner=Git 仓库根; tracked=上述 3 个修改文件; untracked=无
-tests: class=Unknown; command/result=未提供
-api: spec=无; index=无; operationIds=无
-openFindings: CR-1
-next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-nextCommand: 使用 yan-code-review skill，mode=repair，根据 CR-1 直接修复并验证
-tokenHint: 下一位 AI 先读本 Brief -> SmsLoginService.sendCode() -> review-task 证据包；首轮最多 5 个文件
+state: ReviewGate Blocked
+scope: 只读审查；修复需另有修改授权
+evidence: docs/review-fix/2026-07-02/sms-login-review-task.md；SmsLoginService.java；AuthController.java；SmsLoginRequest.java；CR-1
+verification: NotRun: 未提供测试证据
+open: CR-1
+next: 使用 yan-code-review skill，mode=repair，根据 CR-1 修复并验证
+vcs: owner=Git 仓库根；untracked=none
 
 Critical:
 CR-1. Severity: Critical
@@ -84,18 +80,14 @@ next: 本次没有需要修复的 findings；人工复核并提交
 VerificationStatus: 未运行；前端 SSE 行为建议按 Verify 手测
 
 【Workflow Brief】
-stage: ReviewGate
 task: app-chat SSE 会话
-source: docs/review-fix/2026-07-02/app-chat-review-task.md
-artifacts: 本次只读审查输出；无文件写入
-changed: AppChatView.vue, request.ts, JwtAuthenticationFilter.java, AuthController.java
-vcs: owner=Git 仓库根; tracked=上述 4 个修改文件; untracked=无
-tests: class=Unknown; command/result=未提供
-api: spec=无; index=无; operationIds=无
-openFindings: IM-1
-next: 将 findings 贴回 review-fix 汇总，或交给 review-repair 直接修复
-nextCommand: 使用 yan-code-review skill，mode=repair，根据 IM-1 直接修复并验证
-tokenHint: 下一位 AI 先读本 Brief -> AppChatView.vue 的 error 事件处理 -> review-task 证据包；首轮最多 5 个文件
+state: ReviewGate Blocked
+scope: 只读审查；修复需另有修改授权
+evidence: docs/review-fix/2026-07-02/app-chat-review-task.md；AppChatView.vue；request.ts；JwtAuthenticationFilter.java；AuthController.java；IM-1
+verification: NotRun: 未提供测试证据
+open: IM-1
+next: 使用 yan-code-review skill，mode=repair，根据 IM-1 修复并验证
+vcs: owner=Git 仓库根；untracked=none
 
 Important:
 IM-1. Severity: Important

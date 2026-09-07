@@ -1,10 +1,12 @@
 # dev-workflow-skills
 
-面向 Java 后端开发的 Claude Code / Cursor / Codex skill 集。目标不是多生成几份文档，而是把一次需求或 Bug 修复稳定推进到：
+面向 Java 后端开发的 Claude Code / Cursor / Codex skill 集。目标不是多生成几份文档，而是让 Agent 根据风险和证据自主把需求或 Bug 推进到：
 
 ```text
-方案明确 → AI 执行 → 版本控制纳管 → 验证通过 → 多 AI Review → 修复交接 → 代码地图 → 人工 Review → 提交
+目标/约束/验收明确 → 可验收切片实施 → 真实验证 → 按风险独立 Review/修复 → 人工验收
 ```
+
+持续优化目标：Skill 越来越轻，只保留必要目标、边界与验收；Agent 越来越强，自主决定取证、拆分、实现、测试、Review 和验收。优化本 Skill 集时，只要切片独立且不会产生写冲突，可以按收益使用全部可用子 Agent 容量并行分析、实现和复核；并行数量不是流程要求，最终结论仍由主 Agent 依据证据整合。
 
 第一次使用建议先看 [docs/workflow-guide.md](docs/workflow-guide.md)。README 只说明这个仓库是什么、怎么安装、每个 skill 什么时候用。
 
@@ -12,11 +14,11 @@
 
 - 一套只有 4 个公开入口的开发工作流：`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
 - 一套面向 Claude Code、Cursor、Codex 的共享行为内核：三端复用相同路由、写入边界、产物与门禁，通过宿主能力协议适配工具名、终端和调用入口，而不是维护三份会漂移的 Skill。
-- 一组面向 AI 执行的 Markdown 文档：明确路径、变更清单、Todo、验证命令和下一步。
+- 一组面向 AI 执行的 Markdown 文档：明确目标、边界、可验收工作切片、证据和下一目标，同时把实现组织、并行方式与非关键判断留给执行 Agent。
 - 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
 - Apifox/OpenAPI 导入文件：接口新增或签名变更时，单独生成 `docs/apifox/<日期>/<任务>.openapi.yaml` 和索引。
 - 统一门禁协议：每个阶段都说明当前 gate、产物、证据、下一步和失败分支。
-- 一段可复制的 `Workflow Brief`：下一位 AI 先读交接块和路径索引，减少重复粘贴全文和无效 token 消耗。
+- 一份位于主产物末尾的 `Workflow Brief`：下一位 AI 先读交接索引和路径，聊天不再重复同一块内容；跨环境无法访问产物时再复制。
 
 ## 快速开始
 
@@ -36,17 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 
 安装后重启 Claude Code / Cursor / Codex。
 
-推荐增强：本仓库可以和 [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh) 组合使用。`superpowers-zh` 提供头脑风暴、TDD、系统化调试、通用代码审查、完成前验证等方法论 skill；本仓库负责企业 Java 交付链里的 `yan-dev-doc / yan-project-analysis / yan-code-review / yan-conversation-handoff` 和项目产物规范。两者职责互补，不互相替代。
-
-在具体项目目录运行：
-
-```bash
-npx superpowers-zh
-```
-
-如果自动识别不到当前工具，可按 `superpowers-zh` 的说明使用 `npx superpowers-zh --tool <name>` 显式指定，例如 `codex`、`cursor` 或 `claude`。不要在用户主目录直接安装，避免把 bootstrap 文件写到全局范围。
-
-下文用 `superpowers:<skill>` 表示常见能力名；真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准。
+本仓库四个公开 Skill 自包含运行，不依赖外部方法论 Skill。需求澄清、测试策略、问题定位、完成前验证和 reviewer 选择由当前 Agent 根据证据与风险自主完成。
 
 ### 2. 触发方式
 
@@ -71,7 +63,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 | 你要做什么 | 用哪个 skill | 主要产物 |
 |------------|--------------|----------|
-| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；Standard / IncrementalRevision 默认发布看板，用户明确要求不写或项目规则禁止时跳过；适用时生成 OpenAPI |
+| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；看板仅在明确要求或既有交付契约需要时发布；契约变化时按需生成 OpenAPI |
 | 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `yan-project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
 | 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
 | 把当前对话交给另一段 AI 对话继续 | `yan-conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
@@ -80,54 +72,25 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 ## 推荐工作流
 
-可选前后增强：
+按当前证据选择最小组合：需求未决时由当前 Agent 先澄清或写方案；目标与验收已清楚时直接实施和验证；复杂逻辑是否测试先行、问题如何定位、是否需要独立 reviewer，都由 Agent 按风险决定。只有理解复杂调用链确有收益时才生成代码地图。
 
-- 需求还不清楚：先用 `superpowers:brainstorming`（或宿主显示的同名入口）收敛方案，再运行 `yan-dev-doc`。
-- 实现复杂或要 TDD：可用 `superpowers:test-driven-development` / `superpowers:systematic-debugging` 辅助实现阶段，但产物和门禁仍按本仓库 `Workflow Brief`、VCS Gate、Verification Gate 记录。
-- 完成前：可用 `superpowers:verification-before-completion` 做通用完成检查，再进入本仓库 `yan-code-review mode=package` / `mode=loop`。
-
-推荐组合口径：
-
-```text
-superpowers:brainstorming（可选，收敛需求）
-→ yan-dev-doc / yan-project-analysis（正式落文档与门禁）
-→ AI 实现；复杂逻辑可插入 superpowers:test-driven-development / systematic-debugging
-→ VCS Gate + Verification Gate；可插入 superpowers:verification-before-completion 做完成前自检
-→ yan-code-review（package/check/repair，或 loop）
-→ yan-project-analysis mode=understanding
-→ 人工 Review / 提交
-```
-
-`superpowers-zh` 的输出不能替代本仓库的正式产物：code review 结论要归并成 `CR/IM/MI` finding ID，验证结论要回填命令、结果和 `TestEvidenceStatus`，需求讨论要写入 `yan-dev-doc` 的 blockers/conflicts/assumptions。
-
-```text
-yan-dev-doc / yan-project-analysis mode=incident
-→ AI 执行并回填结果
-→ git add / svn add 纳管新增文件
-→ 运行测试或接口验证
-→ yan-code-review mode=package 生成 Review 任务包
-→ yan-code-review mode=check 做多 AI 只读审查
-→ yan-code-review mode=package 汇总修复交接 / mode=repair 直接修复
-→ yan-project-analysis mode=understanding 生成代码地图
-→ 人工 Review
-→ git commit / svn commit
-```
+不要求每个任务走完整链路。范围和验收清楚时，当前 Agent 可以直接实施并验证；复杂任务按独立结果切片，在既有授权内并行委派。需要多视角 Review 时使用 `yan-code-review mode=package`：宿主支持委派就直接组织只读 reviewers 并汇总，不能委派才留下便携任务包。代码地图、看板和修复交接只在需要时生成。
 
 `yan-project-analysis mode=business` 的默认终点是测试设计；如果梳理结果需要进入开发，先交给 `yan-dev-doc` 形成可执行方案，再进入上述实现链路。
 
-单 AI 简化路径：
+单 Agent 常见路径：
 
 ```text
-yan-dev-doc / yan-project-analysis mode=incident → AI 实现并验证 → yan-code-review mode=loop（任务包 + 审查 + 修复 + 验证 + 二次复审）→ yan-project-analysis mode=understanding → 人工 Review → 提交
+目标与验收已清楚 → 实现并验证 → 按风险人工验收或 yan-code-review mode=loop → 用户决定是否提交
 ```
 
-`yan-code-review mode=loop` 对范围明确的单模块小改动默认 quick；用户要求审计任务包、多 AI 分发或发现高风险边界时使用 standard。未跟踪文件必须纳入审查、修复和验证范围，但在纳管前不得宣称 Review/Submit Gate 通过。它必须标记 `SingleAgentReview`，最多自动修复两轮，不自动 commit/push，也不替代高风险改动的多 AI 独立审查。
+`yan-code-review mode=loop` 是状态驱动的单 Agent 闭环：先只读审查，有 accepted finding 才修复；代码变化后执行目标验证并基于最新 diff 聚焦复审。它不因风险高自动生成任务包或调用多 Agent；需要多角色独立审查或任务包时直接选择 `package`。未跟踪文件仍纳入范围并阻塞 Review/Submit Gate。loop 标记 `SingleAgentReview`，无进展时提前停止，不为凑轮次继续，也不自动 commit/push。
 
-跨 AI / 跨 skill 交接时，直接复制上一轮输出里的 `【Workflow Brief】`。其中 `nextCommand` 是可直接交给下一位 AI 的完整命令，`tokenHint` 把首轮读取限制在最多 5 个文件；不要反复粘贴完整 yan-dev-doc、review-task、fix-handoff 或大段 diff。
+跨 AI / 跨 skill 交接时，接收方能访问仓库就只给主产物路径，让它读取文档末尾的 `【Workflow Brief】`；无法访问同一文件系统时才复制该块。`next` 表达当前下一目标，可包含互不覆盖的并行动作；接手方先读 `evidence` 中能裁决该目标的最小充分证据，遇到缺口或冲突再扩展。不要反复粘贴完整 yan-dev-doc、review-task、fix-handoff 或大段 diff。
 
 如果需要把当前整段对话的结论、已做动作、验证、风险和接手提示落成独立文档，使用 `yan-conversation-handoff`。它将已证实、推断和待确认分开；`Workflow Brief` 仍只是最小索引，不能代替原始证据。
 
-Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operationIds=<接口 ID>`，方便直接导入 Apifox，并在后续接口变更时定位和更新原文件。VCS 状态固定写成 `owner / tracked / untracked`，测试、OpenAPI、文档等新增文件未纳管时会明确暴露。
+Brief 只在接口产物影响接手时写 `api`，只在 VCS owner、未跟踪或提交状态影响下一步时写 `vcs`；没有信息增益的字段省略。旧 Brief 字段仍可读取，新产物使用精简格式。
 
 关键门禁见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)：
 
@@ -146,7 +109,7 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 | 业务流文档 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` |
 | Review 任务包 / 修复交接 | `docs/review-fix/YYYY-MM-DD/` |
 | Review 后直接修复结果 | `yan-code-review mode=repair` 直接修改代码并在最终输出里回填结果 |
-| 单 AI Review 闭环 | `yan-code-review mode=loop` 最终输出；standard 模式另生成 `docs/review-fix/YYYY-MM-DD/*-review-task.md` |
+| 单 AI Review 闭环 | `yan-code-review mode=loop` 的精简 ReviewReceipt；默认不生成中间任务包 |
 | 代码地图 | `docs/code-reading/YYYY-MM-DD/` |
 | 对话移交文档 | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
 | Apifox/OpenAPI 文件 | `docs/apifox/YYYY-MM-DD/<task>.openapi.yaml` |
@@ -160,7 +123,7 @@ Brief 里的接口产物固定写成 `api: spec=<YAML>; index=<INDEX.md>; operat
 
 ## HTML 看板
 
-`yan-dev-doc` 的 Standard / IncrementalRevision 默认创建“一事一档”的研发变更主记录；用户明确要求不写或项目规则禁止时跳过，Compact 始终不发布。`yan-code-review` 的 package/check/repair/loop 直接调用时都凭 `deliveryId` 或主文档 `sourceDocPath` 更新同一档案的 Review 生命周期，不再创建孤立的审查条目；loop 作为唯一发布 owner 汇总内部子阶段。`yan-project-analysis` 的 incident/business/CodeMap 沿用各 mode 的看板语义。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
+`yan-dev-doc` 只在用户明确要求、既有交付档案需要续写或下游约定需要时创建“一事一档”看板记录。`yan-code-review` 的 package/repair/loop 也只在已有稳定交付身份且实际要求同步时更新同一档案；check 默认零写入。`yan-project-analysis` 的 business/CodeMap 看板同样是按授权副作用，ImpactAnalysis 始终零写入。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
@@ -292,23 +255,24 @@ node scripts/check-git-diff.js
 
 - 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
 - `node scripts/check-git-diff.js` 同时检查工作区、暂存区、HEAD，以及可解析到的 PR/push/`origin/main` 提交范围；GitHub Actions 必须使用完整历史，不能用干净 checkout 上的空 `git diff --check` 冒充提交范围检查。
-- 行为回归套件固定至少 100 个场景，覆盖全部正式 Skill 的触发边界、非交互阻塞、VCS/API/Review/token 关键分支；新增规则时同步补 `evals.json` 标签和契约断言。
+- 行为回归套件覆盖全部正式 Skill 的关键触发、权限、副作用、证据与验收边界；以必要场景标签和契约断言证明覆盖，不设置鼓励重复案例的总数量门槛。
 - 改看板外壳时，同步 `project-html/` 和 `skills/yan-dev-doc/assets/board/`。
 - 改仓库级 agent 指南时，先改 `AGENTS.md`，再同步 `CLAUDE.md`，并运行 `node scripts/check-agent-doc-sync.js`。
 - 改 README、workflow-guide 或共享工作流文档时，运行 `node scripts/check-docs.js`，确认入口文档仍覆盖所有 skill 和关键门禁。
-- 改 skill 入口、`reference.md`、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
+- 改 skill 入口、实际运行资源、`evals.json` 或 `agents/openai.yaml` 时，运行 `node scripts/check-skill-metadata.js` 和 `node scripts/check-evals.js`。
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
 - 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界、`yan-` 命名和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
 - 改入口、mode 或其直引资料时，同步 [route-loading-contracts.json](skills/_shared/route-loading-contracts.json) 并运行 `node scripts/check-route-loading.js`；它逐路由校验允许的直接 Markdown 资料、选择/条件 guard、兼容索引、eval 绑定和资源字符预算，禁止矛盾式全量预读以及根路由绕过 mode。`node scripts/check-route-loading.js --report` 输出当前入口体积、直引数量和预算利用率基线；字符数是静态回归指标，不冒充模型 token 实测。
-- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器总是在临时 Git clone 中执行，不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、目标产物、路由、退出状态与工作区漂移。
-- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主回传实际打开的 `LOADED_RESOURCES`，校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数与加载资料数。运行前必须先把当前 checkout 安装到目标宿主；不可用或旧版本宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。
+- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器在临时 Git clone 中执行，并把当前 checkout 的 `skills/` 复制到 clone 内 Git 忽略的只读评估目录，避免宿主沙箱访问用户目录，也不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、中文路径下的目标产物内容、路由、退出状态与工作区漂移；判定只使用模型最终输出与产物，宿主诊断仅保留有界首尾摘要。
+- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主回传实际打开的 `LOADED_RESOURCES`，校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数、加载资料数与 Skill 快照来源。不可用宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。
+- `dev-doc-autonomous-plan` 是可写能力案例：它验证已裁决的跨前后端需求能保留请求、响应、过滤与错误语义，并形成可验收结果、真实依赖和并行关系；不要求固定 WP 数、文件分层、角色人数、字段措辞或 Workflow Brief。
 - 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，验证 dry-run、事务回滚、并发锁、schema 迁移、备份列表/恢复/保留、归档摘要校验、旧名称清理、漂移检测，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
 - 跨 AI / 跨 skill 的轻量交接格式来自 [skills/_shared/workflow-brief.md](skills/_shared/workflow-brief.md)。
-- 各 skill 完成后的下一步串联映射（谁→下一步+可复制命令）来自 [skills/_shared/workflow-chain.md](skills/_shared/workflow-chain.md)。
-- 每个 skill 的 `SKILL.md` 是执行步骤权威来源；运行路径应直接加载选中模式需要的聚焦资源。`reference.md` 可以是兼容索引，但不应迫使 Agent 一次读取所有模板。
+- 跨 Skill 的 finding、Review 与验证状态语义来自 [skills/_shared/workflow-chain.md](skills/_shared/workflow-chain.md)；它不规定下一步矩阵，Agent 按当前证据自主选择动作。
+- 每个 skill 的 `SKILL.md` 是执行步骤权威来源；只保留有运行价值的聚焦资源，不为兼容索引本身创建文件。
 - 每个入口/mode 的直引资料白名单、`always / routed / conditional / index_only` 加载策略、eval suite/tag 和字符预算以 [route-loading-contracts.json](skills/_shared/route-loading-contracts.json) 为准；新增资料必须先说明进入条件，不得把 examples 或模式模板升级为无差别必读。
 
 ## 自定义
@@ -324,8 +288,8 @@ node scripts/check-git-diff.js
 常改的位置：
 
 - `SKILL.md`：执行步骤、触发说明、工具约束。
-- `planning-slots.md` / `template-*.md` / `completion.md`：按当前模式分别承载问题槽位、文档模板和完成输出；`reference.md` 只保留兼容索引。
-- `examples.md`：示例输出。
+- `yan-dev-doc/SKILL.md` 直接承载自适应方案与交付标准；仅契约或看板发布再加载对应协议。
+- 示例只在能补足模板无法表达的关键边界时保留，不作为目录标配。
 - `agents/openai.yaml`：Codex UI 展示名、短描述、默认提示。
 
 文档/审查类 skill 默认不输出维护反馈。只有运行中确实暴露规则缺口，或评测显式设置 `EvaluationMode=true` 时，才追加 `【Skill 维护反馈】`，避免污染正常业务交付。
@@ -334,4 +298,4 @@ node scripts/check-git-diff.js
 
 - [docs/workflow-guide.md](docs/workflow-guide.md)：完整操作手册。
 - [docs/why-yan-dev-doc.md](docs/why-yan-dev-doc.md)：为什么先生成开发文档。
-- [docs/why-code-reading.md](docs/why-code-reading.md)：为什么 Review 前需要代码地图。
+- [docs/why-code-reading.md](docs/why-code-reading.md)：什么时候代码地图能帮助理解复杂实现。

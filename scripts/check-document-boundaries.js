@@ -185,58 +185,41 @@ function smokeBoardShellBootstrap() {
 }
 
 requireText('skills/yan-dev-doc/SKILL.md', [
-  '非交互/无人值守运行',
-  '不写 md、OpenAPI、看板或索引',
-  '数据库操作始终只读',
-  '不得执行 DDL、数据修复',
-  '禁止用宿主文件能力整体重写',
-  '纯配置/提示词变更',
-  '生产代码：不改',
-  '主键（复合主键须列全）',
-  'VcsArtifactPolicy: Allowed | Excluded | Unspecified',
-  'svn info`、`svn status`、`svn log -l 3',
-  '父 POM 无 `<modules>` 不是 reactor',
-]);
-
-requireText('skills/yan-dev-doc/template-standard.md', [
-  '仅配置 UPDATE',
-  '禁止留空表或删掉本节',
-  '目标主键/唯一定位键',
-  'WHERE 必须包含完整主键',
+  '任务仍可识别时生成 `NeedsConfirmation` 草稿',
+  '任务或安全写入目标本身无法识别时不落盘',
+  '数据库保持只读',
+  '数据更新必须有主键或唯一约束证据',
+  '用户指定精确路径、要求覆盖、文件不可读或状态未知时不得擅自覆盖',
+  '不 add、commit、push',
+  '按实际文件定位 Git/SVN owner',
+  '真实 reactor/POM 关系',
+  '不依赖任何外部 Skill 或方法论',
+  '用户明确要求看板',
+  '执行 Agent 可合并、细分、重排或委派非约束性切片',
 ]);
 
 requireText('skills/yan-dev-doc/publishing-board.md', [
   'node project-html/board-add.js',
-  '../_shared/board-shell-bootstrap.md',
-  '首屏只保留一层简洁方案摘要',
-  '禁止再造“业务视角 / 研发视角 / 方案落点”等重复摘要',
-  '当前 Gate / 开发方案 / Review 摘要 / 验证证据 / 下一步',
+  '../_shared/board-publish-flow.md',
+  '面向未参与任务的同事',
   'detail.delivery.plan',
-  'deliveryId` / `sourceDocPath` / `docPath',
-  '精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md',
-  'BoardVisualCheck: NotRun',
+  '`docPath`、标题、日期和当前 plan 状态',
+  '精确文件清单、类/方法级步骤、执行命令、Todo、堆栈和 `codeLocation` 留在 md',
+  '省略空字段',
+  '视觉复核只有真实打开页面后才能声称通过',
 ]);
 
-requireText('skills/yan-dev-doc/completion.md', [
-  'BoardPublishStatus',
-  'BoardVisualCheck',
-  '逐文件最小清单',
-  '禁止 `git add .`、目录级路径',
-  '`BoardPublishStatus: NotRequested` 时不得包含任何看板/单页/索引路径',
-  'NotApplicable (project VCS rule:',
-  'ReviewWordingSkill: NotAvailable',
-  'BoardStatusVisibility: LocalOnly',
-  'mvn -f <业务域>/pom.xml -pl <service> -am test',
-]);
 
 requireText('skills/yan-project-analysis/modes/incident/mode.md', [
   '非交互/无人值守运行中不等待提问',
   '不写 Bug 文档、看板或执行型修复 Todo',
-  '根因无明确结论',
+  '根因未证实时只给能区分假设的诊断动作',
+  '区分源码、构建产物、部署包和实际运行证据',
+  '不能用本地源码覆盖事故现场',
   '../../../_shared/board-publish-flow.md',
-  '"kind":"bug"',
+  'kind:"bug"',
   'Agent 专属字段禁止写入看板 entry',
-  '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
+  '主文档只保留一份索引，聊天不重复',
 ]);
 
 requireText('skills/yan-project-analysis/modes/business/mode.md', [
@@ -244,31 +227,35 @@ requireText('skills/yan-project-analysis/modes/business/mode.md', [
   '不写业务流文档、看板或确定性测试口径',
   '缺失入口会影响状态/数据闭环时停止生成正式方案',
   '../../../_shared/board-publish-flow.md',
-  '"kind":"biz"',
+  'kind:"biz"',
   'Mermaid 字段也是普通 JSON 字符串，不使用反引号',
-  '完成输出必须包含 reference.md 里的 `【Workflow Brief】`',
+  '聊天不重复整块 Brief',
 ]);
 
 requireText('skills/yan-project-analysis/modes/understanding/mode.md', [
   '非交互/无人值守运行中不等待提问',
-  'ImpactAnalysis` 是严格零写入模式',
-  '禁止任何文件修改、创建目录或临时文件',
-  '不得进入 Step 4/4.5',
-  '不判断缺陷或关闭 findings',
-  '最多列 5 个',
+  '`ImpactAnalysis` 是严格仓库零写入模式',
+  '禁止修改工作区、文档、看板、VCS 或业务系统',
+  '不判断 Bug、不关闭 findings、不输出修复方案',
+  '已存在、不可读或状态未知时不得静默覆盖',
+  '看板不是隐含副作用',
 ]);
 
-requireText('skills/yan-project-analysis/modes/understanding/reference.md', [
-  '首轮最多 5 个文件',
+requireText('skills/yan-project-analysis/modes/understanding/impact-output.md', [
+  '自然语言明确本次是零写入影响分析',
+  '明确受影响 / 证据显示不受影响 / 待确认',
 ]);
 
 requireText('skills/yan-conversation-handoff/SKILL.md', [
   '非交互/无人值守运行中不等待提问',
-  '不要猜测范围，不覆盖文件',
-  '不得在文档、复制提示或 `Workflow Brief` 中转录 API key',
+  '只有任务范围本身无法识别时才阻止生成交接内容',
+  '不得在文档或复制提示中转录 API key',
   '不要登记 HTML 看板',
-  '首轮不超过 5 个文件',
-  '最终输出包含 `【Workflow Brief】`',
+  '不设固定文件数量',
+  '普通 handoff 不重复这套字段',
+  '默认生成路径撞名且用户未锁定文件名时',
+  '互不覆盖的动作可以并行',
+  '有在途 Agent 或任务时',
 ]);
 
 const boardShellBootstrap = 'skills/_shared/board-shell-bootstrap.md';
@@ -292,17 +279,18 @@ for (const rel of [
 }
 
 requireText('skills/_shared/board-publish-flow.md', [
-  '只通过 `project-html/board-add.js` 写业务数据',
-  '禁止用宿主文件能力整体重写 `data/changes.js`',
-  'workflow-fs.js exists',
-  'Mermaid 代码也是普通 JSON 字符串',
+  '业务数据只通过 `project-html/board-add.js` 写入',
+  '禁止整体重写或手工插入 `data/changes.js`',
+  'board-shell-bootstrap.md',
+  'Mermaid 也是普通字符串',
   'BoardPublishSkipped',
   'BoardPublishBlocked',
   'BoardBuildBlocked',
-  '不得降级为手工插入',
-  '更新同一研发档案的 Review 生命周期',
-  'BoardPublishOwner: loop',
-  'IdentityMissing',
+  '失败时不得绕过',
+  '当前协调者拥有发布职责三者同时成立',
+  '协调者至多汇总写入一次',
+  '不建议目录级兜底',
+  '不自动删除',
 ]);
 
 smokeBoardShellBootstrap();

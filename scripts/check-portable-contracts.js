@@ -95,6 +95,26 @@ for (const contract of contracts.cases || []) {
   if (!['none', 'docs', 'docs-and-board', 'code-and-tests'].includes(contract.write_scope)) {
     fail(`${contract.id} has unsupported write_scope: ${contract.write_scope}`);
   }
+  if (contract.accepted_routes !== undefined
+      && (!Array.isArray(contract.accepted_routes)
+        || contract.accepted_routes.length === 0
+        || contract.accepted_routes.some((route) => typeof route !== 'string' || !route)
+        || !contract.accepted_routes.includes(contract.route))) {
+    fail(`${contract.id} accepted_routes must be a non-empty string array containing route`);
+  }
+  if (contract.write_scope === 'code-and-tests'
+      && (!Array.isArray(contract.allowed_path_patterns) || contract.allowed_path_patterns.length === 0)) {
+    fail(`${contract.id} code-and-tests scope requires explicit allowed_path_patterns`);
+  }
+  if (contract.allowed_path_patterns !== undefined) {
+    if (!Array.isArray(contract.allowed_path_patterns) || contract.allowed_path_patterns.length === 0) {
+      fail(`${contract.id} allowed_path_patterns must be a non-empty array`);
+    } else {
+      for (const pattern of contract.allowed_path_patterns) {
+        try { new RegExp(pattern); } catch (error) { fail(`${contract.id} has invalid allowed path pattern ${pattern}: ${error.message}`); }
+      }
+    }
+  }
   if (contract.assertions !== undefined) {
     if (!contract.assertions || typeof contract.assertions !== 'object') {
       fail(`${contract.id} assertions must be an object`);
@@ -107,6 +127,13 @@ for (const contract of contracts.cases || []) {
       for (const textAssertion of contract.assertions.text || []) {
         if (typeof textAssertion.pattern !== 'string' || !textAssertion.pattern || !Number.isInteger(textAssertion.min_matches) || textAssertion.min_matches < 1) {
           fail(`${contract.id} has an invalid text assertion`);
+        }
+      }
+      for (const contentAssertion of contract.assertions.content || []) {
+        if (typeof contentAssertion.glob !== 'string' || !contentAssertion.glob
+            || typeof contentAssertion.pattern !== 'string' || !contentAssertion.pattern
+            || !Number.isInteger(contentAssertion.min_matches) || contentAssertion.min_matches < 1) {
+          fail(`${contract.id} has an invalid content assertion`);
         }
       }
     }
@@ -164,10 +191,24 @@ for (const rel of runtimeFiles) {
   }
 }
 
-for (const skill of publicSkills) {
-  const rel = `skills/${skill}/SKILL.md`;
-  if (!read(rel).includes('../_shared/host-capabilities.md')) {
-    fail(`${rel} must link to the shared host capability adapter`);
+const hostAdapterRel = 'skills/_shared/host-capabilities.md';
+if (!fs.existsSync(path.join(root, hostAdapterRel))) {
+  fail(`missing shared host capability adapter: ${hostAdapterRel}`);
+} else if (!runtimeFiles.some((rel) => read(rel).includes('../_shared/host-capabilities.md'))) {
+  fail('host-aware runtime routes must retain a shared capability adapter entry');
+}
+
+const persistentDocumentRoutes = [
+  'skills/yan-conversation-handoff/SKILL.md',
+  'skills/yan-dev-doc/SKILL.md',
+  'skills/yan-code-review/modes/package/mode.md',
+  'skills/yan-project-analysis/modes/business/mode.md',
+  'skills/yan-project-analysis/modes/incident/mode.md',
+  'skills/yan-project-analysis/modes/understanding/mode.md',
+];
+for (const rel of persistentDocumentRoutes) {
+  if (!read(rel).includes('workflow-fs.js')) {
+    fail(`${rel} must identify the deterministic workflow-fs.js helper before persistent writes`);
   }
 }
 

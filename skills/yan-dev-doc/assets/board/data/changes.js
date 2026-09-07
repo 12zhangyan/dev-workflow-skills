@@ -1,5 +1,5 @@
 // ─── 研发变更档案目录 ────────────────────────────────────────────────────────
-// yan-dev-doc 创建一事一档主记录；yan-code-review package/check/repair/loop 更新同一 deliveryId。
+// 仅按明确发布意图创建或更新交付档案；package/repair/loop 可续写同一 deliveryId，check 默认不写入。
 // bug-fix、code-reading、biz-flow 保留各自记录类型；渲染逻辑在 js/board.js。
 // 数据只能通过 board-add.js 写入；模板保持空目录。
 

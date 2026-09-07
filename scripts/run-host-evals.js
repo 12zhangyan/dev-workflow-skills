@@ -150,7 +150,7 @@ function installedState(host) {
   }
 }
 
-function promptFor(contract) {
+function promptFor(contract, skillSnapshotRoot) {
   const [skill, idText] = contract.prompt_ref.split(':');
   const evalPath = path.join(root, 'skills', skill, 'evals.json');
   const evalFile = JSON.parse(fs.readFileSync(evalPath, 'utf8').replace(/^\uFEFF/, ''));
@@ -165,7 +165,8 @@ function promptFor(contract) {
     '只列实际读取的 Skill Markdown 资料，统一写成仓库相对 skills/... 路径；不要把“本应读取”但未打开的资料写入回执。',
   ] : [];
   return [
-    `使用已安装的 ${skill} skill 处理下面的真实任务。`,
+    `使用 ${skill} skill 处理下面的真实任务。`,
+    `本次评估的 Skill 快照位于 ${skillSnapshotRoot}；从这里读取当前 checkout 的指令和相对资源，不要访问用户主目录中的 Skill。`,
     '遵循项目规则和下述写入边界。',
     '回答开头先单独输出两行：',
     'ROUTE: <实际选择的 mode>',
@@ -181,6 +182,30 @@ function git(workspace, args) {
   return spawnSync('git', ['-C', workspace, ...args], { encoding: 'utf8', windowsHide: true });
 }
 
+function parsePorcelainZ(value) {
+  const entries = value.split('\0').filter(Boolean);
+  const paths = [];
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (entry.length < 4 || entry[2] !== ' ') continue;
+    const status = entry.slice(0, 2);
+    paths.push(entry.slice(3).replace(/\\/g, '/'));
+    if (/[RC]/.test(status) && entries[index + 1]) {
+      paths.push(entries[++index].replace(/\\/g, '/'));
+    }
+  }
+  return [...new Set(paths)];
+}
+
+function gitStatus(workspace) {
+  const result = git(workspace, ['-c', 'core.quotePath=false', 'status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  return {
+    status: result.status,
+    raw: result.stdout || '',
+    paths: parsePorcelainZ(result.stdout || ''),
+  };
+}
+
 function assertSourceWorkspace(workspace) {
   const absolute = path.resolve(workspace);
   if (!fs.existsSync(absolute) || !fs.statSync(absolute).isDirectory()) {
@@ -189,6 +214,19 @@ function assertSourceWorkspace(workspace) {
   const top = git(absolute, ['rev-parse', '--show-toplevel']);
   if (top.status !== 0) throw new Error('live eval workspace must be a Git worktree');
   return absolute;
+}
+
+function stageSkillSnapshot(workspace) {
+  const skillSnapshotRoot = '.yan-host-eval-runtime/skills';
+  const runtimeRoot = path.join(workspace, '.yan-host-eval-runtime');
+  if (fs.existsSync(runtimeRoot)) {
+    throw new Error('isolated workspace already contains reserved .yan-host-eval-runtime path');
+  }
+  const excludePath = path.join(workspace, '.git', 'info', 'exclude');
+  fs.appendFileSync(excludePath, '\n/.yan-host-eval-runtime/\n', 'utf8');
+  fs.mkdirSync(runtimeRoot, { recursive: true });
+  fs.cpSync(path.join(root, 'skills'), path.join(runtimeRoot, 'skills'), { recursive: true });
+  return { skillSnapshotRoot };
 }
 
 function createIsolation(sourceWorkspace) {
@@ -201,7 +239,13 @@ function createIsolation(sourceWorkspace) {
     fs.rmSync(tempRoot, { recursive: true, force: true });
     throw new Error(`failed to create isolated Git clone: ${(clone.stderr || clone.stdout || '').trim()}`);
   }
-  return { tempRoot, workspace: isolated };
+  try {
+    const { skillSnapshotRoot } = stageSkillSnapshot(isolated);
+    return { tempRoot, workspace: isolated, skillSnapshotRoot };
+  } catch (error) {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function liveArgs(host, command, workspace, prompt, model, writeScope) {
@@ -245,7 +289,26 @@ function listFiles(rootDir) {
 }
 
 function globToRegex(glob) {
-  return new RegExp(`^${glob.replace(/[.+^${}()|[\\]\\]/g, '\\$&').replace(/\\*\\*/g, '.*').replace(/\\*/g, '[^/]*')}$`);
+  let pattern = '^';
+  for (let index = 0; index < glob.length; index += 1) {
+    const char = glob[index];
+    if (char === '*' && glob[index + 1] === '*') {
+      if (glob[index + 2] === '/') {
+        pattern += '(?:.*/)?';
+        index += 2;
+      } else {
+        pattern += '.*';
+        index += 1;
+      }
+    } else if (char === '*') {
+      pattern += '[^/]*';
+    } else if ('\\.^$+?()[]{}|'.includes(char)) {
+      pattern += `\\${char}`;
+    } else {
+      pattern += char;
+    }
+  }
+  return new RegExp(`${pattern}$`);
 }
 
 function assessAssertions(contract, output, workspace, changedPaths) {
@@ -259,7 +322,31 @@ function assessAssertions(contract, output, workspace, changedPaths) {
     const matches = output.match(new RegExp(item.pattern, 'g')) || [];
     return { ...item, match_count: matches.length, passed: matches.length >= item.min_matches };
   });
-  return { passed: [...artifactResults, ...textResults].every((item) => item.passed), artifacts: artifactResults, text: textResults };
+  const contentResults = (assertions.content || []).map((item) => {
+    const matchingFiles = changedPaths.filter((file) => globToRegex(item.glob).test(file));
+    let matchCount = 0;
+    const matchesByFile = [];
+    for (const file of matchingFiles) {
+      const full = path.join(workspace, file);
+      let content;
+      try {
+        content = fs.readFileSync(full, 'utf8');
+      } catch {
+        continue;
+      }
+      const count = (content.match(new RegExp(item.pattern, 'g')) || []).length;
+      if (count) matchesByFile.push({ file, count });
+      matchCount += count;
+    }
+    return { ...item, matching_files: matchingFiles, matches_by_file: matchesByFile, match_count: matchCount, passed: matchCount >= item.min_matches };
+  });
+  const results = [...artifactResults, ...textResults, ...contentResults];
+  return {
+    passed: results.every((item) => item.passed),
+    artifacts: artifactResults,
+    text: textResults,
+    content: contentResults,
+  };
 }
 
 function normalizeReceiptPath(value) {
@@ -298,12 +385,13 @@ function assessRouteLoading(contract, output) {
 }
 
 function assess(contract, output, drift, assertions, routeLoading) {
-  const routeMatch = output.match(/^\s*ROUTE:\s*([a-z-]+)/im);
+  const routeMatch = output.match(/^\s*ROUTE:\s*([a-z0-9+_ -]+?)\s*$/im);
   const scopeMatch = output.match(/^\s*WRITE_SCOPE:\s*([a-z-]+)/im);
-  const observedRoute = routeMatch ? routeMatch[1].toLowerCase() : null;
+  const observedRoute = routeMatch ? routeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
   const observedScope = scopeMatch ? scopeMatch[1].toLowerCase() : null;
+  const acceptedRoutes = contract.accepted_routes || [contract.route];
   return {
-    passed: observedRoute === contract.route
+    passed: acceptedRoutes.includes(observedRoute)
       && observedScope === contract.write_scope
       && drift.allowed
       && assertions.passed
@@ -311,6 +399,7 @@ function assess(contract, output, drift, assertions, routeLoading) {
     observedRoute,
     observedScope,
     expectedRoute: contract.route,
+    acceptedRoutes,
     expectedScope: contract.write_scope,
     workspaceDrift: drift,
     assertions,
@@ -318,7 +407,30 @@ function assess(contract, output, drift, assertions, routeLoading) {
   };
 }
 
+function compactDiagnostics(value, limit = 8000) {
+  if (value.length <= limit) return { text: value, truncated: false };
+  const headLength = Math.floor(limit / 4);
+  const tailLength = limit - headLength;
+  return {
+    text: `${value.slice(0, headLength)}\n\n[... ${value.length - limit} diagnostic characters omitted ...]\n\n${value.slice(-tailLength)}`,
+    truncated: true,
+  };
+}
+
 function runSelfTest() {
+  if (!globToRegex('docs/**/*.md').test('docs/plan.md')
+      || !globToRegex('docs/**/*.md').test('docs/2026-09-03/plan.md')
+      || globToRegex('docs/**/*.md').test('src/plan.md')) {
+    throw new Error('glob matching does not cover zero or nested directories safely');
+  }
+  const unicodePaths = parsePorcelainZ('?? docs/2026-09-03/订单方案.md\0 M src/Order.java\0');
+  if (unicodePaths.length !== 2 || unicodePaths[0] !== 'docs/2026-09-03/订单方案.md') {
+    throw new Error('NUL-delimited Git status did not preserve Unicode paths');
+  }
+  const compacted = compactDiagnostics('a'.repeat(12000));
+  if (!compacted.truncated || compacted.text.length >= 12000 || !compacted.text.includes('omitted')) {
+    throw new Error('diagnostic compaction did not preserve a bounded failure summary');
+  }
   const contract = {
     route_loading: {
       max_resources: 3,
@@ -342,7 +454,50 @@ function runSelfTest() {
   if (missing.passed || missing.requiredMissing.length !== 1) {
     throw new Error('missing route-loading receipt resource was not rejected');
   }
-  console.log('ok host eval route-loading self-test passed');
+  const alternateRoute = assess(
+    { route: 'composite', accepted_routes: ['composite', 'incident+business'], write_scope: 'none' },
+    'ROUTE: incident + business\nWRITE_SCOPE: none',
+    { allowed: true },
+    { passed: true },
+    { passed: true },
+  );
+  if (!alternateRoute.passed || alternateRoute.observedRoute !== 'incident+business') {
+    throw new Error('equivalent composite route spelling was rejected');
+  }
+  const assertionTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-assertion-'));
+  try {
+    fs.mkdirSync(path.join(assertionTemp, 'docs'), { recursive: true });
+    fs.writeFileSync(path.join(assertionTemp, 'docs', 'plan.md'), '# Plan\nWP-1 contract\nWP-2 frontend\n', 'utf8');
+    const assertionResult = assessAssertions(
+      { assertions: { content: [{ glob: 'docs/**/*.md', pattern: 'WP-[12]', min_matches: 2 }] } },
+      '',
+      assertionTemp,
+      ['docs/plan.md'],
+    );
+    if (!assertionResult.passed || assertionResult.content[0].match_count !== 2) {
+      throw new Error('changed-artifact content assertion was not evaluated');
+    }
+  } finally {
+    fs.rmSync(assertionTemp, { recursive: true, force: true });
+  }
+  const snapshotTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-self-test-'));
+  try {
+    const fixture = path.join(snapshotTemp, 'fixture');
+    const gitInfo = path.join(fixture, '.git', 'info');
+    fs.mkdirSync(gitInfo, { recursive: true });
+    fs.writeFileSync(path.join(gitInfo, 'exclude'), '', 'utf8');
+    const snapshot = stageSkillSnapshot(fixture);
+    if (!fs.existsSync(path.join(fixture, snapshot.skillSnapshotRoot, 'yan-dev-doc', 'SKILL.md'))) {
+      throw new Error('skill snapshot did not include yan-dev-doc/SKILL.md');
+    }
+    const exclude = fs.readFileSync(path.join(gitInfo, 'exclude'), 'utf8');
+    if (!exclude.includes('/.yan-host-eval-runtime/')) {
+      throw new Error('skill snapshot path was not excluded from Git status');
+    }
+  } finally {
+    fs.rmSync(snapshotTemp, { recursive: true, force: true });
+  }
+  console.log('ok host eval route-loading, artifact-content, and current-skill snapshot self-tests passed');
 }
 
 function main() {
@@ -382,8 +537,8 @@ function main() {
   const probe = probeHost(args.host);
   if (!probe.available) throw new Error(`${args.host} is unavailable: ${probe.reason}`);
   const isolation = createIsolation(sourceWorkspace);
-  const before = git(isolation.workspace, ['status', '--porcelain=v1', '--untracked-files=all']).stdout || '';
-  const prompt = promptFor(contract);
+  const before = gitStatus(isolation.workspace);
+  const prompt = promptFor(contract, isolation.skillSnapshotRoot);
   const invocation = liveArgs(args.host, probe.command, isolation.workspace, prompt, args.model, contract.write_scope);
   const startedAt = new Date().toISOString();
   const started = Date.now();
@@ -393,12 +548,28 @@ function main() {
     timeout: args.timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
-  const after = git(isolation.workspace, ['status', '--porcelain=v1', '--untracked-files=all']);
-  const changedPaths = (after.stdout || '').split(/\r?\n/).filter(Boolean).map((line) => line.slice(3));
+  const after = gitStatus(isolation.workspace);
+  const changedPaths = after.paths;
   const allowedPrefixes = contract.write_scope === 'none' ? [] : contract.write_scope === 'docs' ? ['docs/'] : contract.write_scope === 'docs-and-board' ? ['docs/', 'project-html/'] : null;
-  const drift = { before, after: after.stdout || '', changedPaths, allowed: after.status === 0 && (contract.write_scope === 'code-and-tests' || changedPaths.every((file) => allowedPrefixes.some((prefix) => file.startsWith(prefix)))) };
-  const output = `${run.stdout || ''}${run.stderr ? `\n[stderr]\n${run.stderr}` : ''}`.trim();
-  const routeLoading = assessRouteLoading(contract, output);
+  const allowedPathMatchers = (contract.allowed_path_patterns || []).map((pattern) => new RegExp(pattern));
+  const codeAndTestsAllowed = contract.write_scope !== 'code-and-tests'
+    || (allowedPathMatchers.length > 0
+      && changedPaths.every((file) => allowedPathMatchers.some((matcher) => matcher.test(file))));
+  const drift = {
+    before: before.paths,
+    after: after.paths,
+    changedPaths,
+    allowed: before.status === 0
+      && before.paths.length === 0
+      && after.status === 0
+      && codeAndTestsAllowed
+      && (contract.write_scope === 'code-and-tests' || changedPaths.every((file) => allowedPrefixes.some((prefix) => file.startsWith(prefix)))),
+    allowedPathPatterns: contract.allowed_path_patterns || [],
+  };
+  const modelOutput = (run.stdout || '').trim();
+  const diagnostics = (run.stderr || '').trim();
+  const diagnosticSummary = compactDiagnostics(diagnostics);
+  const routeLoading = assessRouteLoading(contract, modelOutput);
   const durationMs = Date.now() - started;
   const result = {
     schemaVersion: 1,
@@ -411,20 +582,28 @@ function main() {
     durationMs,
     exitCode: run.status,
     timedOut: Boolean(run.error && run.error.code === 'ETIMEDOUT'),
-    isolation: { kind: 'temporary-git-clone', sourceWorkspace, workspaceWasWritten: false },
+    isolation: {
+      kind: 'temporary-git-clone',
+      sourceWorkspace,
+      workspaceWasWritten: false,
+      skillSnapshot: { kind: 'current-checkout-copy', root: isolation.skillSnapshotRoot },
+    },
     metrics: {
       durationMs,
-      outputChars: output.length,
+      outputChars: modelOutput.length,
+      diagnosticChars: diagnostics.length,
       loadedResourceCount: routeLoading.count,
     },
     assessment: assess(
       contract,
-      output,
+      modelOutput,
       drift,
-      assessAssertions(contract, output, isolation.workspace, changedPaths),
+      assessAssertions(contract, modelOutput, isolation.workspace, changedPaths),
       routeLoading,
     ),
-    output,
+    output: modelOutput,
+    diagnostics: diagnosticSummary.text,
+    diagnosticsTruncated: diagnosticSummary.truncated,
   };
   const json = `${JSON.stringify(result, null, 2)}\n`;
   if (args.output) {

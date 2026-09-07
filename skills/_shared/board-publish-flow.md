@@ -1,128 +1,34 @@
 ﻿# Shared board publishing flow
 
-仅当调用方已经独立写好面向人类的看板 entry 后加载本文件。字段语义和 entry 示例由调用模式负责；本文件只定义三端通用的看板生命周期。
+仅在调用方已决定发布看板并写好面向同事的 entry 时加载。本文件只负责安全写入和构建，不规定业务叙述模板。
 
 ## 不变量
 
-- 只通过 `project-html/board-add.js` 写业务数据；禁止用宿主文件能力整体重写 `data/changes.js`。
-- 用 `workflow-fs.js exists` 确定文件状态，不根据读取报错或模型记忆猜测。
-- entry 必须是标准 JSON：双引号字符串、内部换行写成 `\n`，不使用反引号。Mermaid 代码也是普通 JSON 字符串。
-- `board-add.js` 负责按 `deliveryId` / `sourceDocPath` / `docPath` 定位同一档案、保留治理状态、深合并详情、按稳定 `eventId` 幂等更新 Review 事件、备份和记录数回归；失败时不得手改数据文件绕过保护。
-- 看板内容面向未参与当前任务的同事独立撰写，不复制 AI 执行文档段落；调用模式声明的 Agent 专属字段不得进入 entry。
+- 业务数据只通过 `project-html/board-add.js` 写入；禁止整体重写或手工插入 `data/changes.js`。
+- entry 使用标准 JSON；字符串换行写 `\n`，Mermaid 也是普通字符串，不使用反引号。
+- 看板是人类可读摘要，不复制完整执行文档、diff、Agent prompt、精确 Todo、堆栈或秘密。
+- `board-add.js` 负责稳定身份匹配、幂等事件、保留治理状态、备份和记录数回归；失败时不得绕过。
 
-## 1. 确保外壳存在且版本匹配
+## 发布
 
-按 [board-shell-bootstrap.md](board-shell-bootstrap.md) 定位跨平台 helper 和模板，然后运行：
+1. 按 [board-shell-bootstrap.md](board-shell-bootstrap.md) 检查并按需初始化或升级外壳；永不覆盖已有 `data/`。模板不可用时报告 `BoardPublishSkipped`，不临时发明外壳。
+2. 将调用方 entry 写入 `project-html/data/_entry.json`，运行：
 
-```text
-node <helper> exists project-html/data/changes.js
-```
+   ```text
+   node project-html/board-add.js project-html/data/_entry.json
+   ```
 
-- `MISSING`：若旧 `project-html/index.html` 内联 `const changes`，先按外壳引导原样迁移数组；否则复制空数据模板和外壳。两种情况都不在本步写业务 entry。
-- `EXISTS`：按外壳引导只读比较版本；仅在 `BOARD_SHELL_UPGRADE_REQUIRED` 时升级外壳，永不覆盖 `data/`。升级旧富记录时运行 `node project-html/board-add.js --migrate`。
-- 首次创建后运行 `node <helper> detect-vcs`，只提示相应 `svn add project-html --depth=infinity` 或 `git add project-html`，不得代用户执行。
-- 模板和既有看板都不存在：返回 `BoardPublishSkipped`，说明需安装 `yan-dev-doc`；不得临时发明一套外壳。
+   脚本失败时保留临时 JSON 和错误证据，报告 `BoardPublishBlocked`。成功后是否清理临时文件遵循用户授权和项目规则，不自动删除。
+3. 写入成功后运行 `node project-html/build.js`。只有明确需要单文件外发时才加 `--standalone "<docPath 或 slug>"`。构建失败报告 `BoardBuildBlocked`，不抹掉已成功写入的数据，也不宣称派生产物已生成。
 
-## 2. 写入 entry
+首次创建或新增文件时只报告实际文件和 VCS 状态；是否 add 由项目规则与用户授权决定，不建议目录级兜底，不代用户执行。
 
-调用方用当前宿主的受控文件修改能力，将其模式定义的标准 JSON 写到 `project-html/data/_entry.json`，再运行：
+## Review 生命周期
 
-```text
-node project-html/board-add.js project-html/data/_entry.json
-```
+Review 仅在稳定 `deliveryId` 或 `sourceDocPath`、明确同步意图、当前协调者拥有发布职责三者同时成立时更新同一档案。内部 reviewer/repair 零发布，协调者至多汇总写入一次；身份缺失时不得创建孤立 Review 条目。
 
-- 新文档使用“新增…” changelog；更新同一 `docPath` 时使用“更新…”。脚本命中既有条目时就地更新并保留原治理状态。
-- 成功且打印记录数后删除 `_entry.json`；失败时保留它用于诊断。
-- 语法错误、记录数下降或写入失败：返回 `BoardPublishBlocked`，保留原数据与错误证据，不得降级为手工插入。
-- Node.js 不可用：返回 `BoardPublishBlocked` 并给出所需命令，不写看板。看板脚本是确定性安全边界，不能由模型模拟。
+Review entry 只需提供稳定身份、当前结论、有人类意义的摘要，以及有信息增益的 findings/验证/下一动作。保留 finding ID 和稳定 `eventId`；重跑更新同一事件。字段与状态按实际结果裁剪，不为填完整模板制造空数组或状态标签。
 
-## 3. 更新同一研发档案的 Review 生命周期
+## 完成证据
 
-`yan-code-review package/check/repair/loop` 直接调用时都必须发布看板；业务代码或正式文档只读不等于看板元数据只读。优先使用已有 `deliveryId`，否则使用主开发文档路径作为 `sourceDocPath`。两者都无法确定时返回 `BoardPublishBlocked: IdentityMissing`，不得创建无法关联的 Review 孤岛。
-
-调用模式独立撰写人类可读的审查摘要，并使用以下结构；不得把完整 diff、Agent prompt、精确 `File/Line`、`changeList`、`todos`、`stackTrace` 或 `codeLocation` 放入看板：
-
-```json
-{
-  "changelog": "更新研发档案：<title> · <mode>",
-  "entry": {
-    "deliveryId": "<existing deliveryId, preferred>",
-    "sourceDocPath": "<yan-dev-doc path, fallback identity>",
-    "title": "<main delivery title>",
-    "date": "<date>",
-    "currentGate": "review",
-    "gateStatus": "passed|blocked|in_progress",
-    "reviewState": "packaged|findings|fixed|verified|blocked",
-    "reviewCounts": {
-      "critical": 0,
-      "important": 0,
-      "minor": 0,
-      "open": 0
-    }
-  },
-  "detail": {
-    "delivery": {
-      "review": {
-        "status": "<reviewState>",
-        "events": [{
-          "eventId": "<stable mode + review scope + cycle/stage identity>",
-          "mode": "package|check|repair|loop",
-          "date": "<date>",
-          "title": "<human-readable event title>",
-          "scopeType": "PlanReview|ImplementationReview|RepairReview|MixedReview",
-          "conclusion": "Findings|NoEvidenceIssue|InsufficientMaterial|Fixed|PartiallyFixed|Blocked",
-          "summary": "<what was reviewed and the human conclusion>",
-          "findings": [{
-            "id": "IM-1",
-            "severity": "Important",
-            "status": "open|fixed|deferred|rejected|blocked",
-            "problem": "<concise human problem>",
-            "impact": "<observable impact>"
-          }],
-          "verification": {
-            "status": "Passed|Failed|NotRun|EnvironmentBlocked",
-            "dependencyClass": "Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown|NotApplicable",
-            "summary": "<what the evidence proves>"
-          },
-          "gateStatus": "passed|blocked|in_progress",
-          "next": "<next human action>"
-        }]
-      }
-    }
-  }
-}
-```
-
-规则：
-
-- `eventId` 必须对同一轮、同一阶段稳定；重跑是更新原事件，不是重复追加。
-- `package` 第一阶段写 `packaged` 事件；第二阶段用另一稳定 `eventId` 更新 findings 汇总和修复交接状态。
-- `check` 不改业务代码或正式文档，但允许且必须通过 `board-add.js` 写这份 Review 元数据。
-- `repair` 按原 finding ID 回填处理状态和验证证据。
-- `loop` 是唯一发布所有权人；其内部调用 package/check/repair 时传递 `BoardPublishOwner: loop`，子阶段不重复发布，最终由 loop 写一条包含循环次数、finding 状态和验证结果的汇总事件。
-
-## 4. 构建派生产物
-
-写入成功后运行：
-
-```text
-node project-html/build.js
-```
-
-它增量维护 `project-html/pages/`、`docs/INDEX.md`，并在首次构建时复制归档历史资料而不删除原件。只有用户明确要求单文件外发时才运行：
-
-```text
-node project-html/build.js --standalone "<docPath 或 slug>"
-```
-
-构建失败时返回 `BoardBuildBlocked`，保留已成功写入的 catalog/detail 和命令输出，不宣称详情页或索引已生成。
-
-## 5. 完成证据
-
-成功输出必须同时报告：
-
-- `board-add.js` 的追加/更新结果与记录数变化；
-- catalog `project-html/data/changes.js` 和 detail sidecar 已写入；
-- `build.js` 是否成功，以及 `pages/`、`docs/INDEX.md` 的状态；
-- VCS add 仅作为建议，未自动执行。
-- `BoardPublishStatus: Published|Blocked|Skipped`，以及关联到的 `deliveryId` / `sourceDocPath`；不得用业务代码“只读”掩盖看板发布结果。
+报告 `board-add.js` 结果、实际 catalog/detail 路径、`build.js` 结果、未生成内容和 VCS 边界。只有脚本真实成功才声称 Published；没有调用本流程时不输出看板状态占位。

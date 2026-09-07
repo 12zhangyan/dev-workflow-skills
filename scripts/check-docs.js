@@ -279,14 +279,8 @@ function runSelfTest() {
 if (process.argv.includes('--self-test')) runSelfTest();
 
 const readme = read('README.md');
-const defaultBoardPolicy = 'Standard / IncrementalRevision 默认创建“一事一档”的研发变更主记录';
-const staleOptInBoardPolicy = '`yan-dev-doc` 仅在用户明确要求或项目规则要求时登记看板';
-if (!readme.includes(defaultBoardPolicy)) {
-  fail(`README.md missing current board publishing policy: ${defaultBoardPolicy}`);
-}
-if (readme.includes(staleOptInBoardPolicy)) {
-  fail(`README.md contains stale opt-in board publishing policy: ${staleOptInBoardPolicy}`);
-}
+const optInBoardPolicy = '`yan-dev-doc` 只在用户明确要求、既有交付档案需要续写或下游约定需要时创建“一事一档”看板记录';
+if (!readme.includes(optInBoardPolicy)) fail(`README.md missing opt-in board policy: ${optInBoardPolicy}`);
 for (const needle of [
   'install.ps1',
   'install.sh',
@@ -297,9 +291,7 @@ for (const needle of [
   'Windows PowerShell 5.1',
   'Get-Content -Encoding UTF8',
   'Workflow Brief',
-  'superpowers-zh',
-  'npx superpowers-zh',
-  '真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准',
+  '不依赖外部方法论 Skill',
   'Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`'
 ]) {
   if (!readme.includes(needle)) fail(`README.md missing required text: ${needle}`);
@@ -327,13 +319,61 @@ const workflowGuide = read('docs/workflow-guide.md');
 for (const skill of skillNames) {
   if (!workflowGuide.includes(skill)) fail(`docs/workflow-guide.md does not mention skill: ${skill}`);
 }
-for (const needle of ['Workflow Brief', 'Plan Gate', 'Review Gate', 'Submit Gate', '准确性硬规则', 'environment-blocked', '测试必须证明目标逻辑', '与 superpowers-zh 组合使用', 'superpowers:verification-before-completion', '真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准', '回填规则', 'CR/IM/MI']) {
+for (const needle of ['Workflow Brief', 'Plan Gate', 'Review Gate', 'Submit Gate', '准确性硬规则', 'environment-blocked', '测试必须证明目标逻辑', '自包含执行方式', '不依赖外部方法论 Skill', 'CR/IM/MI']) {
   if (!workflowGuide.includes(needle)) fail(`docs/workflow-guide.md missing required text: ${needle}`);
 }
 
+const whyDevDoc = read('docs/why-yan-dev-doc.md');
+for (const needle of ['不设固定问题数量', 'HTML 看板只在', 'Workflow Brief 只在', '不依赖外部方法论 Skill']) {
+  if (!whyDevDoc.includes(needle)) fail(`docs/why-yan-dev-doc.md missing autonomous design text: ${needle}`);
+}
+const whyUnderstanding = read('docs/why-code-reading.md');
+for (const needle of ['不是 Review 或开发的必经阶段', '不要求先生成持久任务包', 'Workflow Brief 只在']) {
+  if (!whyUnderstanding.includes(needle)) fail(`docs/why-code-reading.md missing adaptive understanding text: ${needle}`);
+}
+for (const needle of ['同工作区实时协作不要求先落盘任务包', '只有真实跨 Agent、跨任务或延期恢复时', '不要求先生成代码地图']) {
+  if (!workflowGuide.includes(needle)) fail(`docs/workflow-guide.md missing adaptive workflow text: ${needle}`);
+}
+for (const needle of ['不设置鼓励重复案例的总数量门槛', '不规定下一步矩阵']) {
+  if (!readme.includes(needle)) fail(`README.md missing lightweight maintenance text: ${needle}`);
+}
+
+const staleFixedWorkflowText = [
+  '最多两个生产代码切点',
+  '简单任务（≤50 行）',
+  '各问 5 个针对性问题',
+  '默认在 review 之前生成',
+  '变量被 3 处以上读写',
+  '先生成任务包',
+  '在最终人工 review 前生成代码地图',
+  '文档立项 → 执行回填',
+  '固定至少 100 个场景',
+];
+for (const [rel, text] of [
+  ['README.md', readme],
+  ['docs/workflow-guide.md', workflowGuide],
+  ['docs/why-yan-dev-doc.md', whyDevDoc],
+  ['docs/why-code-reading.md', whyUnderstanding],
+]) {
+  for (const stale of staleFixedWorkflowText) {
+    if (text.includes(stale)) fail(`${rel} contains stale fixed workflow text: ${stale}`);
+  }
+}
+
 const workflowChain = read('skills/_shared/workflow-chain.md');
-for (const needle of ['superpowers-zh 插入点', '真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准', '不得硬编码某个宿主的斜杠命令', 'superpowers:brainstorming', 'superpowers:test-driven-development', 'superpowers:systematic-debugging', 'superpowers:verification-before-completion', 'superpowers:requesting-code-review', 'CR/IM/MI']) {
-  if (!workflowChain.includes(needle)) fail(`skills/_shared/workflow-chain.md missing superpowers integration text: ${needle}`);
+for (const needle of ['不要求探测或调用外部方法论 Skill', 'Agent 自主判断', 'CR-n', 'IM-n', 'MI-n']) {
+  if (!workflowChain.includes(needle)) fail(`skills/_shared/workflow-chain.md missing self-contained workflow text: ${needle}`);
+}
+
+const forbiddenExternalSkillMarkers = [
+  ['super', 'powers-zh'].join(''),
+  ['super', 'powers:'].join(''),
+];
+for (const rel of ['README.md', 'docs/workflow-guide.md', 'AGENTS.md', 'CLAUDE.md', 'skills/_shared/workflow-chain.md']) {
+  const text = read(rel);
+  for (const forbidden of forbiddenExternalSkillMarkers) {
+    if (text.includes(forbidden)) fail(`${rel} must not depend on external methodology skills: ${forbidden}`);
+  }
 }
 
 for (const rel of ['AGENTS.md', 'CLAUDE.md']) {

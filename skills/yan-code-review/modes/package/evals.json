@@ -4,17 +4,17 @@
     {
       "id": 1,
       "prompt": "使用 review-fix skill 基于 docs/2026-07-09/quote-tag.md 生成 Review 任务包",
-      "expected_output": "应触发 review-fix 第一阶段；生成 docs/review-fix/<日期>/quote-tag-review-task.md，含审查目标、证据包、统一清单、Codex/Cursor/Claude 分发提示和 findings 回收格式；没有 review 结果时停在 Step 2.5，不生成修复交接、不编造 findings。"
+      "expected_output": "应进入 package；用户明确要求任务包，因此生成 docs/review-fix/<日期>/quote-tag-review-task.md，只保留审查目标、统一证据边界、必要视角、一个便携提示和 findings 格式。没有 review 结果时不生成修复交接、不编造 findings；未明确要求同步看板，因此 BoardPublishStatus=NotRequested。"
     },
     {
       "id": 2,
       "prompt": "这是 Codex 和 Cursor 返回的 review 结果，帮我汇总并生成修复交接：Codex CR-1 ...；Cursor 也提了同一个 NPE ...",
-      "expected_output": "应触发 review-fix 第二阶段；去重合并同一问题为一条并保留各 AI 原始来源编号，统一重编 CR-/IM-/MI- ID，生成 fix-handoff、AI 修复操作码，登记看板 type=代码审查，并输出 Workflow Brief。"
+      "expected_output": "应进入 package 聚合阶段；去重合并同一问题并保留 reviewer 原始来源编号，分配稳定 canonical CR-/IM-/MI- ID，生成 fix-handoff。未明确要求同步看板时 BoardPublishStatus=NotRequested；Workflow Brief 只在真实跨任务恢复需要时保留在最新主产物。"
     },
     {
       "id": 3,
       "prompt": "帮我 review 一下这段代码有没有 bug",
-      "expected_output": "本 skill 侧重生成可分发任务包/汇总修复；若用户只是想要一次只读审查结论，应说明可用 review-check 执行审查，review-fix 负责组织任务包与汇总。",
+      "expected_output": "应由统一入口选择 check；只做一次只读审查，不生成 package 任务包。",
       "tags": ["routing_review_check"]
     },
     {
@@ -25,7 +25,7 @@
     {
       "id": 5,
       "prompt": "使用 review-fix skill。【Workflow Brief】stage: PlanGate source: docs/2026-07-09/quote-tag.md artifacts: docs/2026-07-09/quote-tag.md changed: 无 tokenHint: 先读 Brief -> yan-dev-doc -> 变更文件",
-      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/artifacts/changed/tokenHint 定位 yan-dev-doc 和变更文件，不要求粘贴全文；再收集证据包生成任务包，Brief 的 changed 仅作读取索引，实际证据仍回到 diff/status 核实。"
+      "expected_output": "应把旧 Brief 的 source/artifacts/changed/tokenHint 当作只读兼容索引，回到 diff/status 核实实际证据。宿主可实时委派时可以基于当前上下文直接分发；需要外部回传、延期恢复或审计留档时才生成任务包，不要求用户粘贴全文。"
     },
     {
       "id": 6,
@@ -34,8 +34,8 @@
     },
     {
       "id": 7,
-      "prompt": "生成给 Codex、Cursor、Claude 的三份独立 Review 提示",
-      "expected_output": "每份提示必须要求 reviewer 独立完成、返回前不得读取其他 reviewer findings；Codex 使用自然语言点名 review-check skill，Claude 可用 /review-check。",
+      "prompt": "生成多角色独立 Review 任务；不要复制多份宿主专用提示",
+      "expected_output": "只建立一份共享证据边界和一个便携提示；不同 reviewer 仅分配不同 ReviewFocus。能实时委派时在当前上下文直接派发，无需先落盘任务包；不能委派时才为外部回传持久化。reviewer 初审零写入，只把结果返回协调者。",
       "tags": ["independent_review", "cross_host_output"]
     },
     {
@@ -64,9 +64,9 @@
     },
     {
       "id": 12,
-      "prompt": "我已经用 superpowers-zh 的 requesting-yan-code-review 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接",
-      "expected_output": "应把 superpowers code review 结果作为额外 reviewer 来源，而不是替代本仓库链路。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能直接把外部 review 结论当作已关闭或已验证。真实入口按当前宿主显示，不硬编码某个斜杠命令。",
-      "tags": ["superpowers_review_bridge", "finding_ids", "external_review_source"]
+      "prompt": "我从一个独立 reviewer 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接，不要调用任何外部方法论 Skill。",
+      "expected_output": "应把独立 reviewer 结果作为输入并校验证据。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能把外部 review 结论当作已关闭或已验证，也不要求额外 Skill。",
+      "tags": ["external_review_source", "finding_ids", "self_contained_workflow"]
     },
     {
       "id": 13,
@@ -89,8 +89,20 @@
     {
       "id": 16,
       "prompt": "只生成第一阶段 review task；开始前加载 aggregation、fix-handoff 模板和全部 examples。",
-      "expected_output": "第一阶段只加载 review-task-template.md 与对应 completion 锚点；不得预加载第二阶段 aggregation.md、fix-handoff-template.md。examples 仅在首次生成该阶段产物或格式仍歧义时读取一个对应示例，reference.md 仅作兼容索引。",
+      "expected_output": "只有确实需要外部任务包时才加载 review-task-template.md；不得预加载 aggregation.md、fix-handoff-template.md、completion.md 或其他模式资源。",
       "tags": ["route_minimal_loading", "package_first_stage", "lazy_templates"]
+    },
+    {
+      "id": 17,
+      "prompt": "当前宿主支持多个子 Agent。请对支付回调改动做多角色独立 Review，直接完成分发和汇总，不要让我把三份提示手工复制出去再贴回来。",
+      "expected_output": "应先在当前上下文建立统一证据索引，再按实际风险选择互补 reviewer 并行委派；不强制先写 review-task。各 reviewer 保持首轮独立，至少两个成功返回才称为多 reviewer 结果；主 Agent 校验证据、记录失败/覆盖缺口并归一 CR/IM/MI/RJ/BK。委派不可用才为外部回传生成任务包；未要求同步看板时不加载或输出看板状态，不得编造结论。",
+      "tags": ["active_delegation", "multi_role_delegation", "independent_review", "delegation_fallback", "finding_ids"]
+    },
+    {
+      "id": 18,
+      "prompt": "对当前本地 diff 做多角色 review；已运行的聚焦测试通过，不涉及外部服务、凭据或 CI 失败归因。",
+      "expected_output": "记录验证命令、实际结果和它覆盖的目标逻辑；不为填格式强制输出 TestDependencyClass。宿主可委派时直接使用当前证据索引并行审查，未明确要求留档或看板时不落盘任务包，也不输出看板状态占位。",
+      "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_artifact", "no_implicit_board"]
     }
   ]
 }

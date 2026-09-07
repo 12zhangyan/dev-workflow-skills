@@ -8,18 +8,14 @@
 TestEvidenceStatus: Passed；mvn -pl order-service test 实际调用并断言目标逻辑
 
 【Workflow Brief】
-stage: ReviewRepair
 task: 订单 customerId 空值校验修复
-source: review-check findings CR-1 / IM-1
-artifacts: 本次直接修改代码；无新增文档
-changed: src/main/java/com/acme/order/OrderService.java；src/test/java/com/acme/order/OrderServiceTest.java
-vcs: owner=Git 仓库根; tracked=OrderService.java、OrderServiceTest.java; untracked=无
-tests: class=Hermetic; command/result=mvn -pl order-service test：通过
-api: spec=无; index=无; operationIds=无
-openFindings: 无
-next: 二次 review-check 后进入 code-reading / 人工 Review
-nextCommand: 使用 yan-code-review skill，mode=check，对当前修复执行二次只读审查
-tokenHint: 下一位 AI 先读本 Brief -> 两个 changed 文件 -> 必要时回看 CR-1 / IM-1 原始 finding；首轮最多 5 个文件
+state: ReviewRepair Passed
+scope: 仅修复 CR-1 / IM-1，不改接口契约
+evidence: CR-1；IM-1；src/main/java/com/acme/order/OrderService.java；src/test/java/com/acme/order/OrderServiceTest.java
+verification: mvn -pl order-service test：通过
+open: none
+next: 使用 yan-code-review skill，mode=check，对当前修复执行二次只读审查
+vcs: owner=Git 仓库根；untracked=none
 
 处理结果：
 | ID | 来源 | 状态 | 文件/位置 | 处理说明 | 验证 |

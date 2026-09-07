@@ -1,93 +1,19 @@
-﻿# 工作流串联速查（单一权威）
+﻿# Review 证据语义
 
-本表是"当前 skill 完成后，下一步跑什么"的唯一权威来源。各 skill 的完成输出、`Workflow Brief` 的 `next` 字段、workflow-guide 的下一步提示都以本表为准，避免各处叙述漂移。改动串联关系时只改这里。
+本文件只统一跨 reviewer、repair 和交接需要共享的标识与证据含义，不规定执行顺序、角色数、修复轮次或输出模板。
 
-`superpowers-zh` 是推荐的外部方法论层，不进入本表的强制主链路。可在主链路前后插入，但它的输出必须回填到本仓库的门禁字段、`Workflow Brief` 或 finding ID 链路，不能形成第二套交付结论。
+需求澄清、测试策略和 reviewer 选择由 Agent 自主判断，不要求探测或调用外部方法论 Skill。
 
-表中的 `superpowers:<skill>` 是能力名写法；真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准。跨 Claude Code / Cursor / Codex 时不得硬编码某个宿主的斜杠命令。
+## Finding ID
 
-## skill 一句话职责
+同一问题从发现到关闭复用稳定 ID。推荐前缀为 `CR-n / IM-n / MI-n`；误报或无证据项可记 `RJ-n`，需外部裁决的 blocker 可记 `BK-n`。多 reviewer 聚合时分配 canonical ID 并保留来源别名，不能用多数意见替代证据。
 
-| skill | 阶段 | 做什么 | 会改代码吗 |
-|-------|------|--------|-----------|
-| `yan-dev-doc` | Plan Gate | 需求落成可执行开发文档 | 否 |
-| `yan-project-analysis` | Plan / Understanding Gate | `incident` 记录 Bug；`business` 生成测试业务流；`understanding` 生成代码地图或零写入影响分析 | 否 |
-| `yan-code-review` | Review Gate → Verification | `package` 组织任务包；`check` 只读审查；`repair` 按 findings 修复；`loop` 完成单 AI 闭环 | 仅 repair/loop |
-| `yan-conversation-handoff` | 任意阶段 | 把当前对话证据、状态和下一步压缩为跨对话移交文档 | 否 |
+repair 对每个输入 ID 给出事实性结果和依据；状态词按场景选择，不能为套枚举改变事实。没有原始 finding 不凭空修复，同一 ID 不能在复审时悄悄更换根因。
 
-## 下一步映射（谁 → 下一步 + 可复制命令）
+## Review 与验证
 
-| 当前完成 | 默认下一步 | Claude Code | Codex |
-|----------|-----------|-------------|-------|
-| `yan-dev-doc` | AI 实现 → VCS/验证 → 多 AI 用 package，单 AI 用 loop | 自然语言点名 `yan-code-review` 与 mode | `使用 yan-code-review skill，mode=package，基于 docs/<日期>/<任务>.md 生成 Review 任务包`，或 `mode=loop` 完成闭环 |
-| `yan-project-analysis`（incident） | 确认根因后修复 → VCS/验证 → Review | 自然语言点名 `yan-code-review` | `使用 yan-code-review skill，mode=package 或 loop，基于 docs/bugs/<日期>/<bug>.md 继续` |
-| `yan-project-analysis`（business） | 测试设计；或转 `yan-dev-doc` 开发 | `/yan-dev-doc <业务名>` | `使用 yan-dev-doc skill 给 <业务名> 生成开发文档` |
-| `yan-code-review`（package 任务包） | 多 AI 只读审查 | 自然语言点名 `mode=check` | `使用 yan-code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务>-review-task.md` |
-| `yan-code-review`（check findings） | 贴回 package 汇总，或交 repair 直修 | 自然语言点名对应 mode | `使用 yan-code-review skill，mode=package，汇总这些 findings`，或 `mode=repair` 直接修复 |
-| `yan-code-review`（repair/loop 完成） | 验证通过 → understanding → 人工 review | 自然语言点名 `yan-project-analysis` | `使用 yan-project-analysis skill，mode=understanding，基于 source 和当前实现生成代码地图` |
-| `yan-project-analysis`（understanding CodeMap） | 人工 review → 提交 | 人工 | 人工 |
-| `yan-project-analysis`（understanding ImpactAnalysis） | 需要实施方案 → `yan-dev-doc`；需要缺陷判断 → `yan-code-review check`；否则人工确认 | `/yan-dev-doc <任务>`，或自然语言点名 `yan-code-review mode=check` | `使用 yan-dev-doc skill 基于本影响分析生成开发方案`，或 `使用 yan-code-review skill，mode=check，基于本影响分析执行只读审查` |
-| `yan-conversation-handoff` | 新对话按移交文档中的 `Workflow Brief.next/nextCommand` 恢复原阶段，不强制跳到固定 Skill | `请先阅读 docs/handoffs/<日期>/<任务>-handoff.md，按“最小读取顺序”核对证据后执行 nextCommand` | `请先阅读 docs/handoffs/<日期>/<任务>-handoff.md，按“最小读取顺序”核对证据后执行 nextCommand` |
+普通答复明确审查对象即可；机器交接需要时可用 `ReviewScopeType` 区分 `PlanReview / ImplementationReview / FixHandoffReview`。方案审查不能冒充实现审查。
 
-## superpowers-zh 插入点（可选增强）
+验证只有真实执行并断言目标逻辑时才算通过。修改代码后必须基于最新实现重新判断，不能沿用输入状态。需要失败归因或交接时可使用 `TestEvidenceStatus`；`EnvironmentBlocked` 只说明工具链和未证明范围，不能据此关闭 Critical/Important。
 
-| 插入点 | 推荐使用 | 回填到本仓库的证据 |
-|--------|----------|-------------------|
-| `yan-dev-doc` 前，需求仍混沌 | `superpowers:brainstorming` | 把已确认范围、被否决方案、待确认项写入 `yan-dev-doc` 的 blockers/conflicts/assumptions |
-| 实现阶段，复杂逻辑或需要先写测试 | `superpowers:test-driven-development` | 回填 yan-dev-doc Todo 对照表、changed 文件、验证命令和 TestDependencyClass |
-| 实现阶段，问题定位不清 | `superpowers:systematic-debugging` | 若要沉淀问题，进入 `yan-project-analysis mode=incident`；否则把根因证据写入执行回填 |
-| Review Gate 前 | `superpowers:verification-before-completion` | 回填 Verification Gate：命令、结果、TestEvidenceStatus、未验证风险 |
-| 多视角 review | `superpowers:requesting-code-review` 或宿主同名 code review 入口 | 作为额外 reviewer 来源；有效问题必须归并为 `CR/IM/MI`，再进入 `yan-code-review mode=package` 或 `mode=repair` |
-
-边界：`superpowers-zh` 的 code review 结论不能直接关闭本仓库 Critical/Important finding；完成前验证也不能代替 Verification Gate，除非它记录了可复跑命令、退出结果和目标逻辑断言证据。
-
-## Finding ID 命名体系（全链路统一）
-
-review-check / review-fix / review-repair 共用同一套 ID 前缀，n 在各前缀内从 1 递增：
-
-| 前缀 | 含义 | 谁产生 |
-|------|------|--------|
-| `CR-n` | Critical，必须修 | review-check 输出；review-fix 归并后沿用 |
-| `IM-n` | Important，修完再继续 | 同上 |
-| `MI-n` | Minor，建议处理不阻塞 | 同上 |
-| `RJ-n` | Rejected，误报/无证据/超范围，不修但登记原因 | review-fix 汇总时标记 |
-| `BK-n` | Blocker，需业务/DB/权限/接口确认后才能动 | 任一环节发现即标记，未解不进入修复 |
-
-流转规则：review-check 首次分配 `CR/IM/MI`；review-fix 汇总多 AI 时**统一重编并在来源列保留各 AI 原始编号**，把拒绝项标 `RJ`、阻塞项标 `BK`；review-repair 按同一 ID 回填 `fixed / deferred / deferred-next-batch / blocked / rejected`，不得新起编号。`deferred` 表示低收益或当前不处理，且不承诺进入下一批；`deferred-next-batch` 表示证据充分，但因批次上限或模块边界明确排入下一批。
-
-## 审查范围与测试证据状态（全链路统一）
-
-`review-fix`、`review-check`、`review-repair`、`review-loop` 必须把审查范围和测试证据拆开写，避免“方案审查”被误传成“代码审查已通过”，也避免“命令跑过”被误传成“目标逻辑已验证”。
-
-| 字段 | 谁输出 | 允许值 | 关闭条件 |
-|------|--------|--------|----------|
-| `ReviewScopeType` | `review-fix` / `review-check` | `PlanReview` / `ImplementationReview` / `FixHandoffReview` | 只有 `ImplementationReview` 或已定位 findings 的 `FixHandoffReview` 能支撑代码层结论；`PlanReview` 只能支撑方案结论 |
-| `TestEvidenceStatus` | `review-fix` / `review-check` / `review-repair` | `Passed` / `Failed` / `NotProvided` / `NotRun` / `EnvironmentBlocked` / `NotApplicable` | 只有测试或检查实际调用并断言目标逻辑时才可写 `Passed`；环境阻塞必须写工具链版本 |
-
-阶段约束：`review-fix`、`review-check` 和 `review-loop` 的材料收集/只读审查可使用完整六种状态；`review-repair` 或 `review-loop` 一旦修改代码，必须重新判定为 `Passed / Failed / NotRun / EnvironmentBlocked` 之一。修复后的输出不得沿用输入里的 `NotProvided` / `NotApplicable`；没有运行可证明目标逻辑的验证时写 `NotRun` 和原因。
-
-`review-loop` 复用同一状态体系，并额外标记 `ReviewAgentMode: SingleAgentReview`；不得把单 AI 自审写成多 AI 独立交叉审查。
-
-状态传递规则：
-- 从 `review-fix` 任务包进入 `review-check` 时，保留 `ReviewScopeType` 和 `TestEvidenceStatus`，reviewer 可基于新读取的 diff/status/test 输出升级或降级。
-- `review-check` 发现测试未调用目标方法、只断言 mock/临时目录/前置条件时，`TestEvidenceStatus` 必须降级为 `Failed` 或 `NotProvided`，并输出 finding。
-- `review-repair` 修复后必须重新判定 `TestEvidenceStatus`；环境阻塞时不能关闭 Critical/Important，只能写 `blocked` 或等待重跑。
-- `Workflow Brief` 的 `source` 可携带 `ReviewScopeType`，`tests` 必须携带测试证据摘要；需要完整判断时回到原始 review task、findings、diff 和测试输出。
-
-## 交接时带什么（省 token）
-
-- 默认只复制上一轮的 `【Workflow Brief】` + 产物路径 + finding ID，不粘贴完整 yan-dev-doc / review-task / fix-handoff / 长 diff。
-- 下一位 AI 直接复制 Brief 的 `nextCommand` 启动下一步，并按 `tokenHint` 读取：先读 Brief → `source`/`artifacts` → `changed` 文件 → 必要验证输出；首轮最多 5 个文件。
-- 遇到业务语义、权限、状态流转、接口契约、DB 结构、数据修复或证据冲突，必须回到原始文件核对，不能只凭 Brief 推断。
-- finding ID 全链路保留：`review-check` 输出 ID → 贴回 `review-fix` 保留 → `review-repair` 按 ID 修复并在结果里回填同一 ID，保证发现→修复→关闭一一对应。
-- 接口链路全程保留 `api: spec=...; index=...; operationIds=...`；后续接口签名变化优先更新同一个 YAML 和索引，不重复生成失联副本。
-
-## 停机点（不带病进入下一步）
-
-- Plan Gate 有阻塞 `blockers` / `conflicts` → 只出待确认文档，不给可执行编码提示。
-- 没有实际 diff/patch/status → `review-fix` / `review-check` 只能审方案，不能声称审过实现代码。
-- 没有明确 findings / fix-handoff / 问题清单 → `review-repair` 不凭空修复，先建议 `review-check`。
-- 验证失败 → 回到实现修复并重跑，不进入 Review。
-- `review-check` 出 Critical / Important 且未关闭 → 不进入 Submit Gate。
-- `review-loop` 最多自动修复 2 轮；仍有 Critical / Important、验证失败或环境阻塞时停止，不进入 Submit Gate。
-- 需要 DDL / 数据修复 → 停止直接执行，只输出 DBA 申请材料。
+`SingleAgentReview` 只能表示单 Agent 自审，不能冒充独立交叉审查。未跟踪文件仍进入审查与验证范围；是否修复成功与是否达到 VCS/Submit 就绪分别判断。

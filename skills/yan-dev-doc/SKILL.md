@@ -1,204 +1,61 @@
 ﻿---
 name: yan-dev-doc
-description: 在编码前生成有证据、可执行、可验收的开发方案。用户明确要求开发/改造/实施方案、先设计再编码，或接口、权限、状态、DB、事务、跨模块决策尚未裁决时使用；事故根因已由对话或证据坐实、需要评审修复方案时也使用。需求和验收已清楚且用户要求直接实现时不要触发。待分析根因的 Bug/事故、业务流、代码影响分析使用 yan-project-analysis；代码审查与 findings 修复使用 yan-code-review。
+description: 在编码前生成有证据、可执行、可验收的开发方案。用户明确要求开发/改造/实施方案、先设计再编码，或接口、权限、状态、DB、事务、跨模块决策尚未裁决时使用；事故根因已有证据、需要评审修复方案时也使用。需求和验收已清楚且用户要求直接实现时不要触发；待查根因、业务流、影响分析或代码 Review 使用对应 Skill。
 ---
 
 # Yan Dev Doc
 
-把需要先评审的开发需求落成 `docs/YYYY-MM-DD/<任务>.md`。本 skill 只完成 Plan Gate，不实现功能、不执行数据库写入、不自动提交。
+## 目标
 
-## 触发边界
+把需要先评审的需求写成 `docs/<日期>/<任务>.md`。文档让后续 Agent 能依据事实、硬边界和验收结果自主实施，不替它规定文件层次、角色、步骤数量或推理过程。
 
-使用本 skill：
+本 Skill 只形成方案，不实现业务代码，不执行数据库写入，不自动 add、commit 或 push。默认产物只有主方案；OpenAPI、看板和 Workflow Brief 均按实际需要生成。本 Skill 自包含运行，不依赖任何外部 Skill 或方法论。
 
-- 用户明确要“开发方案 / 改造方案 / 实施文档 / 先设计再编码”；
-- 接口、权限、状态机、数据归属、DB、事务、回滚或跨模块发布仍需裁决；
-- 用户给出既有 yan-dev-doc，要求形成增量修订。
+## 完成标准
 
-不要触发：
+- 事实、假设、冲突和未决项可追溯，没有把推断写成业务口径。
+- 目标、非目标、授权边界、兼容要求和可观察验收结果足以指导实施。
+- 任务按可独立验证的结果拆分，真实依赖决定串并行；执行 Agent 可合并、细分、重排或委派非约束性切片。
+- 验证设计与风险相称，说明命令或验收动作能证明什么；计划、构建、历史结果和实际运行证据不混用。
+- DB、VCS、凭据、文件覆盖及外部副作用边界得到保留；无关章节和派生产物不出现。
 
-- 范围与验收已明确，用户要求直接实现；
-- 只解释代码或回答单点问题；
-- 根因尚未坐实的 Bug/事故记录与分析、业务流梳理、代码地图或影响分析：使用 `yan-project-analysis`；
-- Bug/事故的根因已由对话、日志、堆栈、复现或代码证据坐实，用户要修复/改造方案：保留在本 skill，按 `Standard` 生成修复方案；根因证据、修复边界和回归风险必须写入方案，不能再提示切换 `incident`；
-- 审查、修复 findings 或审查并修复：使用 `yan-code-review`。
+## 执行
 
-HTML 看板默认随 `Standard` / `IncrementalRevision` 方案发布；只有用户明确要求不写看板，或项目级规则禁止时才跳过并记录 `BoardPublishStatus: NotRequested`。`Compact` 仍不发布看板。
+### 收集足以决策的证据
 
-## 共享协议
+读取用户指定材料、当前目录生效的项目规则和与决策相关的代码、契约、配置、diff、日志或测试。围绕入口、业务规则、状态/权限、数据归属、副作用、兼容与验收补证据；不设固定读取深度、文件数或问题数。
 
-执行前按需读取：
+能从证据判断的内容直接采用。低风险未知写明依据和可修订边界；高风险未知只阻塞受影响部分。任务仍可识别时生成 `NeedsConfirmation` 草稿，保留已确认结论和可独立推进的切片，但不为未知部分编造接口、权限、数据口径或可执行写操作。任务或安全写入目标本身无法识别时不落盘。
 
-- [三端宿主能力协议](../_shared/host-capabilities.md)：Claude Code、Cursor、Codex 工具适配；
-- [交互策略](../_shared/interaction-policy.md)：证据预填、风险分级、只问阻塞问题；
-- [工作流门禁](../_shared/workflow-gates.md)：Plan / VCS / Verification / Review Gate；
-- [Workflow Brief](../_shared/workflow-brief.md)：下一位 Agent 的轻量证据索引。
+仅在阻塞型未知或证据冲突需要用户裁决时读取 [交互协议](../_shared/interaction-policy.md)；仅在工具、终端或路径行为存在宿主差异时读取 [宿主能力](../_shared/host-capabilities.md)。
 
-数据库操作始终只读。结构变更必须先获得用户明确同意；只生成 DBA 申请草案、建议 DDL/回滚方案和只读验证 SQL，不得执行 DDL、数据修复。
+### 形成方案
 
-## 文档模式
+Agent 根据复杂度选择短篇、展开或增量表达，不以文件数、风险标签或固定章节判定。方案只需覆盖当前任务实际需要的内容：
 
-按证据选择一种模式：
+- 目标、范围、非目标、不可改行为和总体验收；
+- 关键证据、决策理由、低风险假设、已裁决冲突和仍开放的问题；
+- 面向结果的工作切片，包括范围、硬边界、真实依赖、完成判据和验证证据；
+- 适用的兼容、事务、并发、错误路径、发布、回滚及未覆盖风险。
 
-- `Compact`：同一模块、最多 2 个生产代码切点和 1 个聚焦测试；仅向后兼容的解析/适配/分支支持；不涉及 API 契约、DB、权限、状态、事务、外部副作用、跨模块或 blocker/conflict。
-- `IncrementalRevision`：用户提供一篇或多篇可读的既有 yan-dev-doc，只记录相对变化并链接全部前置文档。
-- `Standard`：其他需要正式方案评审的任务。
+可以合并或重排这些内容，也可用表格、图或连续叙述表达。增量修订只写相对可读前置方案的变化和继续有效的约束。只有硬边界、业务口径或验收标准的变化需要回到方案确认；普通实现细节、工具、切片组织和角色分配由执行 Agent 决定。
 
-`Compact` 只生成 md，OpenAPI、看板和索引均为 `NotApplicable (Compact)`。范围扩大时立即升级为 `Standard`。
+### 写入与条件产物
 
-## 执行流程
+用 [workflow-fs.js](../_shared/scripts/workflow-fs.js) 创建日期目录并检查目标 `file-state`。默认路径缺失时写入；默认名称冲突时选择稳定后缀并报告实际路径。用户指定精确路径、要求覆盖、文件不可读或状态未知时不得擅自覆盖。只修改本任务产物。
 
-### 1. 确认任务和环境
+新增接口或请求/响应/鉴权/错误语义发生契约变化时，才读取 [OpenAPI 发布协议](publishing-openapi.md)。纯行为变化或仅调用既有接口不重写规范。
 
-任务名为空时只问一句。文件名规则：英文转小写并用 `-` 分隔；中文保留；`/ \ : * ? " < > |` 和多余空格替换为 `-`。
+只有用户明确要求看板、已有交付档案需要续写，或下游契约明确要求记录生命周期时，才读取 [看板发布协议](publishing-board.md)；否则不初始化或修改 `project-html`。
 
-静默收集：
+只有真实跨 Agent、跨任务或稍后恢复时，才读取 [Workflow Brief](../_shared/workflow-brief.md) 并在持久产物中保留一份。当前 Agent 能继续或任务已结束时不制造交接块。
 
-1. 先读取任务目录及候选改动模块层级中当前生效的 `CLAUDE.md` / `AGENTS.md`，记录来源，并把 docs、project-html、OpenAPI 等工作流产物分别判为 `VcsArtifactPolicy: Allowed | Excluded | Unspecified`。明确排除时后续纳管步骤写 `NotApplicable`；未规定时写 `RequiresConfirmation`，不得生成 add 命令。
-2. 在任务目录运行 `node <helper> detect-vcs`，只把结果作为根级初始证据；根级 `VCSStatusUnknown` / `type=none` 不能代表子模块未知。
-3. 用宿主搜索能力在任务目录下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，初步识别模块和构建入口。最终 VCS 与验证命令在改动范围确定后逐模块收敛。
+## 不可越过的边界
 
-`detect-vcs` 的 JSON 结果必须按当前 shell 解析；不要把 Bash 语法粘到 Windows PowerShell。`<helper>` 指向共享协议中定位到的 `workflow-fs.js`：
+- 数据库保持只读。DDL/DML 只能作为供用户或 DBA 审批的建议，附回滚和只读核验；数据更新必须有主键或唯一约束证据，证据不足保持 `NeedsConfirmation`。
+- 按实际文件定位 Git/SVN owner；只有归属、基线或变更来源影响方案时读取历史。Maven 验证必须基于真实 reactor/POM 关系，不能假设 `-pl/-am` 可跨 reactor。
+- 未经明确授权不 add、commit、push、覆盖文件、发送外部内容或执行其他不可逆动作。敏感信息只记录位置、类型和风险，不回显值。
 
-```bash
-# Bash / POSIX shell
-vcs_json="$(node "$helper" detect-vcs)"
-VCS_TYPE="$(node -e 'const x=JSON.parse(process.argv[1]); console.log(x.type)' "$vcs_json")"
-VCS_ROOT="$(node -e 'const x=JSON.parse(process.argv[1]); console.log(x.root)' "$vcs_json")"
-```
+## 交付
 
-```powershell
-# Windows PowerShell
-$vcs = node $helper detect-vcs | ConvertFrom-Json
-$VCS_TYPE = $vcs.type
-$VCS_ROOT = $vcs.root
-```
-
-Git dubious ownership 只对本次只读命令使用 `git -c "safe.directory=<VCS_ROOT>"`，不改全局配置。
-
-### 2. 建立证据草稿
-
-先读用户指定的需求、现有文档和候选代码，再填：
-
-- 目标、范围、非目标、服务/模块；
-- 当前入口、调用链、状态/权限/数据归属；
-- 接口分类、事务/副作用、兼容性和回滚；
-- 改动文件、测试关注点和验收标准；
-- `assumptions`、`conflicts`、`blockers`、`openQuestions`。
-
-根据候选变更文件先确定实际涉及模块，再为每个模块运行 `node <helper> detect-vcs <模块目录>`，按返回 root 去重并记录 `VCS_OWNER`：
-
-- Git 单仓库：同一 root 只读取一次分支、`status --short`、最近 3 条日志，保持现有行为；
-- 独立 SVN 模块：逐个 working-copy root 执行只读 `svn info`、`svn status`、`svn log -l 3`；
-- 某个 owner 失败只给该 owner 标 `VCSStatusUnknown`，不得跳过其他模块。跨模块文档分别记录模块、working-copy root、revision/branch、status 和日志证据，不能只保留单个 `VCS_TYPE` / `VCS_ROOT`。
-
-逐个目标 Maven 模块核对 POM：只有所选聚合 POM 的 `<modules>` 经路径解析确实包含目标模块时才允许 `mvn -f <聚合POM> -pl <模块> -am ...`；父 POM 无 `<modules>` 不是 reactor。业务域有聚合 POM时从该 POM运行；没有时使用目标模块自己的 `mvn -f <目标模块>/pom.xml ...`。跨业务域依赖不在同一 reactor 时，按依赖证据列出需预先 `install` 的依赖模块，禁止用 `-am` 假装覆盖。每条命令保留 `TestDependencyClass`。
-
-**🔴 CHECKPOINT · 高风险未知**
-
-能从证据确定的直接填；低风险未知写显式假设；高风险未知暂停并一次只问一个。非交互/无人值守运行中不等待提问：缺少阻塞决策时输出 `Blocked`，不写 md、OpenAPI、看板或索引。
-
-既有多篇文档必须全部读取并逐项标注承接范围。口径冲突按证据优先级记录；用户已否决的旧方案保留为 `conflicts(status=resolved)`，写清旧口径、否决证据、最终口径和实现禁令，不再计入 blocker。
-
-### 3. 核对关键决策
-
-附图驱动任务先验证证据可辨识性：当业务规则、字段口径或增量范围需要从图片/截图提取，且首张或当前唯一关键附图全黑、损坏、过暗、文字无法辨认或宿主无法解析时，记录 `ImageEvidenceUnreadable`，立即停止规则推断并保持 `Plan Gate 未通过`；只问一句，请用户重传清晰原图或可读截图。不得根据文件名、上下文或空白图像猜测业务规则，也不得继续生成或修订 md、OpenAPI、看板或索引。收到可读附图后重新提取对应口径，再继续当前 `Standard` / `IncrementalRevision` 流程；若其他可读证据已完整覆盖该图承载的口径，可记录替代证据后继续。
-
-信息槽位见 [查漏槽位](planning-slots.md#step-3-查漏槽位)，它是查漏表，不是问卷。简单任务最多补 2 个槽位，其他任务最多补 5 个；可以 0 问。
-
-接口逐个分类：
-
-| 分类 | 判定 | 产物 |
-|---|---|---|
-| 新增接口 | 新 method/path | API 设计 + OpenAPI + 看板 `apis[]` |
-| 契约变更 | 请求/响应/状态码/错误码/鉴权输入变化 | API 设计 + OpenAPI + 兼容影响 |
-| 行为变更 | 契约不变，只改校验、路由、过滤、状态或副作用 | 技术方案和测试；不重写 OpenAPI |
-| 仅调用 | 不修改既有契约和行为 | 只写调用关系 |
-
-新增库/表/字段/索引/约束未获明确同意时记为 blocker，不进入 Implementation Gate。
-
-变更产物类型（与接口分类并列，按证据选用）：
-
-| 类型 | 判定 | 文档处理 |
-|---|---|---|
-| 纯配置/提示词变更 | 无生产代码切点；仅 yml/env/Nacos/Apollo，或 DB 配置表/提示词模板等**数据** UPDATE | 用 `Standard` / `IncrementalRevision`（不得用 `Compact`）；跳过 API/OpenAPI；「六、代码变更清单」必须显式写「生产代码：不改」+ 配置/提示词 UPDATE 对象，禁止空表；「四、数据库变更」写建议 UPDATE/回滚/只读验证（非 DDL），并用主键（复合主键须列全）定位目标行；确无主键时只能使用有唯一约束证据的业务键，定位证据不足记为 blocker；Todo 只含授权人员执行与只读核对，AI 不写库 |
-
-### 4. 确定产物路径
-
-运行：
-
-```text
-node <helper> prepare-date-dir docs
-node <helper> file-state docs/<日期>/<任务名>.md
-```
-
-- `MISSING`：继续生成；
-- `EXISTS_READABLE`：读取后让用户选择覆盖、时间戳后缀、版本后缀、取消或增量更新；
-- `EXISTS_UNREADABLE_OR_UNKNOWN`：停止为 blocker，不猜测不存在。
-
-非交互运行遇到已存在或未知状态时停止，不默认覆盖。写入 md 时优先局部修改；禁止用宿主文件能力整体重写不相关既有内容。
-
-### 5. 生成方案
-
-按模式只加载模板锚点：
-
-- `Standard`：[Standard 文档模板](template-standard.md#文档模板)；
-- `IncrementalRevision`：文档模板中的增量修订段；
-- `Compact`：[Compact 文档模板](template-compact.md#精简文档模板)。
-
-不要一次性读取整份 reference。[examples.md](examples.md) 仅在用户要示例、字段仍歧义或首次结果未通过格式校验时，读取当前模式的一个示例。
-
-核心要求：
-
-- 事实带证据；未知写 `待补充` 或假设；
-- 技术方案写清前置条件、执行顺序、最小改动、禁止改动和完成判定；
-- 开闭原则、兼容性、事务/并发、错误路径、回滚和可观察验收必须落到具体位置；
-- 纯配置/提示词变更时，「六、代码变更清单」允许且应当写「无代码、仅配置/DB UPDATE」；用显式「不改」行代替空表，避免执行方误以为漏写切点；
-- 涉及配置表/提示词数据 UPDATE 时，必须记录目标表主键、主键值来源和精确 `WHERE`；复合主键列全，缺少主键时只能改用有唯一约束证据的业务键，禁止用非唯一条件下发更新方案；
-- Todo 不得包含数据库写入、DDL 或未获授权的数据修复；
-- 验证命令标记 `TestDependencyClass: Hermetic | ServiceBacked | LiveExternal | Mixed`；
-- 默认 test/verify 不得依赖真实 AI/SaaS 密钥。
-
-### 5.1 可选发布
-
-- 存在新增接口或契约变更时，才读取并执行 [OpenAPI/Apifox 发布流程](publishing-openapi.md)。纯行为变更或仅调用跳过。
-- 除 `Compact` 外，默认读取并执行 [HTML 看板发布流程](publishing-board.md)；只有用户明确要求不写看板，或项目级规则禁止时跳过并记录 `BoardPublishStatus: NotRequested`。
-- `Compact` 跳过全部发布流程。
-
-### 6. 完成输出
-
-按 [完成输出与恢复](completion.md) 中当前模式的格式回复，至少包含：
-
-1. md 与可选产物路径；
-2. 3 句关键决策；
-3. 当前 Gate、blocker/conflict/assumption；
-4. 逐条验证命令及 TestDependencyClass；
-5. VCS 未纳管清单；不得自动 `git add` / `svn add`；
-6. 可复制的当前宿主执行提示；
-7. `【Workflow Brief】`，字段遵循共享模板；
-8. 下一步：实现 → 验证 → `yan-code-review` → `yan-project-analysis mode=understanding` → 人工 review。
-
-存在 blocker/conflict 时写 `Plan Gate 未通过`，不输出可直接执行的编码提示。
-
-## 最终检查
-
-- [ ] 模式选择有证据，未把简单实现升级成文档流程
-- [ ] 事实、假设、冲突、阻塞项已分层
-- [ ] API 分类逐接口完成；行为变更未进入 OpenAPI
-- [ ] 数据库门禁与只读边界已遵守
-- [ ] 目标路径状态已确定，未静默覆盖
-- [ ] 可选发布仅在进入条件成立时加载
-- [ ] 验证命令、VCS 状态、Gate 和 Workflow Brief 完整
-- [ ] 未实现代码、未执行数据库写入、未提交
-
-## 资源
-
-- [planning-slots.md](planning-slots.md)：仅证据预填后仍需查漏时读取
-- [template-compact.md](template-compact.md)：仅 Compact 读取
-- [template-standard.md](template-standard.md)：仅 Standard / IncrementalRevision 读取
-- [completion.md](completion.md)：完成输出、Workflow Brief 和失败恢复
-- [reference.md](reference.md)：兼容索引，不作为运行时模板加载
-- [examples.md](examples.md)：按需示例
-- [publishing-openapi.md](publishing-openapi.md)：条件 OpenAPI 发布
-- [publishing-board.md](publishing-board.md)：默认看板发布
-- [scripts/validate-openapi.js](scripts/validate-openapi.js)：确定性 OpenAPI 校验
+报告实际文档与条件产物路径、`Passed | NeedsConfirmation | EnvironmentBlocked`、关键未决项、验证设计和当前最小下一动作。只声称本轮证据真实证明的结果；生成方案不等于功能已经实现或验证。

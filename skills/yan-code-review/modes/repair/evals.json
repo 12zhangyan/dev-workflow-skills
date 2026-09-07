@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-repair skill，按下面 review-check findings 直接修复并运行验证：Critical CR-1 File/Line: src/main/java/com/acme/order/OrderService.java:88 Problem: customerId 为 null 时继续查询导致 NPE Fix: 增加入参校验 Verify: mvn -pl order-service test",
-      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。"
+      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。未明确要求同步看板，BoardPublishStatus=NotRequested。"
     },
     {
       "id": 2,
@@ -19,12 +19,13 @@
     {
       "id": 4,
       "prompt": "这里有 9 条 review findings，帮我一次性都修掉，里面有 2 条 Critical、4 条 Important、3 条 Minor",
-      "expected_output": "应触发 review-repair，但不应无边界一次性大改；应先处理 Critical/Important 的当前批次，超过 5 条或跨模块内容标为 deferred-next-batch，并输出下一批建议。"
+      "expected_output": "应进入 repair，但不无边界一次性大改；Agent 按风险、共享根因、模块/VCS owner 和可独立验证性组织工作切片，所有 finding 都保留 ID 与本轮终态，独立或越界项标为 deferred-next-batch。"
     },
     {
       "id": 5,
       "prompt": "使用 review-repair skill。下面是 Workflow Brief：stage: ReviewGate task: 新报价标识 source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java; src/test/java/com/acme/QuoteServiceTest.java tests: mvn -f pom.xml test openFindings: CR-1 tokenHint: 先读 Brief -> changed 文件 -> CR-1 finding。Finding CR-1 File/Line: src/main/java/com/acme/QuoteService.java:120 Problem: viewer 为空时错误标记新报价 Fix: 增加 viewer 判空并补测试 Verify: mvn -f pom.xml test",
-      "expected_output": "应触发轻量交接模式；先按 Workflow Brief 控制读取范围，再读取 CR-1 指向文件和测试，不应要求用户粘贴完整 review-task；修复后输出 Workflow Brief、处理结果、验证和 VCS 完整性。"
+      "expected_output": "应把旧版 Brief 作为兼容输入，用其中的 source/changed/tests/openFindings 定位后回到原始 finding、文件、diff/status 核实，不要求用户粘贴完整 review-task；修复后直接报告处理结果、验证和 VCS 完整性。只有确需再次跨 Agent、跨任务或延期恢复时才新生成 Brief，且新产物只使用 task/state/scope/evidence/verification/open/next。",
+      "tags": ["legacy_brief_input"]
     },
     {
       "id": 6,
@@ -68,8 +69,8 @@
     {
       "id": 13,
       "prompt": "使用 review-repair skill，Workflow Brief 的 openFindings=无，也没有附任何 finding",
-      "expected_output": "不得触发直接修复；说明缺少明确 findings，建议先用 review-check。Workflow Brief 本身不能授权扫描全仓猜修。",
-      "tags": ["empty_findings", "routing_review_check"]
+      "expected_output": "应兼容读取旧字段 openFindings，但空值不能授权直接修复；说明缺少明确 findings，建议先用 review-check。Workflow Brief 本身不能授权扫描全仓猜修，也不因此生成新的交接 Brief。",
+      "tags": ["empty_findings", "routing_review_check", "legacy_brief_input"]
     },
     {
       "id": 14,
@@ -86,14 +87,20 @@
     {
       "id": 16,
       "prompt": "根据 DLV-ORDER 的 IM-1 修复并验证，把处理结果更新到看板",
-      "expected_output": "按 IM-1 最小修复和验证，保留 finding ID，并写入同一 DLV-ORDER 的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
+      "expected_output": "已有稳定 DLV-ORDER 身份、用户明确要求同步，且直接 repair Agent 是发布所有者，因此按 IM-1 最小修复和验证，保留 finding ID，并写入同一档案的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
       "tags": ["board_lifecycle", "same_delivery", "finding_traceability"]
     },
     {
       "id": 17,
       "prompt": "已有 IM-2，执行 repair；先预读 loop/check/package 的全部运行资料以免漏项。",
-      "expected_output": "只加载 repair 的 mode、同目录 reference 和共享门禁/看板流程；不得预加载 check、loop、package 的 mode、reference、模板或 examples。修复范围仍由 IM-2 授权边界决定。",
+      "expected_output": "只加载 repair mode；完整归一化或完成格式、共享门禁、Brief 都按实际需要读取，看板流程只在稳定身份+明确同步意图+当前发布 owner 三条件成立时读取。不得预加载 check、loop、package 的资料，修复范围仍由 IM-2 授权边界决定。",
       "tags": ["route_minimal_loading", "finding_scope", "no_cross_mode_preload"]
+    },
+    {
+      "id": 18,
+      "prompt": "修复 IM-3 后运行本地聚焦单测，测试不访问网络或外部服务；不需要看板。",
+      "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。BoardPublishStatus=NotRequested，不加载看板发布流程。",
+      "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_board"]
     }
   ]
 }
