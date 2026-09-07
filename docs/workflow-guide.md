@@ -1,370 +1,95 @@
-# Java 后端 AI 开发工作流（Dev Workflow Skills）
+# 自适应开发协作指南
 
-> 目标：先定方案，再实现，再验证，再审查，再读代码，最后由人提交。
-> README 只做能力总览；第一次跑流程从本文开始。
+这套 Skill 的目标是帮助 Agent 在证据、授权和验收边界内完成复杂研发任务，不是把每个任务塞进同一条流水线。范围与验收清楚时可以直接实现和验证；只有当前任务确实需要时，才进入方案、分析、Review、代码地图、看板或交接。
 
-## 调用约定
+四个公开 Skill 都采用自包含执行方式，不依赖外部方法论 Skill。需求澄清、拆分、测试策略、调试、角色分配和执行顺序由当前 Agent 根据目标与证据自主决定。
 
-| 场景 | Claude Code | Codex |
-|------|-------------|-------|
-| 生成开发文档 | `/yan-dev-doc 任务名` | `使用 yan-dev-doc skill 给 任务名 生成开发文档` |
-| 记录 Bug | 自然语言点名 `yan-project-analysis mode=incident` | `使用 yan-project-analysis skill，mode=incident，记录 Bug名` |
-| 梳理测试业务流 | 自然语言点名 `yan-project-analysis mode=business` | `使用 yan-project-analysis skill，mode=business，生成业务流方案` |
-| 生成 Review 任务包 | 自然语言点名 `yan-code-review mode=package` | `使用 yan-code-review skill，mode=package，基于 docs/.../任务.md 生成 Review 任务包` |
-| 执行业务代码只读审查并更新同一档案 | 自然语言点名 `yan-code-review mode=check` | `使用 yan-code-review skill，mode=check，审查 docs/review-fix/...-review-task.md` |
-| Review 后直接修复 | 自然语言点名 `yan-code-review mode=repair` | `使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复` |
-| 单 AI 一键 Review 闭环 | 自然语言点名 `yan-code-review mode=loop` | `使用 yan-code-review skill，mode=loop，审查、修复、验证并复审当前工作区` |
-| 生成代码地图 | 自然语言点名 `yan-project-analysis mode=understanding` | `使用 yan-project-analysis skill，mode=understanding，生成代码地图` |
-| 只读判断接口与调用链影响 | 自然语言点名 `yan-project-analysis mode=understanding` | `使用 yan-project-analysis skill，mode=understanding，执行 ImpactAnalysis，不生成文档或看板` |
+## 选择最小有用能力
 
-Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。Codex 安装 skill 不等于注册同名斜杠命令，也不保证进入 `$` 技能选择器。
+| 目标 | 能力 | 默认副作用 |
+|---|---|---|
+| 先形成开发/改造方案，或关键决策尚未裁决 | `yan-dev-doc` | 生成一份 md；OpenAPI、看板、Brief 均按需 |
+| 理解调用链/兼容影响、记录事故、梳理测试业务流 | `yan-project-analysis` | 只选择与目标匹配的 understanding、incident 或 business；ImpactAnalysis 零写入 |
+| 只读审查、按 findings 修复、单 Agent 闭环或多角色独立 Review | `yan-code-review` | 按 check、repair、loop、package 的权限边界行动 |
+| 把当前对话交给另一段任务继续 | `yan-conversation-handoff` | 写精简 handoff，或按用户要求只在聊天输出 |
 
-Cursor 使用当前 skill 入口或自然语言点名；例如：`使用 yan-code-review skill，mode=loop，基于 docs/.../任务.md 审查、修复、验证并复审当前工作区`。若宿主没有结构化提问工具，按共享交互策略降级为聊天单选，不依赖固定工具名。
+旧名称只作为输入兼容：`code-reading / bug-fix / biz-flow` 对应 project-analysis modes；`review-check / review-repair / review-loop / review-fix` 对应 code-review modes。新提示使用统一入口和明确 mode。
 
-## 与 superpowers-zh 组合使用
+## 证据状态，不是固定阶段
 
-推荐把 [superpowers-zh](https://github.com/jnMetaCode/superpowers-zh) 作为通用工程方法论层，把本仓库作为企业 Java 交付链层：
+Gate 用于说明结论何时成立，不要求按顺序逐站执行：
 
-- `superpowers-zh`：头脑风暴、TDD、系统化调试、通用 code review、完成前验证等跨语言方法。
-- `dev-workflow-skills`：开发文档、Bug/业务流文档、Review 任务包、findings 修复闭环、代码地图、看板、Apifox/OpenAPI 和 Workflow Brief。
+- `Plan Gate`：只有任务需要方案时才相关；目标、边界、未决项和验收已足以指导实施。
+- `Implementation Gate`：实际 diff、文件内容和偏离项证明实现发生过。
+- `VCS Gate`：Review 或提交完整性需要时，按真实 Git/SVN owner 核对 status、diff 和未跟踪文件。
+- `Verification Gate`：测试、构建、接口或只读数据核对有本轮实际命令与结果。
+- `Review Gate`：用户要求或剩余风险值得时，形成有证据的 findings 与处理状态。
+- `Understanding Gate`：用户或人工验收确实需要复杂实现地图时才相关。
+- `Submit Gate`：仅在用户授权提交且最终证据完整时相关。
 
-安装时在具体项目目录运行：
+Agent 可以合并实现与验证，跳过不适用状态，或先处理能关闭最大证据缺口的动作。Gate 不能扩大写入、数据库、VCS、提交或外部发送权限。
 
-```bash
-npx superpowers-zh
-```
+## 自主拆分与多角色协作
 
-自动识别不到工具时，按 `superpowers-zh` 文档使用 `npx superpowers-zh --tool <name>`，例如 `codex`、`cursor` 或 `claude`。不要在用户主目录直接安装，避免 bootstrap 文件污染全局范围。
+复杂任务按用户或系统可观察的结果拆分。每个切片保留目标、硬边界、真实依赖、完成判据和验证证据；文件布局、实现顺序、切片数量、工具和角色由 Agent 决定。
 
-下文用 `superpowers:<skill>` 表示常见能力名；真实入口以当前宿主安装后显示的命令、skill 名或自然语言触发方式为准。不要因为某个宿主没有同名斜杠命令，就认为不能使用对应能力。
+互不覆盖且有并行收益时，可以在既有授权内主动委派多个 Agent。主 Agent 负责统一范围、整合真实改动和验证、解决冲突并披露未覆盖项。简单任务不为扮演角色而强拆；多个 reviewer 的意见数量也不代表结论正确。
 
-组合建议：
+多角色 Review 可以直接基于同一证据索引并行派发。同工作区实时协作不要求先落盘任务包；只有跨环境、延期回收、用户要求审计或需要稳定外部分发载体时，才生成持久 review task。
 
-| 阶段 | 可选 superpowers-zh | 本仓库主 skill |
-|------|---------------------|----------------|
-| 需求混沌、方案未成型 | `superpowers:brainstorming` | 收敛后进入 `yan-dev-doc` / `biz-flow` |
-| 复杂实现或测试先行 | `superpowers:test-driven-development` | 仍按 yan-dev-doc Todo 回填执行结果 |
-| 疑难问题定位 | `superpowers:systematic-debugging` | 需要沉淀 Bug 时进入 `bug-fix` |
-| 通用完成检查 | `superpowers:verification-before-completion` | 进入 `review-fix` 或 `review-loop` 前补齐 Verification Gate |
-| 额外通用审查视角 | `superpowers:requesting-yan-code-review` / code review 相关入口 | 正式 findings 仍归并到 `review-check` / `review-fix` ID 链路 |
+## 测试、Review 与验收
 
-推荐执行链：
+验证深度匹配实际风险，不匹配固定测试数量：
 
-```text
-可选 superpowers:brainstorming
-→ yan-dev-doc / bug-fix / biz-flow
-→ AI 实现；可选 superpowers:test-driven-development / systematic-debugging
-→ VCS Gate + Verification Gate；可选 superpowers:verification-before-completion
-→ review-fix / review-check / review-repair，或 review-loop
-→ code-reading
-→ 人工 review / 提交
-```
+- 测试必须证明目标逻辑：输入、调用对象和断言结果应对应本次行为，不能只验证 mock 或前置条件。
+- 命令实际运行才记录通过；未运行要说明原因和未证明范围。
+- 工具链或必要网络导致命令无法启动时可记 `environment-blocked`；默认 CI 自身依赖未提供的真实秘密或不可控外部服务属于测试契约问题，不能靠假凭据绕过。
+- 源码、编译、测试、部署包和运行日志分别证明不同事实，不互相冒充。
 
-回填规则：
+Review 围绕本次变化的风险取证，不机械遍历技术清单。finding 使用稳定 `CR/IM/MI` ID，说明位置、证据、影响、修复方向和验证方式；无证据的偏好不升级为 finding。accepted finding 修复后沿用原 ID 回填，未关闭高风险项不得宣称 Review Gate 通过。
 
-- brainstorming 输出只作为需求来源，必须写入 `yan-dev-doc` 的范围、非目标、blockers、conflicts 或 assumptions，不能绕过 Plan Gate。
-- TDD/debugging 输出必须落到执行结果回填：Todo 完成情况、changed 文件、验证命令、失败原因和 `TestDependencyClass`。
-- verification-before-completion 只能增强 Verification Gate；没有可复跑命令、退出结果和目标逻辑断言证据时，`TestEvidenceStatus` 仍不能写 `Passed`。
-- requesting-yan-code-review 或其他通用 review 只能作为额外 reviewer 来源；有效问题要归并为 `CR/IM/MI`，误报写 `RJ`，待确认写 `BK`。
-- 交给下一位 AI 时仍复制本仓库 `【Workflow Brief】`，不要只贴 superpowers 的过程输出。
+人工验收依据可观察结果和剩余风险决定，不要求先生成代码地图、看板或完整流程产物。
 
-## 一句话主链路
+## 按需产物
 
-```text
-yan-dev-doc / bug-fix / biz-flow
-→ AI 执行并回填结果
-→ VCS 纳管新增文件
-→ 测试/构建/接口验证
-→ review-fix 生成任务包
-→ review-check 多 AI 只读审查
-→ review-fix 汇总修复 / review-repair 直接修复
-→ code-reading 生成代码地图
-→ 人工 review
-→ 提交
-```
+| 产物 | 位置 | 产生条件 |
+|---|---|---|
+| 开发方案 | `docs/YYYY-MM-DD/<task>.md` | 用户明确要方案或关键决策需先评审 |
+| 事故记录 | `docs/bugs/YYYY-MM-DD/<bug>.md` | 需要沉淀单次故障证据 |
+| 业务地图 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` | 测试/产品需要业务、状态和数据闭环 |
+| 代码地图 | `docs/code-reading/YYYY-MM-DD/<feature>.md` | 用户明确要求持久化复杂实现地图 |
+| Review task / fix handoff | `docs/review-fix/YYYY-MM-DD/` | 跨环境、延期、外部分发或审计确实需要 |
+| 对话 handoff | `docs/handoffs/YYYY-MM-DD/` | 用户要求另一段对话继续 |
+| OpenAPI | `docs/apifox/YYYY-MM-DD/` | 新增接口或契约变化 |
+| HTML 看板 | `project-html/` | 用户明确要求、既有交付档案续写或下游契约要求 |
 
-单 AI 可把 Review Gate 简化为：
+看板是面向人的独立方案或生命周期说明，不摘抄 Agent 文档。没有发布意图时不初始化、不升级、不写看板，也不运行 `build.js`。
+
+## Workflow Brief
+
+只有真实跨 Agent、跨任务或延期恢复时才生成 `Workflow Brief`。它是最小证据索引，不是第二份方案：
 
 ```text
-review-loop quick（小范围默认）：review-check → review-repair → 验证 → 二次 review-check
-review-loop standard（审计留档/高风险）：review-fix 任务包 → review-check → review-repair → 验证 → 二次 review-check
+【Workflow Brief】
+task: <目标>
+state: <真实状态>
+scope: <授权与禁止事项>
+evidence: <最小证据路径、命令和 finding ID>
+verification: <命令与结果或未运行原因>
+open: <未关闭项>
+next: <下一目标；可包含互不覆盖的并行动作>
 ```
 
-小改动可显式使用 quick，跳过任务包文件但不跳过审查、修复门槛、验证和二次复审。`review-loop` 必须标记 `SingleAgentReview`，不能冒充多 AI 交叉审查。
-
-看板采用“一事一档”：`yan-dev-doc` 创建稳定 `deliveryId` 的主档案，package/check/repair/loop 直接调用时都更新该档案的 Review 生命周期。check 的“只读”仅约束业务代码和正式文档；它仍通过 `board-add.js` 发布看板元数据。loop 内部的 package/check/repair 不重复发布，由 loop 统一写一条汇总事件。
-
-## 阶段门禁
-
-| 门禁 | 必须看到的证据 | 通过后进入 |
-|------|----------------|------------|
-| Plan Gate | yan-dev-doc / bug-fix / biz-flow 文档；阻塞项、冲突、假设已写清；yan-dev-doc Standard / IncrementalRevision 默认创建研发档案，Compact 明确标记派生产物 NotApplicable | 实现 |
-| Implementation Gate | Todo 对照表：已完成项、变更文件、未完成项、执行偏差 | VCS 检查 |
-| VCS Gate | `git status --short` 或 `svn status`；新增源码、测试、配置、OpenAPI YAML、文档已 `add` | 验证 |
-| Verification Gate | 有针对性的测试/构建/接口/数据核对命令和结果；失败已修复并重跑 | Review |
-| Review Gate | 拆分链的 review task/findings/repair 状态，或 `review-loop` 的 SingleAgentReview 闭环结果 | 代码地图 |
-| Understanding Gate | `code-reading` 代码地图；人工 review 关注点 | 提交前检查 |
-| Submit Gate | 最终 status/diff/test/review/doc/sensitive 检查通过 | `git commit` / `svn commit` |
-
-任何门禁失败都先停在当前阶段，不带病进入下一步。
+接口或 VCS 状态确实影响接手时再附 `api` / `vcs`。接手 Agent 先核对最能裁决 `next` 的原始证据，出现缺口或漂移风险再扩展，不复制完整文档、diff 或长日志。
 
 ## 准确性硬规则
 
-- 方案文档不是实现证据；没有 diff/status/文件内容时，只能说“已形成方案”，不能说“已实现”。
-- `变更文件` 必须来自 `git status` / `svn status` / diff / patch / 实际读取文件，不能按任务名猜。
-- 验证必须写命令和结果；没跑就写“未运行 + 原因”，不要把建议命令写成已通过。
-- 验证先标记 `TestDependencyClass`：`Hermetic`（纯单测/静态检查）、`ServiceBacked`（受控 DB/Redis/MQ）、`LiveExternal`（真实 AI/SaaS/云服务）或 `Mixed`。JDK、Node、Maven、npm、依赖下载或显式外部测试所需网络不可用时标 `environment-blocked`；但默认 `test/verify` 强依赖 CI 未提供的真实密钥/外部服务时，是 `Failed` 的测试架构/CI 契约问题，不能归咎于环境，也不能填假密钥绕过。
-- Review 前先声明审查对象：审方案、审实现代码，还是审修复交接；没有实现证据时不得输出“代码无问题”。
-- Finding 必须带证据位置；没有文件/方法/接口/日志/配置/文档章节支撑时，写“材料不足”或“待确认”。
-- Critical / Important finding 必须逐条关闭、阻塞、拒绝或延期，不能只写“已处理”。
-- 测试必须证明目标逻辑：测试名、输入数据、被调用方法和断言对象要一致；只验证前置条件或 mock 自身，不能算风险已解除。
-- review-loop 启动时先声明 `VcsAddPolicy`：宿主仓库明确要求新建业务文件必须纳管时为 `host-required`，否则为 `user-authorize-only`。前者以宿主规则为授权，后者需用户看到逐文件清单后明确授权；发生规则冲突必须在 add 前写明来源和采用口径。两者都只允许 `git add -- <files>` / `svn add -- <files>` 纳管精确清单，禁止 `git add .`、目录级兜底，完成后立即重验 status/diff，且不扩展为 commit/push 授权。
-- PowerShell 下 Maven `-Dkey=value` 参数按完整参数引用；Surefire/JUnit/覆盖率报告须确认来自本轮运行，陈旧报告不能作为当前结论。
-
-## 轻量交接，减少 Token
-
-> "每个 skill 完成后下一步跑什么 + 可复制命令"的单一权威表在 [skills/_shared/workflow-chain.md](../skills/_shared/workflow-chain.md)；下方的下一步提示都以它为准。
-
-每一轮结束后优先复制 `【Workflow Brief】`，再附产物路径或 finding ID。不要把完整 yan-dev-doc、review-task、fix-handoff、长 diff 反复粘贴给下一位 AI。
-
-当要跨会话保留当前对话的目标、实际动作、验证、阻塞和接手提示，而不仅是交接一个 workflow 步骤时，使用 `yan-conversation-handoff` 生成 `docs/handoffs/YYYY-MM-DD/<task>-handoff.md`。它必须区分已证实、推断和待确认；接手方仍要回到原始文件和命令结果核对。
-
-推荐交接顺序：
-
-```text
-1. 复制上一轮的 Workflow Brief
-2. 提供产物路径：docs/...md、docs/review-fix/...、docs/apifox/...
-3. 如果是 review 修复，只贴 finding ID、文件、证据、修复建议、验证方式
-4. 让下一位 AI 按 tokenHint 先读 Brief -> 源文档/任务包 -> changed 文件 -> 必要验证输出
-```
-
-示例：
-
-```text
-使用 yan-code-review skill，mode=check，审查 docs/review-fix/2026-07-09/xxx-review-task.md。
-先读下面的 Workflow Brief，再按 tokenHint 读取任务包和 changed 文件；不要要求我粘贴全文。
-```
-
-```text
-使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复。
-先按 Workflow Brief 确认 source、changed、tests，再只处理 accepted findings。
-```
-
-## 产物地图
-
-| 产物 | 位置 | 谁生成 | 是否建议提交 |
-|------|------|--------|--------------|
-| 标准/增量开发文档 | `docs/YYYY-MM-DD/<task>.md` | `yan-dev-doc Standard/Incremental` | 是 |
-| 精简开发文档 | `docs/YYYY-MM-DD/<task>.md` | `yan-dev-doc Compact` | 否（仅 md） |
-| Bug 文档 | `docs/bugs/YYYY-MM-DD/<bug>.md` | `bug-fix` | 是 |
-| 业务流文档 | `docs/biz-flow/YYYY-MM-DD/<feature>.md` | `biz-flow` | 是 |
-| OpenAPI YAML | `docs/apifox/YYYY-MM-DD/<task>.openapi.yaml` | `yan-dev-doc`，仅接口变更时 | 是 |
-| OpenAPI 索引 | `docs/apifox/INDEX.md` | `yan-dev-doc` | 是 |
-| Review 任务包 | `docs/review-fix/YYYY-MM-DD/<task>-review-task.md` | `review-fix` 第一阶段 | 是 |
-| Review 修复交接 | `docs/review-fix/YYYY-MM-DD/<task>-fix-handoff.md` | `review-fix` 第二阶段 | 是 |
-| 代码地图 | `docs/code-reading/YYYY-MM-DD/<task>.md` | `code-reading CodeMap` | 是 |
-| 只读影响分析 | 聊天输出，无仓库文件 | `code-reading ImpactAnalysis` | 否 |
-| 看板数据 | `project-html/data/changes.js` + `data/details/` | yan-dev-doc 创建主档案；yan-code-review 四模式更新同一档案；其他文档类 mode 写各自 entry | 是 |
-| 单页与总索引 | `project-html/pages/`、`docs/INDEX.md` | `node project-html/build.js` | `docs/INDEX.md` 是；`pages/` 按项目策略 |
-
-## 详细步骤
-
-### 1. 选入口
-
-- 新功能、接口变更、重构、配置变更：用 `yan-dev-doc`。
-- 需要记录现象、根因、修复边界：用 `bug-fix`。
-- 要给测试/产品讲清业务状态、数据流、接口顺序：用 `biz-flow`。
-
-如果需求和现有代码、字典、状态机、权限或数据模型冲突，先把冲突写进文档并阻塞，不要按猜测继续。
-
-### 2. 生成方案文档
-
-运行入口 skill 后，确认输出里至少有：
-
-- 文档路径。
-- 看板更新结果。
-- 阻塞项、冲突、假设。
-- 实现 Todo。
-- 验证命令建议。
-- 下一步执行提示。
-
-涉及接口新增或签名变更时，还必须有：
-
-- `docs/apifox/<日期>/<任务名>.openapi.yaml`
-- `docs/apifox/INDEX.md`
-- md 中的 Apifox 导入说明和接口索引。
-
-### 3. 实现并回填执行结果
-
-把文档末尾的执行提示交给 AI 或开发者。完成后要求回填：
-
-```text
-执行结果对照表
-- 已完成 Todo：<逐项列出>
-- 未完成/偏离项：<没有写 无>
-- 变更文件：<源码/测试/配置/文档/OpenAPI>
-- 验证命令：<已运行或待运行>
-- 风险/疑问：<没有写 无>
-```
-
-没有这张对照表，后续 review 只能靠 diff 猜，容易漏掉“该做但没做”的项。
-
-### 4. VCS Gate
-
-Git：
-
-```bash
-git status --short
-git diff --name-status
-git add <新增源码/测试/配置/OpenAPI/文档>
-```
-
-SVN：
-
-```bash
-svn status
-svn add <新增源码/测试/配置/OpenAPI/文档>
-svn diff --summarize
-```
-
-重点检查：
-
-- 新增测试文件是否已纳入 VCS。
-- `docs/apifox/*.openapi.yaml` 和 `docs/apifox/INDEX.md` 是否已纳入 VCS。
-- `project-html/data/changes.js`、`docs/INDEX.md` 是否刷新。
-- 没有把临时 patch、日志、凭证文件误加入。
-
-### 5. Verification Gate
-
-优先用文档里给出的模块级验证命令。泛化命令只作为兜底：
-
-```bash
-mvn test
-./gradlew test
-npm test
-```
-
-多模块 Maven 项目应优先使用可复现的模块命令，例如：
-
-```bash
-mvn -f <module-pom> test
-mvn -pl <module> -am test
-```
-
-验证失败时先修复并重跑。不要把失败测试带入 Review。
-
-如果失败原因是工具链环境不匹配（例如项目要求 Java 21，但本机 `java -version` 是 Java 17），先停在 Verification Gate，记录为 `environment-blocked`，更换环境后重跑；不要让 review/repair 去猜业务代码问题。
-
-### 6. Review Gate
-
-先生成任务包：
-
-```text
-Claude Code: 使用 yan-code-review skill，mode=package，基于 docs/YYYY-MM-DD/<task>.md 生成 Review 任务包
-Codex: 使用 yan-code-review skill，mode=package，基于 docs/YYYY-MM-DD/<task>.md 生成 Review 任务包
-```
-
-`review-fix` 第一阶段必须有实际实现证据：VCS status、diff/patch 或明确变更文件。只有方案文档时，只能审方案，不能声称审过代码。
-
-再让一个或多个 AI 执行只读审查：
-
-```text
-Claude Code: 使用 yan-code-review skill，mode=check，审查 docs/review-fix/YYYY-MM-DD/<task>-review-task.md
-Codex: 使用 yan-code-review skill，mode=check，审查 docs/review-fix/YYYY-MM-DD/<task>-review-task.md
-```
-
-把 findings 原样贴回 `review-fix`。`review-fix` 第二阶段应输出：
-
-- accepted / rejected / needs-confirmation 分类。
-- 每条 Critical / Important 的修复建议和验证方式。
-- 修复操作码。
-- 修复后回填要求。
-
-Critical / Important 没关闭前，不进入 Submit Gate。
-
-如果这次不需要再生成修复交接文档，希望 AI 直接修改代码：
-
-```text
-Claude Code: 使用 yan-code-review skill，mode=repair，处理 <粘贴findings或fix-handoff路径>
-Codex: 使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复
-```
-
-`review-repair` 只处理有证据、能定位、能验证的 accepted findings；涉及业务语义、权限、状态流转、接口契约、数据库结构或数据修复的问题会停下来确认，不会猜着改。
-
-### 单 AI 编排：review-loop
-
-```text
-Claude Code: 使用 yan-code-review skill，mode=loop，基于 docs/YYYY-MM-DD/<task>.md 完成闭环
-Codex: 使用 yan-code-review skill，mode=loop，基于 docs/YYYY-MM-DD/<task>.md 审查、修复、验证并复审当前工作区
-```
-
-范围明确的单模块小改动默认 quick，不生成 review-task；明确需要审计任务包、多 AI 分发或存在高风险时使用 standard。只要修改过代码就必须验证并二次 review-check，最多自动修复两轮。未跟踪文件必须纳入审查、修复和验证，但在纳管前保持 VCSGateBlocked，不进入 Submit Gate。没有实际 diff 时只能输出 PlanReview；业务/API/权限/DB blocker、验证失败、环境阻塞或未关闭 Critical/Important 都会停止。skill 不执行未经授权的 add，也不执行 commit、push 或数据库写入。
-
-### 7. 修复后复验
-
-按修复交接或 `review-repair` 直修执行后，回填：
-
-```text
-- 已修复 finding：<CR/IM ID + 证据>
-- 未采纳 finding：<原因>
-- 验证命令与结果：<命令 + 结果>
-- 是否需要二次 review-check：<是/否，原因>
-- Workflow Brief：<修复后的 changed/tests/openFindings/next/tokenHint>
-```
-
-如果改动范围明显扩大，重新跑 `review-check`。小范围确定性修复可由人工 review 签收。
-
-### 8. Understanding Gate
-
-在最终人工 review 前生成代码地图：
-
-```text
-Claude Code: 使用 yan-project-analysis skill，mode=understanding，基于 docs/YYYY-MM-DD/<task>.md 生成代码地图
-Codex: 使用 yan-project-analysis skill，mode=understanding，基于 docs/YYYY-MM-DD/<task>.md 生成代码地图
-```
-
-人工重点看：
-
-- 调用链是否符合业务入口。
-- 状态流转、权限、数据归属是否符合文档。
-- 事务边界、幂等、重复提交、异常分支是否合理。
-- Review 修复是否引入新风险。
-
-### 9. Submit Gate
-
-提交前必须逐项确认：
-
-- `git status --short` 或 `svn status` 无漏 add。
-- `git diff` 或 `svn diff` 已人工扫过。
-- 目标测试/构建/接口验证已通过。
-- Critical / Important findings 已关闭或有明确不采纳理由。
-- `docs/INDEX.md`、看板、OpenAPI 索引已刷新。
-- diff 中没有 API key、密码、token、cookie、私钥、生产连接串。
-- 数据库 DDL/数据修复没有被 AI 直接执行；需要时只保留 DBA 申请材料。
-
-提交命令：
-
-```bash
-git commit -m "<type>: <summary>"
-svn commit -m "[任务类型] [任务名称]：简要说明"
-```
-
-## 失败分支
-
-| 问题 | 处理 |
-|------|------|
-| skill 没触发 | Codex 改用自然语言：“使用 <skill-name> skill ...”；确认 skill 已安装到对应工具目录 |
-| Node 不存在 | 文档仍可生成；看板单页和索引无法刷新时，在完成输出说明并让用户安装 Node 后运行 `node project-html/build.js` |
-| `project-html/build.js` 失败 | 停止，先看报错；不要手工覆盖 `data/changes.js` |
-| SVN/Git 新文件漏 add | 回到 VCS Gate，补 `svn add` / `git add` 后再 review |
-| 测试失败 | 回到实现阶段修复并重跑，不进入 Review |
-| `review-check` 输出 Critical | 严谨路径：贴回 `review-fix` 生成修复交接；直修路径：交给 `review-repair` 直接修复。两种都必须验证后再签收 |
-| 只有 yan-dev-doc 没有 diff | 只能审方案，不能输出“实现无问题” |
-| OpenAPI YAML 生成失败 | 接口变更任务不得宣称 Apifox 可导入；先修 YAML 或标记为 blocker |
-| 数据库结构变更 | 停止直接实现，只输出 DBA 申请说明或建议 DDL |
-
-## 速记
-
-```text
-文档立项 → 执行回填 → add 新文件 → 跑验证 →（拆分链 review-fix/review-check/review-repair，或单 AI review-loop）→ code-reading → 人工签收 → 提交
-```
+- 方案、分析或生成文件不等于实现完成；实现结论必须回到实际文件和 diff。
+- 验证结论必须带本轮命令与结果；建议命令、旧报告或历史成功不能写成已通过。
+- Review 材料不足时返回 `InsufficientMaterial`，不能用“未发现问题”代替。
+- 高风险未知但任务范围可识别时，可以形成 `NeedsConfirmation` 草稿；未知部分不得生成确定性实现、API/数据契约或数据库执行授权。
+- 数据库默认只读；DDL、数据修复、提交、推送、发布和外部发送仍需明确授权。
+- 密码、token、cookie、私钥、连接串和敏感业务值只保留脱敏位置与风险，不进入文档、Brief 或 findings。
+- 保护用户已有改动，只处理当前范围；不自动 add、commit、push 或回滚无关文件。
+
+详细边界见 [workflow-gates.md](../skills/_shared/workflow-gates.md)，轻量交接格式见 [workflow-brief.md](../skills/_shared/workflow-brief.md)，Review 状态语义见 [workflow-chain.md](../skills/_shared/workflow-chain.md)。这些协议约束证据与安全，不规定固定研发流程。

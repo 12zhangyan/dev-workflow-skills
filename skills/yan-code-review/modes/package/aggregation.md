@@ -17,12 +17,12 @@
 - 最明确的证据
 - 最高严重度
 - 最可执行的修复建议
-- 所有来源 AI：`Codex` / `Cursor` / `Claude`
+- 所有 reviewer 的来源别名和原始编号
 
-Finding ID 规则（保证发现→修复→关闭全链路追溯；前缀语义见 [../../../_shared/workflow-chain.md](../../../_shared/workflow-chain.md#finding-id-命名体系全链路统一)）：
-- 汇总后按最终严重度统一重编 `CR-n` / `IM-n` / `MI-n`，拒绝项标 `RJ-n`、阻塞项标 `BK-n`；在该条 finding 的「来源」里保留各 AI 的原始编号（如 `Codex#2 / Cursor#1`），便于回溯是谁提的。
-- 多 AI 对同一问题给了不同 ID 时合并为一个最终 ID，不要产生两条。
-- 修复交接、AI 修复操作码、回填表都用同一套最终 ID；`review-repair` 按此 ID 回填 fixed/deferred/deferred-next-batch/blocked/rejected，不得另起编号。
+Finding ID 规则（保证发现→修复→关闭全链路追溯；前缀语义见 [../../../_shared/workflow-chain.md](../../../_shared/workflow-chain.md#finding-id)）：
+- 首次聚合按最终严重度分配 `CR-n` / `IM-n` / `MI-n`，拒绝项标 `RJ-n`、阻塞项标 `BK-n`；保留 reviewer 的原始编号作为 source alias。
+- 同一根因的后续结果复用 canonical ID；严重度变化记录历史，不静默换号。同根因但影响或修复边界不同的问题不机械合并。
+- 修复交接和 `review-repair` 回填沿用 canonical ID，不得另起编号。
 
 ### 接受标准
 
@@ -33,7 +33,7 @@ Accepted finding 必须同时满足：
 - 有修复方式
 - 有验证方式
 
-不满足时降级为 Minor 或 Rejected。
+证据不足、误报或超范围时归入 `RJ`；业务、权限、接口口径未决时归入 `BK`。`MI` 也必须满足以上证据标准。
 
 ### 材料不足
 

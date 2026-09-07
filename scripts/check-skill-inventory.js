@@ -139,10 +139,6 @@ function validateSkillTable(text, rel, expectedSkills, resourceExists) {
     if (row.entryPoint !== expectedEntryPoint) {
       errors.push(`${rel} has wrong entry point for ${skill}: got "${row.entryPoint}", want "${expectedEntryPoint}"`);
     }
-    if (!row.supportingFiles.includes('`reference.md`')) {
-      errors.push(`${rel} supporting files missing reference.md for ${skill}`);
-    }
-
     const actualExamples = resourceExists(skill, 'examples.md');
     const documentedExamples = row.supportingFiles.includes('`examples.md`');
     if (actualExamples !== documentedExamples) {
@@ -271,62 +267,6 @@ function parseWorkflowChainSection(text, rel, heading, expectedHeader) {
   return { counts, labels, rows, errors };
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function commandReferencesSkill(command, skill) {
-  const escaped = escapeRegExp(skill);
-  const slashInvocation = new RegExp('(?:^|[\\s`，、；;])/' + escaped + '(?=[\\s`<]|$)');
-  const naturalInvocation = new RegExp('\\b' + escaped + ' skill\\b');
-  return slashInvocation.test(command) || naturalInvocation.test(command);
-}
-
-function validateWorkflowChainInventory(text, rel, expectedSkills, requiredNextStepLabels = []) {
-  const responsibilities = parseWorkflowChainSection(
-    text,
-    rel,
-    '## skill 一句话职责',
-    ['skill', '阶段', '做什么', '会改代码吗'],
-  );
-  const nextSteps = parseWorkflowChainSection(
-    text,
-    rel,
-    '## 下一步映射（谁 → 下一步 + 可复制命令）',
-    ['当前完成', '默认下一步', 'Claude Code', 'Codex'],
-  );
-  const errors = [...responsibilities.errors, ...nextSteps.errors];
-  const expectedSet = new Set(expectedSkills);
-
-  for (const [skill, count] of responsibilities.counts) {
-    if (!expectedSet.has(skill)) errors.push(`${rel} responsibilities table documents unknown Skill: ${skill}`);
-    if (count !== 1) errors.push(`${rel} responsibilities table must list ${skill} exactly once; got ${count}`);
-  }
-  for (const skill of nextSteps.counts.keys()) {
-    if (!expectedSet.has(skill)) errors.push(`${rel} next-step table documents unknown Skill: ${skill}`);
-  }
-  for (const skill of expectedSkills) {
-    if (!responsibilities.counts.has(skill)) errors.push(`${rel} responsibilities table missing: ${skill}`);
-    if (!nextSteps.counts.has(skill)) errors.push(`${rel} next-step table missing: ${skill}`);
-  }
-  for (const label of requiredNextStepLabels) {
-    if (!nextSteps.labels.has(label)) errors.push(`${rel} next-step table missing required row label: ${label}`);
-  }
-  for (const row of nextSteps.rows) {
-    const targets = [...row.cells[1].matchAll(/`([^`]+)`/g)]
-      .map((match) => match[1])
-      .filter((skill) => expectedSet.has(skill));
-    for (const target of targets) {
-      for (const [columnIndex, host] of [[2, 'Claude Code'], [3, 'Codex']]) {
-        if (!commandReferencesSkill(row.cells[columnIndex], target)) {
-          errors.push(`${rel} next-step row ${row.label} ${host} command missing Skill target: ${target}`);
-        }
-      }
-    }
-  }
-  return errors;
-}
-
 function runSelfTest() {
   const cases = [
     ['plain text', true],
@@ -395,65 +335,6 @@ function runSelfTest() {
     fail('self-test did not reject a missing README Skill choice row');
   }
 
-  const workflowChain = [
-    '## skill 一句话职责',
-    '',
-    '| skill | 阶段 | 做什么 | 会改代码吗 |',
-    '|-------|------|--------|-----------|',
-    '| `alpha` | Plan | Alpha | 否 |',
-    '| `beta` | Review | Beta | 是 |',
-    '',
-    '## 下一步映射（谁 → 下一步 + 可复制命令）',
-    '',
-    '| 当前完成 | 默认下一步 | Claude Code | Codex |',
-    '|----------|-----------|-------------|-------|',
-    '| `alpha` | `beta` | `/beta <input>` | `使用 beta skill 继续` |',
-    '| `beta`（首轮） | Alpha | alpha | alpha |',
-    '| `beta`（复验） | 人工 | 人工 | 人工 |',
-    '',
-    '## 其他',
-  ].join('\n');
-  const chainErrors = validateWorkflowChainInventory(
-    workflowChain,
-    'skills/_shared/workflow-chain.md',
-    ['alpha', 'beta'],
-    ['`beta`（首轮）', '`beta`（复验）'],
-  );
-  if (chainErrors.length > 0) {
-    fail(`self-test rejected a valid workflow chain: ${chainErrors.join('; ')}`);
-  }
-  const missingChainRow = workflowChain.replace('| `alpha` | `beta` | `/beta <input>` | `使用 beta skill 继续` |\n', '');
-  const missingChainErrors = validateWorkflowChainInventory(
-    missingChainRow,
-    'skills/_shared/workflow-chain.md',
-    ['alpha', 'beta'],
-  );
-  if (!missingChainErrors.some((message) => message.includes('next-step table missing: alpha'))) {
-    fail('self-test did not reject a missing workflow-chain next-step row');
-  }
-  const missingBranchRow = workflowChain.replace('| `beta`（复验） | 人工 | 人工 | 人工 |\n', '');
-  const missingBranchErrors = validateWorkflowChainInventory(
-    missingBranchRow,
-    'skills/_shared/workflow-chain.md',
-    ['alpha', 'beta'],
-    ['`beta`（首轮）', '`beta`（复验）'],
-  );
-  if (!missingBranchErrors.some((message) => message.includes('missing required row label: `beta`（复验）'))) {
-    fail('self-test did not reject a missing required workflow-chain branch');
-  }
-  const missingHostCommand = workflowChain.replace(
-    '| `alpha` | `beta` | `/beta <input>` | `使用 beta skill 继续` |',
-    '| `alpha` | `beta` | 人工 | `使用 beta skill 继续` |',
-  );
-  const missingHostErrors = validateWorkflowChainInventory(
-    missingHostCommand,
-    'skills/_shared/workflow-chain.md',
-    ['alpha', 'beta'],
-    ['`beta`（首轮）', '`beta`（复验）'],
-  );
-  if (!missingHostErrors.some((message) => message.includes('Claude Code command missing Skill target: beta'))) {
-    fail('self-test did not reject a missing host Skill invocation');
-  }
   if (failed) process.exit(1);
   console.log('ok skill inventory parser self-test passed');
   process.exit(0);
@@ -487,7 +368,6 @@ const docs = [
   'docs/workflow-guide.md',
   'AGENTS.md',
   'CLAUDE.md',
-  'skills/_shared/workflow-chain.md',
 ];
 const docTextByRel = new Map(docs.map((rel) => [rel, read(rel)]));
 
@@ -495,15 +375,6 @@ for (const error of validateReadmeSkillIndex(
   docTextByRel.get('README.md'),
   'README.md',
   skillNames,
-)) {
-  fail(error);
-}
-
-for (const error of validateWorkflowChainInventory(
-  docTextByRel.get('skills/_shared/workflow-chain.md'),
-  'skills/_shared/workflow-chain.md',
-  skillNames,
-  ['`yan-project-analysis`（understanding CodeMap）', '`yan-project-analysis`（understanding ImpactAnalysis）'],
 )) {
   fail(error);
 }
@@ -532,7 +403,7 @@ const agentPromptRequirements = {
   ],
   'yan-dev-doc': [
     'Do not invoke it for a direct implementation request',
-    'publish or upgrade the HTML board by default',
+    'Publish the HTML board only',
     'yan-project-analysis',
     'yan-code-review',
   ],

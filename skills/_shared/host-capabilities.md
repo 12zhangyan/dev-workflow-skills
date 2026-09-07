@@ -1,62 +1,27 @@
-﻿# 三端宿主能力协议
+﻿# 三端宿主能力
 
-本协议供 Claude Code、Cursor、Codex 共用。Skill 正文只描述语义能力，不假设宿主暴露了某个固定工具名。
+仅在 Claude Code、Cursor、Codex 的工具或路径差异会影响执行时读取。Skill 描述语义能力，不猜固定工具名。
 
-## 能力映射
+- 用宿主现有能力读取、搜索、打补丁和执行终端；先读后写，保留无关改动。
+- 识别实际 shell 后选择兼容命令，不把 Bash、PowerShell 或 cmd 示例原样发送给不兼容终端。
+- 宿主有结构化提问时可使用，否则普通聊天即可；非交互任务不等待。
+- 有子 Agent/任务能力且切片独立时可主动并行，数量由收益、可用容量和写冲突决定。委派不扩大用户授权，主 Agent 负责整合、冲突处理和最终验证。
+- 工具不可用时说明实际降级和未覆盖风险，不臆造调用或结果。
 
-- **读取/搜索**：使用当前宿主可用的文件读取、目录枚举和文本搜索能力。
-- **文件修改**：使用当前宿主可用的补丁或文件编辑能力；先读后写，保留无关改动。
-- **终端执行**：使用当前宿主当前会话实际提供的终端；先识别 PowerShell、cmd、POSIX shell，再选择兼容命令。
-- **结构化提问**：宿主提供结构化提问能力时优先使用；否则直接在聊天中提出一个最小阻塞问题。非交互任务不得等待提问。
-- **Agent 委派**：只有宿主实际提供子 Agent/任务委派能力且用户授权时使用；否则在当前 Agent 内完成。
+Windows 终端读取 Skill Markdown 时显式按 UTF-8 解码；乱码先修正读取方式，不得据此改写源文件。
 
-不得因为说明中出现 Claude Code、Cursor 或 Codex 就臆造相应工具。工具不可用时显式说明降级方式和未覆盖风险。
+## 跨平台助手
 
-Mode 或参考资料中的 `bash` / `powershell` 命令块只代表该 shell 下的等价示例，不是宿主契约。实际终端不匹配时，必须按本协议翻译为当前 shell 的等价操作；不得把 POSIX 重定向、`test`、`rm`、`cp`、`grep` 或 PowerShell cmdlet 原样发送给不兼容的终端。能由共享 Node 助手或宿主文件能力完成的确定性操作，优先使用这两者。
-
-通过终端读取 Markdown 时必须显式按 UTF-8 解码，尤其是 Windows PowerShell 5.1 中无 BOM 的 Codex 安装副本（例如 `Get-Content -Encoding UTF8`）。出现乱码时先修正读取编码，不得据此改写源文件或把乱码当作 Skill 内容。
-
-## 跨平台确定性操作
-
-日期和目录创建使用共享 Node 助手，不依赖 `date`、`mkdir -p` 或 PowerShell 专属语法：
+需要日期目录、文件状态、VCS owner 或 Skill 内资源定位时，优先解析当前 Skill 树中的 `_shared/scripts/workflow-fs.js`：
 
 ```text
-node <已解析的 _shared/scripts/workflow-fs.js 绝对路径> prepare-date-dir <基础目录>
-```
-
-助手输出创建后的仓库相对目录，例如 `docs/bugs/2026-07-24`。从当前 Skill 所在目录定位同级 `_shared/scripts/workflow-fs.js`；若宿主不暴露 Skill 绝对路径，再依次检查已安装的 Claude Code、Cursor、Codex skills 根。助手不可定位时，使用当前宿主的文件能力创建目录，并在结果中记录降级，不复制未经适配的 shell 命令。
-
-判断文件是否存在使用同一助手：
-
-```text
-node <helper> exists <路径>
-```
-
-输出严格为 `EXISTS` 或 `MISSING`。
-
-其他跨平台确定性操作：
-
-```text
+node <helper> prepare-date-dir <基础目录>
+node <helper> file-state <路径>
 node <helper> detect-vcs [起始目录]
-node <helper> resolve-skill-file <skill 名> <skill 内相对路径>
+node <helper> resolve-skill-file <skill 名> <相对路径>
 node <helper> contains <文件> <文本>
-node <helper> file-state <文件>
 ```
 
-`detect-vcs` 输出 `{"type":"git|svn|none","root":"..."}`；后续 Git/SVN 命令应把该根目录作为工作目录。`resolve-skill-file` 先解析当前 skill 树，再检查三端与通用安装目录，避免在正文里写死某一宿主的用户目录。`file-state` 输出 `MISSING`、`EXISTS_READABLE` 或 `EXISTS_UNREADABLE_OR_UNKNOWN`，用于所有可能覆盖既有产物的路径冲突门禁。
+`file-state` 区分 `MISSING / EXISTS_READABLE / EXISTS_UNREADABLE_OR_UNKNOWN`；`detect-vcs` 返回实际 `git / svn / none` owner。助手不可定位时用当前宿主的等价能力并报告降级，不写死用户目录，也不复制未经适配的 shell 命令。
 
-## 稳定契约
-
-三端必须保持一致：
-
-- Skill 与 mode 路由；
-- 只读/可写授权边界；
-- 产物目录、Workflow Brief 和 finding ID；
-- Blocked、InsufficientMaterial、Verification Gate 等门禁语义。
-
-允许不同：
-
-- UI 展示元数据；
-- 工具实际名称；
-- 用户调用入口（自然语言、菜单或斜杠命令）；
-- 终端类型与路径格式。
+三端可以有不同工具名、UI、调用入口、shell 和路径格式，但 Skill 路由、授权边界、产物语义及证据标准保持一致。

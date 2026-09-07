@@ -176,20 +176,49 @@ function listFiles(directory) {
 function budgetKind(rel, routeSources) {
   const name = path.basename(rel);
   if (routeSources.has(rel)) return name === 'SKILL.md' ? 'public_entry' : 'mode';
+  if (name === 'completion.md') return 'completion';
   if (name === 'reference.md') return 'reference';
   if (name === 'examples.md') return 'examples';
   if (/(?:^|-)template(?:-|\.md$)/i.test(name)) return 'template';
   return '';
 }
 
+function routeBudgetKind(route) {
+  return path.basename(normalizeRel(route.source || '')) === 'SKILL.md' ? 'public_entry' : 'mode';
+}
+
+function defaultRouteFootprint(base, route) {
+  const paths = [...new Set([
+    normalizeRel(route.source || ''),
+    ...((route.direct_resources && route.direct_resources.always) || []).map(normalizeRel),
+  ].filter(Boolean))];
+  let chars = 0;
+  for (const rel of paths) {
+    const full = path.join(base, rel);
+    if (fs.existsSync(full)) chars += readText(base, rel).length;
+  }
+  return { paths, chars };
+}
+
 function validateBudgets(base, contract) {
   const errors = [];
   const limits = contract.budgets && contract.budgets.max_chars;
-  const requiredKinds = ['public_entry', 'mode', 'reference', 'examples', 'template'];
+  const defaultLimits = contract.budgets && contract.budgets.max_default_chars;
+  const requiredKinds = ['public_entry', 'mode', 'completion', 'reference', 'examples', 'template'];
+  const requiredRouteKinds = ['public_entry', 'mode'];
   if (!limits || typeof limits !== 'object') return ['route loading contract must define budgets.max_chars'];
   for (const kind of requiredKinds) {
     if (!Number.isInteger(limits[kind]) || limits[kind] <= 0) {
       errors.push(`route loading budget ${kind} must be a positive integer`);
+    }
+  }
+  if (!defaultLimits || typeof defaultLimits !== 'object') {
+    errors.push('route loading contract must define budgets.max_default_chars');
+  } else {
+    for (const kind of requiredRouteKinds) {
+      if (!Number.isInteger(defaultLimits[kind]) || defaultLimits[kind] <= 0) {
+        errors.push(`route loading default-load budget ${kind} must be a positive integer`);
+      }
     }
   }
   const routeSources = new Set((contract.routes || []).map((route) => normalizeRel(route.source || '')));
@@ -204,12 +233,22 @@ function validateBudgets(base, contract) {
       errors.push(`${rel} exceeds ${kind} budget: ${chars} > ${limits[kind]} chars`);
     }
   }
+  if (defaultLimits && typeof defaultLimits === 'object') {
+    for (const route of contract.routes || []) {
+      const kind = routeBudgetKind(route);
+      const footprint = defaultRouteFootprint(base, route);
+      if (Number.isInteger(defaultLimits[kind]) && footprint.chars > defaultLimits[kind]) {
+        errors.push(`${route.id} exceeds ${kind} default-load budget: ${footprint.chars} > ${defaultLimits[kind]} chars (${footprint.paths.length} resources)`);
+      }
+    }
+  }
   return errors;
 }
 
 function loadingReport(base, contract) {
   const routeSources = new Set(contract.routes.map((route) => normalizeRel(route.source)));
   const limits = contract.budgets.max_chars;
+  const defaultLimits = contract.budgets.max_default_chars;
   const resources = [];
   for (const full of listFiles(path.join(base, 'skills'))) {
     const rel = normalizeRel(path.relative(base, full));
@@ -221,6 +260,8 @@ function loadingReport(base, contract) {
   }
   const routes = contract.routes.map((route) => {
     const declared = collectDeclaredResources(route, []);
+    const routeKind = routeBudgetKind(route);
+    const footprint = defaultRouteFootprint(base, route);
     const policies = { always: 0, routed: 0, conditional: 0, index_only: 0 };
     for (const { policy } of declared.values()) {
       if (policy.startsWith('routed:')) policies.routed += 1;
@@ -230,6 +271,9 @@ function loadingReport(base, contract) {
       id: route.id,
       source: route.source,
       source_chars: readText(base, route.source).length,
+      default_loaded_chars: footprint.chars,
+      default_loaded_resources: footprint.paths.length,
+      default_loaded_limit: defaultLimits[routeKind],
       direct_resources: declared.size,
       policies,
       eval_suite: route.eval.suite,
@@ -237,9 +281,9 @@ function loadingReport(base, contract) {
     };
   });
   return {
-    schema_version: 1,
+    schema_version: 2,
     generated_from: contractRel,
-    note: 'Character counts and declared resources are static regression baselines, not measured model token usage.',
+    note: 'Character counts, including source plus declared always resources, are static regression baselines, not measured model token usage.',
     routes,
     resources: resources.sort((left, right) => right.utilization - left.utilization),
   };
@@ -376,10 +420,27 @@ function runSelfTest() {
 
     const budgetErrors = validateBudgets(temp, {
       routes: [validRoute],
-      budgets: { max_chars: { public_entry: 10, mode: 100, reference: 100, examples: 100, template: 100 } },
+      budgets: {
+        max_chars: { public_entry: 10, mode: 100, completion: 100, reference: 100, examples: 100, template: 100 },
+        max_default_chars: { public_entry: 1000, mode: 1000 },
+      },
     });
     if (!budgetErrors.some((message) => message.includes('exceeds public_entry budget'))) {
       throw new Error('oversized route fixture was not rejected');
+    }
+
+    fs.writeFileSync(path.join(temp, 'skills', 'sample', 'completion.md'), '# completion\nmore context\n', 'utf8');
+    const aggregateRoute = JSON.parse(JSON.stringify(validRoute));
+    aggregateRoute.direct_resources.always.push('skills/sample/completion.md');
+    const aggregateBudgetErrors = validateBudgets(temp, {
+      routes: [aggregateRoute],
+      budgets: {
+        max_chars: { public_entry: 1000, mode: 1000, completion: 1000, reference: 1000, examples: 1000, template: 1000 },
+        max_default_chars: { public_entry: 100, mode: 1000 },
+      },
+    });
+    if (!aggregateBudgetErrors.some((message) => message.includes('exceeds public_entry default-load budget'))) {
+      throw new Error('aggregate default-load budget fixture was not rejected');
     }
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
@@ -415,9 +476,9 @@ if (process.argv.includes('--report')) {
   if (process.argv.includes('--json')) {
     console.log(JSON.stringify(report, null, 2));
   } else {
-    console.log('Route loading baseline (static characters/direct resources):');
+    console.log('Route loading baseline (static source/default-loaded characters/direct resources):');
     for (const route of report.routes) {
-      console.log(`${route.id}\t${route.source_chars} chars\t${route.direct_resources} direct`);
+      console.log(`${route.id}\tsource ${route.source_chars}\tdefault ${route.default_loaded_chars}/${route.default_loaded_limit}\t${route.direct_resources} direct`);
     }
     const hottest = report.resources.slice(0, 5);
     console.log('Highest budget utilization:');

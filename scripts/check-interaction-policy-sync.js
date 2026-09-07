@@ -20,8 +20,11 @@ if (!fs.existsSync(shared)) {
   fail('Missing shared interaction policy: skills/_shared/interaction-policy.md');
 } else {
   const text = fs.readFileSync(shared, 'utf8');
-  for (const needle of ['证据预填', '风险分级', '需求冲突', '材料不足', '敏感证据脱敏', 'Skill 维护反馈块', '非交互运行', '推荐项不是授权', 'InsufficientMaterial']) {
+  for (const needle of ['先读用户输入', '低风险未知', '高风险未知', '需求冲突', '材料不足', '非交互运行', '推荐项不是授权', 'InsufficientMaterial', 'NeedsConfirmation', '未知部分不得生成确定性业务/API/数据口径', '不回显值']) {
     if (!text.includes(needle)) fail(`Shared interaction policy missing required phrase: ${needle}`);
+  }
+  for (const forbidden of ['## 四步流程', '每次只问一个']) {
+    if (text.includes(forbidden)) fail(`Shared interaction policy contains a fixed interaction flow: ${forbidden}`);
   }
 }
 
@@ -37,61 +40,18 @@ for (const skill of requiredSkills) {
   }
 }
 
-const feedbackReferences = [
-  'yan-dev-doc/completion.md',
-  'yan-project-analysis/modes/incident/reference.md',
-  'yan-project-analysis/modes/understanding/reference.md',
-  'yan-project-analysis/modes/business/reference.md',
-  'yan-code-review/modes/package/completion.md',
-  'yan-code-review/modes/check/reference.md',
-  'yan-code-review/modes/repair/reference.md'
-];
-
-for (const rel of feedbackReferences) {
-  const file = path.join(root, 'skills', rel);
-  if (!fs.existsSync(file)) {
-    fail(`Missing reference file: skills/${rel}`);
-    continue;
-  }
-  const text = fs.readFileSync(file, 'utf8');
-  if (text.includes('【Skill 维护反馈】')) {
-    fail(`Reference must not force unconditional skill feedback: skills/${rel}`);
-  }
-}
-
-if (fs.existsSync(shared)) {
-  const text = fs.readFileSync(shared, 'utf8');
-  for (const needle of ['默认不输出维护反馈', 'EvaluationMode=true', '正常业务执行顺畅时完全省略']) {
-    if (!text.includes(needle)) fail(`Shared interaction policy missing conditional feedback rule: ${needle}`);
-  }
-}
-
 const reviewCheckReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'check', 'reference.md');
 if (fs.existsSync(reviewCheckReference)) {
   const text = fs.readFileSync(reviewCheckReference, 'utf8');
-  for (const needle of ['ReviewScopeType', 'VerificationStatus', 'TestEvidenceStatus']) {
+  for (const needle of ['ReviewScopeType', 'TestDependencyClass', 'TestEvidenceStatus']) {
     if (!text.includes(needle)) fail(`review-check reference missing output field: ${needle}`);
   }
 } else {
   fail('Missing review-check reference file: skills/review-check/reference.md');
 }
 
-const reviewFixReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'review-task-template.md');
-const reviewFixSkill = path.join(root, 'skills', 'yan-code-review', 'modes', 'package', 'mode.md');
-for (const [file, label] of [[reviewFixReference, 'review-fix reference'], [reviewFixSkill, 'review-fix SKILL']]) {
-  if (!fs.existsSync(file)) {
-    fail(`Missing ${label} file`);
-    continue;
-  }
-  const text = fs.readFileSync(file, 'utf8');
-  for (const needle of ['ReviewScopeType', 'TestEvidenceStatus', 'ImplementationReview', 'PlanReview', 'FixHandoffReview']) {
-    if (!text.includes(needle)) fail(`${label} missing review scope text: ${needle}`);
-  }
-}
-
 const reviewRepairReference = path.join(root, 'skills', 'yan-code-review', 'modes', 'repair', 'reference.md');
-const reviewRepairSkill = path.join(root, 'skills', 'yan-code-review', 'modes', 'repair', 'mode.md');
-for (const [file, label] of [[reviewRepairReference, 'review-repair reference'], [reviewRepairSkill, 'review-repair SKILL']]) {
+for (const [file, label] of [[reviewRepairReference, 'review-repair reference']]) {
   if (!fs.existsSync(file)) {
     fail(`Missing ${label} file`);
     continue;
@@ -118,7 +78,7 @@ if (fs.existsSync(gatesFile)) {
   const gates = fs.readFileSync(gatesFile, 'utf8');
   if (!gates.includes('workflow-brief.md')) fail('workflow-gates.md does not reference workflow-brief.md');
   if (!gates.includes('workflow-chain.md')) fail('workflow-gates.md does not reference workflow-chain.md');
-  for (const needle of ['准确性不变量', '计划', '实际改动', '验证结果', 'deferred-next-batch', 'environment-blocked', '测试结论必须证明目标逻辑', 'VCS 证据归属', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked']) {
+  for (const needle of ['结论所需证据', '方案、实际改动、验证结果和线上运行', '没有断言目标逻辑', 'EnvironmentBlocked', 'VCS 归属与纳管', 'VCS_OWNER', 'VCSStatusUnknown', 'VCSGateBlocked']) {
     if (!gates.includes(needle)) fail(`workflow-gates.md missing accuracy invariant text: ${needle}`);
   }
 } else {

@@ -1,116 +1,41 @@
-﻿# HTML 看板发布流程
+﻿# Yan Dev Doc 看板发布
 
-`Standard` / `IncrementalRevision` 默认读取并执行；仅在用户明确要求不写看板，或项目级规则禁止时跳过。`Compact` 不进入本流程。
+只在 `yan-dev-doc` 入口的看板条件成立时加载。主方案面向执行 Agent；看板 entry 面向未参与任务的同事，必须独立说明为什么做、怎么做、边界和如何验收，不能截取 md 拼装。
 
-## 边界
+## Entry 语义
 
-- md 面向 Agent 执行；看板 entry 是独立撰写、面向同事的人类方案，不截取 md 段落。
-- 修改目录和详情一律走 `node project-html/board-add.js project-html/data/_entry.json`。
-- 禁止用宿主文件能力整体重写 `data/changes.js`。
-- `changeList`、`todos`、`stackTrace`、`codeLocation` 不得进入看板。
+目录至少包含能定位同一交付的 `docPath`、标题、日期和当前 plan 状态；已有 `deliveryId` 时沿用。接口契约确有新增或变化时才附 `apiSpecPath`、`apiIndexPath` 和对应 `apis`。
 
-## 1. 初始化或升级外壳
+`detail.delivery.plan` 保留当前任务真正需要的人类信息：
 
-运行：
+- 背景、目标、范围与非目标；
+- 整体方案、关键数据/状态流和重要取舍；
+- 可观察验收及当前未决边界。
 
-```text
-node <helper> file-state project-html/data/changes.js
-node <_shared/scripts/board-bootstrap.js> status <项目根目录>
-```
+组件关系、流程图、关键实现决策和下一动作只有能提高理解时才写。精确文件清单、类/方法级步骤、执行命令、Todo、堆栈和 `codeLocation` 留在 md，不进入看板。省略空字段，不制造重复摘要。
 
-- `MISSING`：先迁移旧单文件看板中的 `changes` / `htmlChangelog`；否则运行 adapter 的 `sync` 初始化空目录。
-- `EXISTS_READABLE`：`BOARD_SHELL_UPGRADE_REQUIRED` 时运行 `sync`；它只复制外壳，不覆盖 `data/`。
-- `EXISTS_UNREADABLE_OR_UNKNOWN` 或 `BOARD_TEMPLATE_ERROR`：停止发布，不手改数据绕过。
-
-升级到 v23+ 时运行 `node project-html/board-add.js --migrate` 拆分旧富记录。详细 adapter 契约见 [共享看板外壳引导](../_shared/board-shell-bootstrap.md)。
-
-## 2. 创建“一事一档”主记录
-
-`yan-dev-doc` 是研发档案的创建者。每个方案只创建一个主记录；后续 `yan-code-review package/check/repair/loop` 必须凭 `deliveryId` 或 `sourceDocPath` 更新这条记录，不得另建孤立的 Review 条目。
-
-轻量目录字段直接来自方案：
-
-- `service`、`module`、`title`、`date`、`type`、`complexity`、`status:"草稿"`；
-- `branch`、`docPath`；
-- `currentGate:"plan"`、`gateStatus:"passed|blocked"`；`deliveryId` 由 `board-add.js` 根据稳定文档路径生成并写回目录；
-- 仅接口新增/契约变更时写 `apiSpecPath`、`apiIndexPath` 和 `apis[]`。
-
-人类叙述写入 `detail.delivery.plan`，必须重新面向同事独立撰写：
-
-- `background`：业务痛点和触发原因；
-- `goals`、`scopeIn`、`scopeOut`：业务和方案边界；
-- `solution`：整体实现方式，说明核心组件如何协作；
-- `dataFlowSummary`：用一段话写清“入口/来源 → 校验与转换 → 核心处理 → 持久化或外部调用 → 返回/事件”的主数据链路；
-- `coreDesign`：真正存在的技术取舍；
-- `keyImpl`：3–6 个“问题 → 做法 → 原因”决策点；
-- `flowchart`：无代码围栏的 Mermaid，默认画数据流转与处理链路；
-- `acceptance`：开发人员可以直接核对的验收与回归结论。
-
-阅读质量约束：
-
-- 把 entry 写成开发人员可独立评审的方案，而不是业务汇报页或数据仪表盘；读者不打开 md 也能理解这次做什么、数据怎么流转、为什么这样设计、边界和验收是什么；
-- 首屏只保留一层简洁方案摘要；摘要给结论，正文按需求、方案、流程、关键实现和验收展开，禁止再造“业务视角 / 研发视角 / 方案落点”等重复摘要；
-- 同一信息只在一个正文位置完整解释；其他位置需要引用时只写一句结论，不复制整段；
-- `background`、`solution`、`dataFlowSummary`、`coreDesign` 使用连续、可阅读的段落；`keyImpl` 每项写清“问题 → 选择 → 原因/取舍”，不堆文件清单或 Agent Todo；
-- 看板保留开发理解所需的组件关系、接口、状态、数据流和验收；精确文件改动、类/方法级步骤、执行命令、Todo 与逐步操作流程只写入 md，禁止复制到看板；
-- 标题和小标题使用同事能理解的业务/技术语言，避免把字段名、流水账或模板占位符直接展示给人类。
-
-使用当前宿主文件能力把标准 JSON 写入 `project-html/data/_entry.json`。字符串双引号，换行写 `\n`，不使用反引号；空字段省略。目录元数据写入 `entry`，人类方案写入 `detail.delivery.plan`：
+示意结构仅表示归属，不是完整字段模板：
 
 ```json
 {
-  "changelog": "新增文档：<title>",
+  "changelog": "新增或更新方案：<title>",
   "entry": {
-    "service": "<service>",
-    "module": "<module>",
     "title": "<title>",
     "date": "<date>",
-    "type": "<type>",
-    "complexity": "<complexity>",
-    "status": "草稿",
-    "branch": "<branch>",
-    "docPath": "<docPath>",
-    "currentGate": "plan",
-    "gateStatus": "passed",
-    "apis": []
+    "docPath": "<repo-relative md path>",
+    "currentGate": "plan"
   },
   "detail": {
     "delivery": {
       "plan": {
-        "status": "passed",
-        "summary": "<one-sentence plan>",
-        "background": "<background>",
-        "goals": ["<goal>"],
-        "scopeIn": ["<scope>"],
-        "scopeOut": ["<non-goal>"],
-        "solution": "<solution>",
-        "dataFlowSummary": "<source -> validation/transform -> processing -> persistence/outbound -> result/event>",
-        "coreDesign": "<boundary and trade-off>",
-        "keyImpl": [{"title": "<decision>", "desc": "<problem -> choice -> reason>"}],
-        "flowchart": "<mermaid data flow>",
-        "acceptance": ["<observable acceptance result>"],
-        "next": "<next gate action>"
+        "summary": "<human summary>",
+        "scope": ["<in/out boundary>"],
+        "solution": "<flow and key decisions>",
+        "acceptance": ["<observable result>"]
       }
     }
   }
 }
 ```
 
-## 3. 确定性写入和构建
-
-1. 运行 `node project-html/board-add.js project-html/data/_entry.json`。
-2. 成功后删除临时 JSON；失败时保留用于诊断，不手改 `changes.js`。
-3. 运行 `node project-html/build.js`，生成轻量详情页和 `docs/INDEX.md`。
-4. 只有明确需要单文件外发时运行 `node project-html/build.js --standalone "<docPath 或 slug>"`。
-
-`board-add.js` 负责生成稳定 `deliveryId`，按 `deliveryId` / `sourceDocPath` / `docPath` 去重，深合并生命周期详情，按稳定 `eventId` 幂等更新 Review 事件，并保留治理字段、备份、拆分详情和记录数回归。脚本失败时原数据必须保持不变。
-
-## 4. 完成条件
-
-- entry 是独立的人类方案，不是 md 摘录；
-- `data/changes.js` 未被整体重写；
-- `board-add.js` 与 `build.js` 均成功；
-- 详情页首屏能直接回答“当前 Gate / 开发方案 / Review 摘要 / 验证证据 / 下一步”；正文保留完整方案，后续 Review 可在同一 `deliveryId` 下持续更新；
-- 有真实浏览器能力时至少打开一条详情检查首屏与正文；无法浏览器复核时标记 `BoardVisualCheck: NotRun`，不得声称视觉已验证；
-- 输出 `BoardPublishStatus: Published` 和目录/详情/索引路径；
-- 新建看板时只提示精确 VCS 纳管命令，不代用户执行。
+写好 entry 后读取并执行 [共享看板发布流程](../_shared/board-publish-flow.md)。所有写入必须经过 `node project-html/board-add.js`，随后运行 `node project-html/build.js`；脚本失败时保留证据，不手改数据绕过。视觉复核只有真实打开页面后才能声称通过，否则明确未运行。

@@ -1,180 +1,32 @@
 ﻿---
 name: yan-code-review-check
-description: 对 Review 任务包、yan-dev-doc、patch/diff 或当前工作区执行一次只读代码审查并输出结构化 findings；不得修改代码。由 yan-code-review 根入口的 check mode 加载。
+description: 对 Review 材料、patch/diff 或当前工作区执行只读代码审查，基于实际证据输出 findings 或明确材料边界。由 yan-code-review 根入口的 check mode 加载。
 ---
 
-# 代码审查执行
+# 只读代码审查
 
-## 任务定位
+## 目标与权限
 
-执行一次**只读 code review**。它回答的是："这批改动有没有会导致缺陷、回归、安全风险或维护风险的问题？"
+找出会影响正确性、业务语义、数据、安全、并发、兼容或验证有效性的真实问题，并让结论可复核。不得修改代码、测试、正式文档、VCS 或数据库；用户明确要求同步既有交付档案时，仅可按“发布”一节写看板元数据。
 
-与相邻 skill 的分工：
-- `yan-code-review mode=package`：生成 Review 任务包，回收多方 findings，并产出修复交接。
-- `yan-code-review mode=check`：拿任务包或 diff 执行一次审查，只输出 findings，不修代码。
-- `yan-code-review mode=repair`：已有 findings 后直接修改代码并验证。
-- `yan-code-review mode=loop`：同一 AI 编排审查、修复、验证和复审闭环。
-- `yan-project-analysis mode=understanding`：生成代码地图，只梳理结构，不判断问题。
+## 自主审查
 
-## 执行流程
+从用户输入、当前对话和 Brief 推断目标与范围；同会话刚完成的实现默认审其实际 changed 文件和 diff，不机械追问入口。只有方案时审方案并说明未审实现；关键入口无法定位时，交互运行只问阻塞问题，非交互返回材料缺口。
 
-### 共享交互协议
+Agent 按风险决定读取顺序和审查视角：
 
-先遵循 [../../../_shared/interaction-policy.md](../../../_shared/interaction-policy.md)：只基于已读取材料下结论；材料不足时输出"材料不足，无法下结论"，不要伪装成未发现问题；需求/实现/状态/权限/数据归属冲突要作为重点审查项。
+- 找到每个变更文件最近的 Git/SVN owner，核对 status、实际 diff 和范围内未跟踪文件；命令失败保留错误，不能把空结果当 clean。
+- 读取足以理解行为的实现、调用方、契约和测试；先覆盖高影响路径，只有证据指向时才扩大范围。
+- 检查验证是否真的执行并断言目标行为；默认 CI 依赖不可控外部服务是真实测试契约风险，不能用假凭据换取通过。
 
-非交互/无人值守运行中不等待提问：入口或关键材料缺失时直接输出 `InsufficientMaterial`、最小缺失材料和受影响范围；不修改业务代码或正式文档，也不给 Review Gate 通过结论。若能确定主档案身份，仍登记一条材料不足的 Review 事件。
+审查维度或格式仍不足时读取 [补充参考](reference.md)。需要处理冲突时读取 [交互策略](../../../_shared/interaction-policy.md)，需要解释 Gate 口径时读取 [工作流门禁](../../../_shared/workflow-gates.md)，实际收到或需要交接 Brief 时读取 [Workflow Brief](../../../_shared/workflow-brief.md)。
 
-同时遵循 [../../../_shared/workflow-gates.md](../../../_shared/workflow-gates.md)：本 skill 只执行 Review Gate 的只读审查；输出必须包含 `ReviewScopeType`、`VerificationStatus` 和 `TestEvidenceStatus`，说明本次审的是方案/实现/修复交接、已看到或未看到哪些验证命令/结果、测试是否真的验证目标逻辑；材料不足时不能给通过结论。
+## Findings
 
-若输入包含 `【Workflow Brief】`，同时遵循 [../../../_shared/workflow-brief.md](../../../_shared/workflow-brief.md)：先把 Brief 当读取索引，按 `tokenHint` 依次读取 `source`（review-task/yan-dev-doc）与 `changed` 文件，再按审查清单核对；不要因为已有 Brief 就跳过原始 diff/源码证据，也不要要求用户重新粘贴全文。
+Accepted finding 使用稳定 `CR-n / IM-n / MI-n`，并包含定位、实际证据、可观察影响、修复方向和验证方式。推测、纯风格偏好或证据不足不冒充 finding。
 
-### Step 0：入口识别
+材料足够且没有问题时，只说明“在已检查范围内未发现有证据的问题”及覆盖边界；关键材料不足时列出缺口和受影响结论，不写成通过。测试只报告实际命令、结果和证明边界；状态标签及外部依赖分类仅在有助于交接、门禁或失败归因时使用。
 
-`$entry` 为空时，先按同会话证据推断，不要机械追问“审查什么”：
+## 输出
 
-1. 同会话刚完成 Implementation，且已有明确 `yan-dev-doc`（或等价开发方案路径）与 `changed` 文件清单，或可定位到对应 Git/SVN diff/status → **默认针对最近实现做 `ImplementationReview`**；优先绑定同会话已经确认的 `changed` 文件，将该文档当作文档模式入口，并告知用户："未给 entry，默认针对最近实现做 ImplementationReview"。不要因为用户最后只发送 `/yan-code-review` 或自然语言 Skill 名称，就丢失最近实现会话的范围并重新追问入口。
-2. 输入含 `【Workflow Brief】` 且 Brief 已给 `source` / `changed` → 走轻量交接模式，不追问入口。
-3. 否则（无同会话实现证据、无 Brief、也无可定位的任务包/文档/patch）才询问：
-
-> "这次要审查什么？请给 Review 任务包路径、yan-dev-doc 路径、patch/diff 路径，或一句功能描述。"
-
-入口模式：
-- 文本含 `【Workflow Brief】` → **轻量交接模式**：先读 Brief 的 `source` / `changed` / `openFindings` / `tokenHint`，据此按需读取任务包和 changed 文件，不扩展到无关目录；随后仍走对应源模式的审查清单。
-- 路径包含 `review-task.md` 或文档标题含 `Review 任务包` → **任务包模式**
-- 含 `.patch` / `.diff` 或文件名含 `changes.patch` → **patch 模式**
-- 含 `.md` 且路径在 `docs/` 下 → **文档模式**
-- 其他自然语言 → **上下文模式**
-
-判定 `ReviewScopeType`：
-- 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或同会话/Brief 已给出明确 `changed` 文件 → `ImplementationReview`。
-- 只有 yan-dev-doc / 需求描述，没有实现证据 → `PlanReview`，并明确说明未审实现代码。
-- 审查对象是 fix-handoff / 已定位 findings 的修复交接 → `FixHandoffReview`。
-
-告知用户："检测到入口模式：[模式名]，开始只读审查。"
-
-### Step 1：收集审查材料
-
-静默执行，只用于审查，不完整展示给用户：
-
-1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
-2. Git：以 `root` 为工作目录读取当前分支、`status --short`、`diff --name-status` 和实际 diff；SVN：以 `root` 为工作目录读取 info/revision、status、diff summarize 和实际 diff。无 VCS 时记录 `VCS_TYPE=none`。
-3. 使用当前宿主的目录枚举/搜索能力，在 VCS root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
-
-判断规则：初始 root 只用于发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
-
-按模式读取：
-- 任务包模式：Read `$entry`，提取审查目标、证据包路径、关键源码、测试命令和回收格式。
-- patch 模式：Read patch/diff，提取文件列表、关键 hunk、接口/状态/事务相关改动；若存在 `??` 新增文件，按路径优先级主动读取关键新增文件。
-- 文档模式：Read yan-dev-doc，提取目标、范围、代码变更清单、测试关注点；必要时读取同日期的 `docs/code-reading/`。
-- 上下文模式：用 Grep/Glob 查找候选入口；不确定时询问用户补充 yan-dev-doc、patch 或入口类。
-
-优先读取：
-1. 任务包或 yan-dev-doc 明确点名的关键文件。
-2. 后端：Controller/Service/Mapper/Repository/DTO/枚举/配置类、SQL/XML/YAML。
-3. 前端：路由、请求封装、状态管理、鉴权守卫、核心 Vue 页面、SSE/iframe/富文本渲染。
-4. AI 生成/文件工具：读写/列表工具、路径解析器、沙箱根目录、生成产物部署逻辑。
-5. 配置与部署：环境变量模板、Docker、CORS、JWT/Redis/LLM profile、CI 命令。
-
-### Step 2：按清单审查
-
-加载清单：[reference.md](reference.md#审查清单)
-
-审查顺序：
-1. **需求一致性**：实现是否符合 yan-dev-doc / Review 任务包目标。
-2. **需求冲突与业务正确性**：用户口径、yan-dev-doc、现有状态机、字典、权限、数据归属、接口先后依赖是否冲突；主流程、状态流转、金额/数量/权限/库存等关键规则是否正确。
-3. **边界与异常**：null、空集合、非法枚举、重复提交、异常分支。
-4. **事务与并发**：回滚边界、跨服务调用、幂等、锁、分页状态。
-5. **安全与敏感信息**：越权、敏感日志、注入、明文凭证。
-6. **前端交互**：路由守卫、token 刷新、SSE 错误事件、XSS/iframe、loading 状态。
-7. **AI 文件沙箱**：路径穿越、覆盖写、读取截断、生成/修改模式误判、部署回滚。
-8. **性能与兼容**：N+1、循环远程调用、接口签名/响应结构变更、OpenAPI 生成兼容。
-9. **测试与验证**：测试是否覆盖正常、异常、边界、回归；测试名、测试数据和断言对象是否真的调用并验证目标逻辑，避免只验证前置条件或临时目录自证；新增/修改的测试文件是否已纳入 VCS。读取测试注解/tag/profile、配置和 CI workflow，输出 `TestDependencyClass`；默认 `test/verify` 混入真实 AI/SaaS 调用、要求未提供的真实密钥或不可控外部服务时，输出 `Important` 测试架构/CI 契约 finding，`TestEvidenceStatus=Failed`，不得写成 `EnvironmentBlocked`。
-10. **提交完整性**：关键源码、测试、配置、SQL/XML、前端资源等是否存在"本地有文件但未被 Git/SVN 跟踪"的问题；这类问题即使本地测试通过，也会导致提交后缺文件。
-
-### Step 3：判定 finding
-
-只输出满足以下条件的问题：
-- 能定位到文件、方法、接口、配置或数据路径。
-- 有来自 diff/源码/文档的证据。
-- 能说明影响。
-- 有可执行修复建议。
-- 有验证方式。
-
-证据独立性（保证 findings 可复核、不放大误判）：
-- `Critical` / `Important` 的 Evidence 必须来自**实际读到的代码或 diff**，写清 `路径:行号` 或 `类.方法`；只凭 yan-dev-doc/任务包声称"应该如此"而未读到对应实现时，最多记为 `Important` 并在 Evidence 注明"未读到实现，需确认"，不得直接判 `Critical`。
-- 关键源码没读到就无法证实的问题，归入 `InsufficientMaterial` 或 `Notes`，不要凭推测升级严重度。
-
-分级：
-- `Critical`：可能造成数据错误、核心流程不可用、安全漏洞、生产事故。
-- `Important`：高概率缺陷、重要回归、边界/异常会失败，修完再继续。
-- `Minor`：维护性、局部测试增强、命名/重复逻辑等不阻塞问题。
-- `Notes`：不确定观察或非阻塞建议，不进入 findings。
-
-结论状态（三选一）：
-- `Findings`：发现有证据的问题。
-- `NoEvidenceIssue`：材料足够，未发现有证据的阻塞问题。
-- `InsufficientMaterial`：关键材料不足，无法对目标范围下结论。必须列缺失材料和受影响结论范围，不得写"未发现问题"。
-
-### Step 4：输出结构化结果
-
-按模板输出：[reference.md](reference.md#输出格式)
-
-要求：
-- 第一屏先用普通中文输出三项：`审查结论`、`你现在需要做什么`、`验证结果`；不得要求用户先理解 `NoEvidenceIssue`、`TestDependencyClass`、`Workflow Brief` 等内部字段。
-- `Workflow Brief` 和审计字段放在“技术回执（供后续 AI / 审计，可跳过）”之后，不得抢在用户结论前面。
-- findings 按 `Critical / Important / Minor` 分组。
-- 固定输出 `VerificationStatus`：已运行/未运行/未提供；命令、结果或未运行原因。
-- 固定输出 `TestDependencyClass`：`Hermetic / ServiceBacked / LiveExternal / Mixed / Unknown / NotApplicable`，说明默认命令与独立外部测试的边界。
-- 每条包含 `File/Line`、`Problem`、`Evidence`、`Impact`、`Fix`、`Verify`。
-- 没有明确问题时，先判断材料是否足够：足够才输出"未发现有证据的阻塞问题"并列出已检查范围；不足则输出"材料不足，无法下结论"。
-- `NoEvidenceIssue` 不输出空的 `Critical / Important / Minor` 分组，不把 Notes 冒充 findings，也不得建议 `repair`、声称“可将以上 findings 原样交付”或同时给 package/repair 两条分叉。
-- 不输出大段源码，不复述全部 diff。
-
-### Step 4.5：更新同一研发档案
-
-加载并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md) 的“更新同一研发档案的 Review 生命周期”：
-
-- 若上层明确传入 `BoardPublishOwner: loop`，本子阶段只把结构化结果交回 loop，不自行写看板。
-- 优先从 yan-dev-doc、Review 任务包或 Workflow Brief 取得 `deliveryId`；没有时使用对应开发文档路径作为 `sourceDocPath`。
-- 写入 `mode:"check"` 的稳定事件；`eventId` 由 check + 审查范围 + 目标身份组成，重复审查同一轮时更新原事件。
-- `currentGate:"review"`；有 Critical/Important 或材料不足时 `gateStatus:"blocked"`，材料充分且无阻塞 finding 时为 `"passed"`。
-- 只把 finding ID、严重度、状态、面向人的问题/影响摘要和验证结论写入看板；精确 `File/Line`、完整证据、修复命令仍只保留在 check 输出。
-- 该步骤只允许通过 `board-add.js` 和 `build.js` 写看板元数据；不得借此修改业务代码、测试或正式文档。
-- 身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`，不得新建孤立档案。
-
-### Step 5：结束提醒
-
-按结论只输出一个与当前 Gate 一致的下一步：
-
-- 只有结论状态为 `Findings` 时，才可说明 findings 可交给 `package` 汇总/归档，或在用户明确要求修改时交给 `repair`；不要替用户同时选择两条路径。
-- `NoEvidenceIssue`：明确说“本次没有需要修复的 findings”，Review Gate 满足时只给人工复核/提交或既定下一步；用户未要求归档时不推荐 `package`。
-- `InsufficientMaterial`：只要求补齐缺失材料后重新 `check`，不得建议 `repair`。
-
-## 禁止事项
-
-- 不修改业务代码、测试或正式文档，不运行修复命令；唯一允许的写入是通过确定性脚本更新同一研发档案的看板元数据。
-- 不执行数据库写操作或 DDL；涉及数据库只允许只读分析。
-- 不把风格偏好包装成严重问题。
-- 不因为"可能"就输出 finding；证据不足放入 Notes。
-- 不在材料不足时宣称通过或未发现问题。
-- 不要求重构无关模块，不回滚用户已有改动。
-
-## 检查清单
-
-- [ ] 已识别入口模式（含 `$entry` 为空时的同会话 ImplementationReview 默认）
-- [ ] 已读取任务包 / yan-dev-doc / patch / 关键源码
-- [ ] 已按审查清单覆盖正确性、边界、事务、并发、安全、前端/SSE、AI 文件沙箱、性能、兼容、测试与提交完整性
-- [ ] 每条 finding 都有证据、影响、修复建议、验证方式
-- [ ] 已在 Findings / NoEvidenceIssue / InsufficientMaterial 三种结论中选择一种，并写明依据
-- [ ] 未修改任何业务代码、测试或正式文档
-- [ ] 已发布同一 `deliveryId` / `sourceDocPath` 的 check 事件，或明确输出 `BoardPublishStatus: Blocked`
-- [ ] 第一屏为普通中文结论；技术回执位于其后
-- [ ] 仅 Findings 输出 finding ID 与修复/汇总路径；NoEvidenceIssue 未输出空分组或 repair 建议
-
-## 相关资源
-
-- 审查清单与输出模板：[reference.md](reference.md)
-- 示例：[examples.md](examples.md)（仅在首次审查或 finding 格式仍歧义时读取一个对应示例）
-- 有 findings 时组织多 AI review 与修复交接：`yan-code-review mode=package`
-- 有明确 findings 且用户要求修改时直接修复：`yan-code-review mode=repair`
-- Review 前代码地图：`yan-project-analysis mode=understanding`
+作为 loop/package 内部 reviewer 时只返回证据，由协调者决定是否按根入口规则发布。最终答复先给结论和最高优先级问题，再给必要的范围、VCS、验证与未决风险。finding 至少包含稳定 ID、定位/证据和影响；修复或验证建议按信息增益给出，形式由 Agent 决定。没有 finding 时不输出空分组，下一动作只在仍有缺口或用户需要继续时给出。

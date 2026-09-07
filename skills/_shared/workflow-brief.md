@@ -1,50 +1,25 @@
-﻿# Workflow Brief 轻量交接协议
+﻿# Workflow Brief
 
-本协议用于把一次任务从一个 skill 交给下一个 skill 或另一个 AI。目标是减少重复粘贴长文档、减少无效读取，并让下一步先读证据索引，再按需打开全文。
-
-## 使用原则
-
-- 每个会产生下一步动作的 skill，都应在完成输出里给一段 `【Workflow Brief】`。
-- Brief 是索引，不是证据本身；涉及判断时仍要读取列出的源文档、diff、源码或测试输出。
-- 优先写路径、ID、命令和结论，不粘贴整段源码、整份文档或长 diff。
-- 下一位 AI 先读 Brief，再读 `source` / `artifacts` / `changed` 中列出的文件；只有发现冲突、缺证据或任务要求时，才扩展读取范围。
-- 业务语义、权限、状态、接口契约、DB 结构、数据修复等不可逆或高风险事项，不能只靠 Brief 推断，必须回到原始证据。
-
-## 标准格式
+只在跨 Agent、跨任务或延期恢复时使用。Brief 是恢复工作的最小证据索引，不是第二份方案、findings 或聊天摘要。
 
 ```text
 【Workflow Brief】
-stage: <PlanGate / ImplementationGate / VCSGate / VerificationGate / ReviewGate / ReviewRepair / UnderstandingGate / SubmitGate>
-task: <任务名或一句话目标>
-source: <本轮依据的原始输入，如 docs/...md、review-task、fix-handoff、findings 来源>
-artifacts: <本轮生成或更新的文档、OpenAPI、看板、索引路径>
-changed: <本轮涉及的源码/测试/配置/SQL/XML/OpenAPI 文件；没有写 无>
-vcs: owner=<VCS 根或 none>; tracked=<已纳管范围>; untracked=<未纳管文件或 无；未检查写原因>
-tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<验证命令 + 结果；未运行写原因；environment-blocked 写工具链版本>
-api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<本次新增/变更接口 ID 或 无>
-openFindings: <未关闭 finding/blocker/deferred/deferred-next-batch；没有写 无>
-next: <下一步应运行的 skill 或人工动作>
-nextCommand: <可直接复制给下一位 AI 的完整命令；纯人工动作写 人工：<动作>>
-tokenHint: <下一位 AI 的最小读取顺序；首轮最多 5 个文件，例如 先读本 Brief -> docs/... -> changed 文件>
+task: <目标>
+scope: <授权、禁止事项和不可逆边界>
+evidence: <裁决当前动作必需的路径、命令、ID 或状态>
+next: <可执行动作及完成判据；独立动作可并列>
+state: <可选；当前真实状态>
+verification: <可选；已运行命令、结果和未证明范围>
+open: <可选；未决 finding、blocker 或裁决>
+inFlight: <可选；所有者/任务句柄、范围、状态和等待条件>
+vcs: <可选；仅在 owner、未跟踪或提交状态影响 next 时>
+api: <可选；仅在契约或规范产物影响 next 时>
 ```
 
-## Brief 自身也要精简
+`task/scope/evidence/next` 是恢复任务的最小核心；其余字段只有提供信息增益时才出现。内容长短由恢复任务所需证据决定，不填空字段，也不复制正文、源码、长 diff、日志或秘密。
 
-Brief 是索引，不是第二份文档。避免它反噬 token 收益：
+Brief 记录授权但不产生授权。接手方先核验最能裁决 `next` 的证据；业务、权限、接口、数据库、验证结果或部署状态不能仅凭摘要推断。计划、编译和历史结果不能冒充本轮验证。
 
-- 只填标准格式里的固定字段，一字段一行；整块控制在 14 行内。
-- 字段无内容写 `无` / `未运行 + 原因` / `未检查 + 原因`，不要留空、不要展开解释。
-- 不在 Brief 里复述问题正文、方案细节或源码；`openFindings` 只写未关闭 ID 摘要（如 `CR-1, BK-1, MI-2(deferred)`），正文和 rejected 终态留在 findings/处理表里。
-- `changed` / `artifacts` 只列路径，不加描述；`tokenHint` 给读取顺序，不复述内容。
-- `vcs` 固定拆成 `owner / tracked / untracked`，新增测试、OpenAPI 或文档仍未纳管时必须出现在 `untracked`。
-- `tests` 固定拆成 `class / command/result`；Mixed 要分别写可控子集和外部子集，默认 CI 依赖真实密钥时写 Failed，不写 environment-blocked。
-- `api` 固定拆成 `spec / index / operationIds`；生成 YAML 时三项都要填写，后续接口变更直接更新 `spec` 指向的文件并同步 `index`。
-- `next` 说明意图，`nextCommand` 给出可直接复制的命令；不要让下一位 AI 再从描述中拼命令。
+有依赖时只列当前可推进前沿；互不覆盖的动作可以并行。已有在途工作时记录句柄和等待条件，避免重复派发。普通实现、测试和验收由 Agent 自主完成，不要求转到外部 Skill。
 
-## Token 节省规则
-
-- 不把 `yan-dev-doc`、`review-task`、`fix-handoff` 全文反复复制给后续 AI；复制 Brief + 路径即可。
-- 不把完整 diff 粘贴给 review；提供 VCS 命令、关键文件列表和 review-task 路径，让 reviewer 在本地读取。
-- Findings 回传时保留 ID、文件、问题、证据、修复建议和验证方式；无关叙述删掉。
-- 修复后回填只写处理表、验证结果和 Brief；不要复述完整方案。
-- `tokenHint` 的首轮读取上限为 5 个文件；证据不足或冲突时再按需扩展，并在结果里说明扩展原因。
+旧产物中的 `stage/source/artifacts/changed/tests/openFindings/nextCommand/tokenHint` 只作为输入兼容，映射到当前证据后复核漂移；新产物不再复制旧字段和读取话术。

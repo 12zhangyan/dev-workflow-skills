@@ -15,6 +15,19 @@ const result = spawnSync(process.execPath, [runner, '--probe', '--json'], {
   windowsHide: true,
   timeout: 30000,
 });
+const selfTest = spawnSync(process.execPath, [runner, '--self-test'], {
+  cwd: root,
+  encoding: 'utf8',
+  windowsHide: true,
+  timeout: 30000,
+});
+
+if (selfTest.status !== 0
+    || !selfTest.stdout.includes('artifact-content')
+    || !selfTest.stdout.includes('current-skill snapshot self-tests passed')) {
+  console.error(`FAIL: host eval self-test exited ${selfTest.status}: ${selfTest.stderr || selfTest.stdout}`);
+  process.exit(1);
+}
 
 if (result.status !== 0) {
   console.error(`FAIL: host eval probe exited ${result.status}: ${result.stderr || result.stdout}`);
@@ -65,6 +78,28 @@ if (!runnerText.includes('LOADED_RESOURCES:')
   console.error('FAIL: host eval runner must collect route-loading receipts and baseline metrics');
   process.exit(1);
 }
+if (!runnerText.includes('const contentResults = (assertions.content || [])')
+    || !runnerText.includes('matches_by_file: matchesByFile')) {
+  console.error('FAIL: host eval runner must verify assertions against changed artifact content');
+  process.exit(1);
+}
+if (!runnerText.includes('function parsePorcelainZ(value)')
+    || !runnerText.includes("'core.quotePath=false'")
+    || !runnerText.includes('const modelOutput = (run.stdout || \'\').trim()')) {
+  console.error('FAIL: host eval runner must preserve Unicode Git paths and assess model stdout separately from diagnostics');
+  process.exit(1);
+}
+if (!runnerText.includes('function compactDiagnostics(value, limit = 8000)')
+    || !runnerText.includes('diagnosticsTruncated: diagnosticSummary.truncated')) {
+  console.error('FAIL: host eval results must bound duplicated host diagnostics');
+  process.exit(1);
+}
+if (!runnerText.includes('function stageSkillSnapshot(workspace)')
+    || !runnerText.includes("fs.cpSync(path.join(root, 'skills')")
+    || !runnerText.includes("skillSnapshot: { kind: 'current-checkout-copy'")) {
+  console.error('FAIL: live evaluation must stage the current checkout skills inside the isolated workspace');
+  process.exit(1);
+}
 const loadingCases = contracts.cases.filter((item) => item.route_loading);
 if (loadingCases.length < 4
     || !['yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-dev-doc'].every(
@@ -77,6 +112,18 @@ const writable = contracts.cases.filter((item) => item.write_scope !== 'none');
 if (!writable.length || !contracts.cases.some((item) => item.prompt_ref.startsWith('yan-dev-doc:'))) {
   console.error('FAIL: contracts must include writable and yan-dev-doc representative cases');
   process.exit(1);
+}
+const repairContract = contracts.cases.find((item) => item.id === 'review-repair-scoped-write');
+if (!repairContract || !Array.isArray(repairContract.allowed_path_patterns)
+    || !repairContract.assertions || !repairContract.assertions.content || !repairContract.assertions.text) {
+  console.error('FAIL: repair live contract must constrain changed paths and verify implementation plus closure evidence');
+  process.exit(1);
+}
+for (const contract of contracts.cases.filter((item) => item.write_scope === 'code-and-tests')) {
+  if (!Array.isArray(contract.allowed_path_patterns) || !contract.allowed_path_patterns.length) {
+    console.error(`FAIL: code-and-tests contract ${contract.id} needs explicit allowed path patterns`);
+    process.exit(1);
+  }
 }
 for (const contract of contracts.cases.filter(
   (item) => item.prompt_ref.startsWith('yan-dev-doc:') && item.write_scope !== 'none',

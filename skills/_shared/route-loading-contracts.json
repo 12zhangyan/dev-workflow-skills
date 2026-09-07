@@ -1,12 +1,17 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "budgets": {
     "max_chars": {
       "public_entry": 8000,
       "mode": 12000,
+      "completion": 4000,
       "reference": 9000,
       "examples": 15000,
       "template": 8000
+    },
+    "max_default_chars": {
+      "public_entry": 12500,
+      "mode": 31000
     }
   },
   "routes": [
@@ -18,59 +23,31 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/yan-dev-doc/completion.md"
-        ],
-        "routed": [
-          {
-            "name": "document-mode-template",
-            "guard": "按模式只加载模板锚点",
-            "targets": [
-              "skills/yan-dev-doc/template-standard.md",
-              "skills/yan-dev-doc/template-compact.md"
-            ]
-          }
-        ],
+        "always": [],
+        "routed": [],
         "conditional": [
           {
             "target": "skills/_shared/host-capabilities.md",
-            "guard": "执行前按需读取"
+            "guard": "仅在工具、终端或路径行为存在宿主差异时读取"
           },
           {
             "target": "skills/_shared/interaction-policy.md",
-            "guard": "执行前按需读取"
-          },
-          {
-            "target": "skills/_shared/workflow-gates.md",
-            "guard": "执行前按需读取"
+            "guard": "仅在阻塞型未知或证据冲突需要用户裁决时读取"
           },
           {
             "target": "skills/_shared/workflow-brief.md",
-            "guard": "执行前按需读取"
-          },
-          {
-            "target": "skills/yan-dev-doc/planning-slots.md",
-            "guard": "它是查漏表，不是问卷"
-          },
-          {
-            "target": "skills/yan-dev-doc/examples.md",
-            "guard": "仅在用户要示例、字段仍歧义或首次结果未通过格式校验时"
+            "guard": "只有真实跨 Agent、跨任务或稍后恢复时，才读取"
           },
           {
             "target": "skills/yan-dev-doc/publishing-openapi.md",
-            "guard": "存在新增接口或契约变更时，才读取并执行"
+            "guard": "新增接口或请求/响应/鉴权/错误语义发生契约变化时"
           },
           {
             "target": "skills/yan-dev-doc/publishing-board.md",
-            "guard": "除 `Compact` 外，默认读取并执行"
+            "guard": "只有用户明确要求看板、已有交付档案需要续写，或下游契约明确要求记录生命周期时"
           }
         ],
-        "index_only": [
-          {
-            "target": "skills/yan-dev-doc/reference.md",
-            "guard": "兼容索引，不作为运行时模板加载"
-          }
-        ]
+        "index_only": []
       }
     },
     {
@@ -81,17 +58,20 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/host-capabilities.md",
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/yan-conversation-handoff/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-conversation-handoff/examples.md",
-            "guard": "首次生成，或“已证实/推断/待确认”与无人值守停机边界容易混淆时"
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "证据冲突、移交范围歧义或目标文件冲突会改变接手路径时"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "用户或下游契约明确要求标准 `Workflow Brief` 时"
+          },
+          {
+            "target": "skills/yan-conversation-handoff/reference.md",
+            "guard": "准备生成完整文档时才读取"
           }
         ],
         "index_only": []
@@ -105,15 +85,11 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/host-capabilities.md",
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/board-publish-flow.md"
-        ],
+        "always": [],
         "routed": [
           {
             "name": "review-mode",
-            "guard": "选定模式后只读取对应文件",
+            "guard": "确定模式后只读取对应入口",
             "targets": [
               "skills/yan-code-review/modes/check/mode.md",
               "skills/yan-code-review/modes/repair/mode.md",
@@ -124,8 +100,20 @@
         ],
         "conditional": [
           {
+            "target": "skills/_shared/host-capabilities.md",
+            "guard": "只有宿主能力影响执行时读取"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "需要提问或处理冲突时读取"
+          },
+          {
             "target": "skills/_shared/workflow-brief.md",
-            "guard": "输入或输出含 `【Workflow Brief】` 时同时遵循"
+            "guard": "实际接收或生成 Brief 时读取"
+          },
+          {
+            "target": "skills/_shared/board-publish-flow.md",
+            "guard": "写看板需要稳定交付身份、明确同步意图和当前发布所有权同时成立"
           }
         ],
         "index_only": []
@@ -139,18 +127,24 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-code-review/modes/check/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-code-review/modes/check/examples.md",
-            "guard": "仅在首次审查或 finding 格式仍歧义时"
+            "target": "skills/yan-code-review/modes/check/reference.md",
+            "guard": "审查维度或格式仍不足时读取"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "需要处理冲突时读取"
+          },
+          {
+            "target": "skills/_shared/workflow-gates.md",
+            "guard": "需要解释 Gate 口径时读取"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "实际收到或需要交接 Brief 时读取"
           }
         ],
         "index_only": []
@@ -164,15 +158,26 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-code-review/modes/repair/reference.md"
-        ],
+        "always": [],
         "routed": [],
-        "conditional": [],
+        "conditional": [
+          {
+            "target": "skills/yan-code-review/modes/repair/reference.md",
+            "guard": "复杂归一化或需要审计回执时才读取"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "需要处理冲突时读取"
+          },
+          {
+            "target": "skills/_shared/workflow-gates.md",
+            "guard": "需要解释 Gate 口径时读取"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "实际收到或生成 Brief 时读取"
+          }
+        ],
         "index_only": []
       }
     },
@@ -184,38 +189,32 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-code-review/modes/loop/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-code-review/modes/package/mode.md",
-            "guard": "仅 standard 读取"
-          },
-          {
-            "target": "skills/yan-code-review/modes/package/reference.md",
-            "guard": "仅 standard 读取"
-          },
-          {
             "target": "skills/yan-code-review/modes/check/mode.md",
-            "guard": "再读取并执行"
-          },
-          {
-            "target": "skills/yan-code-review/modes/check/reference.md",
-            "guard": "再读取并执行"
+            "guard": "有实现证据时读取并执行"
           },
           {
             "target": "skills/yan-code-review/modes/repair/mode.md",
-            "guard": "存在 Critical/Important"
+            "guard": "存在 accepted finding 且在授权范围内时"
           },
           {
-            "target": "skills/yan-code-review/modes/repair/reference.md",
-            "guard": "存在 Critical/Important"
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "涉及业务语义、权限、状态、API/数据契约或数据归属且证据无法裁决时"
+          },
+          {
+            "target": "skills/_shared/workflow-gates.md",
+            "guard": "需要解释 VCS、验证或 Gate 结论时"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "真实跨 Agent、跨任务或延期恢复时才读取"
+          },
+          {
+            "target": "skills/yan-code-review/modes/loop/reference.md",
+            "guard": "只有用户要求持久审计格式或表达仍歧义时读取"
           }
         ],
         "index_only": []
@@ -229,38 +228,39 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-code-review/modes/package/completion.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
+            "target": "skills/_shared/workflow-gates.md",
+            "guard": "需要解释 Gate 时读取"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "需要处理冲突时读取"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "实际接收或生成 Brief 时读取"
+          },
+          {
             "target": "skills/yan-code-review/modes/package/review-task-template.md",
-            "guard": "### Step 2：生成 Review 任务包"
+            "guard": "委派不可用、需要外部回传/延期恢复/审计留档，或用户明确要任务包时"
           },
           {
             "target": "skills/yan-code-review/modes/package/aggregation.md",
-            "guard": "### Step 3：汇总 Review 结果（仅在用户贴回结果后执行）"
+            "guard": "收到当前委派或外部 review 结果后"
           },
           {
             "target": "skills/yan-code-review/modes/package/fix-handoff-template.md",
-            "guard": "### Step 4：生成修复交接文档（第二阶段）"
+            "guard": "只有用户要求修复交接、需要另一 Agent/任务继续，或当前上下文不能直接消费 findings 时"
           },
           {
-            "target": "skills/yan-code-review/modes/package/examples.md",
-            "guard": "仅在首次生成对应阶段产物或格式仍歧义时"
+            "target": "skills/yan-code-review/modes/package/completion.md",
+            "guard": "需要正式审计回执时才读取"
           }
         ],
-        "index_only": [
-          {
-            "target": "skills/yan-code-review/modes/package/reference.md",
-            "guard": "兼容索引"
-          }
-        ]
+        "index_only": []
       }
     },
     {
@@ -271,10 +271,7 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/host-capabilities.md",
-          "skills/_shared/interaction-policy.md"
-        ],
+        "always": [],
         "routed": [
           {
             "name": "analysis-mode",
@@ -288,8 +285,16 @@
         ],
         "conditional": [
           {
+            "target": "skills/_shared/host-capabilities.md",
+            "guard": "仅当宿主差异实际影响可用能力、写权限或委派方式时"
+          },
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "需要提问、处理证据冲突或无人值守缺材料时"
+          },
+          {
             "target": "skills/_shared/workflow-brief.md",
-            "guard": "输入或输出含 `【Workflow Brief】` 时同时遵循"
+            "guard": "输入或输出实际使用 `【Workflow Brief】` 时才读取"
           }
         ],
         "index_only": []
@@ -303,17 +308,28 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/workflow-brief.md",
-          "skills/yan-project-analysis/modes/understanding/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-project-analysis/modes/understanding/examples.md",
-            "guard": "首次执行或两种模式边界容易混淆时"
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "只有是否落盘会实质改变用户目标时"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "只有确有跨任务下一动作时才读取"
+          },
+          {
+            "target": "skills/_shared/board-publish-flow.md",
+            "guard": "仅在用户明确要求登记看板，或输入 Brief 明确要求同步同一交付档案时"
+          },
+          {
+            "target": "skills/yan-project-analysis/modes/understanding/impact-output.md",
+            "guard": "`ImpactAnalysis` 在形成结论时才读取"
+          },
+          {
+            "target": "skills/yan-project-analysis/modes/understanding/codemap-template.md",
+            "guard": "`CodeMap` 在准备落盘时才读取"
           }
         ],
         "index_only": []
@@ -327,17 +343,24 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-project-analysis/modes/incident/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-project-analysis/modes/incident/examples.md",
-            "guard": "仅在首次生成或字段边界仍歧义时"
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "只有严重度、业务语义、权限、数据归属、修复边界或文件覆盖会改变结论时"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "存在真实跨 Agent、跨任务或延期恢复时才读取"
+          },
+          {
+            "target": "skills/_shared/board-publish-flow.md",
+            "guard": "需要看板时才读取并严格执行"
+          },
+          {
+            "target": "skills/yan-project-analysis/modes/incident/reference.md",
+            "guard": "准备写事故文档时才读取"
           }
         ],
         "index_only": []
@@ -351,17 +374,24 @@
         "required_tag": "route_minimal_loading"
       },
       "direct_resources": {
-        "always": [
-          "skills/_shared/interaction-policy.md",
-          "skills/_shared/workflow-gates.md",
-          "skills/_shared/board-publish-flow.md",
-          "skills/yan-project-analysis/modes/business/reference.md"
-        ],
+        "always": [],
         "routed": [],
         "conditional": [
           {
-            "target": "skills/yan-project-analysis/modes/business/examples.md",
-            "guard": "仅在首次生成或字段边界仍歧义时"
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "只有业务语义、权限、状态含义、数据归属、接口先后关系或写入边界会改变结论时"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "存在真实跨 Agent、跨任务或延期恢复时"
+          },
+          {
+            "target": "skills/_shared/board-publish-flow.md",
+            "guard": "需要看板时才读取并严格执行"
+          },
+          {
+            "target": "skills/yan-project-analysis/modes/business/reference.md",
+            "guard": "证据足以落盘时读取"
           }
         ],
         "index_only": []

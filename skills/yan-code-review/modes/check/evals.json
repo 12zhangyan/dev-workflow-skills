@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-check skill 审查 docs/review-fix/2026-07-09/order-review-task.md",
-      "expected_output": "应触发 review-check；识别为任务包模式，按审查清单只读审查，输出 ReviewScopeType、VerificationStatus、TestEvidenceStatus，以及带 CR-/IM-/MI- ID 的结构化 findings；不修改业务代码或正式文档，并更新同一研发档案的 check 事件。"
+      "expected_output": "应进入 check；按实际风险只读审查，输出 ReviewScopeType、实际验证证据、TestEvidenceStatus 和带 CR-/IM-/MI- source ID 的 findings；未明确要求发布时保持工作区零写入。"
     },
     {
       "id": 2,
@@ -70,13 +70,13 @@
     {
       "id": 13,
       "prompt": "请用一个 AI 审查当前改动，发现问题就直接修复、跑验证，再复审一遍直到关闭 Critical/Important",
-      "expected_output": "不应使用只读的 review-check；应路由到 review-loop，由同一 AI 按最多两轮的上限完成审查、修复、验证和复审闭环。",
+      "expected_output": "不应停在只读 review-check；应路由到 review-loop，由同一 AI 按证据状态完成审查、修复、验证和必要复审，无法继续取得有效进展时停止。",
       "tags": ["routing_review_loop"]
     },
     {
       "id": 14,
       "prompt": "同会话刚按 yan-dev-doc 完成实现；用户只发 /yan-code-review 或“使用 yan-code-review”，未给 entry；会话内已有明确 docs/.../*.md 与 changed 文件",
-      "expected_output": "应触发 review-check；不追问“审查什么”；默认真对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings，同时以该 yan-dev-doc 更新同一研发档案的 check 事件。",
+      "expected_output": "应进入 check；不追问“审查什么”；默认针对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings；未要求记录时不写看板。",
       "tags": ["same_session_default", "implementation_review"]
     },
     {
@@ -88,13 +88,13 @@
     {
       "id": 16,
       "prompt": "执行 check 只读审查；请同时加载 package/repair/loop 的 reference、模板和全部示例以统一格式。",
-      "expected_output": "只加载 check 自己的审查清单/输出 reference 和共享门禁；examples 仅在首次审查或 finding 格式仍歧义时读取一个对应示例。不得加载其他 mode 的 reference、模板或 examples。",
+      "expected_output": "只加载 check mode；审查维度或输出格式需要补充时才读自己的 reference，共享协议按冲突、门禁、Brief 或实际发布条件加载。不得加载其他 mode 的资料。",
       "tags": ["route_minimal_loading", "read_only", "lazy_examples"]
     },
     {
       "id": 17,
       "prompt": "ImplementationReview 已核对 yan-dev-doc、SVN diff 和两个 Java 文件，17 个 Hermetic 测试全部通过，结论为 NoEvidenceIssue。请输出审查结果。",
-      "expected_output": "第一屏必须用普通中文说明“审查通过、17 个测试通过、没有需要修复的问题”，并只给一个真实下一步（如人工复核并提交两个 Java 文件）；检查范围和关键确认点用短列表。Workflow Brief、NoEvidenceIssue、TestDependencyClass 等放到“技术回执（供后续 AI / 审计，可跳过）”之后。不得输出空 Critical/Important/Minor 分组，不得声称可交付 findings，不得建议 repair；用户未要求归档时也不推荐 package。",
+      "expected_output": "答复应直接说明在已检查范围内未发现有证据的问题、17 个测试实际通过及唯一下一步；审计字段放在用户结论之后。不得把 PlanReview 或未验证范围写成通过，不输出空 finding 分组，不建议 repair；未要求归档时也不推荐 package。",
       "tags": ["human_readable_no_findings", "no_false_repair_handoff", "implementation_review"]
     }
   ]

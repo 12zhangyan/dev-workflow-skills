@@ -1,63 +1,28 @@
 ﻿# Yan Code Review Package Completion
 
-## 第一阶段完成后输出格式
+## 完成输出
 
-```
-✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
-🧭 工作流阶段：Review Gate 已创建，等待 review-check findings 回收
-🗂️ BoardPublishStatus: <Published: deliveryId/sourceDocPath · package-task / Blocked: 原因>
+只报告实际状态。实时委派可以只使用当前上下文的共同证据索引；没有落盘任务包不是缺失步骤。
 
-【Workflow Brief】
-stage: ReviewGate
-task: <任务名>
-source: <yan-dev-doc/bug 文档/patch/diff/status；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>>
-artifacts: docs/review-fix/<日期>/<任务名>-review-task.md
-changed: <任务包中列出的源码/测试/配置/OpenAPI 文件>
-vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<已知验证命令 + 结果；没有写未运行原因；environment-blocked 写工具链版本>
-api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
-openFindings: 待 review-check 输出
-next: 使用 yan-code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务名>-review-task.md
-nextCommand: 使用 yan-code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务名>-review-task.md
-tokenHint: reviewer 先读本 Brief -> review-task -> changed 文件 -> 必要 diff/测试输出；首轮最多 5 个文件
-
-如果目标 AI 已安装本仓库 skill，直接让它运行：
-使用 yan-code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务名>-review-task.md
-
-否则请把任务包里的提示分别交给 Codex / Cursor / Claude 做审查。
-等它们返回 findings 后，把结果贴回来，我再继续汇总并生成修复交接文档。
+```text
+ReviewCoordinationResult: <Packaged|PartiallyReviewed|Findings|NoEvidenceIssue|Blocked>
+审查证据: <InMemory / docs/review-fix/...-review-task.md / 未建立 + 原因>
+修复交接: <docs/review-fix/...-fix-handoff.md / NotApplicable>
+Reviewers: <角色=完成/失败；外部分发时写 awaiting external results>
+Findings: <CR n / IM n / MI n / RJ n / BK n；尚未审查写 pending>
+Verification: <命令与结果；仅在外部依赖或失败归因有信息增益时附 TestDependencyClass>
+BoardPublishStatus: <Published: deliveryId + eventId / NotRequested / Blocked + 原因>
 
 ```
 
-## 第二阶段完成后输出格式
+确需跨 Agent、跨任务或稍后恢复时，任务包或 fix-handoff 在末尾写入唯一一段符合共享协议的 `【Workflow Brief】`；不在本文件复制第二份模板。聊天默认只返回其路径；仅零写入或接收方无法访问产物时，才按共享格式在聊天展开一份。
 
-```
-✅ Review 修复交接文档已生成：docs/review-fix/<日期>/<任务名>-fix-handoff.md
-📋 已汇总 review 结果：Critical <n> / Important <n> / Minor <n> / Rejected <n>
-🧭 工作流阶段：Review Gate 修复交接已完成；下一步回到 Verification Gate，修复并重跑验证
-🗂️ BoardPublishStatus: <Published: deliveryId/sourceDocPath · package-handoff / Blocked: 原因>
+下一动作按结果选择：
 
-【Workflow Brief】
-stage: ReviewGate
-task: <任务名>
-source: docs/review-fix/<日期>/<任务名>-review-task.md；<review-check findings 来源>；ReviewScopeType=<PlanReview / ImplementationReview / FixHandoffReview>
-artifacts: docs/review-fix/<日期>/<任务名>-fix-handoff.md
-changed: <findings 涉及的源码/测试/配置/OpenAPI 文件>
-vcs: owner=<Git/SVN 根或 none>; tracked=<已纳管范围>; untracked=<未纳管源码/测试/OpenAPI/docs 或 无；未检查写原因>
-tests: class=<Hermetic/ServiceBacked/LiveExternal/Mixed/Unknown/NotApplicable>; command/result=<已知验证命令 + 结果；没有写未运行原因；environment-blocked 写工具链版本>
-api: spec=<OpenAPI YAML 路径或 无>; index=<API 索引路径或 无>; operationIds=<新增/变更接口 ID 或 无>
-openFindings: <Critical/Important/Minor ID 摘要；Rejected 单独列出>
-next: 使用 yan-code-review skill，mode=repair，根据 fix-handoff 直接修复，或人工按交接文档修复
-nextCommand: 使用 yan-code-review skill，mode=repair，根据 docs/review-fix/<日期>/<任务名>-fix-handoff.md 直接修复并验证
-tokenHint: 修复方先读本 Brief -> fix-handoff -> review-task 中证据包 -> finding 指向的 changed 文件；首轮最多 5 个文件
+- `Packaged`：委派不可用，交付一份持久任务包和一个便携 prompt，等待外部 findings；不要重复三份宿主提示。
+- `PartiallyReviewed`：先补关键未覆盖视角，或由用户接受覆盖边界；不要假装完整共识。
+- `Findings`：有 accepted finding 时指向 `yan-code-review mode=repair`；有 `BK` 时先解除 blocker。
+- `NoEvidenceIssue`：给出已覆盖/未覆盖范围，再进入人工验收或按风险补一次独立审查，不生成空 fix-handoff。
+- `Blocked`：只请求最小缺失证据或路径决策。
 
-🤖 AI 修复操作码：
-<可直接粘贴给 Codex / Cursor / Claude 的文本>
-
-修复后回填：
-- 已修复 finding：<CR/IM ID + 证据>
-- 未采纳 finding：<原因>
-- 验证命令与结果：<命令 + 结果>
-- 是否需要二次 review-check：<是/否，原因>
-
-```
+不要附完整证据包、长 diff、所有 reviewer 原文或固定后续流水线；已落盘的内容只给路径，未落盘时只保留能复核结论的最小证据索引。

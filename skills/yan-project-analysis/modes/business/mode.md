@@ -1,199 +1,39 @@
 ﻿---
 name: yan-project-analysis-business
-description: 把一组接口/功能捋成面向测试人员的业务逻辑方案，包含角色入口、前置条件、业务流、数据流、时序、状态、数据变动、校验和测试关注点。由 yan-project-analysis 根入口的 business mode 加载。
+description: 基于真实入口和实现证据，生成面向测试/产品的业务地图与可观察验收口径；结构和图表按业务复杂度选择。由 yan-project-analysis 根入口的 business mode 加载。
 ---
 
-# 业务逻辑梳理（面向测试的业务流方案）
+# Business mode
 
-## 任务定位
+## 目标与边界
 
-输入一组相关接口（或功能描述、Controller 入口），输出一份**面向测试人员**的业务逻辑技术方案：角色入口 + 上下文/前置条件 + 业务流转图 + 数据流图 + 时序图 + 状态机 + 阶段数据变动 + 校验规则 + 测试关注点。
-**目标读者是测试/产品，不是开发**——讲清楚「这条业务整体怎么走、数据从哪来到哪去、什么条件走什么分支、哪里最该测」，少堆代码术语。
+把真实业务行为解释成测试/产品可用的业务地图：角色与入口、前提和分支、状态与副作用、失败结果及核对位置。默认写入 `docs/biz-flow/<日期>/<业务名>.md`；不修改业务代码，也不替代代码地图、事故、开发方案或 review。看板仅按明确要求以 `kind:"biz"` 发布。
 
-产出：`docs/biz-flow/<日期>/<业务名>.md`，并以 `kind:"biz"` 登记到 HTML 看板（🔀 业务流）。
+## 成功标准
 
-与相邻 mode 的分工：`yan-project-analysis mode=understanding` 是给开发看的代码地图；当前 `business` 是给测试看的业务地图。
+- 从真实入口追到可观察终点，说明已覆盖、缺失和排除范围。
+- 按实际复杂度呈现关键分支、状态、数据/消息/外部副作用和失败行为；无关维度省略。
+- 测试人员能据此形成有预期、有核对位置的正常、失败、边界、并发或幂等场景。
+- 事实可定位，假设、冲突、待确认和 blocker 与事实分开；图表只在确实更清楚时使用。
 
-## 执行流程
+## 自主取证
 
-### 共享交互协议
+从用户入口、当前文件、Brief、文档、接口/菜单、Controller、Job、Listener、回调或 VCS 改动中选最可信起点，沿调用和数据关系追到足以解释闭环。多入口、跨服务或不同状态分支可并行委派只读调查；一个整合者统一版本、术语和状态含义，不以多数意见替代业务证据。
 
-先遵循 [../../../_shared/interaction-policy.md](../../../_shared/interaction-policy.md)：从代码、接口、菜单、文档和现有看板预填；只在业务语义、权限、状态、数据归属或闭环范围会受影响时提一个阻塞问题；冲突和材料不足必须显式记录。
+只有业务语义、权限、状态含义、数据归属、接口先后关系或写入边界会改变结论时，才读取 [交互策略](../../../_shared/interaction-policy.md)。非交互/无人值守运行中不等待提问：关键入口、终态证据或安全写入路径缺失时，输出草稿或 `Blocked` 和最小补充项，不写业务流文档、看板或确定性测试口径。
 
-非交互/无人值守运行中不等待提问：缺少业务入口、闭环证据或文件冲突时输出 `Blocked` 和最小补充项，不写业务流文档、看板或确定性测试口径。
+口头信息只能形成标明证据等级的草稿；缺失入口会影响状态/数据闭环时停止生成正式方案，不为成图编造接口、字段或终态。
 
-同时遵循 [../../../_shared/workflow-gates.md](../../../_shared/workflow-gates.md)：本 skill 主要完成面向测试/产品的 Plan Gate；如果梳理中发现实现偏差或业务冲突，下一步应分流到 `yan-dev-doc` 形成开发方案，或交给 `yan-code-review mode=package` 形成审查任务。
+## 产物
 
-### Step 0：参数检查
+证据足以落盘时读取 [自适应模板](reference.md)。
 
-- `$feature` 为空 → 询问："这条业务/功能叫什么？用一句话描述（如 '订单超时自动取消'）"
-- 名称规范化：中文保留原样；英文转小写、空格转 `-`；`/ \ : * ? " < > |` 及多余空格替换为 `-`
+用 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) 创建日期目录并检查 `file-state`。目标已存在时不得静默覆盖；不可读或状态未知时停止写入。
 
-### Step 1：静默收集上下文（不展示给用户）
+需要看板时才读取并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)。条目使用 `kind:"biz"`，只保留有证据的人类叙述；Mermaid 字段也是普通 JSON 字符串，不使用反引号。只通过 `board-add.js` 写入，发布失败不抹掉已生成文档。
 
-1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
-2. Git：以 root 为工作目录读取当前分支与 `status --short`；SVN：读取 info/revision；无 VCS 时记录 `VCS_TYPE=none`。
-3. 使用当前宿主的目录枚举/搜索能力，在 root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
+存在真实跨 Agent、跨任务或延期恢复时，才读取 [Workflow Brief](../../../_shared/workflow-brief.md)，在主产物保留一份索引；聊天不重复整块 Brief。其余完成信息按实际结果裁剪。
 
-判断规则：先按 `detect-vcs` 的目录结构结果识别 Git/SVN，不要用“git 命令失败”推断为无 VCS。Git 出现 dubious ownership / safe.directory 报错时，只在本次只读命令中使用 `git -c "safe.directory=<root>"`，不修改全局 git 配置。
+## 硬边界
 
-### Step 2：收集接口与业务信息（少问，先从入口追）
-
-具体槽位见 [reference.md](reference.md#step-2-信息槽位)，作为查漏表使用，不是必问清单。**核心是确定业务闭环入口**：可来自 URL + 方法、Controller 类名/方法、Swagger / Apifox、菜单/按钮名、定时任务、MQ listener、回调入口或现有文档。用户只给功能名时，先用功能名、页面/菜单名、状态/字段名搜索代码和文档；仍找不到入口或闭环不成立时，才问用户补一个最小入口。
-
-询问策略：
-- 能从接口、Controller、Service、Mapper、字典、菜单、任务、MQ listener、已有文档确定 → 直接填入，并在文档里体现依据。
-- 低风险未知（模块归属、展示文案、非核心命名）→ 明确假设后继续。
-- 高风险未知（业务状态语义、审批通过/驳回行为、权限范围、数据归属、接口先后依赖、是否复用既有表）→ 暂停并只问一个聚焦问题。
-- 多入口业务必须给出已覆盖、缺失、排除的入口清单；缺失入口会影响状态/数据闭环时停止生成正式方案，只输出草稿和 blocker。
-- 用户答"不知道"/"待定" → 记 `待补充`，不要继续追问同类非阻塞细节。
-信息足够后告知："信息足够，正在分析业务流；未确认项会集中标注。"
-
-### Step 3：代码追踪补全（静默，按需）
-
-若用户给了接口/类名且项目有源码，按项目类型补全业务细节（不展示中间过程）：
-
-**Java（pom.xml / build.gradle）：**
-1. 用 Grep 定位每个接口的 Controller 方法（pattern: URL 片段或方法名，glob: `**/*.java`）
-2. 顺着 Controller / Job / Listener / 回调 → Service → Mapper/Repository 追到数据或状态落点，默认 2–3 层；若还未找到状态/数据闭环，继续追踪 MQ、监听器、回调、定时任务或外部服务入口，直到能说明"最终落到哪里"或标记为缺失入口
-   - **角色/入口**：谁在 App/PC/后台任务/第三方回调触发，入口接口或操作按钮是什么
-   - **上下文/前置条件**：登录上下文、租户/公司/仓库/部门、权限、缓存、配置、字典值从哪来
-   - **数据流**：入参从哪来、查/写了哪些表或外部服务、返回什么
-   - **阶段数据变动**：每个关键阶段 INSERT / UPDATE / SELECT 了哪些表或对象，关键字段如何变化，测试怎么核对
-   - **业务分支**：if/else、状态判断、枚举流转（`setStatus`、状态机）
-   - **服务/接口交互**：Feign/RestTemplate/MQ 调用、监听器、任务、事务边界
-3. 多个接口之间的先后/依赖关系（如「下单」→「支付回调」→「发货」）
-
-**JS/TS（package.json）：** 顺着路由 → controller/service 读取，记录同类信息。
-
-**跳过条件**：无源码 / 只能基于口头描述 → 输出"草稿"并标注证据等级；状态、权限、数据写入、接口先后依赖缺少证据时列入 blocker，不生成确定性测试口径。
-
-### Step 4：路径处理
-
-```text
-node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/biz-flow
-```
-
-路径格式：`docs/biz-flow/<日期>/<业务名>.md`
-
-冲突处理：先把候选路径赋给 `target`，再运行 `node <helper> file-state <target>` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`，不能把读取失败当作不存在。可读且已存在时，交互会话选 A 覆盖 / B 时间戳后缀 / C 版本号后缀 / D 取消 / E 追加更新；非交互运行标 blocker 并停止落盘。
-
-### Step 5：生成文档
-
-加载模板：[reference.md](reference.md#文档模板)
-仅在首次生成或字段边界仍歧义时，读取一个对应的已填示例：[examples.md](examples.md)
-
-**核心规则**：
-- 面向测试人员撰写：每个图配一段大白话说明「这张图在讲什么、测试该重点看哪里」
-- 若业务像参考页那样存在角色入口、登录上下文、审批/驳回、扫码解析、多表状态流转，必须拆成「角色与入口 / 上下文与前置条件 / 状态流转 / 阶段数据变动 / 校验规则 / 涉及数据对象」几块，测试拿到后能直接按阶段拆用例。
-- **三张图按需画，画不出来的删掉**：
-  - 业务流转图（`flowchart`）：业务状态/分支怎么流转——几乎必画
-  - 数据流图（`flowchart`，节点用「数据/存储」）：数据从入口经过哪些服务/表，最终落到哪——涉及多表/多服务时画
-  - 时序图（`sequenceDiagram`）：多个服务/接口之间的调用时序——跨服务或有回调时画
-  - 状态机（`stateDiagram-v2`）：有明确状态字段流转时才画
-- 只用确认的信息和代码/文档证据；未知标 `待补充` 或明确假设，不编造接口或字段
-- **显式暴露业务逻辑冲突**：如果用户描述与现有代码、状态机、字典值、权限模型、数据归属、表复用或接口先后关系冲突，按共享协议单独写「业务逻辑冲突/待确认」；列出证据、风险、建议口径，不能为了成图把冲突悄悄抹平
-- 有阻塞冲突、闭环入口缺失或关键证据不足时，文档状态写"草稿/待确认"，测试口径只给已证实部分，不把推断写成正式用例
-- 业务规则写「触发条件 → 系统行为 → 边界」，测试关注点写「具体可验证的点」（含正常 + 异常 + 边界 + 并发）
-
-### Step 5.5：登记到 HTML 看板（kind:"biz"）
-
-**定位：看板条目面向人类阅读**——让没碰过这条业务的业务/测试/开发同事看完就懂整体怎么走。md 给 Agent 提供完整证据、精确执行与测试口径；看板是独立撰写的业务方案地图，不从 md 截取段落：业务人员看主线和规则，开发人员看接口、数据、联调边界。
-
-> **⚠️ 强制规则**：写 `data/changes.js` 一律走下方 ② 的 `board-add.js` 脚本（它内部只追加/就地更新、备份并做记录数回归校验，绝不整体覆盖），**不要用宿主文件能力重写整个文件**。判断看板"是否存在"用共享助手的 `exists`（确定性判断），不要凭读取工具的报错/记忆去猜——历史上误判"不存在"走模板分支造成过 21 条记录被整体覆盖成 4 条的事故。
-
-**结构字段（照搬）：**
-
-| JS 字段 | 来源 |
-|---------|------|
-| `kind` | 固定 `"biz"` |
-| `service` / `module` | Step 2 的归属（`服务/模块` 前后半段） |
-| `title` | `$feature` |
-| `type` | 固定 `"业务流"` |
-| `status` | 固定 `"已完成"` |
-| `date` | Step 4 日期 |
-| `branch` | Step 1 Git 分支；SVN 可填 revision；无 VCS 填 `"-"` |
-| `docPath` | `docs/biz-flow/<日期>/<业务名>.md` |
-| `apis` | 涉及接口 `{method,url,desc}[]` |
-| `bizFlow` / `dataFlow` / `sequence` / `stateMachine` | 各图的 Mermaid 代码（不含 ` ``` ` 标记；没有的字段省略） |
-
-**叙述字段（面向人类重新撰写，不截取 md；可用 `\n` 分段）：**
-
-| JS 字段 | 写什么 |
-|---------|--------|
-| `background` | 业务概述：这条业务整体在做什么、从哪触发、最终达成什么，3–5 句，测试视角 |
-| `roles` | 角色与入口 → `{name,channel,entry,desc}[]`；如 App 现场人员、PC 审核人员、定时任务、第三方回调 |
-| `context` | 上下文与前置条件 → `{field,source,usage,note}[]`；如 token、当前仓库、部门、公司、字典、权限 |
-| `dataChanges` | 阶段数据变动 → `{stage,trigger,summary,operations:[{target,action,fields,check}]}[]`；按申请/审核/驳回/回调等阶段写 |
-| `bizRules` | 关键业务规则 → `{title:规则名, desc:触发条件→系统行为→边界，2–3 句}[]` |
-| `validations` | 校验规则 → `{stage,rule,failure,check}[]`；失败行为和测试核对点要明确 |
-| `testPoints` | 测试关注点 → string[]，每条是一个具体可验证的点（正常/异常/边界/并发） |
-| `dataObjects` | 涉及数据对象 → `{name,phase,action,note}[]`；表、缓存、消息、外部服务均可登记 |
-| `assumptions` / `conflicts` / `blockers` / `openQuestions` | 共享协议字段；记录低风险假设、冲突、阻塞项、非阻塞待确认 |
-
-**字符串转义**：entry 使用标准 JSON；字段值含双引号按 JSON 转义，内部换行写成 `\n`。Mermaid 字段也是普通 JSON 字符串，不使用反引号。
-
-使用当前宿主的文件修改能力，把下面的标准 JSON 写入 `project-html/data/_entry.json`：
-
-```json
-{ "changelog": "新增业务流：<title>",
-  "entry": { "kind":"biz", "type":"业务流", "status":"已完成",
-    "service":"<service>", "module":"<module>", "title":"<title>", "date":"<date>", "docPath":"<docPath>",
-    "background":"<background>", "apis":[<apis>],
-    "bizFlow":"<bizFlow>", "dataFlow":"<dataFlow>", "sequence":"<sequence>", "stateMachine":"<stateMachine>",
-    "roles":[<roles>], "context":[<context>], "dataChanges":[<dataChanges>],
-    "bizRules":[<bizRules>], "validations":[<validations>], "testPoints":[<testPoints>],
-    "dataObjects":[<dataObjects>],
-    "assumptions":[<assumptions>], "conflicts":[<conflicts>], "blockers":[<blockers>], "openQuestions":[<openQuestions>] } }
-```
-
-各 Mermaid 字段（`bizFlow`/`dataFlow`/`sequence`/`stateMachine`）没有值时省略。`roles` / `context` / `dataChanges` / `validations` / `dataObjects` 能从证据确定时必须写入；未知值写 `待补充`，不要整块省略到只剩 Mermaid 图。Step 4 冲突选 A/E 时把 `changelog` 改成 `更新业务流：<title>`。
-
-然后加载并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)。成功后输出 catalog/detail、轻量详情页和文档索引证据；`BoardPublishSkipped`、`BoardPublishBlocked` 或 `BoardBuildBlocked` 必须显式报告，不能宣称完整成功。
-
-### Step 6：输出 Next Steps
-
-模板见 [reference.md](reference.md#完成后输出格式)
-
-完成输出必须包含 reference.md 里的 `【Workflow Brief】` 块（PlanGate 阶段），供下一位 AI（测试设计 / yan-dev-doc / review-fix / code-reading）先读索引再按 tokenHint 读取业务流文档和相关接口，不必粘贴全文。
-
-## 规则
-
-- **面向测试**：语言通俗，每张图配说明，重点落在"怎么测"
-- **不编造**：未确认的接口/字段/分支标 `待补充`，宁缺毋假
-- **不乱猜需求**：低风险可假设，高风险必须提出来确认；发现逻辑不通时直接指出，闭环缺口不靠图形补齐
-- **图按需画**：画不出来的图直接删，不放空模板
-- **测试执行口径必须落地**：主流程、优先异常、数据核对、暂不覆盖都要写清楚，测试拿到后能直接拆用例
-- **静默分析**：Step 1、Step 3 的命令与读码过程不展示给用户
-
-## 检查清单（生成前确认）
-
-- [ ] `$feature` 已确认（不为空）
-- [ ] 已找到业务闭环入口，或已列出已覆盖/缺失/排除入口并标记 blocker；信息槽位已用于查漏，没有机械追问非阻塞项
-- [ ] 文件路径冲突已处理
-- [ ] 至少画出业务流转图，其余图按需
-- [ ] 角色入口、上下文/前置条件、阶段数据变动、校验规则已按实际复杂度补齐（简单无状态功能可省略）
-- [ ] 测试执行口径已写清主流程、优先异常、数据核对、暂不覆盖
-- [ ] 证据等级、假设、冲突、阻塞项已写入；阻塞未清时没有输出确定性测试口径
-- [ ] 测试关注点具体可验证（至少 3 条）
-- [ ] 看板条目已用 `node project-html/board-add.js` 写入并打印 `✓`，并已运行 `node project-html/build.js`
-- [ ] 完成输出已包含 `【Workflow Brief】` 块（Step 6）
-
-## 相关资源
-
-- 完整文档模板与信息槽位：[reference.md](reference.md)
-- 已填示例：[examples.md](examples.md)（仅在首次生成或字段边界仍歧义时按需读取）
-- 看板模板与 build.js：复用 `../../../yan-dev-doc/assets/board/`
-- 相邻 skill/mode：`yan-project-analysis mode=understanding`（开发代码地图）、`yan-dev-doc`（开发文档）
-
-## 常见错误
-
-| 错误 | 原因 | 修复 |
-|------|------|------|
-| 图节点太多看不清 | 一张图塞了所有细节 | 拆成业务流转 / 数据流 / 时序三张，每张只讲一个维度 |
-| 全是"待补充" | 用户只给了功能名且代码/文档搜索也找不到入口 | 先用功能名、菜单、Controller、Job、Listener、状态字段搜索；仍没有入口时只问一个最小入口 |
-| 看板写入后打不开 | 手工降级时 Mermaid 字段含未转义的反引号/双引号/换行 | 优先走 `board-add.js`（自动转义）；确需手工时改完必做 `node --check` |
-| 找不到看板模板 | yan-dev-doc 未安装 | 先运行 install 脚本确保 yan-dev-doc 已安装 |
-| 写得像给开发看的 | 堆了代码细节 | 回到"测试读者"视角：讲业务怎么走、数据去哪、该测什么 |
-| `board-add.js` 报"记录数下降，已放弃写入" | 输入 entry 异常或现有文件已损坏 | 原文件未被改动，按提示排查输入 JSON / 现有 `data/changes.js` 后重试 |
-| `build.js` 中止并提示"疑似数据被误覆盖" | `pages/` 现存单页数远多于 `data/changes.js` 当前记录数 | 先排查 `data/changes.js` 是否被误写小了（看 `.bak`），确认是有意删条目再设 `BOARD_FORCE_BUILD=1` 重跑 |
+数据库只读；不执行 DDL、数据修复、add、commit 或 push；不暴露凭据或敏感值。冲突未裁决时保留各方证据和影响。产物明确已证实、假设和待确认内容。

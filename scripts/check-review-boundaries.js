@@ -32,69 +32,58 @@ function requireText(rel, needles) {
 }
 
 requireText('skills/yan-code-review/modes/check/mode.md', [
-  '只读 code review',
+  '只读代码审查',
   '不得修改代码',
-  '不执行数据库写操作',
-  'InsufficientMaterial',
-  '第一屏先用普通中文',
-  '技术回执（供后续 AI / 审计，可跳过）',
-  '只有结论状态为 `Findings` 时',
-  '`NoEvidenceIssue` 不输出空的 `Critical / Important / Minor` 分组',
-  '不得建议 `repair`',
-  '默认针对最近实现做 `ImplementationReview`',
-  '不要因为用户最后只发送 `/yan-code-review`',
-  '优先绑定同会话已经确认的 `changed` 文件',
-  '不要机械追问“审查什么”',
-  '更新同一研发档案',
-  '唯一允许的写入是通过确定性脚本更新同一研发档案的看板元数据',
+  '同会话刚完成的实现默认审其实际 changed 文件和 diff',
+  '不能把空结果当 clean',
+  '证据不足不冒充 finding',
+  '关键材料不足时列出缺口和受影响结论，不写成通过',
+  '没有 finding 时不输出空分组',
+  '由协调者决定是否按根入口规则发布',
 ]);
 
 requireText('skills/yan-code-review/modes/repair/mode.md', [
-  '已有 findings',
-  '用户要“审查/Review/找问题” → 使用 `review-check`',
-  '用户要“一个 AI 审查并修复/一键 review 并修复”且还没有 findings → 使用 `review-loop`',
-  '如果输入只有 review task、yan-dev-doc、patch 或 diff，且没有明确 finding，不进入修复',
-  '不会提交代码',
-  '不得要求执行数据库写操作、DDL、数据修复 SQL',
-  '单轮默认最多处理 5 条 accepted findings',
-  '回填同一研发档案',
+  '输入必须包含可定位的问题',
+  '只有方案、review task 或未形成 finding 的 diff 时不修复',
+  '不提交、不写数据库',
+  '已有 canonical ID 原样保留',
+  '不按 finding 数、文件数或固定轮次执行',
+  '只有实现与验证均能关闭问题时才标已修复',
 ]);
 
 requireText('skills/yan-code-review/modes/package/mode.md', [
-  '默认只生成 review 任务包',
-  '如果用户没有贴回 review 结果，到这里停止',
-  '`yan-code-review mode=check`',
-  '`yan-code-review mode=repair`',
-  '阻塞项不下发修复',
-  '不把 fix-handoff 当成新的普通文档条目',
+  '当前宿主能委派时直接并行协作',
+  '只读 reviewer',
+  '委派不可用',
+  'reviewer 首轮独立取证',
+  '委派不扩大用户原有权限',
+  '至少两个独立 reviewer 成功返回时才称为多 reviewer 结果',
+  '`BK` 未裁决时不能下发对应修复',
 ]);
 
 requireText('skills/yan-code-review/modes/loop/mode.md', [
   'SingleAgentReview',
-  '最多 2 个修复循环',
   '读取并执行 [check mode](../check/mode.md)',
-  '没有 Critical/Important：跳过 repair',
-  '不会自动 commit/push，不会执行数据库写入',
-  'BoardPublishOwner: loop',
-  '唯一发布所有权人',
+  '没有 accepted finding 就停止修复',
+  '不执行数据库写入、DDL、add/commit/push',
+  '没有新证据或连续动作没有实质进展',
+  '不设为了流程完整而必须跑满的轮次',
 ]);
 
 requireText('skills/_shared/workflow-chain.md', [
-  'review-check / review-fix / review-repair 共用同一套 ID 前缀',
-  '没有明确 findings / fix-handoff / 问题清单 → `review-repair` 不凭空修复',
-  '`review-loop` 最多自动修复 2 轮',
-  '需要 DDL / 数据修复 → 停止直接执行',
-  '`Passed` / `Failed` / `NotProvided` / `NotRun` / `EnvironmentBlocked` / `NotApplicable`',
-  '一旦修改代码，必须重新判定为 `Passed / Failed / NotRun / EnvironmentBlocked` 之一',
+  '同一问题从发现到关闭复用稳定 ID',
+  '`CR-n / IM-n / MI-n`',
+  '没有原始 finding 不凭空修复',
+  '不规定执行顺序、角色数、修复轮次或输出模板',
+  '需要失败归因或交接时可使用 `TestEvidenceStatus`',
+  '修改代码后必须基于最新实现重新判断',
+  '是否修复成功与是否达到 VCS/Submit 就绪分别判断',
 ]);
 
 const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';
-requireText('skills/yan-code-review/modes/package/review-task-template.md', [allTestEvidenceStatuses]);
 requireText('skills/yan-code-review/modes/check/reference.md', [allTestEvidenceStatuses]);
-requireText('skills/yan-code-review/modes/loop/reference.md', [allTestEvidenceStatuses]);
-
-requireText('skills/yan-code-review/modes/repair/mode.md', [
-  '`Passed` / `Failed` / `NotRun` / `EnvironmentBlocked`',
+requireText('skills/yan-code-review/modes/loop/reference.md', [
+  'TestEvidenceStatus: <Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>',
 ]);
 
 if (failed) process.exit(1);

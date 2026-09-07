@@ -1,224 +1,38 @@
 ﻿---
 name: yan-code-review-package
-description: 生成可分发给多个 AI 的统一代码审查任务包、证据包和 review 提示，或汇总 findings 形成修复交接；仅在收到 review 结果后生成 fix-handoff。由 yan-code-review 根入口的 package mode 加载。
+description: 组织共享证据边界下的独立多 reviewer 审查，或汇总已有 review 结果；仅在外部回传、延期恢复、审计留档或用户要求时生成任务包和修复交接。由 yan-code-review 根入口的 package mode 加载。
 ---
 
-# Review 清单生成与修复交接
+# 多 Reviewer 协作
 
-## 任务定位
+## 目标与权限
 
-默认目标：**先给出一份可以交给其他 AI 的 Code Review 任务包**，让 Codex / Cursor / Claude 等 AI 按同一标准去审查。
+按实际风险分配彼此独立的只读 reviewer，并把真实结果归一为可复核 findings。当前宿主能委派时直接并行协作，不要求先落盘任务包；不能委派时，只在确实需要外部继续时生成便携材料。
 
-任务包包含：
-1. 审查上下文：需求文档、代码地图、diff/patch、关键源码、测试命令。
-2. 审查清单：正确性、边界、事务、并发、安全、性能、兼容性、测试覆盖等检查点。
-3. 分发提示：分别给 Codex / Cursor / Claude 的可复制 review prompt。
-4. 回收格式：要求其他 AI 用结构化 findings 返回，便于后续汇总。
+本模式不修改业务代码。reviewer 首轮独立取证，不写代码、测试、正式文档、看板、VCS 或数据库；协调 Agent 是协作产物的唯一写入者。收到结果后可针对冲突或证据缺口定向复核。委派不扩大用户原有权限。
 
-第二阶段才做：当用户贴回其他 AI 的 review 结果，或明确说"汇总/生成修复文档/生成修复操作码"时，再去重分级，生成 `docs/review-fix/<日期>/<任务名>-fix-handoff.md` 和 AI 修复操作码。
+## 共同证据边界
 
-与相邻 skill 的分工：
-- `yan-project-analysis mode=understanding`：只生成代码地图，不判断问题。
-- `yan-code-review mode=check`：根据本 mode 生成的任务包执行一次只读审查，输出可回收 findings。
-- `yan-code-review mode=repair`：根据 findings 或 fix-handoff 直接修改代码并验证。
-- `yan-code-review mode=loop`：同一 AI 编排审查、修复、验证和复审。
-- `superpowers:requesting-code-review`（或宿主显示的同名 code review 入口）：可作为额外 review 来源，但本仓库主路径是 `yan-code-review mode=package` 任务包 + `mode=check` findings 回收；有效问题必须归并为 `CR/IM/MI`，误报写 `RJ`，待确认写 `BK`，不能直接替代本 mode 的 finding ID 链路。
-- `yan-code-review mode=package`：先生成 review 任务包；可选地汇总 review 结果并交接修复。
-- `yan-project-analysis mode=incident`：面向线上/测试 Bug 的现象、根因、修复记录。
+从用户输入、当前对话或 Brief 识别目标、方案、actual diff/status、变更文件、VCS owner、测试证据和已有 findings。方案审查必须说明未审实现；实现审查必须能读取实际实现证据；材料不足只列最小缺口，不创建貌似可执行的结论。
 
-### 共享工作流门禁
+主 Agent 只预取足以界定范围、风险和 reviewer 视角的证据；reviewer 按焦点读取完整实现，主 Agent 聚合时复核 finding 指向的证据。VCS 命令失败保留错误，空输出不等于 clean。验证只报告实际命令、结果和证明边界；外部依赖分类仅在失败归因或交接有价值时使用。
 
-遵循 [../../../_shared/workflow-gates.md](../../../_shared/workflow-gates.md)：本 skill 第一阶段进入 Review Gate，第二阶段输出修复交接并回到 Verification Gate。只有 yan-dev-doc/bug/biz-flow 文档但没有实际 diff、patch、VCS status 或变更文件时，只能生成方案审查任务，不能宣称审过实现代码。
+需要处理冲突时读取 [交互策略](../../../_shared/interaction-policy.md)，需要解释 Gate 时读取 [工作流门禁](../../../_shared/workflow-gates.md)，实际接收或生成 Brief 时读取 [Workflow Brief](../../../_shared/workflow-brief.md)。
 
-若输入包含 `【Workflow Brief】`，同时遵循 [../../../_shared/workflow-brief.md](../../../_shared/workflow-brief.md)：先按 Brief 的 `source` / `artifacts` / `changed` / `tokenHint` 定位 yan-dev-doc 与变更文件，再收集证据包，不要求用户重新粘贴完整 yan-dev-doc 或 diff。Brief 里的 `changed` 只是读取索引，任务包证据仍需回到实际 diff/status 核实。
+## 没有可聚合结果时
 
-## 执行流程
+宿主能委派且证据足够时，Agent 自主选择能独立降低风险的互补视角，数量由风险面、可并行边界和可用容量决定；简单任务可以单视角，高风险复杂任务可以尽量并行。每个 reviewer 接收同一目标/范围/证据索引和独立焦点，返回有定位、证据与影响的 findings，并按把握补充修复或验证建议。
 
-### 共享交互协议
+主 Agent 记录实际成功、失败和覆盖缺口，并验证返回证据。至少两个独立 reviewer 成功返回时才称为多 reviewer 结果；数量不足仍可保留有效结论，但必须披露覆盖边界，不用固定状态标签代替说明。
 
-先遵循 [../../../_shared/interaction-policy.md](../../../_shared/interaction-policy.md)：证据包不足时先补材料，不把缺证据包装成审查结论；发现需求/实现/状态机/权限/数据归属冲突时写入任务包的阻塞项。
+委派不可用、需要外部回传/延期恢复/审计留档，或用户明确要任务包时，才读取 [任务包模板](review-task-template.md#review-任务包模板)。尊重用户或项目路径约定；没有约定时才用 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) 创建 `docs/review-fix/<日期>/`，写入前检查路径状态，不默认覆盖。任务包只保留目标与边界、证据索引、按风险选出的视角、便携提示和真实协作状态。若没有继续协作需求，直接报告能力与覆盖缺口。
 
-非交互/无人值守运行中不等待提问：入口、实现证据或文件冲突缺失时输出 `Blocked`/`InsufficientMaterial` 和最小补充项，不生成或覆盖 review-task/fix-handoff。
+## 聚合与修复交接
 
-### Step 0：入口检测
+收到当前委派或外部 review 结果后，才读取 [聚合规则](aggregation.md#汇总规则)。合并同一根因并保留来源别名；accepted finding 归一为 `CR/IM/MI`，误报/无证据/超范围为 `RJ`，待业务裁决为 `BK`。独立结果均无问题时，给出覆盖边界，不生成空 findings 或修复交接。
 
-`$entry` 为空时询问：
+只有用户要求修复交接、需要另一 Agent/任务继续，或当前上下文不能直接消费 findings 时，才读取 [修复交接模板](fix-handoff-template.md#修复交接模板) 并生成 `*-fix-handoff.md`。交接只包含 accepted findings、blockers、修复边界、验证要求和可执行提示；不复制完整 reviewer 原文。`BK` 未裁决时不能下发对应修复。
 
-> "这次要基于什么生成 review 清单？可以给 yan-dev-doc 路径、patch/diff 路径、code-reading 路径，或一句功能描述。"
+## 发布与完成
 
-入口模式：
-- 文本含 `【Workflow Brief】` → **轻量交接模式**：先读 Brief 的 `source` / `artifacts` / `changed` / `tokenHint`，据此定位 yan-dev-doc 和变更文件，再按 Brief 指向的源类型（yan-dev-doc/bug/patch）继续收集证据，不要求粘贴全文
-- 含 `.patch` / `.diff` 或路径名含 `changes.patch` → **patch 模式**
-- 含 `docs/bugs/` → **Bug 修复文档模式**；证据包必须包含复现/根因/验证结果和实际 diff/status
-- 含 `docs/biz-flow/` → **业务流文档模式**；证据包必须包含测试口径、状态/数据流证据和实际 diff/status；否则只审业务口径，不审实现
-- 含 `.md` 且路径在 `docs/` 下 → **文档模式**
-- 其他自然语言 → **上下文模式**
-
-告知用户："检测到入口模式：[模式名]，开始整理 review 任务包。"
-
-### Step 1：静默收集上下文
-
-执行以下命令，结果仅用于生成 review 任务包，不展示给用户：
-
-1. 运行 `node <helper> detect-vcs`，读取返回的 `type` 与 `root`。
-2. Git：以 `root` 为工作目录读取当前分支、`status --short`、`diff --name-status` 和实际 diff；SVN：读取 info/revision、status、diff summarize 和实际 diff；无 VCS 时记录 `VCS_TYPE=none`。
-3. 使用当前宿主的目录枚举/搜索能力，在 VCS root 下最多 3 层查找 `pom.xml`、`build.gradle`、`package.json`，不要依赖 POSIX `find`。
-
-判断规则：初始 root 只用于发现；最终必须按 workflow-gates 的“VCS 证据归属”对候选变更文件逐个确定最近的 `VCS_OWNER` 并分组取证。命令失败保留退出码/错误摘要并写 `VCSStatusUnknown`，不能把空输出当 clean。Git 项目同时看 status、name-status 和实际 diff；SVN 项目同时看 status、summarize 和实际 diff。
-
-判定 `ReviewScopeType`、`TestDependencyClass` 和 `TestEvidenceStatus`：
-- 有实际 diff/patch、VCS status 中的源码/测试/配置改动，或已读取到明确 changed 文件 → `ReviewScopeType=ImplementationReview`。
-- 只有 yan-dev-doc / bug-fix / biz-flow / 需求描述，没有实现证据 → `ReviewScopeType=PlanReview`，任务包必须写明未审实现代码。
-- 第二阶段汇总 findings / 生成修复交接 → `ReviewScopeType=FixHandoffReview`。
-- 读取测试注解/tag/profile、配置和 CI workflow，将验证命令分类为 `Hermetic / ServiceBacked / LiveExternal / Mixed`；材料不足时写 `TestDependencyClass=Unknown`，不得按错误文本猜测。
-- 测试命令有通过结果且测试断言目标逻辑 → `TestEvidenceStatus=Passed`；测试失败 → `Failed`；材料未提供测试 → `NotProvided`；明确未执行且有原因 → `NotRun`；工具链不满足 → `EnvironmentBlocked`；纯方案阶段无测试 → `NotApplicable`。
-- 默认 `test/verify` 混入真实 AI/SaaS 调用并因 CI 未提供密钥而失败时，写 `TestDependencyClass=Mixed` 或 `LiveExternal`、`TestEvidenceStatus=Failed`，并要求 reviewer 检查测试架构/CI 契约；不得降级为普通环境阻塞，也不得用伪造密钥绕过。
-
-按入口读取：
-- 文档模式：Read `$entry`，提取需求目标、范围、代码变更清单、测试要点；尝试读取同日期/同任务的 `docs/code-reading/` 文档。
-- patch 模式：Read patch/diff 文件，提取文件列表、变更类型、关键 hunks。
-- 上下文模式：用 Grep/Glob 查找候选入口；至少要拿到 diff/patch，或 yan-dev-doc + 关键源码/入口，或当前工作区变更摘要 + 关键文件。材料不足时只问一个聚焦问题让用户补 yan-dev-doc、patch/diff 或入口，不生成任务包。
-
-最低证据门槛：
-- patch 模式：必须能读到 patch/diff 或当前工作区 diff。
-- 文档模式：必须能读到 yan-dev-doc，并提取到目标/范围或代码变更清单；缺关键源码时在证据包标为待补充。
-- 上下文模式：必须能定位至少一个入口或当前变更文件；否则停止并要求补材料。
-
-### Step 2：生成 Review 任务包
-
-加载模板：[review-task-template.md](review-task-template.md#review-任务包模板)
-
-产出一份文档，默认路径：
-
-```text
-node <_shared/scripts/workflow-fs.js absolute path> prepare-date-dir docs/review-fix
-```
-
-文件：`docs/review-fix/<日期>/<任务名>-review-task.md`
-
-文档必须包含：
-1. **审查目标**：这次 review 要确认什么。
-   - 必须写 `ReviewScopeType`、`TestDependencyClass` 和 `TestEvidenceStatus`，并说明是否审实现代码。
-2. **证据包**：其他 AI 需要读取/粘贴的文档、diff、源码、测试命令。
-   - 必须包含 `assumptions`、`conflicts`、`blockers`、`openQuestions`：材料不足或语义冲突要直接暴露。
-3. **统一审查清单**：按风险类别列出检查项。
-4. **AI 分发提示**：Codex / Cursor / Claude 三份可复制 prompt。
-5. **技能化审查入口**：提示安装了本仓库 skill 的 AI 使用 `yan-code-review mode=check` 审查任务包。
-6. **回收格式**：要求其他 AI 按统一 JSON-like findings 返回。
-
-冲突处理：把候选任务包路径赋给 `target` 后，运行 `node <helper> file-state <target>` 区分不存在、可读和 `EXISTS_UNREADABLE_OR_UNKNOWN`。可读且已存在时，交互会话选择 A 覆盖 / B 时间戳后缀 / C 取消；非交互或状态未知时标 blocker 并停止，不采用默认覆盖。
-
-### Step 2.5：输出并停住
-
-完成 Step 2 后，先加载 [共享看板发布流程](../../../_shared/board-publish-flow.md)，凭 `deliveryId` 或主开发文档 `sourceDocPath` 更新同一研发档案：
-
-- 若上层明确传入 `BoardPublishOwner: loop`，本子阶段只把任务包结果交回 loop，不自行写看板。
-- 写入稳定 `mode:"package"` 事件，第一阶段 `eventId` 固定区分为 `package-task`，`reviewState:"packaged"`、`gateStatus:"in_progress"`；
-- 摘要说明审查包覆盖范围、分发对象、材料完整性和待回收内容，不复制 AI prompt、逐文件证据包或 Agent 操作步骤；
-- 身份无法确定时输出 `BoardPublishStatus: Blocked (IdentityMissing)`；任务包仍可按本模式生成，但不得为它另建 Review 孤岛；
-- 写入后运行 `board-add.js` 与 `build.js`，记录 `deliveryId` 和 `BoardPublishStatus`。
-
-随后按 [第一阶段完成格式](completion.md#第一阶段完成后输出格式) 输出并停止：
-
-```text
-✅ Review 任务包已生成：docs/review-fix/<日期>/<任务名>-review-task.md
-
-下一步：
-1. 如果目标 AI 已安装本仓库 skill，直接让它运行：`使用 yan-code-review skill，mode=check，审查 docs/review-fix/<日期>/<任务名>-review-task.md`
-2. 否则把任务包里的「Codex / Cursor / Claude 审查提示」分别交给对应 AI
-3. 将它们返回的 findings 粘贴回来，再运行/继续 `yan-code-review mode=package` 汇总
-```
-
-**如果用户没有贴回 review 结果，到这里停止，不要生成修复文档，不要编造 findings。**
-
-### Step 3：汇总 Review 结果（仅在用户贴回结果后执行）
-
-触发条件：
-- 用户贴回 Codex/Cursor/Claude 任一或多个 review 结果。
-- 用户明确说："汇总 review"、"生成修复文档"、"生成修复操作码"。
-
-加载规则：[aggregation.md](aggregation.md#汇总规则)
-
-处理规则：
-- 只接受有文件/方法/行为证据的问题；纯风格偏好默认降为 Minor 或 Rejected。
-- 多个 AI 提到同一问题时合并，保留最清晰的证据和最高严重度。
-- 按 `Critical / Important / Minor / Rejected` 分级。
-- 每条 accepted finding 必须包含：问题、证据、影响、修复建议、验证方式。
-- 对不修的问题写清拒绝原因：误报、无证据、超范围、收益低、与项目规范冲突。
-
-### Step 4：生成修复交接文档（第二阶段）
-
-路径：`docs/review-fix/<日期>/<任务名>-fix-handoff.md`
-
-文档模板见：[fix-handoff-template.md](fix-handoff-template.md#修复交接模板)
-
-### Step 4.5：登记到 HTML 看板（第二阶段）
-
-生成修复交接文档后继续更新 Step 2.5 的同一研发档案，不把 fix-handoff 当成新的普通文档条目：
-
-- 使用另一稳定 `eventId`（固定区分为 `package-handoff`），写入 accepted / rejected / blocked finding 的 ID、状态和人类摘要；
-- `reviewState` 取 `findings|blocked|ready-for-repair`，`gateStatus` 由是否存在未裁决 Critical/Important/blocker 决定；
-- `sourceDocPath` 始终指向主开发文档；fix-handoff 路径可在事件摘要或下一步里说明，但不得替换档案 `docPath`；
-- 看板创建、升级、写入、构建仍按 [共享看板发布流程](../../../_shared/board-publish-flow.md) 执行。
-
-### Step 5：输出 AI 修复操作码（第二阶段）
-
-加载模板：[fix-handoff-template.md](fix-handoff-template.md#ai-修复操作码模板)
-
-操作码必须包含：
-- 任务目标
-- 输入文档路径
-- 必修 / 可选 / 拒绝问题清单
-- 修改边界
-- 执行顺序
-- 验证命令
-- 完成后回填要求
-
-随后按 [第二阶段完成格式](completion.md#第二阶段完成后输出格式) 回复。
-
-## 规则
-
-- **默认只生成 review 任务包**：没有其他 AI 的 findings 时，必须停在 Step 2.5。
-- **不编造 review 结果**：不能自己假装 Codex/Cursor/Claude 已经审查。
-- **只读数据库**：不得要求 AI 执行写库 SQL；涉及 DDL/数据修复只输出建议和 DBA 申请说明。
-- **不吞拒绝项**：第二阶段不采纳的 review 意见必须写入 Rejected，说明理由。
-- **不让 AI 自由发挥**：审查提示和修复操作码都必须限定材料、范围、输出格式和验证方式。
-- **尊重现有改动**：提示中必须提醒不要回滚无关本地改动。
-- **材料不足就停**：第一阶段不满足最低证据门槛时，只输出缺失材料清单和一个补充问题，不生成 review 任务包。
-- **阻塞项不下发修复**：第二阶段若存在未确认的 blocker 或需求冲突，AI 修复操作码必须先要求确认，不得让下游 AI 猜着改。
-
-## 检查清单
-
-### 第一阶段：Review 任务包
-
-- [ ] 已识别入口模式并收集 yan-dev-doc / patch / code-reading / diff 上下文
-- [ ] 已满足最低证据门槛；材料不足时已停止并列出缺失材料
-- [ ] 已生成证据包清单
-- [ ] 已写入 assumptions / conflicts / blockers / openQuestions
-- [ ] 已生成统一 review 清单
-- [ ] 已生成 Codex / Cursor / Claude 审查提示
-- [ ] 已提示可用 `yan-code-review mode=check` 执行审查
-- [ ] 已写明 findings 回收格式
-- [ ] 已向同一研发档案写入 `package-task` 事件，或明确输出 `BoardPublishStatus: Blocked`
-- [ ] 没有 review 结果时已停住，没有生成修复文档
-
-### 第二阶段：修复交接
-
-- [ ] 用户已贴回至少一个 AI review 结果
-- [ ] findings 已分为 Critical / Important / Minor / Rejected
-- [ ] 每条 accepted finding 有证据、影响、修复建议、验证方式
-- [ ] 修复交接文档已写入 `docs/review-fix/<日期>/<任务名>-fix-handoff.md`
-- [ ] AI 修复操作码已生成，且包含修改边界和验证命令
-- [ ] 若存在 blocker 或需求冲突，操作码已要求先确认，不让 AI 直接修
-- [ ] 同一档案的 `package-handoff` 事件已用 `node project-html/board-add.js` 幂等更新并打印 `✓`，并已运行 `node project-html/build.js`
-
-## 相关资源
-
-- 第一阶段任务包：[review-task-template.md](review-task-template.md)
-- findings 汇总：[aggregation.md](aggregation.md)
-- 修复交接与操作码：[fix-handoff-template.md](fix-handoff-template.md)
-- 两阶段完成输出：[completion.md](completion.md)
-- 兼容索引：[reference.md](reference.md)（不作为运行时模板加载）
-- 示例：[examples.md](examples.md)（仅在首次生成对应阶段产物或格式仍歧义时读取一个对应示例）
-- 工作流背景：仓库 `docs/workflow-guide.md`
-- 相邻 skill：`yan-dev-doc`、`yan-code-review mode=check/repair`、`yan-project-analysis mode=understanding/incident`
+默认直接汇报审查范围、reviewer 覆盖/失败、有效 findings、验证边界、实际产物和未决风险。需要正式审计回执时才读取 [完成格式](completion.md)。跨任务恢复时只保留一份 Brief。不要强制 `Packaged/PartiallyReviewed`、固定角色数、固定下一动作或任务包阶段；只报告真实发生的协作和最有价值的后续动作。

@@ -1,37 +1,36 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "hosts": ["claude", "cursor", "codex"],
   "description": "Offline routing and side-effect contracts shared by all supported hosts. These are static contracts, not claims that a live model completed the scenario.",
   "cases": [
-    {"id": "review-check-read-only", "prompt_ref": "yan-code-review:1", "route": "check", "write_scope": "docs-and-board"},
-    {"id": "review-repair-scoped-write", "prompt_ref": "yan-code-review:2", "route": "repair", "write_scope": "code-and-tests"},
-    {"id": "review-loop-closed-loop", "prompt_ref": "yan-code-review:3", "route": "loop", "write_scope": "code-and-tests"},
-    {"id": "review-package-artifacts", "prompt_ref": "yan-code-review:4", "route": "package", "write_scope": "docs-and-board"},
-    {"id": "review-ambiguous-safe-default", "prompt_ref": "yan-code-review:5", "route": "check", "write_scope": "docs-and-board"},
-    {"id": "review-recent-implementation-default", "prompt_ref": "yan-code-review:8", "route": "check", "write_scope": "docs-and-board"},
-    {"id": "review-recent-svn-implementation-default", "prompt_ref": "yan-code-review:9", "route": "check", "write_scope": "docs-and-board"},
-    {"id": "review-workflow-brief-package-follow", "prompt_ref": "yan-code-review:11", "route": "package", "write_scope": "docs-and-board"},
+    {"id": "review-check-read-only", "prompt_ref": "yan-code-review:1", "route": "check", "write_scope": "none"},
+    {"id": "review-repair-scoped-write", "prompt_ref": "yan-code-review:2", "route": "repair", "write_scope": "code-and-tests", "allowed_path_patterns": ["^backend/src/main/java/example/OrderQueryController\\.java$", "^backend/src/test/java/example/OrderQueryControllerTest\\.java$"], "assertions": {"artifacts": [{"glob": "backend/src/main/java/example/OrderQueryController.java", "min_matches": 1}], "content": [{"glob": "backend/src/main/java/example/OrderQueryController.java", "pattern": "keyword", "min_matches": 2}, {"glob": "backend/src/main/java/example/OrderQueryController.java", "pattern": "filter\\(|contains\\(", "min_matches": 1}], "text": [{"pattern": "IM-2[\\s\\S]{0,160}(?:fixed|已关闭)", "min_matches": 1}, {"pattern": "TestEvidenceStatus[=:]\\s*Passed", "min_matches": 1}]}},
+    {"id": "review-loop-closed-loop", "prompt_ref": "yan-code-review:3", "route": "loop", "write_scope": "code-and-tests", "allowed_path_patterns": ["^backend/src/(?:main|test)/.+$", "^frontend/src/.+$"]},
+    {"id": "review-package-artifacts", "prompt_ref": "yan-code-review:4", "route": "package", "write_scope": "docs"},
+    {"id": "review-ambiguous-safe-default", "prompt_ref": "yan-code-review:5", "route": "check", "write_scope": "none"},
+    {"id": "review-recent-implementation-default", "prompt_ref": "yan-code-review:8", "route": "check", "write_scope": "none"},
+    {"id": "review-recent-svn-implementation-default", "prompt_ref": "yan-code-review:9", "route": "check", "write_scope": "none"},
+    {"id": "review-workflow-brief-package-follow", "prompt_ref": "yan-code-review:11", "route": "package", "write_scope": "docs"},
     {"id": "analysis-impact-zero-write", "prompt_ref": "yan-project-analysis:1", "route": "understanding", "write_scope": "none"},
-    {"id": "analysis-incident-artifacts", "prompt_ref": "yan-project-analysis:3", "route": "incident", "write_scope": "docs-and-board"},
-    {"id": "analysis-business-artifacts", "prompt_ref": "yan-project-analysis:4", "route": "business", "write_scope": "docs-and-board"},
+    {"id": "analysis-incident-artifacts", "prompt_ref": "yan-project-analysis:3", "route": "incident", "write_scope": "docs"},
+    {"id": "analysis-business-artifacts", "prompt_ref": "yan-project-analysis:4", "route": "business", "write_scope": "docs"},
+    {"id": "analysis-composite-parallel", "prompt_ref": "yan-project-analysis:10", "route": "composite", "accepted_routes": ["composite", "incident+business", "business+incident"], "write_scope": "none", "assertions": {"text": [{"pattern": "incident", "min_matches": 1}, {"pattern": "business", "min_matches": 1}, {"pattern": "并行", "min_matches": 1}, {"pattern": "整合|协调", "min_matches": 1}]}},
     {"id": "handoff-persistent-doc", "prompt_ref": "yan-conversation-handoff:1", "route": "handoff", "write_scope": "docs"},
     {"id": "handoff-chat-only", "prompt_ref": "yan-conversation-handoff:6", "route": "handoff", "write_scope": "none"},
-    {"id": "dev-doc-standard-artifacts", "prompt_ref": "yan-dev-doc:1", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "project-html/data/changes.js", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
-    {"id": "dev-doc-api-artifacts", "prompt_ref": "yan-dev-doc:3", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "docs/apifox/**/*.openapi.yaml", "min_matches": 1}, {"glob": "docs/apifox/INDEX.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
-    {"id": "dev-doc-compact-artifact", "prompt_ref": "yan-dev-doc:28", "route": "yan-dev-doc", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
-    {"id": "dev-doc-explicit-board-opt-out", "prompt_ref": "yan-dev-doc:33", "route": "yan-dev-doc", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "text": [{"pattern": "BoardPublishStatus:\\s*NotRequested", "min_matches": 1}]}},
-    {"id": "dev-doc-evidenced-incident-plan", "prompt_ref": "yan-dev-doc:35", "route": "yan-dev-doc", "write_scope": "docs-and-board", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "project-html/data/changes.js", "min_matches": 1}], "text": [{"pattern": "Workflow Brief", "min_matches": 1}]}},
+    {"id": "handoff-inflight-parallel", "prompt_ref": "yan-conversation-handoff:16", "route": "handoff", "accepted_routes": ["handoff", "chat-output"], "write_scope": "none", "assertions": {"text": [{"pattern": "run-42", "min_matches": 1}, {"pattern": "在途|inFlight|正在|等待", "min_matches": 1}, {"pattern": "并行", "min_matches": 1}, {"pattern": "避免|不要重复", "min_matches": 1}]}},
+    {"id": "dev-doc-artifacts", "prompt_ref": "yan-dev-doc:1", "route": "standard", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}]}},
+    {"id": "dev-doc-api-artifacts", "prompt_ref": "yan-dev-doc:17", "route": "standard", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}, {"glob": "docs/apifox/**/*.openapi.yaml", "min_matches": 1}, {"glob": "docs/apifox/INDEX.md", "min_matches": 1}]}},
+    {"id": "dev-doc-autonomous-plan", "prompt_ref": "yan-dev-doc:46", "route": "standard", "write_scope": "docs", "assertions": {"artifacts": [{"glob": "docs/**/*.md", "min_matches": 1}], "content": [{"glob": "docs/**/*.md", "pattern": "keyword", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "statuses", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "缺失", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "null", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "空数组", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "不按状态过滤", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "非空", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "任一状态|精确匹配", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "未知状态[\\s\\S]{0,100}(?:参数错误|错误)", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "orderNo[\\s\\S]{0,160}status|status[\\s\\S]{0,160}orderNo", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "聚焦契约测试", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "依赖|前置|通过后", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "并行", "min_matches": 1}, {"glob": "docs/**/*.md", "pattern": "验收|验证", "min_matches": 1}]}},
     {
       "id": "review-check-minimal-loading",
       "prompt_ref": "yan-code-review:10",
       "route": "check",
       "write_scope": "none",
       "route_loading": {
-        "max_resources": 8,
+        "max_resources": 4,
         "required": [
           "skills/yan-code-review/SKILL.md",
-          "skills/yan-code-review/modes/check/mode.md",
-          "skills/yan-code-review/modes/check/reference.md"
+          "skills/yan-code-review/modes/check/mode.md"
         ],
         "forbidden_patterns": [
           "^skills/yan-code-review/modes/(repair|loop|package)/",
@@ -45,15 +44,67 @@
       "route": "incident",
       "write_scope": "none",
       "route_loading": {
-        "max_resources": 7,
+        "max_resources": 4,
         "required": [
           "skills/yan-project-analysis/SKILL.md",
-          "skills/yan-project-analysis/modes/incident/mode.md",
-          "skills/yan-project-analysis/modes/incident/reference.md"
+          "skills/yan-project-analysis/modes/incident/mode.md"
         ],
         "forbidden_patterns": [
           "^skills/yan-project-analysis/modes/(understanding|business)/",
-          "^skills/yan-project-analysis/modes/incident/examples\\.md$"
+          "^skills/yan-project-analysis/modes/incident/reference\\.md$",
+          "^skills/_shared/(workflow-gates|board-publish-flow)\\.md$"
+        ]
+      }
+    },
+    {
+      "id": "analysis-understanding-blocked-minimal-loading",
+      "prompt_ref": "yan-project-analysis:8",
+      "route": "understanding",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 4,
+        "required": [
+          "skills/yan-project-analysis/SKILL.md",
+          "skills/yan-project-analysis/modes/understanding/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-project-analysis/modes/(incident|business)/",
+          "^skills/yan-project-analysis/modes/understanding/(codemap-template|impact-output)\\.md$"
+        ]
+      }
+    },
+    {
+      "id": "analysis-business-blocked-minimal-loading",
+      "prompt_ref": "yan-project-analysis:9",
+      "route": "business",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 4,
+        "required": [
+          "skills/yan-project-analysis/SKILL.md",
+          "skills/yan-project-analysis/modes/business/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-project-analysis/modes/(incident|understanding)/",
+          "^skills/yan-project-analysis/modes/business/reference\\.md$",
+          "^skills/_shared/board-publish-flow\\.md$"
+        ]
+      }
+    },
+    {
+      "id": "review-loop-insufficient-minimal-loading",
+      "prompt_ref": "yan-code-review:12",
+      "route": "loop",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 3,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/loop/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(check|repair|package)/",
+          "^skills/yan-code-review/modes/loop/(reference|examples)\\.md$"
         ]
       }
     },
@@ -63,30 +114,31 @@
       "route": "handoff",
       "write_scope": "none",
       "route_loading": {
-        "max_resources": 5,
+        "max_resources": 2,
         "required": [
           "skills/yan-conversation-handoff/SKILL.md",
           "skills/yan-conversation-handoff/reference.md"
         ],
         "forbidden_patterns": [
-          "^skills/yan-conversation-handoff/examples\\.md$",
-          "^skills/(yan-code-review|yan-dev-doc|yan-project-analysis)/"
+          "^skills/(yan-code-review|yan-dev-doc|yan-project-analysis)/",
+          "^skills/_shared/(host-capabilities|interaction-policy|workflow-brief)\\.md$"
         ]
       }
     },
     {
       "id": "dev-doc-compact-minimal-loading",
       "prompt_ref": "yan-dev-doc:37",
-      "route": "yan-dev-doc",
+      "route": "compact",
       "write_scope": "none",
       "route_loading": {
-        "max_resources": 8,
+        "max_resources": 1,
         "required": [
-          "skills/yan-dev-doc/SKILL.md",
-          "skills/yan-dev-doc/template-compact.md"
+          "skills/yan-dev-doc/SKILL.md"
         ],
         "forbidden_patterns": [
-          "^skills/yan-dev-doc/(reference|examples|template-standard|publishing-openapi|publishing-board)\\.md$"
+          "^skills/yan-dev-doc/(reference|publishing-(openapi|board))\\.md$",
+          "^skills/_shared/",
+          "^skills/(yan-code-review|yan-project-analysis|yan-conversation-handoff)/"
         ]
       }
     }

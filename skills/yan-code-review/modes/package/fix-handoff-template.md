@@ -17,7 +17,7 @@
 
 | ID | 来源 | 文件/位置 | 问题 | 影响 | 修复建议 | 验证方式 |
 |----|------|-----------|------|------|----------|----------|
-| CR-1 | Codex/Cursor/Claude | | | | | |
+| CR-1 | <reviewer#source-id> | | | | | |
 
 ### Important（修完再继续）
 
@@ -45,9 +45,9 @@
 
 ---
 
-## 二、修复策略
+## 二、修复边界
 
-- **修复批次**：先 Critical，再 Important，最后按时间处理 Minor。
+- **修复批次**：按风险、依赖关系和共享根因组织，由执行 Agent 自主决定顺序。
 - **修改边界**：只修改 accepted findings 涉及的文件和必要测试；不重构无关代码。
 - **禁止改动**：<接口签名 / 数据结构 / 公共工具 / 无关本地改动>
 - **数据库限制**：只允许只读查询；DDL / 数据修复只输出建议，不执行。
@@ -64,52 +64,14 @@
 
 ---
 
-## 四、AI 修复操作码
+## 四、下一动作
 
 ```text
-<由本 skill 生成，可直接粘贴给任意 AI>
+使用 yan-code-review skill，mode=repair，读取 <本 fix-handoff 路径>；按 canonical finding ID 修复并回填实际验证结果。
 ```
+
+## 五、Workflow Brief
+
+<需要跨任务恢复时按共享格式写入唯一一份 Brief，next 使用上面的完整 repair 提示。>
+
 ````
-
----
-
-## AI 修复操作码模板
-
-````text
-你现在接手一次 yan-code-review 修复任务。请严格按以下边界执行，不要自由扩展。
-
-【输入文档】
-- Review 修复交接文档：<docs/review-fix/YYYY-MM-DD/task-fix-handoff.md>
-- Review 任务包：<docs/review-fix/YYYY-MM-DD/task-review-task.md>
-- 需求/方案文档：<yan-dev-doc路径或无>
-- 代码地图：<code-reading路径或无>
-- patch/diff：<patch路径或当前工作区 diff>
-
-【目标】
-修复 accepted findings 中的 Critical 和 Important；Minor 仅在不扩大范围时处理；Rejected 不处理。
-如果 Review 修复交接文档存在 blocker、需求冲突或材料不足，请先停止并要求确认，不要猜测修复。
-
-【必须修复】
-1. <CR/IM ID> <文件/方法>：<问题>。修复到：<期望结果>。验证：<验证方式>
-
-【禁止处理】
-- 不处理 Rejected 项。
-- 不重构无关代码。
-- 不回滚用户已有无关改动。
-- 不执行数据库写操作或 DDL；需要时只输出 DBA 建议。
-
-【执行顺序】
-1. 先阅读 Review 修复交接文档和 Review 任务包。
-2. 查看当前 diff，确认目标文件仍然处于预期状态。
-3. 按 Critical -> Important -> Minor 顺序修改。
-4. 每修完一类问题，运行对应测试或最小验证。
-5. 最后运行总验证命令：<验证命令>。
-
-【完成输出】
-- 列出修改文件。
-- 对照每个 finding 说明修复结果。
-- 粘贴验证命令和结果。
-- 如果有无法修复或判断为误报的项，说明原因并停止，不要静默跳过。
-````
-
----
