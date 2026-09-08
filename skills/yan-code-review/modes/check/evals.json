@@ -94,7 +94,7 @@
     {
       "id": 17,
       "prompt": "ImplementationReview 已核对 yan-dev-doc、SVN diff 和两个 Java 文件，17 个 Hermetic 测试全部通过，结论为 NoEvidenceIssue。请输出审查结果。",
-      "expected_output": "答复应直接说明在已检查范围内未发现有证据的问题、17 个测试实际通过及唯一下一步；审计字段放在用户结论之后。不得把 PlanReview 或未验证范围写成通过，不输出空 finding 分组，不建议 repair；未要求归档时也不推荐 package。",
+      "expected_output": "答复应直接说明在已检查范围内未发现有证据的问题、17 个测试实际通过及仍有必要的下一动作；审计字段放在用户结论之后。不得把 PlanReview 或未验证范围写成通过，不输出空 finding 分组，不建议 repair；未要求归档时也不推荐 package。",
       "tags": ["human_readable_no_findings", "no_false_repair_handoff", "implementation_review"]
     }
   ]

@@ -218,6 +218,13 @@ function migrate() {
   catch (e) { die(e.message); }
   console.log(`✓ 看板数据迁移完成：${catalogs.length} 条目录 + ${catalogs.length} 份人类方案详情（备份 data/changes.js.bak）`);
 }
+function checkMigration() {
+  const { changes } = loadCurrent();
+  const allowed = new Set([...CATALOG_KEYS, ...GENERATED]);
+  const legacy = changes.some(entry => !entry.detailId || !entry.detailPath
+    || Object.keys(entry).some(key => !allowed.has(key)));
+  console.log(legacy ? 'BOARD_DATA_MIGRATION_REQUIRED' : 'BOARD_DATA_CURRENT');
+}
 function add(arg) {
   let input;
   try { input = JSON.parse(fs.readFileSync(arg, 'utf8')); }
@@ -236,7 +243,8 @@ function add(arg) {
     const mergedEntry = Object.assign({}, old, catalog, {
       detailId: old.detailId || catalog.detailId,
       deliveryId: old.deliveryId || catalog.deliveryId,
-      docPath: old.docPath || catalog.docPath
+      docPath: old.docPath || catalog.docPath,
+      currentGate: entry.currentGate || old.currentGate || catalog.currentGate
     });
     const split = splitEntry(mergedEntry, mergedDetail);
     catalog = split.catalog;
@@ -261,7 +269,8 @@ function add(arg) {
 }
 function main() {
   const arg = process.argv[2];
-  if (!arg) die('用法：node project-html/board-add.js <entry.json> | --migrate');
+  if (!arg) die('用法：node project-html/board-add.js <entry.json> | --check-migration | --migrate');
+  if (arg === '--check-migration') return checkMigration();
   if (arg === '--migrate') return migrate();
   add(arg);
 }

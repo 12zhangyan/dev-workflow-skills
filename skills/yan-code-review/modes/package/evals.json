@@ -4,12 +4,12 @@
     {
       "id": 1,
       "prompt": "使用 review-fix skill 基于 docs/2026-07-09/quote-tag.md 生成 Review 任务包",
-      "expected_output": "应进入 package；用户明确要求任务包，因此生成 docs/review-fix/<日期>/quote-tag-review-task.md，只保留审查目标、统一证据边界、必要视角、一个便携提示和 findings 格式。没有 review 结果时不生成修复交接、不编造 findings；未明确要求同步看板，因此 BoardPublishStatus=NotRequested。"
+      "expected_output": "应进入 package；用户明确要求任务包，因此生成 docs/review-fix/<日期>/quote-tag-review-task.md，只保留审查目标、统一证据边界、必要视角、一个便携提示和 findings 格式。没有 review 结果时不生成修复交接、不编造 findings；未明确要求同步看板，因此不输出看板状态字段。"
     },
     {
       "id": 2,
       "prompt": "这是 Codex 和 Cursor 返回的 review 结果，帮我汇总并生成修复交接：Codex CR-1 ...；Cursor 也提了同一个 NPE ...",
-      "expected_output": "应进入 package 聚合阶段；去重合并同一问题并保留 reviewer 原始来源编号，分配稳定 canonical CR-/IM-/MI- ID，生成 fix-handoff。未明确要求同步看板时 BoardPublishStatus=NotRequested；Workflow Brief 只在真实跨任务恢复需要时保留在最新主产物。"
+      "expected_output": "应进入 package 聚合阶段；去重合并同一问题并保留 reviewer 原始来源编号，分配稳定 canonical CR-/IM-/MI- ID，生成 fix-handoff。未明确要求同步看板时不输出看板状态字段；Workflow Brief 只在真实跨任务恢复需要时保留在最新主产物。"
     },
     {
       "id": 3,

@@ -466,6 +466,33 @@ function runSelfTest() {
   }
   const assertionTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-assertion-'));
   try {
+    const behaviorFixtures = [
+      ['review-loop-closed-loop', null, ''],
+      ['analysis-incident-artifacts', 'docs/bugs/fixture.md', '现象：重复扣款。证据：日志显示两次回调，根因待验证。'],
+      ['analysis-business-artifacts', 'docs/biz-flow/fixture.md', '入口：退款申请。状态：提交后待审批，驳回不归档。'],
+      ['handoff-persistent-doc', 'docs/handoffs/fixture.md', '目标：排查订单。证据：测试未运行。下一步：核验入口。']
+    ];
+    for (const [id, artifact, content] of behaviorFixtures) {
+      const behaviorContract = contracts.cases.find(item => item.id === id);
+      const receipt = `ROUTE: ${behaviorContract.route}\nWRITE_SCOPE: ${behaviorContract.write_scope}`;
+      const bare = assessAssertions(behaviorContract, receipt, assertionTemp, []);
+      if (bare.passed) throw new Error(`${id} accepted a routing receipt without work evidence`);
+      const output = receipt + '\n已审查 backend/src/Order.java，未发现有证据的问题；javac 编译并运行测试，2 tests passed。';
+      if (id === 'review-loop-closed-loop'
+          && assessAssertions(behaviorContract, receipt + '\n已审查 backend/src/Order.java，未发现问题；测试未运行。', assertionTemp, []).passed) {
+        throw new Error('loop accepted missing verification evidence as completion');
+      }
+      if (artifact) {
+        fs.mkdirSync(path.dirname(path.join(assertionTemp, artifact)), { recursive: true });
+        fs.writeFileSync(path.join(assertionTemp, artifact), content, 'utf8');
+        if (assessAssertions(behaviorContract, receipt, assertionTemp, []).passed) {
+          throw new Error(`${id} accepted an unchanged historical artifact`);
+        }
+      }
+      if (!assessAssertions(behaviorContract, output, assertionTemp, artifact ? [artifact] : []).passed) {
+        throw new Error(`${id} rejected the scoped behavioral evidence fixture`);
+      }
+    }
     fs.mkdirSync(path.join(assertionTemp, 'docs'), { recursive: true });
     fs.writeFileSync(path.join(assertionTemp, 'docs', 'plan.md'), '# Plan\nWP-1 contract\nWP-2 frontend\n', 'utf8');
     const assertionResult = assessAssertions(

@@ -126,12 +126,18 @@ for (const contract of contracts.cases.filter((item) => item.write_scope === 'co
   }
 }
 for (const contract of contracts.cases.filter(
-  (item) => item.prompt_ref.startsWith('yan-dev-doc:') && item.write_scope !== 'none',
+  (item) => (item.prompt_ref.startsWith('yan-dev-doc:') && item.write_scope !== 'none')
+    || ['analysis-incident-artifacts', 'analysis-business-artifacts', 'handoff-persistent-doc'].includes(item.id),
 )) {
   if (!contract.assertions || !Array.isArray(contract.assertions.artifacts) || !contract.assertions.artifacts.length) {
     console.error(`FAIL: writable contract ${contract.id} needs deterministic artifact assertions`);
     process.exit(1);
   }
+}
+const loopContract = contracts.cases.find(item => item.id === 'review-loop-closed-loop');
+if (!loopContract.assertions || !loopContract.assertions.text || !loopContract.assertions.text.length) {
+  console.error('FAIL: loop needs review and verification evidence assertions, without requiring unnecessary edits');
+  process.exit(1);
 }
 
 const refused = spawnSync(process.execPath, [runner, '--live', '--host', 'codex', '--case', 'dev-doc-standard-artifacts', '--workspace', root], {

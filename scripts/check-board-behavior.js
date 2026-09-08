@@ -270,6 +270,18 @@ try {
   });
   const dataSource = fs.readFileSync(path.join(temp, 'data/changes.js'), 'utf8');
   const entry = new Function(dataSource + ';return changes[0]')();
+  for (const identity of [
+    { deliveryId: entry.deliveryId },
+    { sourceDocPath: entry.docPath },
+    { docPath: entry.docPath }
+  ]) {
+    runAdd(identity, { delivery: { review: { status: 'verified' } } });
+    const updated = new Function(fs.readFileSync(path.join(temp, 'data/changes.js'), 'utf8') + ';return changes[0]')();
+    assert(updated.currentGate === 'review', 'identity-only updates must preserve the current gate');
+  }
+  runAdd({ deliveryId: entry.deliveryId, currentGate: 'verification' });
+  const moved = new Function(fs.readFileSync(path.join(temp, 'data/changes.js'), 'utf8') + ';return changes[0]')();
+  assert(moved.currentGate === 'verification', 'an explicit gate change must still take effect');
   assert(entry.status === '草稿', 'board-add should preserve original status on update');
   assert(entry.lifecycle === 'archived' && entry.pinned === true, 'board-add should preserve omitted lifecycle governance fields');
   assert(entry.updatedAt === today, 'board-add should refresh updatedAt on update');
@@ -292,6 +304,35 @@ try {
   for (const key of ['changeList', 'todos', 'stackTrace', 'codeLocation']) {
     assert(!Object.prototype.hasOwnProperty.call(detail, key), `human detail should not contain Agent-only field ${key}`);
   }
+
+  const legacy = path.join(temp, 'legacy');
+  fs.mkdirSync(path.join(legacy, 'data'), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'project-html/board-add.js'), path.join(legacy, 'board-add.js'));
+  const legacyData = path.join(legacy, 'data/changes.js');
+  const legacyEntries = [
+    { title: 'legacy', docPath: 'docs/legacy.md', background: 'preserved background', pinned: true, lifecycle: 'archived' },
+    { title: 'other', docPath: 'docs/other.md', solution: 'preserved solution' }
+  ];
+  fs.writeFileSync(legacyData, 'const htmlChangelog=[];\nconst changes=' + JSON.stringify(legacyEntries) + ';\n');
+  const legacyCommand = arg => {
+    const result = spawnSync(process.execPath, [path.join(legacy, 'board-add.js'), arg], { encoding: 'utf8' });
+    assert(result.status === 0, `legacy migration command failed: ${result.stderr}`);
+    return result.stdout;
+  };
+  const beforeMigration = fs.readFileSync(legacyData, 'utf8');
+  assert(legacyCommand('--check-migration').includes('BOARD_DATA_MIGRATION_REQUIRED'), 'rich legacy entries must require migration');
+  assert(fs.readFileSync(legacyData, 'utf8') === beforeMigration, 'migration detection must be read-only');
+  legacyCommand('--migrate');
+  assert(legacyCommand('--check-migration').includes('BOARD_DATA_CURRENT'), 'migrated catalogs must not require migration again');
+  assert(fs.readFileSync(legacyData + '.bak', 'utf8') === beforeMigration, 'migration must retain the original catalog backup');
+  const migrated = new Function(fs.readFileSync(legacyData, 'utf8') + ';return changes')();
+  assert(migrated.length === 2 && migrated[0].pinned && migrated[0].lifecycle === 'archived', 'migration must preserve records and governance');
+  const legacyHolder = {};
+  new Function('window', fs.readFileSync(path.join(legacy, migrated[0].detailPath), 'utf8'))(legacyHolder);
+  assert(legacyHolder.BOARD_DETAILS[migrated[0].detailId].background === 'preserved background', 'migration must retain human detail');
+  fs.writeFileSync(input, JSON.stringify({ entry: { title: 'new', docPath: 'docs/new.md' }, detail: { solution: 'new solution' } }));
+  legacyCommand(input);
+  assert(new Function(fs.readFileSync(legacyData, 'utf8') + ';return changes.length')() === 3, 'publishing after migration must retain old entries and append the new one');
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }

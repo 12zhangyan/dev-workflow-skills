@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-repair skill，按下面 review-check findings 直接修复并运行验证：Critical CR-1 File/Line: src/main/java/com/acme/order/OrderService.java:88 Problem: customerId 为 null 时继续查询导致 NPE Fix: 增加入参校验 Verify: mvn -pl order-service test",
-      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。未明确要求同步看板，BoardPublishStatus=NotRequested。"
+      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。未明确要求同步看板，不输出看板状态字段。"
     },
     {
       "id": 2,
@@ -99,7 +99,7 @@
     {
       "id": 18,
       "prompt": "修复 IM-3 后运行本地聚焦单测，测试不访问网络或外部服务；不需要看板。",
-      "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。BoardPublishStatus=NotRequested，不加载看板发布流程。",
+      "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。不输出看板状态字段，不加载看板发布流程。",
       "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_board"]
     }
   ]
