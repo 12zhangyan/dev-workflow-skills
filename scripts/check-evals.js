@@ -59,6 +59,11 @@ function legacyBriefProducerFields(value) {
   return [...new Set(matches.map((field) => field.toLowerCase()))];
 }
 
+function obsoleteReviewExpectation(value) {
+  return /BoardPublishStatus\s*[:=]\s*NotRequested/.test(value)
+    || /(?:最多|上限(?:为)?|固定)\s*(?:两|二|2)\s*(?:个)?\s*(?:修复循环|轮)/.test(value);
+}
+
 function validateEvalShape(ev, where, seenIds, seenPrompts) {
   const errors = [];
   if (!isJsonObject(ev)) {
@@ -154,6 +159,12 @@ function runSelfTest() {
   if (legacyBriefProducerFields('应输出 v2 Workflow Brief，只使用 task/state/scope/evidence/verification/open/next。').length !== 0) {
     failures.push('v2 Workflow Brief producer fixture was rejected');
   }
+  for (const value of ['BoardPublishStatus: NotRequested', '最多两个修复循环', '固定2轮']) {
+    if (!obsoleteReviewExpectation(value)) failures.push('obsolete review expectation was not rejected');
+  }
+  if (obsoleteReviewExpectation('按进展停止，不设固定修复轮次；未发布不输出看板状态。')) {
+    failures.push('adaptive review expectation was rejected');
+  }
 
   if (failures.length > 0) {
     for (const message of failures) console.error('FAIL: ' + message);
@@ -206,6 +217,9 @@ for (const spec of evalSpecs) {
     if (!isJsonObject(ev)) return;
     const tags = usableTags(ev);
     const expected = typeof ev.expected_output === 'string' ? ev.expected_output : '';
+    if (spec.rel.startsWith('yan-code-review/') && obsoleteReviewExpectation(expected)) {
+      fail(`${where} restores retired review requirements (unrequested board status or a fixed repair cap)`);
+    }
     if (/(证据|材料不足|待确认|blocker|不得|不能|不应|未运行|未检查)/.test(expected)) {
       hasAccuracyBoundary = true;
     }

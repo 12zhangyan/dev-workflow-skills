@@ -19,6 +19,6 @@ node <helper> contains docs/apifox/INDEX.md <apiSpecPath>
 node <helper> contains docs/apifox/INDEX.md <mdPath>
 ```
 
-校验至少覆盖 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`。校验器能启动但报告内容错误时必须修复，不能降级绕过。若仅因沙箱禁止执行工作区外脚本，可在工作区内做等价静态检查并记录 `OPENAPI_VALIDATION_MODE=light:workspace-inline`。任何静态校验都不能证明 Apifox 实际导入成功。
+校验至少覆盖 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`。含 `$ref` 的 YAML 在没有可用解析器时返回 `OPENAPI_VALIDATION_UNAVAILABLE`，不得当作通过；可使用已有 `yaml/js-yaml`，或以 JSON 语法写同一 `.openapi.yaml` 并用内置解析器校验，不自动新增依赖。校验器能启动但报告内容错误时必须修复，不能降级绕过。若仅因沙箱禁止执行工作区外脚本，可在工作区内做等价静态检查并记录 `OPENAPI_VALIDATION_MODE=light:workspace-inline`。任何静态校验都不能证明 Apifox 实际导入成功。
 
 完成时报告实际 YAML、索引、源 md、校验模式和未确认字段；不自动 add、commit、push，也不声称已经完成真实导入。

@@ -18,11 +18,17 @@ function walkRefs(value, refs = []) {
 }
 
 function resolvePointer(doc, ref) {
+  // This check resolves JSON Pointers; external refs and named anchors are outside its scope.
   if (!ref.startsWith('#/')) return true;
+  let pointer;
+  try { pointer = decodeURIComponent(ref.slice(1)); } catch (_) { return false; }
+  if (pointer === '') return true;
+  if (!pointer.startsWith('/')) return false;
   let current = doc;
-  for (const rawPart of ref.slice(2).split('/')) {
+  for (const rawPart of pointer.slice(1).split('/')) {
+    if (/~(?:[^01]|$)/.test(rawPart)) return false;
     const part = rawPart.replace(/~1/g, '/').replace(/~0/g, '~');
-    if (!current || typeof current !== 'object' || !(part in current)) return false;
+    if (!current || typeof current !== 'object' || !Object.prototype.hasOwnProperty.call(current, part)) return false;
     current = current[part];
   }
   return true;
@@ -67,6 +73,11 @@ function optionalParser() {
 }
 
 function validateText(raw) {
+  // A regex cannot resolve arbitrary YAML mappings, aliases or JSON Pointers.
+  // Refuse incomplete validation instead of blessing only the schemas subset.
+  if (/\$ref["']?\s*:/.test(raw)) {
+    fail('OPENAPI_VALIDATION_UNAVAILABLE: YAML $ref validation requires yaml/js-yaml; use a JSON-form document for dependency-free validation');
+  }
   if (!/^openapi:\s*["']?3\./m.test(raw)) fail('missing OpenAPI 3.x declaration');
   const lines = raw.split(/\r?\n/);
   const indentOf = (line) => (line.match(/^\s*/) || [''])[0].length;
@@ -106,35 +117,25 @@ function validateText(raw) {
   const duplicates = operationIds.filter((id, index) => operationIds.indexOf(id) !== index);
   if (duplicates.length) fail(`duplicate operationId: ${[...new Set(duplicates)].join(',')}`);
 
-  const schemasIndex = lines.findIndex((line) => /^\s*schemas:\s*$/.test(line));
-  const schemaNames = new Set();
-  if (schemasIndex >= 0) {
-    const schemasIndent = indentOf(lines[schemasIndex]);
-    let schemaIndent = null;
-    for (let i = schemasIndex + 1; i < lines.length; i += 1) {
-      const line = lines[i];
-      if (!line.trim() || line.trimStart().startsWith('#')) continue;
-      const indent = indentOf(line);
-      if (indent <= schemasIndent) break;
-      if (schemaIndent === null) schemaIndent = indent;
-      if (indent === schemaIndent) {
-        const match = line.match(/^\s*([^:#]+):\s*$/);
-        if (match) schemaNames.add(match[1].trim());
-      }
-    }
-  }
-  const refs = [...raw.matchAll(/\$ref:\s*["']?(#\/components\/schemas\/([^\s"']+))["']?/g)];
-  for (const match of refs) {
-    if (!schemaNames.has(match[2])) fail(`unresolved local $ref: ${match[1]}`);
-  }
   return operationIds;
+}
+
+function validateRaw(raw, parser) {
+  // JSON is also a YAML-compatible representation; it needs no optional parser.
+  if (raw.trimStart().startsWith('{')) {
+    let json;
+    try { json = JSON.parse(raw); } catch (error) {
+      if (!parser) fail('OPENAPI_VALIDATION_UNAVAILABLE: invalid JSON or flow-style YAML; a YAML parser is required');
+    }
+    if (json !== undefined) return { mode: 'full:json', operationIds: validateParsed(json) };
+  }
+  const operationIds = parser ? validateParsed(parser.parse(raw)) : validateText(raw);
+  return { mode: parser ? `full:${parser.name}` : 'light:no-yaml-parser', operationIds };
 }
 
 function validateFile(file) {
   const raw = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
-  const parser = optionalParser();
-  const operationIds = parser ? validateParsed(parser.parse(raw)) : validateText(raw);
-  return { mode: parser ? `full:${parser.name}` : 'light:no-yaml-parser', operationIds };
+  return validateRaw(raw, optionalParser());
 }
 
 function selfTest() {
@@ -157,6 +158,26 @@ function selfTest() {
     misplacedRejected = error.message.includes('no HTTP operations');
   }
   if (!misplacedRejected) fail('self-test accepted operationId outside an HTTP operation');
+  for (const section of ['schemas', 'parameters', 'responses', 'requestBodies', 'headers']) {
+    const ref = `#/components/${section}/Example`;
+    const doc = {
+      openapi: '3.0.3',
+      paths: { '/ping': { get: { operationId: 'ping', responses: { '200': { $ref: ref } } } } },
+      components: { [section]: { Example: { description: 'fixture' } } }
+    };
+    if (validateRaw(JSON.stringify(doc), null).mode !== 'full:json') fail('JSON reference validation unavailable');
+    delete doc.components[section].Example;
+    let rejected = false;
+    try { validateRaw(JSON.stringify(doc), null); } catch (error) { rejected = error.message.includes('unresolved local $ref'); }
+    if (!rejected) fail(`missing ${section} reference was accepted`);
+    rejected = false;
+    try { validateRaw(`${valid}components:\n  ${section}:\n    Example:\n      $ref: "${ref}"\n`, null); }
+    catch (error) { rejected = error.message.includes('OPENAPI_VALIDATION_UNAVAILABLE'); }
+    if (!rejected) fail(`YAML ${section} reference silently passed without a parser`);
+  }
+  const pointerDoc = { components: { schemas: { 'A/B ~': { type: 'string' } } } };
+  if (!resolvePointer(pointerDoc, '#/components/schemas/A~1B%20~0')) fail('escaped local pointer was rejected');
+  if (resolvePointer(pointerDoc, '#/components/schemas/toString')) fail('inherited property was accepted as a ref');
   console.log('ok validate-openapi self-test passed');
 }
 
