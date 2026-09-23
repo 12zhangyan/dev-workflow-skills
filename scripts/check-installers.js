@@ -510,6 +510,17 @@ function smokeWindows(tempRoot) {
     },
     'install.ps1 default');
   assertInstall(psHome);
+  const aliasTemp = path.join(tempRoot, 'windows-long-temporary-directory');
+  fs.mkdirSync(aliasTemp);
+  const shortPath = run(process.env.ComSpec || 'cmd.exe',
+    ['/d', '/q', '/c', 'for %I in ("' + aliasTemp + '") do @echo %~sI'],
+    { cwd: root, windowsVerbatimArguments: true }, 'resolve temporary directory short path').stdout.trim();
+  if (!shortPath || !fs.statSync(shortPath).isDirectory()) throw new Error('short-path fixture is not a directory');
+  run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'install.ps1', '-DryRun'],
+    { cwd: root, env: { ...process.env, USERPROFILE: psHome, HOME: psHome,
+      TEMP: shortPath, TMP: shortPath, DEV_WORKFLOW_SKILLS_SOURCE: root } },
+    'install.ps1 short TEMP alias cleanup');
+  if (fs.readdirSync(aliasTemp).length !== 0) fail('PowerShell installer left its temporary directory behind');
   const psBackups = run('powershell.exe',
     ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'install.ps1', '-Backups', '-Targets', 'agents'],
     {

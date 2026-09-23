@@ -31,7 +31,10 @@ if (-not $env:USERPROFILE) {
 
 $installerTempParent = (Resolve-Path -LiteralPath $env:TEMP).ProviderPath
 $tmpDir = Join-Path $installerTempParent ("dev-workflow-skills-" + [System.Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Force $tmpDir | Out-Null
+# Capture the created directory identity consistently: Windows TEMP may use 8.3 aliases.
+$createdTempDirectory = New-Item -ItemType Directory -Path $tmpDir
+$installerTempParent = $createdTempDirectory.Parent.FullName
+$tmpDir = $createdTempDirectory.FullName
 
 try {
     if ($env:DEV_WORKFLOW_SKILLS_SOURCE) {
