@@ -212,7 +212,9 @@ requireText('skills/yan-dev-doc/publishing-board.md', [
 
 requireText('skills/yan-project-analysis/modes/incident/mode.md', [
   '非交互/无人值守运行中不等待提问',
-  '不写 Bug 文档、看板或执行型修复 Todo',
+  '即使缺少关键现场证据，也保存 `NeedsConfirmation` 草稿',
+  '只有任务本身或安全写入目标无法识别时才保持零写入',
+  '用户明确要求只读时始终不落盘',
   '根因未证实时只给能区分假设的诊断动作',
   '区分源码、构建产物、部署包和实际运行证据',
   '不能用本地源码覆盖事故现场',
@@ -224,7 +226,9 @@ requireText('skills/yan-project-analysis/modes/incident/mode.md', [
 
 requireText('skills/yan-project-analysis/modes/business/mode.md', [
   '非交互/无人值守运行中不等待提问',
-  '不写业务流文档、看板或确定性测试口径',
+  '即使缺少部分入口或终态证据，也保存 `NeedsConfirmation` 草稿',
+  '只有任务本身或安全写入目标无法识别时才保持零写入',
+  '用户明确要求只读时始终不落盘',
   '缺失入口会影响状态/数据闭环时停止生成正式方案',
   '../../../_shared/board-publish-flow.md',
   'kind:"biz"',

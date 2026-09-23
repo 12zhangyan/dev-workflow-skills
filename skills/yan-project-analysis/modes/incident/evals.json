@@ -68,6 +68,15 @@
         "deployment_evidence",
         "no_overclaim"
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "无人值守记录订单支付事故，订单接口与 docs/bugs 写入目录明确，但缺下游回执；请保存已知日志与待查计划。",
+      "expected_output": "保存 NeedsConfirmation 草稿，区分已证实日志、缺失回执与诊断动作；不推断支付成功或确定根因，不生成执行型修复 Todo。缺证据只阻塞相关结论；若用户要求只读则聊天交付。",
+      "tags": [
+        "partial_evidence_draft",
+        "unattended"
+      ]
     }
   ]
 }

@@ -18,6 +18,7 @@ const LEGACY_NAMES = new Set([
   'review-fix', 'review-check', 'review-repair', 'review-loop',
 ]);
 const TARGETS = {
+  agents: { dotDir: '.agents', label: 'Shared Agents', stripSkillBom: true },
   claude: { dotDir: '.claude', label: 'Claude Code', stripSkillBom: false },
   cursor: { dotDir: '.cursor', label: 'Cursor', stripSkillBom: false },
   codex: { dotDir: '.codex', label: 'Codex', stripSkillBom: true },
@@ -49,10 +50,13 @@ function parseArgs(argv) {
   return result;
 }
 
-function validateTargets(targets) {
-  const selected = targets.length ? targets : Object.keys(TARGETS);
+function validateTargets(targets, command) {
+  const selected = targets.length ? targets : command === 'doctor' ? Object.keys(TARGETS) : ['agents'];
   for (const target of selected) {
-    if (!TARGETS[target]) fail(`unknown target: ${target} (allowed: claude cursor codex)`);
+    if (!TARGETS[target]) fail('unknown target: ' + target + ' (allowed: agents; legacy read-only: claude cursor codex)');
+    if (target !== 'agents' && !['status', 'doctor', 'backups'].includes(command)) {
+      fail('legacy target ' + target + ' is read-only; shared skills belong in ~/.agents/skills');
+    }
   }
   return [...new Set(selected)];
 }
@@ -158,6 +162,18 @@ function targetPaths(home, targetName) {
   const target = TARGETS[targetName];
   const targetRoot = path.resolve(home, target.dotDir);
   const skillsRoot = path.resolve(targetRoot, 'skills');
+  if (targetName === 'agents') {
+    for (const directory of [targetRoot, skillsRoot]) {
+      try {
+        const stat = fs.lstatSync(directory);
+        if (stat.isSymbolicLink() || !stat.isDirectory()) {
+          throw new Error('shared install root must be a real directory, not a link or file: ' + directory);
+        }
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+  }
   const relative = path.relative(targetRoot, skillsRoot);
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`unsafe skills target for ${targetName}: ${skillsRoot}`);
@@ -727,11 +743,11 @@ function doctor(sourceRoot, home, targets) {
     const target = TARGETS[targetName];
     const skillsRoot = path.resolve(home, target.dotDir, 'skills');
     const rootState = fs.existsSync(skillsRoot) && fs.statSync(skillsRoot).isDirectory() ? 'PRESENT' : 'MISSING';
-    const rawManifest = loadManifest(skillsRoot, targetName).manifest;
     const manifest = inspectManifest(sourceRoot, skillsRoot, targetName);
     process.stdout.write(`ROOT\t${targetName}\t${rootState}\t${skillsRoot.replace(/\\/g, '/')}\n`);
     process.stdout.write(`MANIFEST\t${targetName}\t${manifest.state}\t${manifest.version}\t${manifest.notes.join(',') || '-'}\n`);
     if (rootState === 'MISSING') continue;
+    if (targetName !== 'agents') process.stdout.write('LEGACY_ROOT\t' + targetName + '\tREAD_ONLY\n');
     const names = fs.readdirSync(skillsRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory() && entry.name !== '.yan-backups')
       .map((entry) => entry.name)
@@ -739,23 +755,13 @@ function doctor(sourceRoot, home, targets) {
     for (const name of names) {
       if (LEGACY_NAMES.has(name)) process.stdout.write(`LEGACY\t${targetName}\t${name}\tPRESENT\n`);
       if (!skillOwners.has(name)) skillOwners.set(name, []);
-      const managed = Boolean(rawManifest
-        && Array.isArray(rawManifest.managedSkills)
-        && rawManifest.managedSkills.includes(name));
-      skillOwners.get(name).push({
-        target: targetName,
-        managed,
-        sourceTreeHash: managed ? rawManifest.sourceTreeHash || null : null,
-      });
+      skillOwners.get(name).push({ target: targetName });
     }
   }
   for (const [name, owners] of [...skillOwners.entries()].sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))) {
     if (owners.length < 2) continue;
     const targetsText = owners.map((owner) => owner.target).join(',');
-    const expectedMirror = owners.every((owner) => owner.managed)
-      && owners.every((owner) => owner.sourceTreeHash)
-      && new Set(owners.map((owner) => owner.sourceTreeHash)).size === 1;
-    process.stdout.write(`${expectedMirror ? 'MIRROR' : 'DUPLICATE'}\t${name}\t${targetsText}\n`);
+    process.stdout.write(`DUPLICATE\t${name}\t${targetsText}\n`);
   }
 }
 
@@ -771,7 +777,7 @@ if (!commands.includes(options.command)) {
 const homeInput = options.home || process.env.USERPROFILE || process.env.HOME;
 if (!homeInput) fail('home directory is required');
 const home = path.resolve(homeInput);
-const targets = validateTargets(options.targets);
+const targets = validateTargets(options.targets, options.command);
 
 try {
   if (options.command === 'install') {

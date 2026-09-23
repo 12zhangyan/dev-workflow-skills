@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
@@ -135,7 +136,7 @@ function probeHost(host) {
 function installedState(host) {
   const home = process.env.USERPROFILE || process.env.HOME;
   if (!home) return { manifest: false, reason: 'HOME is unavailable' };
-  const manifestPath = path.join(home, `.${host}`, 'skills', '.yan-dev-workflow-skills.json');
+  const manifestPath = path.join(home, '.agents', 'skills', '.yan-dev-workflow-skills.json');
   if (!fs.existsSync(manifestPath)) return { manifest: false, path: manifestPath };
   try {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -179,7 +180,7 @@ function promptFor(contract, skillSnapshotRoot) {
 }
 
 function git(workspace, args) {
-  return spawnSync('git', ['-C', workspace, ...args], { encoding: 'utf8', windowsHide: true });
+  return spawnSync('git', ['--no-optional-locks', '-C', workspace, ...args], { encoding: 'utf8', windowsHide: true });
 }
 
 function parsePorcelainZ(value) {
@@ -203,6 +204,82 @@ function gitStatus(workspace) {
     status: result.status,
     raw: result.stdout || '',
     paths: parsePorcelainZ(result.stdout || ''),
+  };
+}
+
+// Snapshot ignored files and links too: a clean Git status is not a no-write receipt.
+function snapshotTree(directory, skip = new Set()) {
+  const entries = Object.create(null);
+  function walk(current, prefix = '') {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const rel = prefix + entry.name;
+      if (skip.has(rel)) continue;
+      const full = path.join(current, entry.name);
+      const stat = fs.lstatSync(full);
+      if (stat.isSymbolicLink()) entries[rel] = 'link:' + fs.readlinkSync(full);
+      else if (stat.isDirectory()) {
+        entries[rel + '/'] = 'dir:' + (stat.mode & 0o777);
+        walk(full, rel + '/');
+      } else if (stat.isFile()) {
+        entries[rel] = (stat.mode & 0o777) + ':' + crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex');
+      } else throw new Error('cannot snapshot special file: ' + rel);
+    }
+  }
+  walk(directory);
+  return entries;
+}
+
+function changedEntries(before, after) {
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter((name) => before[name] !== after[name]).sort();
+}
+
+function workspaceSnapshot(workspace) {
+  const status = gitStatus(workspace);
+  const head = git(workspace, ['rev-parse', '--verify', 'HEAD']);
+  const index = git(workspace, ['ls-files', '--stage', '-z']);
+  return {
+    status,
+    head: head.stdout.trim(),
+    index: index.stdout,
+    valid: status.status === 0 && head.status === 0 && index.status === 0,
+    files: snapshotTree(workspace, new Set(['.git'])),
+    // Index contents are compared semantically above; stat-cache refreshes are harmless.
+    // Refs, reflogs, config, hooks and exclude rules remain protected.
+    metadata: snapshotTree(path.join(workspace, '.git'), new Set(['objects', 'index'])),
+  };
+}
+
+function assessWorkspaceDrift(contract, before, after) {
+  const changedPaths = changedEntries(before.files, after.files);
+  const metadataChanges = changedEntries(before.metadata, after.metadata);
+  const headChanged = before.head !== after.head;
+  const indexChanged = before.index !== after.index;
+  const allowedPathPatterns = contract.allowed_path_patterns || [];
+  const matchers = allowedPathPatterns.map((pattern) => new RegExp(pattern));
+  const allowedPrefixes = contract.write_scope === 'docs' ? ['docs/']
+    : contract.write_scope === 'docs-and-board' ? ['docs/', 'project-html/'] : [];
+  function allowedPath(file) {
+    if (file === '.yan-host-eval-runtime/' || file.startsWith('.yan-host-eval-runtime/')) return false;
+    if (contract.write_scope === 'code-and-tests') return matchers.some((matcher) => matcher.test(file));
+    return allowedPrefixes.some((prefix) => file.startsWith(prefix));
+  }
+  // Directory creation is covered by its descendants. Empty directories still count as writes.
+  const scopePaths = changedPaths.filter((file) => !file.endsWith('/')
+    || !changedPaths.some((other) => other !== file && other.startsWith(file)));
+  return {
+    before: before.status.paths,
+    after: after.status.paths,
+    changedPaths,
+    headBefore: before.head,
+    headAfter: after.head,
+    headChanged,
+    indexChanged,
+    metadataChanges,
+    allowedPathPatterns,
+    allowed: before.valid && after.valid && before.status.paths.length === 0
+      && !headChanged && !indexChanged && metadataChanges.length === 0
+      && scopePaths.every(allowedPath) && after.status.paths.every(allowedPath),
   };
 }
 
@@ -417,7 +494,67 @@ function compactDiagnostics(value, limit = 8000) {
   };
 }
 
+function runDriftSelfTest() {
+  const tempParent = fs.realpathSync(require('os').tmpdir());
+  const fixture = fs.mkdtempSync(path.join(tempParent, 'yan-eval-drift-'));
+  const command = (...args) => {
+    const result = git(fixture, ['-c', 'core.hooksPath=' + path.join(fixture, '.no-hooks'),
+      '-c', 'commit.gpgsign=false', '-c', 'user.name=Eval Fixture',
+      '-c', 'user.email=fixture@example.invalid', ...args]);
+    if (result.status !== 0) throw new Error('drift fixture Git command failed: ' + result.stderr);
+  };
+  const readOnly = { write_scope: 'none' };
+  const docsOnly = { write_scope: 'docs' };
+  const expect = (contract, before, passed, label) => {
+    const result = assessWorkspaceDrift(contract, before, workspaceSnapshot(fixture));
+    if (result.allowed !== passed) throw new Error('workspace drift regression: ' + label);
+  };
+  try {
+    command('init', '-q', '--template=');
+    fs.writeFileSync(path.join(fixture, '.gitignore'), 'generated/\n.yan-host-eval-runtime/\n');
+    fs.writeFileSync(path.join(fixture, 'source.java'), 'class Original {}\n');
+    command('add', '--', '.gitignore', 'source.java');
+    command('commit', '-qm', 'baseline');
+    fs.mkdirSync(path.join(fixture, 'generated'));
+    fs.writeFileSync(path.join(fixture, 'generated', 'existing.bin'), 'baseline');
+    fs.mkdirSync(path.join(fixture, '.yan-host-eval-runtime'));
+    fs.writeFileSync(path.join(fixture, '.yan-host-eval-runtime', 'skill.md'), 'immutable');
+    const before = workspaceSnapshot(fixture);
+    expect(readOnly, before, true, 'unchanged workspace');
+    command('config', 'test.evalMarker', 'unauthorized');
+    expect(readOnly, before, false, 'Git config mutation');
+    command('config', '--remove-section', 'test');
+    fs.writeFileSync(path.join(fixture, 'generated', 'existing.bin'), 'changed');
+    expect(readOnly, before, false, 'ignored-file write in read-only mode');
+    expect(docsOnly, before, false, 'ignored-file write outside docs');
+    fs.writeFileSync(path.join(fixture, 'generated', 'existing.bin'), 'baseline');
+    fs.writeFileSync(path.join(fixture, '.yan-host-eval-runtime', 'skill.md'), 'tampered');
+    expect(readOnly, before, false, 'runtime snapshot tampering');
+    fs.writeFileSync(path.join(fixture, '.yan-host-eval-runtime', 'skill.md'), 'immutable');
+    fs.mkdirSync(path.join(fixture, 'docs'));
+    fs.writeFileSync(path.join(fixture, 'docs', 'plan.md'), 'allowed doc');
+    expect(docsOnly, before, true, 'authorized document creation');
+    expect(readOnly, before, false, 'untracked document in read-only mode');
+    command('add', '--', 'docs/plan.md');
+    expect(docsOnly, before, false, 'unauthorized staging');
+    fs.writeFileSync(path.join(fixture, 'source.java'), 'class Unauthorized {}\n');
+    command('add', '--', 'source.java');
+    command('commit', '-qm', 'out-of-scope edit');
+    if (gitStatus(fixture).paths.length) throw new Error('committed fixture should look clean to git status');
+    expect(readOnly, before, false, 'committed out-of-scope changes');
+    expect(docsOnly, before, false, 'commits in writable document mode');
+  } finally {
+    const resolved = fs.realpathSync(fixture);
+    if (path.dirname(resolved) !== tempParent || !path.basename(resolved).startsWith('yan-eval-drift-')) {
+      throw new Error('unsafe drift fixture cleanup path');
+    }
+    fs.rmSync(resolved, { recursive: true, force: true });
+  }
+  console.log('ok workspace drift checks reject committed, staged, ignored and runtime writes');
+}
+
 function runSelfTest() {
+  runDriftSelfTest();
   if (!globToRegex('docs/**/*.md').test('docs/plan.md')
       || !globToRegex('docs/**/*.md').test('docs/2026-09-03/plan.md')
       || globToRegex('docs/**/*.md').test('src/plan.md')) {
@@ -564,7 +701,7 @@ function main() {
   const probe = probeHost(args.host);
   if (!probe.available) throw new Error(`${args.host} is unavailable: ${probe.reason}`);
   const isolation = createIsolation(sourceWorkspace);
-  const before = gitStatus(isolation.workspace);
+  const before = workspaceSnapshot(isolation.workspace);
   const prompt = promptFor(contract, isolation.skillSnapshotRoot);
   const invocation = liveArgs(args.host, probe.command, isolation.workspace, prompt, args.model, contract.write_scope);
   const startedAt = new Date().toISOString();
@@ -575,24 +712,9 @@ function main() {
     timeout: args.timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
-  const after = gitStatus(isolation.workspace);
-  const changedPaths = after.paths;
-  const allowedPrefixes = contract.write_scope === 'none' ? [] : contract.write_scope === 'docs' ? ['docs/'] : contract.write_scope === 'docs-and-board' ? ['docs/', 'project-html/'] : null;
-  const allowedPathMatchers = (contract.allowed_path_patterns || []).map((pattern) => new RegExp(pattern));
-  const codeAndTestsAllowed = contract.write_scope !== 'code-and-tests'
-    || (allowedPathMatchers.length > 0
-      && changedPaths.every((file) => allowedPathMatchers.some((matcher) => matcher.test(file))));
-  const drift = {
-    before: before.paths,
-    after: after.paths,
-    changedPaths,
-    allowed: before.status === 0
-      && before.paths.length === 0
-      && after.status === 0
-      && codeAndTestsAllowed
-      && (contract.write_scope === 'code-and-tests' || changedPaths.every((file) => allowedPrefixes.some((prefix) => file.startsWith(prefix)))),
-    allowedPathPatterns: contract.allowed_path_patterns || [],
-  };
+  const after = workspaceSnapshot(isolation.workspace);
+  const drift = assessWorkspaceDrift(contract, before, after);
+  const changedPaths = drift.changedPaths.filter((file) => !file.endsWith('/'));
   const modelOutput = (run.stdout || '').trim();
   const diagnostics = (run.stderr || '').trim();
   const diagnosticSummary = compactDiagnostics(diagnostics);

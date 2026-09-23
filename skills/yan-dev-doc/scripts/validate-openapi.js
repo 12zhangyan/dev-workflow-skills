@@ -81,11 +81,13 @@ function validateText(raw) {
   if (!/^openapi:\s*["']?3\./m.test(raw)) fail('missing OpenAPI 3.x declaration');
   const lines = raw.split(/\r?\n/);
   const indentOf = (line) => (line.match(/^\s*/) || [''])[0].length;
-  const pathsIndex = lines.findIndex((line) => /^\s*paths:\s*$/.test(line));
+  const pathsIndex = lines.findIndex((line) => /^paths:\s*$/.test(line));
   if (pathsIndex < 0) fail('missing paths mapping');
   const pathsIndent = indentOf(lines[pathsIndex]);
   let currentPath = null;
   let currentPathIndent = -1;
+  let pathsChildIndent = null;
+  let pathFieldIndent = null;
   const operationIds = [];
 
   for (let i = pathsIndex + 1; i < lines.length; i += 1) {
@@ -93,20 +95,28 @@ function validateText(raw) {
     if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const indent = indentOf(line);
     if (indent <= pathsIndent) break;
+    if (pathsChildIndent === null) pathsChildIndent = indent;
     const pathMatch = line.match(/^\s*(\/[^:]*):\s*$/);
-    if (pathMatch) {
-      currentPath = pathMatch[1];
+    if (indent === pathsChildIndent) {
+      currentPath = pathMatch ? pathMatch[1] : null;
       currentPathIndent = indent;
+      pathFieldIndent = null;
       continue;
     }
+    if (!currentPath || indent <= currentPathIndent) continue;
+    if (pathFieldIndent === null) pathFieldIndent = indent;
     const keyMatch = line.match(/^\s*([A-Za-z]+):\s*$/);
-    if (!currentPath || !keyMatch || indent <= currentPathIndent || !HTTP_METHODS.has(keyMatch[1].toLowerCase())) continue;
+    if (indent !== pathFieldIndent || !keyMatch || !HTTP_METHODS.has(keyMatch[1].toLowerCase())) continue;
     const method = keyMatch[1].toLowerCase();
     let operationId = '';
+    let operationFieldIndent = null;
     for (let j = i + 1; j < lines.length; j += 1) {
       const child = lines[j];
       if (!child.trim() || child.trimStart().startsWith('#')) continue;
-      if (indentOf(child) <= indent) break;
+      const childIndent = indentOf(child);
+      if (childIndent <= indent) break;
+      if (operationFieldIndent === null) operationFieldIndent = childIndent;
+      if (childIndent !== operationFieldIndent) continue;
       const idMatch = child.match(/^\s*operationId:\s*["']?([^\s"'#]+)["']?\s*$/);
       if (idMatch) operationId = idMatch[1];
     }
@@ -175,6 +185,25 @@ function selfTest() {
     catch (error) { rejected = error.message.includes('OPENAPI_VALIDATION_UNAVAILABLE'); }
     if (!rejected) fail(`YAML ${section} reference silently passed without a parser`);
   }
+  let nestedPathsRejected = false;
+  try { validateText('openapi: 3.0.3\ninfo:\n  paths:\n    /ping:\n      get:\n        operationId: fake\n'); }
+  catch (error) { nestedPathsRejected = error.message.includes('missing paths mapping'); }
+  if (!nestedPathsRejected) fail('nested paths mapping was accepted as top-level paths');
+  // IDs and methods inside response examples are data, not operation metadata.
+  const nestedExample = 'openapi: 3.0.3\npaths:\n  /ping:\n    get:\n      responses:\n        "200":\n          description: ok\n          content:\n            application/json:\n              example:\n                operationId: nestedId\n';
+  for (const raw of [nestedExample, JSON.stringify({ openapi: '3.0.3', paths: {
+    '/ping': { get: { responses: { '200': { description: 'ok', example: { operationId: 'nestedId' } } } } }
+  } })]) {
+    let rejected = false;
+    try { validateRaw(raw, null); } catch (error) { rejected = error.message.includes('missing operationId'); }
+    if (!rejected) fail('nested example operationId was accepted as operation metadata');
+  }
+  const withRealId = nestedExample.replace('    get:\n', '    get:\n      operationId: actualId\n');
+  if (validateText(withRealId).join(',') !== 'actualId') fail('nested example overwrote the real operationId');
+  const nestedMethod = valid + '          example:\n            post:\n              operationId: nestedMethod\n';
+  if (validateText(nestedMethod).join(',') !== 'ping') fail('nested example was counted as an HTTP operation');
+  const nestedPath = valid + '          example:\n            /not-a-path:\n              get:\n                operationId: nestedPath\n';
+  if (validateText(nestedPath).join(',') !== 'ping') fail('nested example was counted as an API path');
   const pointerDoc = { components: { schemas: { 'A/B ~': { type: 'string' } } } };
   if (!resolvePointer(pointerDoc, '#/components/schemas/A~1B%20~0')) fail('escaped local pointer was rejected');
   if (resolvePointer(pointerDoc, '#/components/schemas/toString')) fail('inherited property was accepted as a ref');

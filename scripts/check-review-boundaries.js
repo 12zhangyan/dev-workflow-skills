@@ -37,6 +37,7 @@ requireText('skills/yan-code-review/modes/check/mode.md', [
   '同会话刚完成的实现默认审其实际 changed 文件和 diff',
   '不能把空结果当 clean',
   '证据不足不冒充 finding',
+  '修法或验证设计未定不撤销 finding',
   '关键材料不足时列出缺口和受影响结论，不写成通过',
   '没有 finding 时不输出空分组',
   '由协调者决定是否按根入口规则发布',
@@ -47,6 +48,7 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
   '只有方案、review task 或未形成 finding 的 diff 时不修复',
   '不提交、不写数据库',
   '已有 canonical ID 原样保留',
+  '问题已证实与已具备修复条件分开判断',
   '不按 finding 数、文件数或固定轮次执行',
   '只有实现与验证均能关闭问题时才标已修复',
 ]);
@@ -78,6 +80,12 @@ requireText('skills/_shared/workflow-chain.md', [
   '需要失败归因或交接时可使用 `TestEvidenceStatus`',
   '修改代码后必须基于最新实现重新判断',
   '是否修复成功与是否达到 VCS/Submit 就绪分别判断',
+]);
+
+requireText('skills/yan-code-review/modes/package/aggregation.md', [
+  'Accepted 只表示问题已证实',
+  '不因建议缺失归入 `RJ`',
+  '下发执行型修复前',
 ]);
 
 const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';

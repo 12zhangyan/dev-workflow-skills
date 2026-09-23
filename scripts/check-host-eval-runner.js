@@ -23,6 +23,7 @@ const selfTest = spawnSync(process.execPath, [runner, '--self-test'], {
 });
 
 if (selfTest.status !== 0
+    || !selfTest.stdout.includes('workspace drift checks reject committed, staged, ignored and runtime writes')
     || !selfTest.stdout.includes('artifact-content')
     || !selfTest.stdout.includes('current-skill snapshot self-tests passed')) {
   console.error(`FAIL: host eval self-test exited ${selfTest.status}: ${selfTest.stderr || selfTest.stdout}`);

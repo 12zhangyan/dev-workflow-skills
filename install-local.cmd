@@ -1,20 +1,20 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Safe local installer for Claude Code, Cursor, and Codex.
+REM Shared installation in .agents/skills; legacy roots are read-only.
 REM Usage:
 REM   install-local.cmd
-REM   install-local.cmd claude cursor codex
+REM   install-local.cmd agents
 REM   install-local.cmd status
 REM   install-local.cmd doctor
-REM   install-local.cmd --dry-run codex
-REM   install-local.cmd backups codex
-REM   install-local.cmd restore --backup SNAPSHOT codex
+REM   install-local.cmd --dry-run agents
+REM   install-local.cmd backups agents
+REM   install-local.cmd restore --backup SNAPSHOT agents
 REM   install-local.cmd backup-prune --keep 5
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo [ERROR] Node.js is required for safe installation and Codex BOM normalization.
+  echo [ERROR] Node.js is required for safe shared installation and SKILL.md BOM normalization.
   exit /b 1
 )
 
@@ -51,6 +51,8 @@ if /i "%~1"=="status" (
   if "%~2"=="" goto missing_value
   set "EXTRA=!EXTRA! --keep %~2"
   shift
+) else if /i "%~1"=="agents" (
+  set "TARGETS=!TARGETS! agents"
 ) else if /i "%~1"=="claude" (
   set "TARGETS=!TARGETS! claude"
 ) else if /i "%~1"=="cursor" (
@@ -59,7 +61,7 @@ if /i "%~1"=="status" (
   set "TARGETS=!TARGETS! codex"
 ) else (
   echo [ERROR] Unknown argument: %~1
-  echo Allowed: status doctor backups restore backup-prune claude cursor codex
+  echo Allowed: status doctor backups restore backup-prune agents
   echo Options: --dry-run --backup ID --skill NAME --keep N
   exit /b 1
 )

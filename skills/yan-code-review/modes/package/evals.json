@@ -103,6 +103,15 @@
       "prompt": "对当前本地 diff 做多角色 review；已运行的聚焦测试通过，不涉及外部服务、凭据或 CI 失败归因。",
       "expected_output": "记录验证命令、实际结果和它覆盖的目标逻辑；不为填格式强制输出 TestDependencyClass。宿主可委派时直接使用当前证据索引并行审查，未明确要求留档或看板时不落盘任务包，也不输出看板状态占位。",
       "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_artifact", "no_implicit_board"]
+    },
+    {
+      "id": 19,
+      "prompt": "使用 package：IM-8 已有明确代码位置、复现和用户影响，但 reviewer 没有给出修复方案或验证命令。",
+      "expected_output": "归并为 accepted 并保留 IM-8 来源；缺少修法或验证设计不归 RJ，也不下发无依据修复。记录条件缺口，必要时关联 BK。",
+      "tags": [
+        "finding_acceptance",
+        "repair_readiness"
+      ]
     }
   ]
 }

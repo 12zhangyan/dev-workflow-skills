@@ -15,9 +15,7 @@ const legacyNames = [
   'review-fix', 'review-check', 'review-repair', 'review-loop',
 ];
 const targets = [
-  { name: 'claude', dotDir: '.claude', stripSkillBom: false },
-  { name: 'cursor', dotDir: '.cursor', stripSkillBom: false },
-  { name: 'codex', dotDir: '.codex', stripSkillBom: true },
+  { name: 'agents', dotDir: '.agents', stripSkillBom: true },
 ];
 let failed = false;
 
@@ -238,6 +236,61 @@ function assertInstall(home) {
   }
 }
 
+function smokeSharedBoundary(tempRoot) {
+  const home = path.join(tempRoot, 'shared-boundary-home');
+  fs.mkdirSync(home, { recursive: true });
+  for (const host of ['claude', 'cursor', 'codex']) {
+    const legacy = path.join(home, '.' + host, 'skills', 'yan-dev-doc');
+    fs.mkdirSync(legacy, { recursive: true });
+    fs.writeFileSync(path.join(legacy, 'SKILL.md'), 'user-owned legacy copy');
+  }
+  // Built-in skills must never be copied or moved into the shared discovery root.
+  fs.mkdirSync(path.join(home, '.codex', 'skills', '.system', 'builtin'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.codex', 'skills', '.system', 'builtin', 'SKILL.md'), 'system');
+  const before = hashTree(home);
+  const core = (command, args = [], code = 0) => run(process.execPath,
+    ['scripts/install-core.js', command, '--home', home, '--source', root, ...args],
+    { cwd: root }, 'shared boundary ' + command, code);
+  core('install', ['--dry-run']);
+  if (hashTree(home) !== before) fail('shared dry run modified legacy roots');
+  for (const host of ['claude', 'cursor', 'codex']) {
+    core('install', ['--targets', host], 1);
+    core('restore', ['--backup', 'unknown', '--targets', host], 1);
+  }
+  if (hashTree(home) !== before) fail('rejected legacy writes modified the home');
+  core('install');
+  const shared = path.join(home, '.agents', 'skills');
+  if (!fs.existsSync(path.join(shared, '_shared', 'scripts', 'workflow-fs.js'))) fail('shared dependencies were not installed');
+  if (fs.existsSync(path.join(shared, '.system'))) fail('built-in skills were copied');
+  for (const host of ['claude', 'cursor', 'codex']) {
+    const content = fs.readFileSync(path.join(home, '.' + host, 'skills', 'yan-dev-doc', 'SKILL.md'), 'utf8');
+    if (content !== 'user-owned legacy copy') fail('shared install touched ' + host);
+  }
+  const installed = hashTree(home);
+  const result = core('doctor');
+  if (!result.stdout.includes('DUPLICATE\tyan-dev-doc\tagents,claude,cursor,codex')
+    || !result.stdout.includes('LEGACY_ROOT\tcodex\tREAD_ONLY')) fail('doctor missed shared/legacy duplicates');
+  if (hashTree(home) !== installed) fail('doctor modified an installation');
+  core('status');
+
+  const linkedHome = path.join(tempRoot, 'linked-home');
+  const protectedDirectory = path.join(tempRoot, 'protected-legacy');
+  fs.mkdirSync(linkedHome);
+  fs.mkdirSync(protectedDirectory);
+  fs.writeFileSync(path.join(protectedDirectory, 'marker'), 'preserve');
+  try {
+    fs.symlinkSync(protectedDirectory, path.join(linkedHome, '.agents'), process.platform === 'win32' ? 'junction' : 'dir');
+    const protectedHash = hashTree(protectedDirectory);
+    run(process.execPath, ['scripts/install-core.js', 'install', '--home', linkedHome, '--source', root],
+      { cwd: root }, 'reject linked shared root', 1);
+    if (hashTree(protectedDirectory) !== protectedHash) fail('linked shared root wrote into legacy directory');
+  } catch (error) {
+    // Environments without symlink privileges cannot exercise this fixture.
+    if (!['EPERM', 'ENOTSUP', 'EACCES'].includes(error.code)) throw error;
+    console.log('skip shared-root symlink fixture: ' + error.code);
+  }
+}
+
 function smokeWindows(tempRoot) {
   const cmdHome = path.join(tempRoot, 'cmd-home');
   fs.mkdirSync(cmdHome, { recursive: true });
@@ -245,7 +298,7 @@ function smokeWindows(tempRoot) {
   const cmdEnv = { ...process.env, USERPROFILE: cmdHome, HOME: cmdHome };
   const beforeDryRun = JSON.stringify(listTree(cmdHome));
   const dryRun = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd --dry-run claude cursor codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd --dry-run agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd dry run');
   if (!dryRun.stdout.includes('[PLAN]') || !dryRun.stdout.includes('No files were changed')) {
     fail('install-local.cmd dry run did not print a cleanup/install plan');
@@ -253,17 +306,15 @@ function smokeWindows(tempRoot) {
   if (JSON.stringify(listTree(cmdHome)) !== beforeDryRun) {
     fail('install-local.cmd dry run modified the home directory');
   }
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude cursor codex'],
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd default');
   assertInstall(cmdHome);
   const beforeDoctor = JSON.stringify(listTree(cmdHome));
   const doctor = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd doctor'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd doctor');
-  if (!doctor.stdout.includes('ROOT\tclaude\tPRESENT')
-    || !doctor.stdout.includes('MANIFEST\tcodex\tCURRENT')
-    || !doctor.stdout.includes('MIRROR\tyan-dev-doc\tclaude,cursor,codex')
-    || !doctor.stdout.includes('DUPLICATE\tuser-owned-skill\tclaude,cursor,codex')) {
-    fail('install-local.cmd doctor did not distinguish managed mirrors from unmanaged duplicates');
+  if (!doctor.stdout.includes('ROOT\tagents\tPRESENT')
+    || !doctor.stdout.includes('MANIFEST\tagents\tCURRENT')) {
+    fail('doctor did not inspect the shared root');
   }
   if (doctor.stdout.includes('LEGACY\t')) fail('clean install left a known legacy directory discoverable');
   if (JSON.stringify(listTree(cmdHome)) !== beforeDoctor) fail('install-local.cmd doctor modified the home directory');
@@ -276,7 +327,7 @@ function smokeWindows(tempRoot) {
   seedRemovedManagedSkill(cmdHome);
   seedStaleManagedFile(cmdHome);
   const migrated = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd --migrate-legacy claude cursor codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd --migrate-legacy agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd clean reinstall');
   if (!migrated.stderr.includes('[DEPRECATED]')) {
     fail('deprecated --migrate-legacy did not emit a warning');
@@ -296,28 +347,28 @@ function smokeWindows(tempRoot) {
   }
 
   const beforeFailure = JSON.stringify(listTree(cmdHome));
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude cursor codex'],
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd agents'],
     {
       cwd: root,
-      env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'manifest:cursor' },
+      env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'manifest:agents' },
     },
     'install-local.cmd activation rollback', 1);
   if (JSON.stringify(listTree(cmdHome)) !== beforeFailure) {
     fail('cross-target activation failure did not roll back the complete installation');
   }
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude'],
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd agents'],
     {
       cwd: root,
-      env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'stage:claude:yan-code-review' },
+      env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'stage:agents:yan-code-review' },
     },
     'install-local.cmd staging failure', 1);
   if (JSON.stringify(listTree(cmdHome)) !== beforeFailure) {
     fail('staging failure modified the active installation');
   }
 
-  const lockPath = path.join(cmdHome, '.claude', '.yan-dev-workflow-skills.lock');
+  const lockPath = path.join(cmdHome, '.agents', '.yan-dev-workflow-skills.lock');
   fs.writeFileSync(lockPath, `${JSON.stringify({ pid: process.pid, startedAt: 'test' })}\n`);
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd claude'],
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd concurrent lock', 1);
   fs.rmSync(lockPath, { force: true });
   if (JSON.stringify(listTree(cmdHome)) !== beforeFailure) {
@@ -327,26 +378,26 @@ function smokeWindows(tempRoot) {
   const staleTime = new Date(Date.now() - 7 * 60 * 60 * 1000);
   fs.utimesSync(lockPath, staleTime, staleTime);
   const staleLock = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd claude'],
+    ['/d', '/q', '/c', 'call install-local.cmd agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd stale lock recovery');
   if (!staleLock.stderr.includes('[RECOVER]') || fs.existsSync(lockPath)) {
     fail('stale installer lock was not recovered');
   }
   assertInstall(cmdHome);
 
-  const claudeManifestPath = path.join(
+  const agentsManifestPath = path.join(
     cmdHome,
-    '.claude',
+    '.agents',
     'skills',
     '.yan-dev-workflow-skills.json',
   );
-  const validManifestText = fs.readFileSync(claudeManifestPath, 'utf8');
+  const validManifestText = fs.readFileSync(agentsManifestPath, 'utf8');
   const unsupportedManifest = JSON.parse(validManifestText);
   unsupportedManifest.schemaVersion = 99;
-  fs.writeFileSync(claudeManifestPath, `${JSON.stringify(unsupportedManifest, null, 2)}\n`);
+  fs.writeFileSync(agentsManifestPath, `${JSON.stringify(unsupportedManifest, null, 2)}\n`);
   const beforeUnsupportedSchema = JSON.stringify(listTree(cmdHome));
   const unsupported = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd --dry-run claude'],
+    ['/d', '/q', '/c', 'call install-local.cmd --dry-run agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd unsupported schema', 1);
   if (!unsupported.stderr.includes('unsupported-schema:99')) {
     fail('unsupported manifest schema did not fail explicitly');
@@ -354,77 +405,77 @@ function smokeWindows(tempRoot) {
   if (JSON.stringify(listTree(cmdHome)) !== beforeUnsupportedSchema) {
     fail('unsupported manifest schema changed the installation');
   }
-  fs.writeFileSync(claudeManifestPath, validManifestText);
+  fs.writeFileSync(agentsManifestPath, validManifestText);
 
   const backupList = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backups codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backups agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backup list');
   const restoreLine = backupList.stdout.split(/\r?\n/)
-    .find((line) => line.startsWith('BACKUP\tcodex\t') && line.split('\t')[3].split(',').includes('yan-dev-doc'));
+    .find((line) => line.startsWith('BACKUP\tagents\t') && line.split('\t')[3].split(',').includes('yan-dev-doc'));
   if (!restoreLine) {
     fail('backups command did not list the pre-manifest yan-dev-doc snapshot');
   } else {
     const backupId = restoreLine.split('\t')[2];
     const beforeRestoreFailure = JSON.stringify(listTree(cmdHome));
     run(process.env.ComSpec || 'cmd.exe',
-      ['/d', '/q', '/c', `call install-local.cmd restore --backup ${backupId} --skill yan-dev-doc codex`],
+      ['/d', '/q', '/c', `call install-local.cmd restore --backup ${backupId} --skill yan-dev-doc agents`],
       {
         cwd: root,
-        env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'restore-activate:codex:yan-dev-doc' },
+        env: { ...cmdEnv, DEV_WORKFLOW_SKILLS_FAILPOINT: 'restore-activate:agents:yan-dev-doc' },
       },
       'install-local.cmd restore rollback', 1);
     if (JSON.stringify(listTree(cmdHome)) !== beforeRestoreFailure) {
       fail('restore activation failure did not roll back the active Skill');
     }
     run(process.env.ComSpec || 'cmd.exe',
-      ['/d', '/q', '/c', `call install-local.cmd restore --backup ${backupId} --skill yan-dev-doc codex`],
+      ['/d', '/q', '/c', `call install-local.cmd restore --backup ${backupId} --skill yan-dev-doc agents`],
       { cwd: root, env: cmdEnv }, 'install-local.cmd restore');
-    if (!fs.existsSync(path.join(cmdHome, '.codex', 'skills', 'yan-dev-doc', 'stale-from-old-install.txt'))) {
+    if (!fs.existsSync(path.join(cmdHome, '.agents', 'skills', 'yan-dev-doc', 'stale-from-old-install.txt'))) {
       fail('restore did not recover the selected backup Skill');
     }
     const restoredStatus = run(process.env.ComSpec || 'cmd.exe',
-      ['/d', '/q', '/c', 'call install-local.cmd status codex'],
+      ['/d', '/q', '/c', 'call install-local.cmd status agents'],
       { cwd: root, env: cmdEnv }, 'install-local.cmd restored drift status', 2);
-    if (!restoredStatus.stdout.includes('codex\tDRIFT')) {
+    if (!restoredStatus.stdout.includes('agents\tDRIFT')) {
       fail('status did not report a restored historical Skill as drift');
     }
-    run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd codex'],
+    run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd agents'],
       { cwd: root, env: cmdEnv }, 'install-local.cmd reinstall after restore');
     assertInstall(cmdHome);
   }
 
   const status = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd status'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd status');
-  if (!status.stdout.includes('claude\tCURRENT') || !status.stdout.includes('codex\tCURRENT')) {
+  if (!status.stdout.includes('agents\tCURRENT')) {
     fail('install-local.cmd status did not report current targets');
   }
 
-  const codexSkill = path.join(cmdHome, '.codex', 'skills', 'yan-dev-doc', 'SKILL.md');
-  fs.appendFileSync(codexSkill, '\nlocal drift\n');
-  const drift = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd status codex'],
+  const agentsSkill = path.join(cmdHome, '.agents', 'skills', 'yan-dev-doc', 'SKILL.md');
+  fs.appendFileSync(agentsSkill, '\nlocal drift\n');
+  const drift = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call install-local.cmd status agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd drift status', 2);
-  if (!drift.stdout.includes('codex\tDRIFT')) fail('status did not detect local drift');
+  if (!drift.stdout.includes('agents\tDRIFT')) fail('status did not detect local drift');
 
   const beforePrune = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backups codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backups agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backups before prune').stdout;
-  const beforePruneCount = beforePrune.split(/\r?\n/).filter((line) => line.startsWith('BACKUP\tcodex\t')).length;
+  const beforePruneCount = beforePrune.split(/\r?\n/).filter((line) => line.startsWith('BACKUP\tagents\t')).length;
   run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backup-prune --keep 1 --dry-run codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backup-prune --keep 1 --dry-run agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backup prune dry run');
   const afterDryPrune = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backups codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backups agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backups after dry prune').stdout;
   const afterDryPruneCount = afterDryPrune.split(/\r?\n/)
-    .filter((line) => line.startsWith('BACKUP\tcodex\t')).length;
+    .filter((line) => line.startsWith('BACKUP\tagents\t')).length;
   if (afterDryPruneCount !== beforePruneCount) fail('backup prune dry run removed snapshots');
   run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backup-prune --keep 1 codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backup-prune --keep 1 agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backup prune');
   const afterPrune = run(process.env.ComSpec || 'cmd.exe',
-    ['/d', '/q', '/c', 'call install-local.cmd backups codex'],
+    ['/d', '/q', '/c', 'call install-local.cmd backups agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd backups after prune').stdout;
-  if (afterPrune.split(/\r?\n/).filter((line) => line.startsWith('BACKUP\tcodex\t')).length !== 1) {
+  if (afterPrune.split(/\r?\n/).filter((line) => line.startsWith('BACKUP\tagents\t')).length !== 1) {
     fail('backup prune did not retain exactly the requested snapshot count');
   }
 
@@ -460,7 +511,7 @@ function smokeWindows(tempRoot) {
     'install.ps1 default');
   assertInstall(psHome);
   const psBackups = run('powershell.exe',
-    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'install.ps1', '-Backups', '-Targets', 'codex'],
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'install.ps1', '-Backups', '-Targets', 'agents'],
     {
       cwd: root,
       env: {
@@ -471,7 +522,7 @@ function smokeWindows(tempRoot) {
       },
     },
     'install.ps1 backups');
-  if (!psBackups.stdout.includes('BACKUP\tcodex\t')) {
+  if (!psBackups.stdout.includes('BACKUP\tagents\t')) {
     fail('install.ps1 did not route the backups command');
   }
 }
@@ -488,7 +539,7 @@ function smokePosix(tempRoot) {
   seedHome(home);
   run('tar', ['-czf', archive, '-C', fixtureParent, path.basename(fixtureRoot)], { cwd: root }, 'fixture archive');
   const archiveSha256 = hashFile(archive);
-  run('bash', ['install.sh', '--ref', 'fixture-v1', '--sha256', archiveSha256, 'claude', 'cursor', 'codex'],
+  run('bash', ['install.sh', '--ref', 'fixture-v1', '--sha256', archiveSha256, 'agents'],
     {
       cwd: root,
       env: { ...process.env, HOME: home, DEV_WORKFLOW_SKILLS_TARBALL: pathToFileURL(archive).href },
@@ -505,7 +556,7 @@ function smokePosix(tempRoot) {
     }
   }
   const beforeChecksumFailure = JSON.stringify(listTree(home));
-  run('bash', ['install.sh', '--sha256', '0'.repeat(64), 'claude'],
+  run('bash', ['install.sh', '--sha256', '0'.repeat(64), 'agents'],
     {
       cwd: root,
       env: { ...process.env, HOME: home, DEV_WORKFLOW_SKILLS_TARBALL: pathToFileURL(archive).href },
@@ -543,7 +594,7 @@ requireText('scripts/install-core.js', [
   '.yan-dev-workflow-skills-staging',
   '.yan-dev-workflow-skills.lock',
   'function doctor',
-  'MIRROR',
+  'LEGACY_ROOT',
   'DUPLICATE',
   'known legacy cleanup',
   'clean-replace',
@@ -554,7 +605,7 @@ requireText('scripts/install-core.js', [
   'sourceTreeHash',
 ]);
 if (/\bpython3\b|\bperl\b/.test(read('install.sh'))) {
-  fail('install.sh must not depend on python3/perl for Codex BOM normalization');
+  fail('install.sh must not depend on python3/perl for shared SKILL.md BOM normalization');
 }
 
 const cmdBytes = fs.readFileSync(path.join(root, 'install-local.cmd'));
@@ -564,6 +615,7 @@ cmdBytes.forEach((byte, index) => {
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-workflow-skills-installer-'));
 try {
+  smokeSharedBoundary(tempRoot);
   if (process.platform === 'win32') smokeWindows(tempRoot);
   else smokePosix(tempRoot);
 } finally {

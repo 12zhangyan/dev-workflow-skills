@@ -24,6 +24,8 @@
 
 ### 1. 安装
 
+以下维护脚本将完整 Skill 集安装到 `~/.agents/skills`，包括共享资源。旧宿主目录保持只读。
+
 Windows PowerShell：
 
 ```powershell
@@ -160,19 +162,11 @@ project-html/
 
 ## 安装细节
 
-远程安装默认复制 `skills/` 到三个用户级目录：
+共用 Skill 只维护在 `~/.agents/skills/<name>/`；仓库专用 Skill 放项目 `.agents/skills/`。当前安装器的默认与唯一可写目标为 `agents`，完整复制四个公开入口及 `_shared`，不创建宿主副本或链接，也不复制 Cursor/Codex 内置技能。
 
-| 工具 | 安装目录 |
-|------|----------|
-| Claude Code | `%USERPROFILE%\.claude\skills\<name>\` |
-| Cursor >= 1.6 | `%USERPROFILE%\.cursor\skills\<name>\` |
-| Codex | `%USERPROFILE%\.codex\skills\<name>\` |
+包管理命令约定为 `npx skills add <pkg> -g -a agents`，不能省略 `-a agents` 或替换为宿主目录。2026-09-23 检查的 `skills 1.7.0` 尚不支持 `agents` 目标，且会跳过本仓库保留 BOM 的入口。直接使用该 CLI 安装本仓库目前未验证可用；本仓库维护脚本是安装到同一共用目录的明确替代方式，测试在隔离用户目录运行。
 
-只安装到某个工具：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash -s -- codex
-```
+旧 `claude / cursor / codex` 参数仅供 `status / doctor / backups` 只读诊断；写入类命令会提前拒绝。已有旧副本的迁移或清理需要另行确定范围与授权。
 
 生产或团队环境建议固定 tag/commit，并校验对应归档的 SHA-256；脚本本身也应从同一 ref 下载：
 
@@ -180,7 +174,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 REF=v1.2.3
 SHA256=<该 ref 的 tar.gz SHA-256>
 curl -fsSL "https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/${REF}/install.sh" |
-  bash -s -- --ref "$REF" --sha256 "$SHA256" codex
+  bash -s -- --ref "$REF" --sha256 "$SHA256" agents
 ```
 
 Windows PowerShell 等价写法：
@@ -189,37 +183,37 @@ Windows PowerShell 等价写法：
 $ref = "v1.2.3"
 $sha256 = "<该 ref 的 zip SHA-256>"
 $installer = irm "https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/$ref/install.ps1"
-& ([scriptblock]::Create($installer)) -Ref $ref -Sha256 $sha256 -Targets codex
+& ([scriptblock]::Create($installer)) -Ref $ref -Sha256 $sha256 -Targets agents
 ```
 
 本地 checkout 安装：
 
 ```bat
 install-local.cmd
-install-local.cmd codex
-install-local.cmd claude cursor
+install-local.cmd agents
+install-local.cmd status codex
 install-local.cmd --dry-run
 install-local.cmd status
 install-local.cmd doctor
-install-local.cmd backups codex
-install-local.cmd restore --backup SNAPSHOT_ID --skill yan-dev-doc codex
-install-local.cmd backup-prune --keep 5 --dry-run codex
-install-local.cmd backup-prune --keep 5 codex
+install-local.cmd backups agents
+install-local.cmd restore --backup SNAPSHOT_ID --skill yan-dev-doc agents
+install-local.cmd backup-prune --keep 5 --dry-run agents
+install-local.cmd backup-prune --keep 5 agents
 ```
 
 说明：
 
 - 安装器依赖 Node.js，复制整个 `skills/` 子树，不维护硬编码 skill 列表。
-- 每个宿主目录写入 schema v2 的 `.yan-dev-workflow-skills.json`，用于记录来源版本、安装模式、受管 Skill 和安装哈希；schema v1 会在下一次安装时校验并迁移，未知或损坏的清单会显式阻止破坏性替换。`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
-- 每次安装先在发现目录之外 staging 并校验全部新版 Skill，再通过每宿主锁执行切换；任一选中宿主在激活或清单写入时失败，会回滚本轮所有已选宿主。清单采用临时文件 + rename 原子替换。
-- 切换时彻底清理本发行版的现行 Skill、清单中已下线的 Skill 和已知旧名称；确认未修改的受管副本在成功后删除，首次纳管、无法确认归属或含本地修改的目录保留在 `~/.yan-dev-workflow-skills-backups/<host>/<snapshot-id>/`。无关 Skill 和旧 `.yan-backups/` 不动。
+- 共用目录写入 schema v2 的 `.yan-dev-workflow-skills.json`，用于记录来源版本、安装模式、受管 Skill 和安装哈希；schema v1 会在下一次安装时校验并迁移，未知或损坏的清单会显式阻止破坏性替换。`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
+- 每次安装先在发现目录之外 staging 并校验全部新版 Skill，再通过共用目录锁执行切换；激活或清单写入失败会回滚本轮安装。清单采用临时文件 + rename 原子替换。
+- 切换时彻底清理本发行版的现行 Skill、清单中已下线的 Skill 和已知旧名称；确认未修改的受管副本在成功后删除，首次纳管、无法确认归属或含本地修改的目录保留在 `~/.yan-dev-workflow-skills-backups/agents/<snapshot-id>/`。无关 Skill 和旧 `.yan-backups/` 不动。
 - `--dry-run` 只输出 `REMOVE / BACKUP / INSTALL` 计划；`backups` 列出快照，`restore` 可恢复整个快照或通过 `--skill` 恢复单个 Skill，`backup-prune --keep N` 显式保留最近 N 份。恢复历史 Skill 后 `status` 报告 `DRIFT` 属于预期行为。
 - `--migrate-legacy` 仅作为兼容参数保留，并输出弃用警告；干净替换已默认清理旧名称。
 - 远程脚本支持 `--ref <tag|commit>` 与 `--sha256 <archive hash>`；只提供 `--ref` 可固定版本，同时提供摘要可在解压和执行安装核心前校验下载内容。
-- Codex 目标由 Node 安装器确定性移除安装副本 `SKILL.md` 文件头 BOM；无法完成时安装直接失败，不再静默跳过。
+- 共用 agents 目标由 Node 安装器确定性移除安装副本 `SKILL.md` 文件头 BOM；无法完成时安装直接失败，不再静默跳过。
 - 仓库源码中的 `skills/**/*.md` 保留 UTF-8 BOM，用于兼容部分 Windows 工具读取中文；Windows PowerShell 5.1 读取其他无 BOM 的 UTF-8 文档时，请显式使用 `Get-Content -Encoding UTF8`。
-- Cursor 可能同时读取 `~/.cursor/skills`、`~/.claude/skills`、`~/.codex/skills`、`~/.agents/skills`，多处安装会导致同名 skill 重复出现。
-- `doctor` 是只读诊断：逐宿主输出 `ROOT` / `MANIFEST`，将同一发行版本的三端受管副本标为预期 `MIRROR`，并单独列出 `LEGACY` 与未受管/来源不一致的 `DUPLICATE`；它不迁移、不删除、不覆盖。
+- 共用目录与旧宿主目录同时存在同名 Skill 时，诊断将其列为重复；安装不会自动迁移、清理旧目录。
+- `doctor` 默认检查 `agents / claude / cursor / codex` 四个目录，输出 `ROOT` / `MANIFEST`、旧宿主 `LEGACY_ROOT` 和同名 `DUPLICATE`。重复副本不再视作预期镜像；它不迁移、不删除、不覆盖。
 
 ## 维护这个仓库
 
@@ -263,10 +257,10 @@ node scripts/check-git-diff.js
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
 - 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界、`yan-` 命名和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
 - 改入口、mode 或其直引资料时，同步 [route-loading-contracts.json](skills/_shared/route-loading-contracts.json) 并运行 `node scripts/check-route-loading.js`；它逐路由校验允许的直接 Markdown 资料、选择/条件 guard、兼容索引、eval 绑定和资源字符预算，禁止矛盾式全量预读以及根路由绕过 mode。`node scripts/check-route-loading.js --report` 输出当前入口体积、直引数量和预算利用率基线；字符数是静态回归指标，不冒充模型 token 实测。
-- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器在临时 Git clone 中执行，并把当前 checkout 的 `skills/` 复制到 clone 内 Git 忽略的只读评估目录，避免宿主沙箱访问用户目录，也不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、中文路径下的目标产物内容、路由、退出状态与工作区漂移；判定只使用模型最终输出与产物，宿主诊断仅保留有界首尾摘要。
-- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主回传实际打开的 `LOADED_RESOURCES`，校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数、加载资料数与 Skill 快照来源。不可用宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。
+- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器在临时 Git clone 中执行，并把当前 checkout 的 `skills/` 复制到 clone 内 Git 忽略的只读评估目录，避免宿主沙箱访问用户目录，也不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、中文路径下的目标产物内容、路由、退出状态与工作区漂移；副作用检查比较前后 HEAD、语义索引、受保护 Git 元数据和文件哈希，包含忽略文件及 Skill 快照；已提交改动和快照篡改也会失败。检查只证明最终状态差异，不能证明没有短暂写入或外部副作用，不能代替宿主沙箱。模型输出断言仍是文本检查，宿主诊断仅保留有界首尾摘要。
+- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主自报实际打开的 `LOADED_RESOURCES`（不等同于独立工具调用审计），校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数、加载资料数与 Skill 快照来源。不可用宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。
 - `dev-doc-autonomous-plan` 是可写能力案例：它验证已裁决的跨前后端需求能保留请求、响应、过滤与错误语义，并形成可验收结果、真实依赖和并行关系；不要求固定 WP 数、文件分层、角色人数、字段措辞或 Workflow Brief。
-- 改安装脚本时，运行 `node scripts/check-installers.js`；它会在隔离 HOME 中实际安装 Claude Code、Cursor、Codex 三份副本，验证 dry-run、事务回滚、并发锁、schema 迁移、备份列表/恢复/保留、归档摘要校验、旧名称清理、漂移检测，以及仅 Codex 目标的 `SKILL.md` 去 BOM。
+- 改安装脚本时，运行 `node scripts/check-installers.js`；它在隔离用户目录安装共用 agents 副本，验证共享依赖、dry-run、事务回滚、并发锁、schema 迁移、备份列表/恢复/保留、归档摘要校验、漂移检测、`SKILL.md` 去 BOM、旧目录写入拒绝及重复诊断。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
 - 文档/审查类 skill 的少问、证据预填、冲突暴露规则来自 [skills/_shared/interaction-policy.md](skills/_shared/interaction-policy.md)。
 - 开发阶段门禁来自 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)。
@@ -277,12 +271,10 @@ node scripts/check-git-diff.js
 
 ## 自定义
 
-安装后可以直接改目标工具的 skills 目录：
+仅在共用目录维护用户级副本；优先修改仓库源文件并经验证后更新安装：
 
 ```text
-~/.claude/skills/<skill-name>/
-~/.cursor/skills/<skill-name>/
-~/.codex/skills/<skill-name>/
+~/.agents/skills/<skill-name>/
 ```
 
 常改的位置：

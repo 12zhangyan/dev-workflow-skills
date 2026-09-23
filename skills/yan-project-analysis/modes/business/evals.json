@@ -57,6 +57,15 @@
         "business",
         "lazy_examples"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "无人值守梳理退款业务，已有 App 入口和审批代码，回调终态未提供；业务与保存目录明确，请沉淀目前查明的部分。",
+      "expected_output": "保存 NeedsConfirmation 草稿，包含已证实流程、终态缺口与取证动作；未知终态不得写成确定性测试口径。仅任务或安全写入目标无法识别时零写入。",
+      "tags": [
+        "partial_evidence_draft",
+        "unattended"
+      ]
     }
   ]
 }

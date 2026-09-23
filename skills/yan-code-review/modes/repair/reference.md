@@ -6,7 +6,8 @@
 
 | 状态 | 判定 | 动作 |
 |------|------|------|
-| accepted | 有定位、证据、期望行为和验证方式 | 在授权范围内修复 |
+| accepted | 有定位、证据和可观察影响，问题已证实 | 保留 ID；补齐修复条件后在授权范围内实施 |
+| repair-blocked | 真实问题尚缺期望行为、修复边界或验证依据 | 保留原 ID，记录缺口；不得改判 rejected |
 | needs-confirmation | 业务、权限、状态、API/数据结构或证据冲突 | 保留 `BK-n`，只阻塞相关项 |
 | rejected | 误报、无证据、超范围或纯风格偏好 | 保留 `RJ-n` 与依据 |
 | deferred | 当前不处理的低收益项 | 记录原因 |
@@ -25,8 +26,8 @@ Findings:
 - <ID>: <fixed|deferred|deferred-next-batch|blocked|rejected>; <依据>
 Tests: status=<Passed|Failed|NotRun|EnvironmentBlocked>; command/result=<证据与限制>; dependency=<可选，仅外部依赖或失败归因需要时>
 VCS: <owners、修复前后 diff、未跟踪文件、VCSGateBlocked>
-BoardPublishStatus: <Published|NotRequested|Blocked>
-Next: <唯一动作>
+BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
+Next: <有价值的后续动作；可无或并列>
 ```
 
 `TestEvidenceStatus` 只有在本轮验证实际调用并断言目标行为时才是 `Passed`。环境/工具链无法启动是 `EnvironmentBlocked`；默认 CI 设计成依赖真实外部服务是 `Failed` 的测试契约问题。只在这类依赖边界会帮助裁决时才补充 `TestDependencyClass`。

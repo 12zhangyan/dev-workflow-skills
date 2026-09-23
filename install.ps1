@@ -23,13 +23,14 @@ $zipUrl = if ($env:DEV_WORKFLOW_SKILLS_ZIP) {
 }
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    throw "Node.js is required for safe installation and Codex BOM normalization."
+    throw "Node.js is required for safe shared installation and SKILL.md BOM normalization."
 }
 if (-not $env:USERPROFILE) {
     throw "USERPROFILE is required."
 }
 
-$tmpDir = Join-Path $env:TEMP ("dev-workflow-skills-" + [System.Guid]::NewGuid().ToString("N"))
+$installerTempParent = (Resolve-Path -LiteralPath $env:TEMP).ProviderPath
+$tmpDir = Join-Path $installerTempParent ("dev-workflow-skills-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force $tmpDir | Out-Null
 
 try {
@@ -108,5 +109,13 @@ try {
         exit $LASTEXITCODE
     }
 } finally {
-    Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $tmpDir) {
+        $cleanupTarget = Get-Item -LiteralPath $tmpDir
+        if ($cleanupTarget.Parent.FullName -ne $installerTempParent -or
+            $cleanupTarget.Name -notmatch '^dev-workflow-skills-[0-9a-f]{32}$' -or
+            ($cleanupTarget.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw "Refusing cleanup outside the installer temporary directory."
+        }
+        Remove-Item -LiteralPath $cleanupTarget.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }

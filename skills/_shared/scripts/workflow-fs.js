@@ -33,10 +33,10 @@ function skillRoots() {
   return [
     path.resolve(__dirname, '..', '..'),
     process.env.DEV_WORKFLOW_SKILLS_ROOT,
+    home && path.join(home, '.agents', 'skills'),
     home && path.join(home, '.claude', 'skills'),
     home && path.join(home, '.cursor', 'skills'),
     home && path.join(home, '.codex', 'skills'),
-    home && path.join(home, '.agents', 'skills'),
   ].filter(Boolean);
 }
 

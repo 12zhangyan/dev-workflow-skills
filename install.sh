@@ -35,10 +35,10 @@ while [ "$#" -gt 0 ]; do
         --sha256) SHA256="$1" ;;
       esac
       ;;
-    claude|cursor|codex) TARGETS+=("$1") ;;
+    agents|claude|cursor|codex) TARGETS+=("$1") ;;
     *)
       echo "[ERROR] Unknown argument: $1" >&2
-      echo "Allowed: status doctor backups restore backup-prune claude cursor codex" >&2
+      echo "Allowed: status doctor backups restore backup-prune agents (legacy read-only: claude cursor codex)" >&2
       echo "Options: --dry-run --backup ID --skill NAME --keep N --ref REF --sha256 HASH" >&2
       exit 1
       ;;
@@ -47,7 +47,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "[ERROR] Node.js is required for safe installation and Codex BOM normalization." >&2
+  echo "[ERROR] Node.js is required for safe shared installation and SKILL.md BOM normalization." >&2
   exit 1
 fi
 if [ -z "${HOME:-}" ]; then

@@ -101,6 +101,15 @@
       "prompt": "修复 IM-3 后运行本地聚焦单测，测试不访问网络或外部服务；不需要看板。",
       "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。不输出看板状态字段，不加载看板发布流程。",
       "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_board"]
+    },
+    {
+      "id": 19,
+      "prompt": "使用 repair：IM-8 已有明确代码位置、复现和用户影响，但 reviewer 没有给出修复方案或验证命令。",
+      "expected_output": "先核实问题证据并沿用 IM-8，再从实现与契约补齐修复边界和验证设计；可独立裁决时实施，无法补齐时保留 IM-8 的 blocked/deferred 状态，不以缺少建议判误报。",
+      "tags": [
+        "finding_acceptance",
+        "repair_readiness"
+      ]
     }
   ]
 }
