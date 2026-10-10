@@ -1,0 +1,3 @@
+{"time":"2026-10-10T09:00:00+08:00","build":"fixture-b","orderId":"example-17","event":"queue.accepted","messageId":"message-17"}
+{"time":"2026-10-10T09:00:00.010+08:00","build":"fixture-b","orderId":"example-17","event":"status.changed","status":"COMPLETED"}
+{"time":"2026-10-10T09:00:02+08:00","build":"fixture-b","orderId":"example-17","event":"consumer.failed","messageId":"message-17","reason":"downstream_unavailable"}

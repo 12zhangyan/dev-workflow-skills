@@ -1,0 +1,26 @@
+diff --git a/src/submit.js b/src/submit.js
+index e510ac0..3c9d5fb 100644
+--- a/src/submit.js
++++ b/src/submit.js
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env node
+ 'use strict';
+ 
+-const accepted = new Set(['DRAFT', 'READY']);
++const accepted = new Set(['DRAFT', 'READY', 'PARTIAL']);
+ 
+ function submit(status) {
+   if (!accepted.has(status)) throw new Error('unsupported status');
+diff --git a/test/submit.test.js b/test/submit.test.js
+index 6afb001..f8f821f 100644
+--- a/test/submit.test.js
++++ b/test/submit.test.js
+@@ -8,3 +8,8 @@ const { submit } = require('../src/submit');
+ test('READY remains accepted', () => {
+   assert.equal(submit('READY').status, 'READY');
+ });
++
++test('PARTIAL submit behavior', () => {
++  const fakeSubmit = status => ({ status });
++  assert.equal(fakeSubmit('PARTIAL').status, 'PARTIAL');
++});

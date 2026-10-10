@@ -1,6 +1,6 @@
 # dev-workflow-skills
 
-面向 Java 后端开发的 Claude Code / Cursor / Codex skill 集。目标不是多生成几份文档，而是让 Agent 根据风险和证据自主把需求或 Bug 推进到：
+面向软件开发 Agent 的通用工作流 Skill 集，保留 Java 后端场景的经验与示例。目标不是多生成几份文档，而是让 Agent 根据风险和证据自主把需求或 Bug 推进到：
 
 ```text
 目标/约束/验收明确 → 可验收切片实施 → 真实验证 → 按风险独立 Review/修复 → 人工验收
@@ -13,12 +13,12 @@
 ## 你会得到什么
 
 - 一套只有 4 个公开入口的开发工作流：`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
-- 一套面向 Claude Code、Cursor、Codex 的共享行为内核：三端复用相同路由、写入边界、产物与门禁，通过宿主能力协议适配工具名、终端和调用入口，而不是维护三份会漂移的 Skill。
+- 一套不绑定厂商或模型的共享行为内核：具备所需能力的 Agent 复用相同路由、授权、产物与证据标准，工具名、终端和调用方式由宿主适配。
 - 一组面向 AI 执行的 Markdown 文档：明确目标、边界、可验收工作切片、证据和下一目标，同时把实现组织、并行方式与非关键判断留给执行 Agent。
 - 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
 - Apifox/OpenAPI 导入文件：接口新增或签名变更时，单独生成 `docs/apifox/<日期>/<任务>.openapi.yaml` 和索引。
-- 统一门禁协议：每个阶段都说明当前 gate、产物、证据、下一步和失败分支。
-- 一份位于主产物末尾的 `Workflow Brief`：下一位 AI 先读交接索引和路径，聊天不再重复同一块内容；跨环境无法访问产物时再复制。
+- 统一证据边界：按任务判断所需的方案、实现、验证与 Review 证据，不强制串行经过全部 Gate，也不要求普通答复填写固定回执。
+- 按需保留一份 `Workflow Brief`：仅在跨 Agent、跨任务或延期恢复时生成最小证据索引；当前 Agent 可以继续或任务已完成时，不额外制造交接。
 
 ## 快速开始
 
@@ -38,7 +38,7 @@ macOS / Linux / Git Bash：
 curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main/install.sh | bash
 ```
 
-安装后重启 Claude Code / Cursor / Codex。
+安装后按当前宿主方式刷新 Skill 目录或开启新会话。自动发现路径由宿主决定；本仓库仅维护 `~/.agents/skills`，需要时可直接引用其中的 `SKILL.md`。
 
 本仓库四个公开 Skill 自包含运行，不依赖外部方法论 Skill。需求澄清、测试策略、问题定位、完成前验证和 reviewer 选择由当前 Agent 根据证据与风险自主完成。
 
@@ -51,6 +51,9 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 | Claude Code | `/yan-dev-doc 任务名`；其余入口用自然语言点名 skill 与 mode |
 | Codex | `使用 yan-dev-doc skill 给 XX 生成开发文档` |
 | Cursor | 按 Cursor 当前 skill 入口调用；也可直接引用安装后的 skill 文档 |
+| 其他 Agent | 通过其实际支持的 Skill 入口调用，或明确提供 `~/.agents/skills/<名称>/SKILL.md` 的实际路径 |
+
+通用核心不限定上表宿主。仓库内自动评测适配器目前仅覆盖 Claude Code、Cursor、Codex；适配器存在、命令可用、真实场景通过是不同证据。Gemini CLI、Copilot、OpenCode、OpenHands 及自定义 Agent 按能力使用；本仓库尚未逐一验证它们的自动发现、执行和权限行为。
 
 Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐入口是自然语言点名 skill，例如：
 
@@ -76,9 +79,9 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 按当前证据选择最小组合：需求未决时由当前 Agent 先澄清或写方案；目标与验收已清楚时直接实施和验证；复杂逻辑是否测试先行、问题如何定位、是否需要独立 reviewer，都由 Agent 按风险决定。只有理解复杂调用链确有收益时才生成代码地图。
 
-不要求每个任务走完整链路。范围和验收清楚时，当前 Agent 可以直接实施并验证；复杂任务按独立结果切片，在既有授权内并行委派。需要多视角 Review 时使用 `yan-code-review mode=package`：宿主支持委派就直接组织只读 reviewers 并汇总，不能委派才留下便携任务包。代码地图、看板和修复交接只在需要时生成。
+不要求每个任务走完整链路。范围和验收清楚时，当前 Agent 可以直接实施并验证；复杂任务按独立结果切片，在既有授权内并行委派。需要多视角 Review 时使用 `yan-code-review mode=package`：任务授权与宿主规则允许委派时直接组织只读 reviewers 并汇总；委派不可用且需要外部继续时才留下便携任务包。代码地图、看板和修复交接只在需要时生成。
 
-`yan-project-analysis mode=business` 的默认终点是测试设计；如果梳理结果需要进入开发，先交给 `yan-dev-doc` 形成可执行方案，再进入上述实现链路。
+`yan-project-analysis mode=business` 的默认终点是测试设计；需要进入开发时，目标与验收已清楚且用户已授权就直接实施。只有用户要求方案或关键决策尚未裁决时，才进入 `yan-dev-doc`。
 
 单 Agent 常见路径：
 
@@ -86,7 +89,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 目标与验收已清楚 → 实现并验证 → 按风险人工验收或 yan-code-review mode=loop → 用户决定是否提交
 ```
 
-`yan-code-review mode=loop` 是状态驱动的单 Agent 闭环：先只读审查，有 accepted finding 才修复；代码变化后执行目标验证并基于最新 diff 聚焦复审。它不因风险高自动生成任务包或调用多 Agent；需要多角色独立审查或任务包时直接选择 `package`。未跟踪文件仍纳入范围并阻塞 Review/Submit Gate。loop 标记 `SingleAgentReview`，无进展时提前停止，不为凑轮次继续，也不自动 commit/push。
+`yan-code-review mode=loop` 是状态驱动的单 Agent 闭环：先只读审查，有 accepted finding 才修复；代码变化后执行目标验证并基于最新 diff 聚焦复审。它不因风险高自动生成任务包或调用多 Agent；需要多角色独立审查或任务包时直接选择 `package`。未跟踪文件仍纳入范围；按项目规则应纳管的关键文件未纳管时不能宣称 Review/Submit 通过，本地专用产物不因此阻塞。loop 仅在需要区分审查方式时标记 `SingleAgentReview`；无进展时停止，不为凑轮次继续，也不自动 commit/push。
 
 跨 AI / 跨 skill 交接时，接收方能访问仓库就只给主产物路径，让它读取文档末尾的 `【Workflow Brief】`；无法访问同一文件系统时才复制该块。`next` 表达当前下一目标，可包含互不覆盖的并行动作；接手方先读 `evidence` 中能裁决该目标的最小充分证据，遇到缺口或冲突再扩展。不要反复粘贴完整 yan-dev-doc、review-task、fix-handoff 或大段 diff。
 
@@ -97,7 +100,7 @@ Brief 只在接口产物影响接手时写 `api`，只在 VCS owner、未跟踪�
 关键门禁见 [skills/_shared/workflow-gates.md](skills/_shared/workflow-gates.md)：
 
 - `Plan Gate`：文档、阻塞项、冲突、假设明确。
-- `VCS Gate`：新增源码、测试、配置、OpenAPI、文档已纳入 Git/SVN。
+- `VCS Gate`：按项目规则应纳管的新增源码、测试、配置及正式产物已纳入 Git/SVN；明确排除或仅本地保留的文档不因此阻塞，也不构成 add/commit 授权。
 - `Verification Gate`：测试、构建、接口或数据核对有结果。
 - `Review Gate`：使用 `yan-code-review` 的 `package / check / repair` 拆分模式，或用 `loop` 输出单 AI 审查、修复、验证和二次复审闭环。
 - `Submit Gate`：最终 status/diff/test/review/doc/sensitive 检查通过。
@@ -205,7 +208,7 @@ install-local.cmd backup-prune --keep 5 agents
 
 - 安装器依赖 Node.js，复制整个 `skills/` 子树，不维护硬编码 skill 列表。
 - 共用目录写入 schema v2 的 `.yan-dev-workflow-skills.json`，用于记录来源版本、安装模式、受管 Skill 和安装哈希；schema v1 会在下一次安装时校验并迁移，未知或损坏的清单会显式阻止破坏性替换。`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
-- 每次安装先在发现目录之外 staging 并校验全部新版 Skill，再通过共用目录锁执行切换；激活或清单写入失败会回滚本轮安装。清单采用临时文件 + rename 原子替换。
+- 每次安装先在发现目录之外 staging 并校验全部新版 Skill，再通过共用目录锁执行切换；激活或清单写入失败会回滚本轮安装；若恢复失败，保留尚未恢复的原文件并报告恢复目录。清单采用临时文件 + rename 原子替换。
 - 切换时彻底清理本发行版的现行 Skill、清单中已下线的 Skill 和已知旧名称；确认未修改的受管副本在成功后删除，首次纳管、无法确认归属或含本地修改的目录保留在 `~/.yan-dev-workflow-skills-backups/agents/<snapshot-id>/`。无关 Skill 和旧 `.yan-backups/` 不动。
 - `--dry-run` 只输出 `REMOVE / BACKUP / INSTALL` 计划；`backups` 列出快照，`restore` 可恢复整个快照或通过 `--skill` 恢复单个 Skill，`backup-prune --keep N` 显式保留最近 N 份。恢复历史 Skill 后 `status` 报告 `DRIFT` 属于预期行为。
 - `--migrate-legacy` 仅作为兼容参数保留，并输出弃用警告；干净替换已默认清理旧名称。
@@ -257,8 +260,10 @@ node scripts/check-git-diff.js
 - 改 `Workflow Brief` 模板时，运行 `node scripts/check-workflow-briefs.js`，确认每个交接块仍有标准字段。
 - 改宿主适配、公开入口或 mode 时，运行 `node scripts/check-portable-contracts.js`；它验证 Claude Code、Cursor、Codex 共享的路由、写入边界、`yan-` 命名和跨平台文件操作契约。该检查是离线静态契约，不替代真实模型评测。
 - 改入口、mode 或其直引资料时，同步 [route-loading-contracts.json](skills/_shared/route-loading-contracts.json) 并运行 `node scripts/check-route-loading.js`；它逐路由校验允许的直接 Markdown 资料、选择/条件 guard、兼容索引、eval 绑定和资源字符预算，禁止矛盾式全量预读以及根路由绕过 mode。`node scripts/check-route-loading.js --report` 输出当前入口体积、直引数量和预算利用率基线；字符数是静态回归指标，不冒充模型 token 实测。
-- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器在临时 Git clone 中执行，并把当前 checkout 的 `skills/` 复制到 clone 内 Git 忽略的只读评估目录，避免宿主沙箱访问用户目录，也不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、中文路径下的目标产物内容、路由、退出状态与工作区漂移；副作用检查比较前后 HEAD、语义索引、受保护 Git 元数据和文件哈希，包含忽略文件及 Skill 快照；已提交改动和快照篡改也会失败。检查只证明最终状态差异，不能证明没有短暂写入或外部副作用，不能代替宿主沙箱。模型输出断言仍是文本检查，宿主诊断仅保留有界首尾摘要。
-- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主自报实际打开的 `LOADED_RESOURCES`（不等同于独立工具调用审计），校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数、加载资料数与 Skill 快照来源。不可用宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。
+- `node scripts/run-host-evals.js --probe` 只探测 Claude Code、Cursor Agent、Codex CLI 与安装清单，不调用模型。真实抽样显式传 `--live --host <host> --case <场景> --workspace <Git 工作区>`；运行器在临时 Git clone 中执行，并把当前 checkout 的 `skills/` 复制到 clone 内 Git 忽略的只读评估目录，避免宿主沙箱访问用户目录，也不改传入工作区。可写场景还必须传 `--allow-write`，并校验声明的写入范围、中文路径下的目标产物内容、路由、退出状态与工作区漂移；副作用检查比较前后 HEAD、语义索引、受保护 Git 元数据和文件哈希，包含忽略文件及 Skill 快照；已提交改动和快照篡改也会失败。检查只证明最终状态差异，不能证明没有短暂写入或外部副作用，不能代替宿主沙箱。文本断言只代表输出信号；声明了 outcome verifier 的场景另对实际实现执行独立行为检查（当前为分页 fixture），评分器也不得改工作区。宿主诊断仅保留有界首尾摘要。
+- 自然触发用 `--invocation catalog|native`，样例为 `natural-review-selection` 和 `natural-no-skill-control`。`catalog` 只提供四个入口的发现元数据，让 Agent 自选或不选，适用于三个宿主适配器；它验证目录内选择，不能证明宿主自动发现。`native` 把快照安装到隔离 clone 的 `.agents/skills`，按安装约定去入口 BOM；任务不点名技能或路由，当前仅 Codex 适配器支持以完成的 JSON 命令事件核验入口读取。回执必须指向本次快照；只自报、读失败或读用户目录都不算原生发现通过。命令识别是针对该 fixture 的证据检查，不是任意 shell 的安全审计。
+- 新旧版本比较可传 `--skill-source <旧版完整 skills 目录>`，任务与评分器保持当前版本。快照排除 eval 答案和契约评分文件；结果记录 Skill/任务/评分契约/评分器指纹、fixture revision、宿主版本、入口、模型和 reasoning effort。Codex 比较时显式固定 `--model <模型> --effort <强度>`；用 `node scripts/compare-host-evals.js <old.json> <new.json>` 检查记录条件是否一致，默认模型、缺少条件、不同 grader 或宿主进程未完成会拒绝比较。相同记录条件不能排除未记录的宿主配置和服务波动；一组通过样例只支持未见回归，不能宣称总体提升。
+- 最小加载 live 案例为 `review-check-minimal-loading`、`analysis-incident-minimal-loading`、`handoff-minimal-loading`、`dev-doc-compact-minimal-loading`。它们要求宿主自报实际打开的 `LOADED_RESOURCES`（不等同于独立工具调用审计），校验必需/禁止资料和资源数上限，并在 JSON 结果记录耗时、输出字符数、加载资料数与 Skill 快照来源。不可用宿主只能报告 probe 状态，不能用静态检查冒充 live 结果。宿主失败、超时或输出截断错误时，JSON 的 `assessment.passed` 与退出码一致判为失败，即使输出满足文本断言。
 - `dev-doc-autonomous-plan` 是可写能力案例：它验证已裁决的跨前后端需求能保留请求、响应、过滤与错误语义，并形成可验收结果、真实依赖和并行关系；不要求固定 WP 数、文件分层、角色人数、字段措辞或 Workflow Brief。
 - 改安装脚本时，运行 `node scripts/check-installers.js`；它在隔离用户目录安装共用 agents 副本，验证共享依赖、dry-run、事务回滚、并发锁、schema 迁移、备份列表/恢复/保留、归档摘要校验、漂移检测、`SKILL.md` 去 BOM、旧目录写入拒绝及重复诊断。
 - 改 `board.js`、`build.js`、`board-add.js`、`index.html`、`css` 时，按需提升 `BOARD_VERSION`。
@@ -289,5 +294,8 @@ node scripts/check-git-diff.js
 ## 设计说明
 
 - [docs/workflow-guide.md](docs/workflow-guide.md)：完整操作手册。
+- [GitHub 同类 Skill 参考与优化验证](docs/research/2026-10-10-skill-benchmarks.md)：首轮高星仓库来源与新旧对照。
+- [更多示例与行为验证](docs/research/2026-10-10-more-examples.md)：新增 6 个仓库、18 份参考材料、相邻反例与隔离实测。
+- [跨 Agent 的论文与评测优化](docs/research/2026-10-10-agent-literature.md)：截至 2026-10-10 的一手文献、能力适配、来源边界及行为评分。
 - [docs/why-yan-dev-doc.md](docs/why-yan-dev-doc.md)：为什么先生成开发文档。
 - [docs/why-code-reading.md](docs/why-code-reading.md)：什么时候代码地图能帮助理解复杂实现。

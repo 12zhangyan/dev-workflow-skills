@@ -36,7 +36,7 @@ description: 只读分析代码结构、调用链或兼容影响；明确要求�
 
 `ImpactAnalysis` 在形成结论时才读取 [输出契约](impact-output.md)，直接回复，不生成 md、看板、单页或索引。只有确有跨任务下一动作时才读取 [Workflow Brief](../../../_shared/workflow-brief.md) 并附精简索引；否则不为填字段制造 Brief。
 
-`CodeMap` 在准备落盘时才读取 [文档模板](codemap-template.md)。先以当前 mode 目录解析 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) 的绝对路径，用它创建路径并执行 `file-state`；已存在、不可读或状态未知时不得静默覆盖。需要处理冲突时读取交互策略；无人值守则停止写入并报告 blocker。
+`CodeMap` 在准备落盘时才读取 [文档模板](codemap-template.md)。以当前 mode 目录解析 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js)，创建日期目录并检查 `file-state`。已授权更新时先读后改，保留任务外内容，不重复确认；默认撞名且未锁定路径时选稳定后缀并重新检查。目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入；无人值守也不擅自覆盖。
 
 看板不是隐含副作用。仅在用户明确要求登记看板，或输入 Brief 明确要求同步同一交付档案时，才读取并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)，以 `kind:"reading"` 发布。只能通过 `board-add.js` 写入，禁止手工编辑 `data/changes.js`。发布失败不否定已经安全生成的代码地图。
 

@@ -189,7 +189,7 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '任务或安全写入目标本身无法识别时不落盘',
   '数据库保持只读',
   '数据更新必须有主键或唯一约束证据',
-  '用户指定精确路径、要求覆盖、文件不可读或状态未知时不得擅自覆盖',
+  '目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入',
   '不 add、commit、push',
   '按实际文件定位 Git/SVN owner',
   '真实 reactor/POM 关系',
@@ -241,7 +241,7 @@ requireText('skills/yan-project-analysis/modes/understanding/mode.md', [
   '`ImpactAnalysis` 是严格仓库零写入模式',
   '禁止修改工作区、文档、看板、VCS 或业务系统',
   '不判断 Bug、不关闭 findings、不输出修复方案',
-  '已存在、不可读或状态未知时不得静默覆盖',
+  '目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入',
   '看板不是隐含副作用',
 ]);
 
@@ -277,7 +277,7 @@ for (const rel of [
 ]) {
   requireText(rel, [
     '../../../_shared/board-publish-flow.md',
-    'project-html/data/_entry.json',
+    'workflow-fs.js prepare-board-entry',
     '禁止手工插入标记行或整体重写 `data/changes.js`',
   ]);
 }
@@ -287,6 +287,9 @@ requireText('skills/_shared/board-publish-flow.md', [
   '禁止整体重写或手工插入 `data/changes.js`',
   'board-shell-bootstrap.md',
   'Mermaid 也是普通字符串',
+  'workflow-fs.js prepare-board-entry',
+  '每次发布单独分配输入',
+  'BOARD_WRITE_LOCKED',
   'BoardPublishSkipped',
   'BoardPublishBlocked',
   'BoardBuildBlocked',

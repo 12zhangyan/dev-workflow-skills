@@ -8,3 +8,6 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 *.min.js -text
+
+# Unified-diff context lines retain a leading space even when the source line is empty.
+scripts/fixtures/review-state-consumers/change.patch whitespace=-blank-at-eol

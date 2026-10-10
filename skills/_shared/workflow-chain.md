@@ -6,7 +6,7 @@
 
 ## Finding ID
 
-同一问题从发现到关闭复用稳定 ID。推荐前缀为 `CR-n / IM-n / MI-n`；误报或无证据项可记 `RJ-n`，需外部裁决的 blocker 可记 `BK-n`。多 reviewer 聚合时分配 canonical ID 并保留来源别名，不能用多数意见替代证据。
+同一问题从发现到关闭复用稳定 ID。首次编号可按 Critical / Important / Minor 使用 `CR-n / IM-n / MI-n`；后续严重度变化保留原 ID 并记录历史。误报或无证据项可记 `RJ-n`，需外部裁决的 blocker 可记 `BK-n`。多 reviewer 聚合时分配 canonical ID 并保留来源别名，不能用多数意见替代证据。
 
 Accepted finding 表示有定位、证据和可观察影响的问题已证实；修复就绪还需明确期望行为、修复边界、授权和验证方式。缺少修法或验证设计不撤销 accepted，也不改判 `RJ`；repair 可自主补齐有依据的条件，否则保留同一 ID 并记录 blocked/deferred。
 

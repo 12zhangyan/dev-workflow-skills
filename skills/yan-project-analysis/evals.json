@@ -97,6 +97,29 @@
         "single_writer",
         "evidence_merge"
       ]
+    },
+    {
+      "id": 11,
+      "prompt": "分析订单的调用链和兼容影响，只在聊天中输出。宿主提供子代理工具，但本任务的更高优先级规则要求用户明确要求才能委派，用户没有要求。",
+      "expected_output": "选择 understanding 的 ImpactAnalysis，当前 Agent 自行完成只读取证，不把工具存在或 Skill 的并行建议当成授权，不派发子代理，不生成文档或看板。",
+      "tags": [
+        "delegation_authorization",
+        "zero_write",
+        "host_rules"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "使用 yan-project-analysis mode=business，根据 README.md、approved-contract.md、src/submit.js 和 logs/events.jsonl，给测试同事说明提交后的状态、接口成功的含义与验收。只在聊天中回答，不写文件、不调用外部服务。",
+      "expected_output": "区分当前入队后即标 COMPLETED 的实现、批准的先 QUEUED 后成功回执 COMPLETED 契约，以及日志中的 consumer.failed；不得把入队/accepted当业务完成。给出符合批准规则的成功、失败验收并说明实现差异，保持零写入。",
+      "files": [
+        "scripts/fixtures/business-async-state"
+      ],
+      "tags": [
+        "observed_vs_intended",
+        "async_completion",
+        "live_fixture"
+      ]
     }
   ]
 }

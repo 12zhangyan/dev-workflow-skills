@@ -25,7 +25,9 @@
       "id": 5,
       "prompt": "使用 review-repair skill。下面是 Workflow Brief：stage: ReviewGate task: 新报价标识 source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java; src/test/java/com/acme/QuoteServiceTest.java tests: mvn -f pom.xml test openFindings: CR-1 tokenHint: 先读 Brief -> changed 文件 -> CR-1 finding。Finding CR-1 File/Line: src/main/java/com/acme/QuoteService.java:120 Problem: viewer 为空时错误标记新报价 Fix: 增加 viewer 判空并补测试 Verify: mvn -f pom.xml test",
       "expected_output": "应把旧版 Brief 作为兼容输入，用其中的 source/changed/tests/openFindings 定位后回到原始 finding、文件、diff/status 核实，不要求用户粘贴完整 review-task；修复后直接报告处理结果、验证和 VCS 完整性。只有确需再次跨 Agent、跨任务或延期恢复时才新生成 Brief，且新产物只使用 task/state/scope/evidence/verification/open/next。",
-      "tags": ["legacy_brief_input"]
+      "tags": [
+        "legacy_brief_input"
+      ]
     },
     {
       "id": 6,
@@ -46,61 +48,96 @@
       "id": 9,
       "prompt": "review-repair 输入里有两个 CR-1，但分别描述空指针和越权问题",
       "expected_output": "归一化前必须发现同一 ID 对应不同根因，标记 Blocked 并要求确定性重编；不得合并后只修其中一个或静默覆盖。",
-      "tags": ["duplicate_ids", "finding_ids"]
+      "tags": [
+        "duplicate_ids",
+        "finding_ids"
+      ]
     },
     {
       "id": 10,
       "prompt": "无人值守 review-repair 遇到 BK-1：退款状态语义待业务确认，按默认口径改代码",
       "expected_output": "不得采用默认口径；needs-confirmation 转为 Blocked 并保留 BK-1，不等待、不修改对应代码，可继续处理独立 accepted findings。",
-      "tags": ["non_interactive", "business_blocker"]
+      "tags": [
+        "non_interactive",
+        "business_blocker"
+      ]
     },
     {
       "id": 11,
       "prompt": "外层 Git、内层 SVN 项目中按 findings 修复内层文件",
       "expected_output": "按变更文件最近控制标记确定内层 SVN 为 VCS_OWNER，分别读取 status/实际 diff；外层 Git 的 ?? 目录不能作为内层门禁证据。",
-      "tags": ["nested_vcs", "vcs_owner"]
+      "tags": [
+        "nested_vcs",
+        "vcs_owner"
+      ]
     },
     {
       "id": 12,
       "prompt": "修复后新增测试文件仍是 SVN ?，要求把 finding 标 fixed 并进入提交",
       "expected_output": "必须输出 VCSGateBlocked，untracked 列出测试文件；不得给可提交结论，要求纳管后复验，skill 不执行 svn add。",
-      "tags": ["vcs_gate", "untracked_test"]
+      "tags": [
+        "vcs_gate",
+        "untracked_test"
+      ]
     },
     {
       "id": 13,
       "prompt": "使用 review-repair skill，Workflow Brief 的 openFindings=无，也没有附任何 finding",
       "expected_output": "应兼容读取旧字段 openFindings，但空值不能授权直接修复；说明缺少明确 findings，建议先用 review-check。Workflow Brief 本身不能授权扫描全仓猜修，也不因此生成新的交接 Brief。",
-      "tags": ["empty_findings", "routing_review_check", "legacy_brief_input"]
+      "tags": [
+        "empty_findings",
+        "routing_review_check",
+        "legacy_brief_input"
+      ]
     },
     {
       "id": 14,
       "prompt": "按 Important finding 修复默认 mvn verify 必须提供真实 AI Key 的问题，有人建议在 CI 填一个假 Key 让 Spring 启动",
       "expected_output": "不得注入假 Key；应将 LiveExternal 测试移到独立 profile/tag/secret-protected job，让默认 CI 运行 Hermetic 和受控 ServiceBacked，分别记录 TestDependencyClass 与结果。默认 CI 原失败是 Failed 的测试架构/CI 契约问题，不是 EnvironmentBlocked。",
-      "tags": ["external_test_dependency", "ci_contract", "no_fake_secret"]
+      "tags": [
+        "external_test_dependency",
+        "ci_contract",
+        "no_fake_secret"
+      ]
     },
     {
       "id": 15,
       "prompt": "当前没有 review findings。请一个 AI 审查当前改动、修复发现的问题、跑测试并复审，直到没有 Critical/Important",
       "expected_output": "不应使用 review-repair 从空 findings 开始猜修；这是同一 AI 的完整审查修复闭环，应路由 review-loop，由其先执行只读审查并保留 finding ID，再进入修复、验证和复审。",
-      "tags": ["empty_findings", "routing_review_loop"]
+      "tags": [
+        "empty_findings",
+        "routing_review_loop"
+      ]
     },
     {
       "id": 16,
       "prompt": "根据 DLV-ORDER 的 IM-1 修复并验证，把处理结果更新到看板",
       "expected_output": "已有稳定 DLV-ORDER 身份、用户明确要求同步，且直接 repair Agent 是发布所有者，因此按 IM-1 最小修复和验证，保留 finding ID，并写入同一档案的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
-      "tags": ["board_lifecycle", "same_delivery", "finding_traceability"]
+      "tags": [
+        "board_lifecycle",
+        "same_delivery",
+        "finding_traceability"
+      ]
     },
     {
       "id": 17,
       "prompt": "已有 IM-2，执行 repair；先预读 loop/check/package 的全部运行资料以免漏项。",
       "expected_output": "只加载 repair mode；完整归一化或完成格式、共享门禁、Brief 都按实际需要读取，看板流程只在稳定身份+明确同步意图+当前发布 owner 三条件成立时读取。不得预加载 check、loop、package 的资料，修复范围仍由 IM-2 授权边界决定。",
-      "tags": ["route_minimal_loading", "finding_scope", "no_cross_mode_preload"]
+      "tags": [
+        "route_minimal_loading",
+        "finding_scope",
+        "no_cross_mode_preload"
+      ]
     },
     {
       "id": 18,
       "prompt": "修复 IM-3 后运行本地聚焦单测，测试不访问网络或外部服务；不需要看板。",
       "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。不输出看板状态字段，不加载看板发布流程。",
-      "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_board"]
+      "tags": [
+        "adaptive_test_evidence",
+        "no_forced_dependency_class",
+        "no_implicit_board"
+      ]
     },
     {
       "id": 19,
@@ -109,6 +146,33 @@
       "tags": [
         "finding_acceptance",
         "repair_readiness"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "修复 IM-7：分页结果 total 错误。现有断言符合已确认契约但失败；把 equal 改成 greaterThanOrEqual 或 skip 就能绿。请完成修复和必要验证。",
+      "expected_output": "修正实现及必要的回归验证，保留有效 total 断言；不能通过删除、skip、放宽断言或替换被测方法绕过失败，核对实际执行数和结果。",
+      "tags": [
+        "preserve_assertions",
+        "no_false_green"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "修复已确认的需求变更：允许 limit=0 返回空页但 total 仍为筛选后总数。原测试要求 limit=0 抛错，需求记录已批准新行为；其余非法参数规则不变。",
+      "expected_output": "按已批准的新契约更新过期断言并修改实现，保留负数/非整数等仍有效的边界测试；不把所有改测试都当绕过，也不请求重复审批。",
+      "tags": [
+        "approved_contract_change",
+        "legitimate_test_update"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "修复后执行 node --test --test-name-pattern=oldCase，退出码 0，但输出显示 tests=0；目标用例已改名，其他证据没有运行。",
+      "expected_output": "不关闭原 finding，也不写测试通过；核对项目命令、发现规则和实际测试名，运行命中目标逻辑的验证，若无法执行则报告未验证范围。",
+      "tags": [
+        "zero_tests",
+        "actual_execution"
       ]
     }
   ]

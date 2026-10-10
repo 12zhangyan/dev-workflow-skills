@@ -35,4 +35,4 @@
 
 严重度只在影响当前优先级时记录，不机械套 P0-P3。修复建议必须与已证实机制相连；根因未证实时不得生成执行型 changeList/todos。
 
-仅在已授权发布看板时读取 [共享看板发布流程](../../../_shared/board-publish-flow.md)。条目先写入 `project-html/data/_entry.json`，再交给 `board-add.js`；禁止手工插入标记行或整体重写 `data/changes.js`。
+仅在已授权发布看板时读取 [共享看板发布流程](../../../_shared/board-publish-flow.md)。条目先写入 本次独占的临时 JSON（由 `workflow-fs.js prepare-board-entry` 分配），再交给 `board-add.js`；禁止手工插入标记行或整体重写 `data/changes.js`。

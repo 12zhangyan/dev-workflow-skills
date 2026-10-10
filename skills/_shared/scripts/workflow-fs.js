@@ -47,24 +47,39 @@ if (command === 'prepare-date-dir') {
   const relative = path.join(args[0], todayLocal());
   fs.mkdirSync(relative, { recursive: true });
   process.stdout.write(relative.replace(/\\/g, '/') + '\n');
+} else if (command === 'prepare-board-entry') {
+  if (args.length !== 1 || !args[0]) fail('usage: prepare-board-entry <board-data-directory>');
+  const directory = fs.mkdtempSync(path.join(path.resolve(args[0]), '.entry-'));
+  const entry = path.join(directory, 'entry.json');
+  fs.writeFileSync(entry, '{}\n', { encoding: 'utf8', flag: 'wx' });
+  process.stdout.write(entry.replace(/\\/g, '/') + '\n');
 } else if (command === 'exists') {
   if (args.length !== 1 || !args[0]) fail('usage: exists <path>');
   process.stdout.write(fs.existsSync(args[0]) ? 'EXISTS\n' : 'MISSING\n');
 } else if (command === 'file-state') {
   if (args.length !== 1 || !args[0]) fail('usage: file-state <path>');
-  if (!fs.existsSync(args[0])) {
-    process.stdout.write('MISSING\n');
-  } else {
+  let state = 'EXISTS_UNREADABLE_OR_UNKNOWN';
+  let found = false;
+  try {
+    // existsSync also returns false for access errors and dangling links.
+    // Only a failed lookup with ENOENT establishes a missing directory entry.
+    fs.lstatSync(args[0]);
+    found = true;
+  } catch (error) {
+    if (error.code === 'ENOENT') state = 'MISSING';
+  }
+  if (found) {
     try {
       const stat = fs.statSync(args[0]);
       if (!stat.isFile()) throw new Error('target is not a regular file');
       const descriptor = fs.openSync(args[0], 'r');
       fs.closeSync(descriptor);
-      process.stdout.write('EXISTS_READABLE\n');
+      state = 'EXISTS_READABLE';
     } catch (_error) {
-      process.stdout.write('EXISTS_UNREADABLE_OR_UNKNOWN\n');
+      // Keep unknown even if the entry disappears after the initial lookup.
     }
   }
+  process.stdout.write(state + '\n');
 } else if (command === 'ensure-dir') {
   if (args.length !== 1 || !args[0]) fail('usage: ensure-dir <directory>');
   fs.mkdirSync(args[0], { recursive: true });
@@ -88,5 +103,5 @@ if (command === 'prepare-date-dir') {
   if (!fs.existsSync(args[0])) fail(`file not found: ${args[0]}`);
   process.stdout.write(fs.readFileSync(args[0], 'utf8').includes(args[1]) ? 'YES\n' : 'NO\n');
 } else {
-  fail('commands: prepare-date-dir, exists, file-state, ensure-dir, detect-vcs, resolve-skill-file, contains');
+  fail('commands: prepare-date-dir, prepare-board-entry, exists, file-state, ensure-dir, detect-vcs, resolve-skill-file, contains');
 }

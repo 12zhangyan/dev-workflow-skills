@@ -54,7 +54,7 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
 ]);
 
 requireText('skills/yan-code-review/modes/package/mode.md', [
-  '当前宿主能委派时直接并行协作',
+  '宿主允许且任务已授权独立审查时直接委派',
   '只读 reviewer',
   '委派不可用',
   'reviewer 首轮独立取证',

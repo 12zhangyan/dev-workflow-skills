@@ -12,11 +12,13 @@
 ## 发布
 
 1. 按 [board-shell-bootstrap.md](board-shell-bootstrap.md) 检查并按需初始化或升级外壳；永不覆盖已有 `data/`。模板不可用时报告 `BoardPublishSkipped`，不临时发明外壳。
-2. 将调用方 entry 写入 `project-html/data/_entry.json`，运行：
+2. 调用共享 `workflow-fs.js prepare-board-entry project-html/data`，在看板目录内取得本次发布独占的临时 JSON 路径；将调用方 entry 写入该文件，再运行：
 
    ```text
-   node project-html/board-add.js project-html/data/_entry.json
+   node project-html/board-add.js "<本次返回的绝对路径>"
    ```
+
+   每次发布单独分配输入，不复用固定文件或仅按 deliveryId 命名；同一档案也可能同时更新。遇到 `BOARD_WRITE_LOCKED` 保留本次输入，待持锁者结束后用原文件重试，不删除他人的锁。
 
    脚本失败时保留临时 JSON 和错误证据，报告 `BoardPublishBlocked`。成功后是否清理临时文件遵循用户授权和项目规则，不自动删除。
 3. 写入成功后运行 `node project-html/build.js`。只有明确需要单文件外发时才加 `--standalone "<docPath 或 slug>"`。构建失败报告 `BoardBuildBlocked`，不抹掉已成功写入的数据，也不宣称派生产物已生成。

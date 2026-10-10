@@ -333,6 +333,102 @@ try {
   fs.writeFileSync(input, JSON.stringify({ entry: { title: 'new', docPath: 'docs/new.md' }, detail: { solution: 'new solution' } }));
   legacyCommand(input);
   assert(new Function(fs.readFileSync(legacyData, 'utf8') + ';return changes.length')() === 3, 'publishing after migration must retain old entries and append the new one');
+
+  // Validate filesystem boundaries before any persistent write.
+  const createBoard = name => {
+    const directory = path.join(temp, name);
+    fs.mkdirSync(path.join(directory, 'data'), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, 'project-html/board-add.js'), path.join(directory, 'board-add.js'));
+    fs.writeFileSync(path.join(directory, 'data/changes.js'), 'const htmlChangelog=[];\nconst changes=[];\n');
+    return directory;
+  };
+  const invokeBoard = (directory, arg, extra = []) => spawnSync(process.execPath,
+    [...extra, path.join(directory, 'board-add.js'), arg], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  const bounded = createBoard('bounded');
+  const boundedData = path.join(bounded, 'data/changes.js');
+  const untouched = fs.readFileSync(boundedData, 'utf8');
+  const sentinel = path.join(temp, 'outside.js');
+  fs.writeFileSync(sentinel, 'user-owned content');
+  for (const id of ['../../../outside', '..\\..\\..\\outside', 'C:\\outside', 'record:stream', 'CON', { nested: 'id' }]) {
+    fs.writeFileSync(input, JSON.stringify({ entry: { title: 'invalid', docPath: 'docs/invalid.md', detailId: id } }));
+    const rejected = invokeBoard(bounded, input);
+    assert(rejected.status !== 0 && rejected.stderr.includes('BOARD_PATH_INVALID'), 'invalid detail identity must fail explicitly');
+    assert(fs.readFileSync(sentinel, 'utf8') === 'user-owned content', 'invalid identity must preserve unrelated files');
+    assert(fs.readFileSync(boundedData, 'utf8') === untouched && !fs.existsSync(boundedData + '.bak'), 'invalid identity must not change catalog or backup');
+    assert(!fs.existsSync(boundedData + '.lock'), 'failure must release its own board lock');
+  }
+  fs.writeFileSync(boundedData, 'const htmlChangelog=[];\nconst changes=' + JSON.stringify([
+    { title: 'invalid stored path', docPath: 'docs/invalid.md', detailId: 'valid-id', detailPath: '../outside.js' }
+  ]) + ';\n');
+  const invalidStoredData = fs.readFileSync(boundedData, 'utf8');
+  for (const command of ['--migrate', '--check-migration', input]) {
+    const rejected = invokeBoard(bounded, command);
+    assert(rejected.status !== 0 && rejected.stderr.includes('BOARD_PATH_INVALID'), 'stored detail paths must be validated before loading scripts');
+    assert(fs.readFileSync(boundedData, 'utf8') === invalidStoredData, 'invalid stored path must not mutate catalog');
+  }
+  fs.writeFileSync(boundedData, untouched);
+  const externalDetails = path.join(temp, 'external-details');
+  fs.mkdirSync(externalDetails);
+  fs.writeFileSync(path.join(externalDetails, 'safe-id.js'), 'user-owned detail');
+  fs.symlinkSync(externalDetails, path.join(bounded, 'data/details'), process.platform === 'win32' ? 'junction' : 'dir');
+  fs.writeFileSync(input, JSON.stringify({ entry: { title: 'linked detail', docPath: 'docs/link.md', detailId: 'safe-id' } }));
+  const linked = invokeBoard(bounded, input);
+  assert(linked.status !== 0 && linked.stderr.includes('BOARD_PATH_INVALID'), 'directory links must not redirect a detail write outside the board');
+  assert(fs.readFileSync(path.join(externalDetails, 'safe-id.js'), 'utf8') === 'user-owned detail', 'linked external detail must remain unchanged');
+  fs.unlinkSync(path.join(bounded, 'data/details'));
+  assert(invokeBoard(bounded, input).status === 0, 'safe custom detail identifiers must remain supported');
+  const collisionBefore = fs.readFileSync(boundedData, 'utf8');
+  const detailBefore = fs.readFileSync(path.join(bounded, 'data/details/safe-id.js'), 'utf8');
+  fs.writeFileSync(input, JSON.stringify({ entry: { title: 'different record', docPath: 'docs/other.md', detailId: 'safe-id', solution: 'replace another detail' } }));
+  const collision = invokeBoard(bounded, input);
+  assert(collision.status !== 0 && collision.stderr.includes('BOARD_DETAIL_CONFLICT'), 'different records must not share a detail file');
+  assert(fs.readFileSync(boundedData, 'utf8') === collisionBefore && fs.readFileSync(path.join(bounded, 'data/details/safe-id.js'), 'utf8') === detailBefore, 'detail conflicts must preserve existing content');
+
+  // Two publishers finish preparing input before either writes the catalog.
+  // Their operation-owned JSON files must survive independently, including retries.
+  const inputsBoard = createBoard('independent-inputs');
+  const inputPaths = ['a', 'b'].map(id => {
+    const allocated = spawnSync(process.execPath, [path.join(ROOT, 'skills/_shared/scripts/workflow-fs.js'), 'prepare-board-entry', path.join(inputsBoard, 'data')], {
+      encoding: 'utf8', windowsHide: true,
+    });
+    assert(allocated.status === 0, 'input allocation failed: ' + allocated.stderr);
+    const file = allocated.stdout.trim();
+    assert(path.isAbsolute(file) && path.relative(path.join(inputsBoard, 'data'), file).split(path.sep)[0] !== '..', 'input must stay within the board write scope');
+    assert(fs.readFileSync(file, 'utf8').trim() === '{}', 'allocation must create its own JSON file');
+    fs.writeFileSync(file, JSON.stringify({ entry: { title: id, docPath: 'docs/' + id + '.md' }, detail: { solution: id } }));
+    return file;
+  });
+  assert(new Set(inputPaths).size === 2, 'publishers must never share a payload path');
+  for (const file of inputPaths) assert(invokeBoard(inputsBoard, file).status === 0, 'independent input should publish');
+  const preparedRecords = new Function(fs.readFileSync(path.join(inputsBoard, 'data/changes.js'), 'utf8') + ';return changes')();
+  assert(preparedRecords.map(item => item.docPath).sort().join(',') === 'docs/a.md,docs/b.md', 'preparing B must not replace A');
+  assert(inputPaths.every(file => fs.existsSync(file)), 'publication must preserve inputs for evidence or retry');
+
+  // Hold writer A immediately after reading its catalog. B must fail visibly,
+  // then succeed on retry; two successful stale reads must never lose a record.
+  const concurrent = createBoard('concurrent');
+  const harness = path.join(temp, 'concurrent-test.cjs');
+  fs.writeFileSync(harness, [
+    "const fs = require('fs'), path = require('path'), assert = require('assert/strict');",
+    "const {spawn,spawnSync} = require('child_process'); const dir = process.argv[2];",
+    "const script = path.join(dir,'board-add.js'), data = path.join(dir,'data/changes.js');",
+    "const ready = path.join(dir,'ready'), release = path.join(dir,'release'), hook = path.join(dir,'pause.cjs');",
+    "const payloads = ['a','b'].map(id => { const file=path.join(dir,id+'.json'); fs.writeFileSync(file,JSON.stringify({entry:{title:id,docPath:'docs/'+id+'.md'},detail:{solution:id}})); return file; });",
+    "fs.writeFileSync(hook, \"const fs=require('fs'),path=require('path');const read=fs.readFileSync;fs.readFileSync=function(file,...args){const value=read.call(fs,file,...args);if(path.resolve(String(file))===\"+JSON.stringify(data)+\"){fs.writeFileSync(\"+JSON.stringify(ready)+\",'ready');const deadline=Date.now()+10000;while(!fs.existsSync(\"+JSON.stringify(release)+\")){if(Date.now()>deadline)throw new Error('test barrier timeout');Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,20);}}return value;};\");",
+    "(async()=>{const first=spawn(process.execPath,['--require',hook,script,payloads[0]],{windowsHide:true,stdio:['ignore','pipe','pipe']});let stderr='';first.stderr.on('data',c=>stderr+=c);const done=new Promise((resolve,reject)=>{first.on('error',reject);first.on('exit',resolve);});",
+    "try{const deadline=Date.now()+10000;while(!fs.existsSync(ready)){if(Date.now()>deadline)throw new Error('first writer did not read catalog: '+stderr);await new Promise(r=>setTimeout(r,20));}",
+    "const second=spawnSync(process.execPath,[script,payloads[1]],{encoding:'utf8',windowsHide:true,timeout:5000});fs.writeFileSync(release,'go');assert.equal(await done,0,stderr);assert.equal(second.status,1,second.stderr);assert.match(second.stderr,/BOARD_WRITE_LOCKED/);",
+    "const retry=spawnSync(process.execPath,[script,payloads[1]],{encoding:'utf8',windowsHide:true,timeout:5000});assert.equal(retry.status,0,retry.stderr);const records=new Function(fs.readFileSync(data,'utf8')+';return changes')();assert.deepEqual(records.map(e=>e.docPath).sort(),['docs/a.md','docs/b.md']);for(const entry of records)assert.ok(fs.existsSync(path.join(dir,entry.detailPath)));assert.ok(!fs.existsSync(data+'.lock'));",
+    "}finally{fs.writeFileSync(release,'go');await done;}})().catch(e=>{console.error(e);process.exitCode=1;});"
+  ].join('\n'));
+  const race = spawnSync(process.execPath, [harness, concurrent], { encoding: 'utf8', windowsHide: true, timeout: 25000 });
+  assert(race.status === 0, 'concurrent board writers must be isolated: ' + (race.stderr || race.stdout));
+  fs.writeFileSync(path.join(concurrent, 'data/changes.js.lock'), 'another writer');
+  const concurrentBefore = fs.readFileSync(path.join(concurrent, 'data/changes.js'), 'utf8');
+  assert(invokeBoard(concurrent, '--migrate').stderr.includes('BOARD_WRITE_LOCKED'), 'migration must share the publishing lock');
+  assert(invokeBoard(concurrent, '--check-migration').status === 0, 'migration detection must remain read-only');
+  assert(fs.readFileSync(path.join(concurrent, 'data/changes.js'), 'utf8') === concurrentBefore, 'blocked migration must not mutate data');
+  assert(fs.readFileSync(path.join(concurrent, 'data/changes.js.lock'), 'utf8') === 'another writer', 'failed contender must not release another writer lock');
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }

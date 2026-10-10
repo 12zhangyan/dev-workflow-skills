@@ -15,7 +15,9 @@
       "id": 3,
       "prompt": "帮我 review 一下这段代码有没有 bug",
       "expected_output": "应由统一入口选择 check；只做一次只读审查，不生成 package 任务包。",
-      "tags": ["routing_review_check"]
+      "tags": [
+        "routing_review_check"
+      ]
     },
     {
       "id": 4,
@@ -36,73 +38,117 @@
       "id": 7,
       "prompt": "生成多角色独立 Review 任务；不要复制多份宿主专用提示",
       "expected_output": "只建立一份共享证据边界和一个便携提示；不同 reviewer 仅分配不同 ReviewFocus。能实时委派时在当前上下文直接派发，无需先落盘任务包；不能委派时才为外部回传持久化。reviewer 初审零写入，只把结果返回协调者。",
-      "tags": ["independent_review", "cross_host_output"]
+      "tags": [
+        "independent_review",
+        "cross_host_output"
+      ]
     },
     {
       "id": 8,
       "prompt": "汇总 findings：一条误报、一条业务口径待确认、一条 Critical",
       "expected_output": "修复交接分别分配 RJ-n、BK-n、CR-n；Rejected 和 Blockers 表都保留来源、证据/原因，Critical 有修复与验证，不能用无 ID 的散文代替。",
-      "tags": ["finding_ids", "blocker_ids"]
+      "tags": [
+        "finding_ids",
+        "blocker_ids"
+      ]
     },
     {
       "id": 9,
       "prompt": "在外层 Git、内层 SVN 的工程生成 review 任务包，业务改动属于内层 SVN",
       "expected_output": "必须按变更文件最近控制标记确定 VCS_OWNER 并分组收集 status/实际 diff；外层 Git 只记录嵌套提示。",
-      "tags": ["nested_vcs", "vcs_owner"]
+      "tags": [
+        "nested_vcs",
+        "vcs_owner"
+      ]
     },
     {
       "id": 10,
       "prompt": "非交互运行 review-fix，目标 review-task 已存在且不能确认覆盖",
       "expected_output": "应输出 Blocked/path conflict 并停止，不采用默认覆盖、不生成第二份猜测文件、不更新看板。",
-      "tags": ["non_interactive", "path_conflict", "no_write"]
+      "tags": [
+        "non_interactive",
+        "path_conflict",
+        "no_write"
+      ]
     },
     {
       "id": 11,
       "prompt": "为默认 mvn verify 因模型 API Key 缺失而失败的项目生成 review 任务包，CI workflow 也未提供该密钥",
       "expected_output": "任务包必须读取测试注解/profile、配置和 CI workflow，记录 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并要求审查默认 CI 契约；不得仅写 EnvironmentBlocked，也不得建议伪造密钥。",
-      "tags": ["external_test_dependency", "ci_contract", "test_evidence"]
+      "tags": [
+        "external_test_dependency",
+        "ci_contract",
+        "test_evidence"
+      ]
     },
     {
       "id": 12,
       "prompt": "我从一个独立 reviewer 拿到一组 review 结论：一个真实 NPE、一个风格建议、一个权限口径不确定。请 review-fix 汇总成修复交接，不要调用任何外部方法论 Skill。",
       "expected_output": "应把独立 reviewer 结果作为输入并校验证据。真实 NPE 归并为 CR/IM finding，风格建议无证据或低收益时写 RJ 或 MI，权限口径不确定写 BK；生成 fix-handoff 时保留来源和证据，不能把外部 review 结论当作已关闭或已验证，也不要求额外 Skill。",
-      "tags": ["external_review_source", "finding_ids", "self_contained_workflow"]
+      "tags": [
+        "external_review_source",
+        "finding_ids",
+        "self_contained_workflow"
+      ]
     },
     {
       "id": 13,
       "prompt": "这些 CR/IM findings 已经归一化好了，不需要再生成任务包或交接文档，直接修改代码并跑验证",
       "expected_output": "不应使用 review-fix；已有 findings 且用户要求立即修改和验证、不需要汇总交接，应路由到 review-repair。",
-      "tags": ["routing_review_repair"]
+      "tags": [
+        "routing_review_repair"
+      ]
     },
     {
       "id": 14,
       "prompt": "请用同一个 AI 审查当前改动，发现问题就修复、跑测试，再复审确认 Critical/Important 关闭",
       "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并遵守其修复轮次上限。",
-      "tags": ["routing_review_loop"]
+      "tags": [
+        "routing_review_loop"
+      ]
     },
     {
       "id": 15,
       "prompt": "基于 docs/2026-07-27/order.md 生成多 AI review task，并把进度放到原研发档案里",
       "expected_output": "第一阶段生成 review-task，同时用 sourceDocPath 更新原档案的稳定 package-task 事件；贴回 findings 后用 package-handoff 事件更新同一 deliveryId，不把 fix-handoff 建成第二条普通看板记录。",
-      "tags": ["board_lifecycle", "same_delivery", "package_two_stage"]
+      "tags": [
+        "board_lifecycle",
+        "same_delivery",
+        "package_two_stage"
+      ]
     },
     {
       "id": 16,
       "prompt": "只生成第一阶段 review task；开始前加载 aggregation、fix-handoff 模板和全部 examples。",
       "expected_output": "只有确实需要外部任务包时才加载 review-task-template.md；不得预加载 aggregation.md、fix-handoff-template.md、completion.md 或其他模式资源。",
-      "tags": ["route_minimal_loading", "package_first_stage", "lazy_templates"]
+      "tags": [
+        "route_minimal_loading",
+        "package_first_stage",
+        "lazy_templates"
+      ]
     },
     {
       "id": 17,
       "prompt": "当前宿主支持多个子 Agent。请对支付回调改动做多角色独立 Review，直接完成分发和汇总，不要让我把三份提示手工复制出去再贴回来。",
       "expected_output": "应先在当前上下文建立统一证据索引，再按实际风险选择互补 reviewer 并行委派；不强制先写 review-task。各 reviewer 保持首轮独立，至少两个成功返回才称为多 reviewer 结果；主 Agent 校验证据、记录失败/覆盖缺口并归一 CR/IM/MI/RJ/BK。委派不可用才为外部回传生成任务包；未要求同步看板时不加载或输出看板状态，不得编造结论。",
-      "tags": ["active_delegation", "multi_role_delegation", "independent_review", "delegation_fallback", "finding_ids"]
+      "tags": [
+        "active_delegation",
+        "multi_role_delegation",
+        "independent_review",
+        "delegation_fallback",
+        "finding_ids"
+      ]
     },
     {
       "id": 18,
       "prompt": "对当前本地 diff 做多角色 review；已运行的聚焦测试通过，不涉及外部服务、凭据或 CI 失败归因。",
       "expected_output": "记录验证命令、实际结果和它覆盖的目标逻辑；不为填格式强制输出 TestDependencyClass。宿主可委派时直接使用当前证据索引并行审查，未明确要求留档或看板时不落盘任务包，也不输出看板状态占位。",
-      "tags": ["adaptive_test_evidence", "no_forced_dependency_class", "no_implicit_artifact", "no_implicit_board"]
+      "tags": [
+        "adaptive_test_evidence",
+        "no_forced_dependency_class",
+        "no_implicit_artifact",
+        "no_implicit_board"
+      ]
     },
     {
       "id": 19,
@@ -111,6 +157,35 @@
       "tags": [
         "finding_acceptance",
         "repair_readiness"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "汇总同一根因的 A:IM-4 与 B:CR-7：已证实本地预览少一项，B 进一步推断会删生产数据，但完整调用路径没有写库或其他副作用。只汇总，不落盘。",
+      "expected_output": "合并同根因并保留两个来源别名；按已证实的预览行为错误校准严重度，不自动取 Critical；对删除数据推断记录反证，不因高评级不成立撤销真实缺陷。",
+      "tags": [
+        "severity_calibration",
+        "counterevidence",
+        "canonical_id"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "两位 reviewer 都指控任务入口可能绕过鉴权，但入口配置没提供；另一条只是建议把 result 改名为 rows。请核对后汇总。",
+      "expected_output": "人数不替代证据；鉴权项记录为未证实并列最小缺口，不写成已排除或已证实的安全漏洞；命名偏好不进入 accepted Minor。",
+      "tags": [
+        "insufficient_evidence",
+        "no_majority_vote",
+        "no_style_finding"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "已授权独立审查，两个 reviewer 交回同一模块的修复建议，但协调者发现同时写同一文件会冲突。只需聚合并准备修复交接。",
+      "expected_output": "独立只读审查结果按证据聚合；修复采用单写入者或串行整合，不把并行审查授权变成并行改同文件的权限，不因高风险强加更多泛化 Agent。",
+      "tags": [
+        "coordination_cost",
+        "write_ownership"
       ]
     }
   ]
