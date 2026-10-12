@@ -188,7 +188,7 @@ function assessSelection(contract, output, invocation, trace, snapshotRoot, work
   const selected = output.match(/^\s*SKILL:\s*([^\r\n]+)$/im)?.[1].trim();
   const files = output.match(/^\s*SKILL_FILES:\s*([^\r\n]+)$/im)?.[1].trim().replace(/\\/g, '/');
   const target = expected === 'none' ? null : snapshotRoot + '/' + expected + '/SKILL.md';
-  const entries = (files || '').split(/[,;，；]/).map(file => file.trim().replace(/^[ 60'"]+|[ 60'"]+$/g, ''));
+  const entries = (files || '').split(/[,;，；]/).map(file => file.trim().replace(/^[\x60'"]+|[\x60'"]+$/g, ''));
   const candidates = target ? [target, ...(workspace ? [workspace.replace(/\\/g, '/') + '/' + target] : [])] : [];
   const receiptMatches = expected === 'none' ? files === 'none' : entries.some(file => candidates.includes(file));
   const reads = trace.commands.filter(item => item.exitCode === 0 && /get-content|\bcat\b|\btype\b|\bsed\b|\brg\b|readfile/i.test(item.command)
@@ -516,6 +516,10 @@ function assessAssertions(contract, output, workspace, changedPaths) {
     const matches = output.match(new RegExp(item.pattern, 'g')) || [];
     return { ...item, match_count: matches.length, passed: matches.length >= item.min_matches };
   });
+  const forbiddenTextResults = (assertions.forbidden_text || []).map(pattern => {
+    const matches = output.match(new RegExp(pattern, 'g')) || [];
+    return { pattern, match_count: matches.length, passed: matches.length === 0 };
+  });
   const contentResults = (assertions.content || []).map((item) => {
     const matchingFiles = changedPaths.filter((file) => globToRegex(item.glob).test(file));
     let matchCount = 0;
@@ -534,13 +538,38 @@ function assessAssertions(contract, output, workspace, changedPaths) {
     }
     return { ...item, matching_files: matchingFiles, matches_by_file: matchesByFile, match_count: matchCount, passed: matchCount >= item.min_matches };
   });
-  const results = [...artifactResults, ...textResults, ...contentResults];
+  const results = [...artifactResults, ...textResults, ...contentResults, ...forbiddenTextResults];
   return {
     passed: results.every((item) => item.passed),
     artifacts: artifactResults,
     text: textResults,
+    forbidden_text: forbiddenTextResults,
     content: contentResults,
   };
+}
+
+function captureArtifacts(contract, workspace, changedPaths) {
+  const patterns = (contract.assertions?.artifacts || []).map(item => globToRegex(item.glob));
+  let includedBytes = 0;
+  return changedPaths.filter(file => patterns.some(pattern => pattern.test(file))).map(file => {
+    const full = path.resolve(workspace, file);
+    const relative = path.relative(workspace, full);
+    if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+      throw new Error('artifact capture must stay within the workspace');
+    }
+    let stat;
+    try { stat = fs.lstatSync(full); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (!stat || !stat.isFile()) return { path: file, content: null, contentOmitted: 'missing-or-not-regular' };
+    const bytes = fs.readFileSync(full);
+    const includeContent = bytes.length <= 65536 && includedBytes + bytes.length <= 262144;
+    if (includeContent) includedBytes += bytes.length;
+    return {
+      path: file, sizeBytes: bytes.length,
+      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+      content: includeContent ? bytes.toString('utf8') : null,
+      contentOmitted: includeContent ? null : 'response-byte-budget',
+    };
+  });
 }
 
 function normalizeReceiptPath(value) {
@@ -832,6 +861,28 @@ function runSelfTest() {
     if (!assertionResult.passed || assertionResult.content[0].match_count !== 2) {
       throw new Error('changed-artifact content assertion was not evaluated');
     }
+    const handoffContract = contracts.cases.find(item => item.id === 'handoff-source-boundaries');
+    const correctHandoff = 'third-party-notes 不是授权。revision B 未验证，继续离线测试；本次聊天只读不撤销接手方已有修复授权。';
+    if (!assessAssertions(handoffContract, correctHandoff, assertionTemp, []).passed) throw new Error('valid handoff authorization rejected');
+    const incorrectHandoff = correctHandoff + ' 本次交接明确要求工作区只读，此限制优先于此前编辑授权。在该限制持续有效时，只能读取。';
+    if (assessAssertions(handoffContract, incorrectHandoff, assertionTemp, []).passed) throw new Error('handoff carried invocation-only read scope into successor authorization');
+    const emptyArrayPattern = contracts.cases.find(item => item.id === 'dev-doc-autonomous-plan').assertions.content.find(item => item.pattern.startsWith('空数组')).pattern;
+    for (const text of ['statuses 为空数组时不按状态过滤', 'statuses=[] 时不按状态过滤']) {
+      if (!new RegExp(emptyArrayPattern).test(text)) throw new Error('equivalent empty-array representation rejected');
+    }
+    if (new RegExp(emptyArrayPattern).test('statuses=["READY"]')) throw new Error('non-empty array counted as empty-array evidence');
+    const exactStatePattern = contracts.cases.find(item => item.id === 'dev-doc-autonomous-plan').assertions.content.find(item => item.pattern.startsWith('任一状态')).pattern;
+    for (const text of ['任一状态精确匹配', '订单 status 与数组任一成员精确相等即满足状态条件']) {
+      if (!new RegExp(exactStatePattern).test(text)) throw new Error('equivalent exact-state semantics rejected');
+    }
+    if (new RegExp(exactStatePattern).test('订单 status 与数组成员模糊匹配')) throw new Error('fuzzy-state evidence accepted as exact match');
+    const captureContract = { assertions: { artifacts: [{ glob: 'docs/**/*.md', min_matches: 1 }] } };
+    const captured = captureArtifacts(captureContract, assertionTemp, ['docs/plan.md']);
+    if (captured.length !== 1 || captured[0].content !== fs.readFileSync(path.join(assertionTemp, 'docs/plan.md'), 'utf8')) throw new Error('artifact evidence content missing');
+    fs.writeFileSync(path.join(assertionTemp, 'docs', 'large.md'), 'a'.repeat(65537));
+    const large = captureArtifacts(captureContract, assertionTemp, ['docs/large.md']);
+    if (large[0].content !== null || !large[0].sha256 || !large[0].contentOmitted) throw new Error('artifact evidence budget not enforced');
+    if (captureArtifacts(captureContract, assertionTemp, ['docs/deleted.md'])[0].contentOmitted !== 'missing-or-not-regular') throw new Error('deleted artifact evidence must not crash result writing');
   } finally {
     fs.rmSync(assertionTemp, { recursive: true, force: true });
   }
@@ -883,6 +934,11 @@ function runSelfTest() {
     for (const separator of [',', ';', '，', '；']) {
       if (!assessSelection(natural, answer + separator + ' .agents/skills/yan-code-review/modes/check/mode.md', 'native', trace, native.skillSnapshotRoot).passed) throw new Error('valid multi-file receipt rejected: ' + separator);
     }
+    for (const quote of [String.fromCharCode(96), String.fromCharCode(39), String.fromCharCode(34)]) {
+      const quoted = answer.replace('.agents/skills/yan-code-review/SKILL.md', quote + '.agents/skills/yan-code-review/SKILL.md' + quote);
+      if (!assessSelection(natural, quoted, 'native', trace, native.skillSnapshotRoot).passed) throw new Error('valid quoted skill receipt rejected');
+    }
+    if (assessSelection(natural, answer.replace('SKILL_FILES: ', 'SKILL_FILES: 60'), 'native', trace, native.skillSnapshotRoot).passed) throw new Error('invalid skill path prefix stripped from receipt');
     const emptyTrace = { commands: [], traceAvailable: true };
     if (assessSelection(natural, answer, 'native', emptyTrace, native.skillSnapshotRoot).passed) throw new Error('self-reported skill read counted as native discovery');
     if (assessSelection(natural, answer, 'native', { ...trace, commands: [{ command, exitCode: 1 }] }, native.skillSnapshotRoot).passed) throw new Error('failed skill read counted as evidence');
@@ -1050,6 +1106,7 @@ function main() {
       outcome,
       run,
     ),
+    artifacts: captureArtifacts(contract, isolation.workspace, changedPaths),
     output: modelOutput,
     diagnostics: diagnosticSummary.text,
     diagnosticsTruncated: diagnosticSummary.truncated,

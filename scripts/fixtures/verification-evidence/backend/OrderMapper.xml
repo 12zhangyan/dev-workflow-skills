@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapper namespace="example.OrderMapper">
+  <select id="list" resultType="map">
+    SELECT id, tenant_id, state FROM t_order
+    WHERE tenant_id = #{tenantId} AND state = #{state}
+    ORDER BY created_at DESC, id DESC
+    LIMIT #{offset}, #{limit}
+  </select>
+  <select id="count" resultType="long">
+    SELECT COUNT(*) FROM t_order
+    WHERE tenant_id = #{tenantId} AND state = #{state}
+  </select>
+</mapper>

@@ -36,6 +36,11 @@
             "pattern": "离线测试",
             "min_matches": 1
           }
+        ],
+        "forbidden_text": [
+          "此限制优先于此前(?:编辑|修复)授权",
+          "在该限制持续有效时，只能读取",
+          "(?:先解决|请求调整)当前?只读(?:限制|边界)"
         ]
       }
     },
@@ -467,7 +472,7 @@
           },
           {
             "glob": "docs/**/*.md",
-            "pattern": "空数组",
+            "pattern": "空数组|\\[\\s*\\]",
             "min_matches": 1
           },
           {
@@ -482,7 +487,7 @@
           },
           {
             "glob": "docs/**/*.md",
-            "pattern": "任一状态|精确匹配",
+            "pattern": "任一状态|精确(?:匹配|相等)",
             "min_matches": 1
           },
           {
@@ -707,6 +712,103 @@
         "text": [
           {
             "pattern": "早上好",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "handoff-explicit-revocation",
+      "prompt_ref": "yan-conversation-handoff:22",
+      "route": "handoff",
+      "accepted_routes": [
+        "handoff",
+        "chat",
+        "chat-output",
+        "chat-only"
+      ],
+      "write_scope": "none",
+      "assertions": {
+        "text": [
+          {
+            "pattern": "只读|只能(?:读|读取)",
+            "min_matches": 1
+          },
+          {
+            "pattern": "撤销|不再|已收窄|不得修复|不修复",
+            "min_matches": 1
+          }
+        ],
+        "forbidden_text": [
+          "可继续修复",
+          "直接修复并运行"
+        ]
+      }
+    },
+    {
+      "id": "review-verification-evidence",
+      "prompt_ref": "yan-code-review:18",
+      "route": "check",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 6,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(repair|loop|package)/"
+        ]
+      },
+      "assertions": {
+        "text": [
+          {
+            "pattern": "quote\\.js",
+            "min_matches": 1
+          },
+          {
+            "pattern": "90",
+            "min_matches": 1
+          },
+          {
+            "pattern": "OrderMapper\\.xml",
+            "min_matches": 1
+          },
+          {
+            "pattern": "QUEUED",
+            "min_matches": 1
+          },
+          {
+            "pattern": "离线|offline|localStorage",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-no-specialist-loading",
+      "prompt_ref": "yan-code-review:19",
+      "route": "check",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 3,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/_shared/(behavioral-testing|backend-verification|browser-verification)\\.md$",
+          "^skills/yan-code-review/modes/(repair|loop|package)/"
+        ]
+      },
+      "assertions": {
+        "text": [
+          {
+            "pattern": "src/quote\\.js",
+            "min_matches": 1
+          },
+          {
+            "pattern": "test/quote\\.test\\.js",
             "min_matches": 1
           }
         ]

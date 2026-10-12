@@ -6,6 +6,7 @@ These directories contain intentionally incomplete or faulty implementations use
 - review-state-consumers: Node.js review input; its three tests pass while a new status has an incomplete label consumer and one test bypasses the target function. change.patch is the supplied diff already present in the current source.
 - repair-query-contract: Node.js repair input; four of six contract tests initially fail. The original test/query.test.js is protected by the host contract; add another regression test only when useful.
 - business-async-state: Synthetic business contract, implementation and event evidence disagree about when completion is allowed.
+- verification-evidence: Passing price tests share a wrong implementation constant; Java stub/SQL and synthetic browser records test evidence boundaries, including a valid local-only draft.
 
 For a live evaluation, copy one directory to an empty temporary directory outside this repository, initialize Git there with a local test identity, and commit only that fixture as the baseline. Pass the temporary directory to scripts/run-host-evals.js through --workspace; the standard runner uses a separate clone and never modifies the supplied source workspace. Do not stage or commit the user's working tree to prepare a fixture.
 

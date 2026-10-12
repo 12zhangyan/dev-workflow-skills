@@ -197,6 +197,35 @@
         "acceptance_trace",
         "negative_side_effect"
       ]
+    },
+    {
+      "id": 25,
+      "prompt": "只读审查折扣测试：已确认业务折扣为 10%，实现导出的 DISCOUNT_RATE 被改成 0.15，测试导入这个常量再计算 expected，所有测试通过。",
+      "expected_output": "用 100 应付 90 的独立契约例子定位实现和断言共同漂移，区分真实行为缺陷与测试敏感性缺口；不因现有绿灯关闭问题，也不改文件。",
+      "tags": [
+        "independent_test_oracle",
+        "behavioral_testing"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "只读核对验收：受控测试记录显示保存点击后 HTTP 202 返回 QUEUED，页面立即显示“已保存”，刷新同一记录仍为旧值；没有消费完成证据，测试的成功断言只检查 toast。",
+      "expected_output": "把受理、页面提示、终态及持久化分开，指出已证实的提示语义问题和未完成持久化验证，不冒充实际浏览器执行、不重放保存。",
+      "tags": [
+        "browser_verification",
+        "async_acceptance",
+        "read_only"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "审查离线草稿验收，已批准契约仅要求本机保存：真实浏览器测试断言输入、刷新后从本地存储恢复，以及明确提示“仅本机草稿”；没有服务端请求。",
+      "expected_output": "按离线草稿契约承认证据，不提出缺少服务端保存的伪缺陷，也不要求所有页面必须有网络请求。",
+      "tags": [
+        "browser_verification",
+        "negative_control",
+        "offline_contract"
+      ]
     }
   ]
 }

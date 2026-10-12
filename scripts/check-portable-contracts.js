@@ -136,6 +136,14 @@ for (const contract of contracts.cases || []) {
           fail(`${contract.id} has an invalid text assertion`);
         }
       }
+      const forbiddenText = contract.assertions.forbidden_text || [];
+      if (!Array.isArray(forbiddenText)) fail(contract.id + ' forbidden_text must be an array');
+      for (const pattern of Array.isArray(forbiddenText) ? forbiddenText : []) {
+        try {
+          if (typeof pattern !== 'string' || !pattern) throw new Error('empty pattern');
+          new RegExp(pattern);
+        } catch (error) { fail(contract.id + ' has an invalid forbidden_text assertion: ' + error.message); }
+      }
       for (const contentAssertion of contract.assertions.content || []) {
         if (typeof contentAssertion.glob !== 'string' || !contentAssertion.glob
             || typeof contentAssertion.pattern !== 'string' || !contentAssertion.pattern

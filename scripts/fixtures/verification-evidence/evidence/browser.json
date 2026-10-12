@@ -1,0 +1,52 @@
+{
+  "source": "synthetic_evaluation_fixture",
+  "revision": "fixture-v1",
+  "serverSave": {
+    "recordId": "ORDER_17",
+    "before": {
+      "quantity": 1
+    },
+    "action": {
+      "name": "save",
+      "quantity": 2
+    },
+    "response": {
+      "status": 202,
+      "body": {
+        "state": "QUEUED",
+        "taskId": "TASK_17"
+      }
+    },
+    "uiAfter": {
+      "toast": "已保存",
+      "quantity": 2
+    },
+    "reload": {
+      "recordId": "ORDER_17",
+      "response": {
+        "quantity": 1
+      },
+      "ui": {
+        "quantity": 1
+      }
+    },
+    "terminalEvidence": null
+  },
+  "offlineDraft": {
+    "recordId": "DRAFT_8",
+    "contract": "local-only",
+    "action": {
+      "name": "save-draft",
+      "title": "draft example"
+    },
+    "storage": "localStorage",
+    "requests": [],
+    "uiAfter": {
+      "toast": "仅本机草稿"
+    },
+    "reload": {
+      "recordId": "DRAFT_8",
+      "title": "draft example"
+    }
+  }
+}

@@ -181,6 +181,33 @@
         "natural_negative_control",
         "zero_write"
       ]
+    },
+    {
+      "id": 18,
+      "prompt": "使用 yan-code-review 做只读审查：按 README.md 已确认契约核对 src/quote.js、test/quote.test.js、backend/OrderServiceTest.java、backend/OrderMapper.xml 和 evidence/browser.json，判断现有验证能否支持交付。这里只允许读已有材料或运行无写入的 Node 测试，不连接数据库、不打开或重放业务页面。分别说明已证实问题与证据缺口，引用文件和关键值，不只列通用建议。",
+      "expected_output": "识别 10% 契约与 15% 实现及共享常量断言的漂移；承认 Java stub 可证明 Service 传参而未执行 SQL，不编造 Mapper 缺少 tenant 条件；识别 202/QUEUED 后过早已保存及刷新旧值，承认离线草稿按本地约定恢复的证据。不把受控 fixture 当线上实测，不执行写操作。",
+      "files": [
+        "scripts/fixtures/verification-evidence"
+      ],
+      "tags": [
+        "live_fixture",
+        "independent_test_oracle",
+        "backend_verification",
+        "browser_verification"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "使用 yan-code-review 只读检查 README.md 中列出的 src/quote.js 和 test/quote.test.js 路径是否存在、命名是否一致。此次只审文档路径，不审业务功能，不做验证方案或测试覆盖设计。",
+      "expected_output": "读取入口和 check mode 后完成路径核对，不加载行为测试、后端专项或浏览器验收资源，不运行测试、不扩大审查。",
+      "files": [
+        "scripts/fixtures/verification-evidence"
+      ],
+      "tags": [
+        "live_fixture",
+        "route_minimal_loading",
+        "specialist_negative_control"
+      ]
     }
   ]
 }

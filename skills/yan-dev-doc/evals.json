@@ -265,6 +265,26 @@
         "capability_portability",
         "single_agent_supported"
       ]
+    },
+    {
+      "id": 54,
+      "prompt": "为订单保存后的页面反馈写精简方案：成功数据需要持久化，失败保留输入可重试；仓库已有 Vue 与浏览器测试，无服务端改造。只设计方案，不操作线上页面。",
+      "expected_output": "按相关缺口选读浏览器验收参考；验收关联同一记录的请求、页面、刷新后结果及失败重试，区分 stub 测试与真实后端证据；不执行保存、不安装浏览器工具、不引入完整性能审计。",
+      "tags": [
+        "browser_verification",
+        "conditional_reference",
+        "plan_only"
+      ]
+    },
+    {
+      "id": 55,
+      "prompt": "给 Java 8 和既有 MyBatis 项目写分页改造方案。现有术语文档明确“关闭”不等于“完成”，暂无数据库测试环境，不允许建表造数；不升级依赖。",
+      "expected_output": "沿已确认术语和真实版本设计页内容、筛选后 total 及方言验证；保留数据库证据缺口，不采用外部 Java 21 模板、不写库、不编造术语或强制新增 glossary。",
+      "tags": [
+        "backend_verification",
+        "version_and_domain_context",
+        "read_only_db"
+      ]
     }
   ]
 }

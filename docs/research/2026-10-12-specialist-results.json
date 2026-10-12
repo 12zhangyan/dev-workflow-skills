@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "sources": [
+    {
+      "repository": "mattpocock/skills",
+      "url": "https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/tdd/SKILL.md",
+      "use": "Independent expected values and public behavioral boundaries; mandatory confirmation and fixed TDD sequence not adopted."
+    },
+    {
+      "repository": "addyosmani/agent-skills",
+      "url": "https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/browser-testing-with-devtools/SKILL.md",
+      "use": "Correlate UI, requests and runtime evidence; tool-specific setup and blanket audit requirements not adopted."
+    },
+    {
+      "repository": "wshobson/agents",
+      "url": "https://raw.githubusercontent.com/wshobson/agents/main/plugins/jvm-languages/agents/java-pro.md",
+      "use": "Select technical concerns by task; require actual project versions instead of adopting Java 21/Spring Boot 3 defaults."
+    }
+  ],
+  "sourceLimitation": "Read public main-branch files through web retrieval. Public API commit lookup returned 403; no immutable upstream revision is claimed. Runtime guidance was authored for this repository, not copied as third-party code.",
+  "validation": {
+    "fullSuite": {
+      "command": "node scripts/check-all.js",
+      "passed": true,
+      "scripts": 35,
+      "publicSkills": 4,
+      "evalSuites": 11,
+      "scenarioDefinitions": 214,
+      "staticContracts": 36,
+      "firstAttempt": "Failed because two new fixture JS files lacked the repository-required shebang; corrected before successful full rerun."
+    },
+    "routeSelfTest": {
+      "command": "node scripts/check-route-loading.js --self-test",
+      "passed": true
+    },
+    "liveSemanticReview": {
+      "reviewer": "current coordinating agent",
+      "before": true,
+      "after": true,
+      "negativeControl": true,
+      "observations": [
+        "Both versions identified the 15% vs 10% implementation defect and shared-oracle test weakness.",
+        "Both separated Java stub coverage from SQL execution evidence and did not invent a tenant-filter defect.",
+        "Both rejected premature saved status after 202/QUEUED and did not infer permanent failure.",
+        "Both accepted the local-only draft contract without demanding server persistence.",
+        "The negative control stayed within README path verification and reported only two loaded entry resources."
+      ]
+    }
+  },
+  "loading": [
+    {
+      "path": "skills/yan-dev-doc/SKILL.md",
+      "beforeChars": 2448,
+      "afterChars": 2669
+    },
+    {
+      "path": "skills/yan-code-review/modes/check/mode.md",
+      "beforeChars": 1631,
+      "afterChars": 1858
+    },
+    {
+      "path": "skills/yan-code-review/modes/repair/mode.md",
+      "beforeChars": 1704,
+      "afterChars": 1936
+    }
+  ],
+  "comparison": {
+    "comparable": true,
+    "reasons": [],
+    "conditions": {
+      "host": "codex",
+      "case": "review-verification-evidence",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit"
+    },
+    "before": {
+      "skillSha256": "16249cc7e30334897518c6690faebbb4b95ce481df782732c2bd9bbbe8a1d260",
+      "passed": true
+    },
+    "after": {
+      "skillSha256": "a37a377c48dd7e3a6e049b9bfa8ccacffcc4d7d8e16dc3912bb7cca89b15702b",
+      "passed": true
+    },
+    "deltas": {
+      "durationMs": 7327,
+      "outputChars": 192,
+      "loadedResourceCount": 3
+    },
+    "limitation": "One matched pair is a regression sample, not an improvement rate. Unrecorded host settings and service variability remain uncontrolled."
+  },
+  "installation": {
+    "comparedFiles": 66,
+    "matchedFiles": 66,
+    "differences": [],
+    "unrelatedChanges": [],
+    "originalContractsPreserved": true,
+    "fixtureStatus": ""
+  },
+  "runs": [
+    {
+      "label": "before-review",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "review-verification-evidence",
+      "requestedModel": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-12T02:28:09.428Z",
+      "provenance": {
+        "fixtureHead": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "363333559c82848f2bb95bab1e779abd10e216ec90ceb6f98ce9387714567335",
+        "promptSha256": "74c9a42de856b7c7b8e739ca147f8e53f9f53c2f3aca40b6af56befb0b301fa3",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "selected-source-copy",
+        "root": ".yan-host-eval-runtime/skills",
+        "sha256": "16249cc7e30334897518c6690faebbb4b95ce481df782732c2bd9bbbe8a1d260"
+      },
+      "metrics": {
+        "durationMs": 102255,
+        "outputChars": 1953,
+        "diagnosticChars": 1327,
+        "loadedResourceCount": 2
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headAfter": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "quote\\.js",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "90",
+              "min_matches": 1,
+              "match_count": 3,
+              "passed": true
+            },
+            {
+              "pattern": "OrderMapper\\.xml",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "QUEUED",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "离线|offline|localStorage",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md"
+          ],
+          "count": 2,
+          "maxResources": 6,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md\n\n**现有验证不足以支持交付。** 已确认价格实现违反契约、价格测试存在错误通过，以及保存观察记录中的成功提示缺少完成依据。README 明确这些材料是合成评估夹具，以下结论不代表真实生产故障。\n\n**已证实问题**\n\n- **IM-1：折扣比例错误。** `README.md:6` 规定折扣为 **10%**，`quote(100)` 应为 **90**；`src/quote.js:3-6` 使用 `DISCOUNT_RATE = 0.15`。实际运行独立契约断言得到 **85 !== 90**，同一输入比契约金额少 5。\n- **IM-2：价格测试无法识别上述契约偏差。** `test/quote.test.js:5-9` 导入实现的 `DISCOUNT_RATE`，并复制实现公式生成预期值。因此 `[100, 80, 0]` 的测试可以全部通过，却未验证已确认的九折规则。现有测试通过不能作为价格验收依据。\n- **IM-3：服务端保存提示早于完成证据。** `evidence/browser.json:13-33` 中，`ORDER_17` 数量从 **1** 改为 **2**，响应仅为 **202 / QUEUED**、任务号 `TASK_17`，UI 却提示 **“已保存”**；随后重载同一订单，响应及 UI 数量均为 **1**，且 `terminalEvidence = null`。这违反 `README.md:8` 的提示契约，且此次记录未通过持久化验收。**不能据此断言异步任务最终失败**，因为没有终态证据。\n\n**证据缺口与通过边界**\n\n| 材料 | 已有证据能说明什么 | 仍不能证明什么 |\n|---|---|---|\n| `backend/OrderServiceTest.java:6-17` | 测试代码既断言返回 `2L`，也检查 `TENANT_A / OPEN` 参数传递；并非完全没有有效断言 | Mapper 是固定返回 `2L` 的替身，未执行 XML 或数据库；且没有 Java 执行结果，不能报告测试已通过，更不能证明真实筛选、分页和总数正确 |\n| `backend/OrderMapper.xml:3-12` | 静态文本中，列表先按 `tenant_id`、`state` 筛选，再排序、分页；count 使用相同筛选且没有分页。`LIMIT #{offset}, #{limit}` 符合契约指定的 MySQL 方言形式，未发现有证据的 SQL 契约缺陷 | 无实际绑定和执行结果，不能证明部署环境下的租户隔离、跨页总数或映射执行正确 |\n| `evidence/browser.json:35-49` | 离线草稿 `DRAFT_8` 使用 `localStorage`，`requests: []`，提示 **“仅本机草稿”**，同一草稿重载后标题仍为 `draft example`；符合 `README.md:9` 的本机草稿契约 | 这是已有合成观察记录，不是本次实时浏览器验证；**没有服务端请求不构成该功能缺陷** |\n| `test/quote.test.js:6-15` | 原测试覆盖整数样例、`-1` 和 `NaN` | 没有独立的小数舍入契约用例，不能把“保留两位小数”的验收视为充分覆盖 |\n\n**实际验证与改动**\n\n- 执行 `node --test`：**4 项通过、0 项失败**。\n- 通过 `node -e` 调用 `node:test` 执行内存中的独立断言：`quote(100) === 90` **失败，实际为 85**；`-1 / NaN / Infinity / -Infinity` 均抛出 `RangeError`，该项通过。\n- Git 首次检查遇到全局 ignore 读取权限警告，使用 `NUL` 替代也失败；随后以 `-c core.excludesFile=` 禁用该全局文件，重新检查成功，工作区状态及指定文件相对 HEAD 的差异输出均为空。\n- 未创建、修改或删除文件；未执行 Java、连接数据库或打开、重放业务页面。\n\n交付前需修正折扣及独立契约断言，取得保存任务完成后重载同一记录仍为新值的证据，并补齐后端实际执行验证。当前 SQL 静态一致性和本机草稿记录可以保留为局部证据，不能抵消上述交付阻塞项。"
+    },
+    {
+      "label": "after-review",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "review-verification-evidence",
+      "requestedModel": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-12T02:28:09.182Z",
+      "provenance": {
+        "fixtureHead": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "363333559c82848f2bb95bab1e779abd10e216ec90ceb6f98ce9387714567335",
+        "promptSha256": "74c9a42de856b7c7b8e739ca147f8e53f9f53c2f3aca40b6af56befb0b301fa3",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".yan-host-eval-runtime/skills",
+        "sha256": "a37a377c48dd7e3a6e049b9bfa8ccacffcc4d7d8e16dc3912bb7cca89b15702b"
+      },
+      "metrics": {
+        "durationMs": 109582,
+        "outputChars": 2145,
+        "diagnosticChars": 1327,
+        "loadedResourceCount": 5
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headAfter": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "quote\\.js",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "90",
+              "min_matches": 1,
+              "match_count": 4,
+              "passed": true
+            },
+            {
+              "pattern": "OrderMapper\\.xml",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "QUEUED",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "离线|offline|localStorage",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md",
+            "skills/_shared/behavioral-testing.md",
+            "skills/_shared/backend-verification.md",
+            "skills/_shared/browser-verification.md"
+          ],
+          "count": 5,
+          "maxResources": 6,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md, skills/_shared/behavioral-testing.md, skills/_shared/backend-verification.md, skills/_shared/browser-verification.md\n\n**现有验证不能支持交付。** 按 README 已确认契约，价格实现存在确定错误，已有测试漏检；服务端保存记录中的成功提示也缺乏完成依据。README:3 明确这些是合成评估材料，以下浏览器结论仅针对该记录，不代表真实系统现场结果。\n\n**已证实问题**\n\n- **IM-1：折扣错误，导致应付金额偏低。** `src/quote.js:3-6` 使用 `DISCOUNT_RATE = 0.15`，违反 `README.md:6` 的 **10%** 折扣契约。实际调用 `quote(100)` 返回 **85**，契约要求 **90**，少计 **5**。独立 Node 断言已复现失败。\n- **IM-2：测试期望与错误实现同源，无法检出折扣错误。** `test/quote.test.js:5-9` 导入实现的 `DISCOUNT_RATE`，再照抄计算公式生成期望值。因此错误的 15% 折扣仍使全部 **4 项测试通过**。这已实际漏检 IM-1；应以独立契约值，例如 `100 → 90`、`80 → 72`，约束结果。\n- **IM-3：记录中的“已保存”提示超出了已有证据。** `evidence/browser.json:13-33` 显示 `ORDER_17` 将数量从 **1** 改为 **2**，响应仅为 **202 / QUEUED**，任务为 `TASK_17`，界面却提示“已保存”。随后重新加载同一记录，响应与界面数量均为 **1**，且 `terminalEvidence = null`。按 `README.md:8`，这些证据只支持已受理，不能支持保存完成；刷新结果也未通过持久化验收。**不能据此断言任务最终失败或数据永久丢失。**\n\n**证据缺口与已满足部分**\n\n| 范围 | 已有材料能证明什么 | 尚不能证明什么 |\n|---|---|---|\n| Node 价格测试 | 本次 `node --test` 为 **4 passed / 0 failed**；源码包含负数及非有限值拒绝逻辑 | 当前用例只检查 `-1`、`NaN`，没有验证正负无穷；`100/80/0` 也没有独立验证小数舍入行为 |\n| Java Service 测试 | `backend/OrderServiceTest.java:10-17` 的 fake Mapper 返回 **2L**，测试设计会检查 `TENANT_A`、`OPEN` 参数透传及返回值 | 没有 Java 执行结果；fake 未调用 XML，不能证明真实筛选、租户隔离、分页或总数正确 |\n| Mapper SQL | `backend/OrderMapper.xml:4-11` 中 list 与 count 均含 `tenant_id`、`state` 条件；list 筛选后按 `created_at DESC, id DESC` 排序分页；count 无分页。文本与契约一致，`LIMIT offset, limit` 未发现方言问题 | 没有目标 MySQL 的执行结果、实际参数绑定及跨租户/状态/多页样本证据。该缺口不等于 SQL 已有缺陷 |\n| 服务端保存 | 已有同一 `ORDER_17` 的操作、受理响应与重载记录 | 缺 `TASK_17` 的完成终态及完成后重载数量为 **2** 的证据 |\n| 离线草稿 | `evidence/browser.json:35-50` 中 `DRAFT_8` 使用 `localStorage`，提示“仅本机草稿”，重载保留 `draft example`，符合 `README.md:9` 的本机存储契约 | 材料是合成记录，不能声称现场实测；`requests: []` **不是缺陷，也不需要补服务端持久化** |\n\n实际执行了 `node --test`，并以无文件写入的 `node -e` 独立断言验证 `quote(100) === 90`；后者退出码 **1**，错误为 **85 !== 90**。没有运行 Java、连接数据库或打开、重放业务页面，没有创建、修改或删除文件。\n\nGit 首次检查出现用户级 ignore 文件权限警告，使用 `NUL` 的重试失败；随后以 `git -c core.excludesFile=` 检查成功，工作区状态及范围内暂存、未暂存 diff 均为空。本次审查针对当前受跟踪文件内容。交付仍需关闭上述三个问题，并补齐真实 Mapper 执行和异步保存完成后的验收证据。"
+    },
+    {
+      "label": "negative-loading",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "review-no-specialist-loading",
+      "requestedModel": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-12T02:29:15.187Z",
+      "provenance": {
+        "fixtureHead": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "262a26b06d34bac16701f533181d7fff797c5c3d67c9ca539bd87f4f2e245223",
+        "promptSha256": "0ce9990d2f2cee22ef3fe95d51c7f56495331ebe1d322594aa9a997c58ff5fc6",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".yan-host-eval-runtime/skills",
+        "sha256": "a37a377c48dd7e3a6e049b9bfa8ccacffcc4d7d8e16dc3912bb7cca89b15702b"
+      },
+      "metrics": {
+        "durationMs": 44728,
+        "outputChars": 378,
+        "diagnosticChars": 1327,
+        "loadedResourceCount": 2
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headAfter": "4fbdbcf176b8a281b89d0b58db715d1b4252c2b1",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "src/quote\\.js",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "test/quote\\.test\\.js",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md"
+          ],
+          "count": 2,
+          "maxResources": 3,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md\n\n在已检查范围内未发现路径缺失或命名不一致。\n\n| README 位置 | 文档路径 | 核对结果 |\n|---|---|---|\n| 第 12 行 | `src/quote.js` | 文件存在，命名一致 |\n| 第 13 行 | `test/quote.test.js` | 文件存在，命名一致 |\n\n通过 `rg -n` 定位文档引用、`Get-Item -LiteralPath` 确认两者均为文件。全程只读，未创建、修改或删除文件；仅审查文档路径，未审业务功能、运行测试或设计验证方案及测试覆盖。"
+    }
+  ],
+  "limitations": [
+    "One matched pair does not demonstrate accuracy or speed improvement.",
+    "Loaded resource counts are model receipts, not independent tool-trace auditing.",
+    "The fixture browser observations are synthetic; no real browser, Java execution or database integration was validated.",
+    "Assessment text patterns are evidence signals supplemented by coordinator semantic review, not an independent behavioral outcome verifier.",
+    "Final-state hashes do not prove absence of transient or external side effects.",
+    "Host diagnostics and user configuration are intentionally excluded from this report."
+  ]
+}

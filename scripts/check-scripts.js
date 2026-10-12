@@ -34,6 +34,7 @@ for (const file of files) {
   const text = fs.readFileSync(full, 'utf8');
   if (!/^#!\/usr\/bin\/env node\r?\n/.test(text)) fail(`${rel} must start with a node shebang`);
   if (!text.includes("'use strict';")) fail(`${rel} must enable strict mode`);
+  if (text.includes('\0')) fail(`${rel} must not contain literal NUL bytes`);
 
   const result = spawnSync('node', ['--check', rel], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {

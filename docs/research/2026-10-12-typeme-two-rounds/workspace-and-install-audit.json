@@ -1,0 +1,28 @@
+{
+  "skills": {
+    "headUnchanged": true,
+    "changedExistingFiles": [
+      "skills/_shared/behavioral-testing.md",
+      "skills/_shared/browser-verification.md",
+      "skills/yan-code-review/modes/repair/evals.json"
+    ],
+    "missingExistingFiles": []
+  },
+  "typeme": {
+    "headUnchanged": true,
+    "changedExistingFiles": [
+      "frontend/src/api/csrf.ts",
+      "frontend/src/api/v3.ts",
+      "frontend/src/stores/auth.ts",
+      "frontend/src/stores/instrumentsV3.ts",
+      "frontend/src/views/AssessChooserView.vue",
+      "frontend/src/views/assessChooserView.spec.ts"
+    ],
+    "missingExistingFiles": []
+  },
+  "installation": {
+    "files": 66,
+    "drift": [],
+    "treeSha256": "cab78fef91f8e52342984ffb86669db2b1fe4c3ef83b46cc6be2a62cc3282202"
+  }
+}

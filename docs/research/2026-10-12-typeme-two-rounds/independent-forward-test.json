@@ -1,0 +1,55 @@
+{
+  "kind": "independent-read-only-forward-test",
+  "agentId": "01a12e12-b9ab-7493-93a8-53544fec2c80",
+  "fixture": "scripts/fixtures/verification-evidence",
+  "passedAssessment": true,
+  "meaning": "Identified demonstrated defects and kept synthetic evidence boundaries; the faulty fixture itself does not pass acceptance.",
+  "findings": [
+    {
+      "id": "IM-1",
+      "evidence": "src/quote.js:3",
+      "observed": "15% discount produces quote(100)=85",
+      "contract": "10% discount requires 90"
+    },
+    {
+      "id": "IM-2",
+      "evidence": "test/quote.test.js:5-8",
+      "observed": "Expected value imports implementation discount constant and repeats formula; four tests still pass"
+    },
+    {
+      "id": "IM-3",
+      "evidence": "evidence/browser.json:13",
+      "observed": "202 QUEUED labeled saved; reload of same record retains old value and no terminal evidence",
+      "boundary": "Finding concerns supplied synthetic observation, not a live browser run or a proven final async failure"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node --test",
+      "exitCode": 0,
+      "tests": 4,
+      "passed": 4
+    },
+    {
+      "command": "node -e \"const {quote}=require('./src/quote.js'); require('node:assert/strict').equal(quote(100),90);\"",
+      "exitCode": 1,
+      "observed": "85 !== 90"
+    }
+  ],
+  "boundedConclusions": [
+    "SQL text has tenant/state filters before paging and matching count predicate; no DB execution claim",
+    "Java fake Mapper tests forwarding only; no Java execution claim",
+    "Offline localStorage draft evidence matches local-only contract; no unnecessary server requirement"
+  ],
+  "loadedSkillResources": [
+    "yan-code-review/SKILL.md",
+    "yan-code-review/modes/check/mode.md",
+    "_shared/behavioral-testing.md",
+    "_shared/backend-verification.md",
+    "_shared/browser-verification.md"
+  ],
+  "network": false,
+  "database": false,
+  "browser": false,
+  "fixtureDrift": []
+}

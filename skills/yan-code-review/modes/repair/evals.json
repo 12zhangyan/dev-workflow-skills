@@ -174,6 +174,47 @@
         "zero_tests",
         "actual_execution"
       ]
+    },
+    {
+      "id": 23,
+      "prompt": "修复已确认的金额计算问题并补回归，用户已有实现必须保留。现有 expected 调用同一个计价函数生成；已批准样例为数量 2、单价 40、折扣 10%，应付 72，已有测试框架可用。",
+      "expected_output": "在当前实现上最小修复，用独立样例或契约不变量构造真实断言；不删除现有代码重走 TDD，不重新确认已经明确的测试边界，不放宽断言。",
+      "tags": [
+        "behavioral_testing",
+        "preserve_existing_work",
+        "independent_test_oracle"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "只调整已有文档链接并核对文件存在，已授权直接修复且用户明确无需单元测试；不涉及业务行为、后端或页面交互。",
+      "expected_output": "完成小修与链接核验，不加载行为测试、后端专项或浏览器验收参考，不为新增参考而补测试、扩展技术审计或启动浏览器。",
+      "tags": [
+        "route_minimal_loading",
+        "specialist_negative_control",
+        "proportional_verification"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "修复 IM-9：用户离开开始页后，延迟的创建成功响应把用户拉回原页。现有组件测试直接卸载整个带路由的测试根节点，路由随之重置；需要保留真实可用的导航与按钮反馈。",
+      "expected_output": "先核实导航触发与当前上下文；用保持路由宿主存活的测试和可控延迟在真实操作入口复现，检查离开后旧响应不再导航。区分测试夹具失真与实现缺陷，不放宽业务断言或要求卸载整个应用。",
+      "tags": [
+        "behavioral_testing",
+        "async_context_ownership",
+        "realistic_test_lifecycle"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "修复 IM-10：账号 A 的请求在退出并登录 B 后才返回 401 或 CSRF_INVALID。要求验证 B 不被退出、旧写入不以 B 的身份重发，并保留当前会话正常的 CSRF 重试；已授权本地 mock 网络测试，没有数据库写入授权。",
+      "expected_output": "沿共享请求层与会话消费者核实归属，用可控响应顺序验证迟到错误、等待 token 和重试边界；断言 B 身份及实际写请求次数，同时验证同会话重试仍有效。不把仅有 store 成功响应隔离当作完整验证，不连接写库或发送真实凭据。",
+      "tags": [
+        "behavioral_testing",
+        "async_context_ownership",
+        "session_isolation",
+        "negative_control"
+      ]
     }
   ]
 }

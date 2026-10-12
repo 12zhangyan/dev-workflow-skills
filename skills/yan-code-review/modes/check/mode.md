@@ -22,6 +22,8 @@ Agent 按风险决定读取顺序和审查视角：
 
 审查维度或格式仍不足时读取 [补充参考](reference.md)。需要处理冲突时读取 [交互策略](../../../_shared/interaction-policy.md)，需要解释 Gate 口径时读取 [工作流门禁](../../../_shared/workflow-gates.md)，实际收到或需要交接 Brief 时读取 [Workflow Brief](../../../_shared/workflow-brief.md)。
 
+仅在行为回归的断言或覆盖设计有缺口时读取 [行为测试](../../../_shared/behavioral-testing.md)；仅在后端技术语义影响验证结论时读取 [后端专项](../../../_shared/backend-verification.md)；仅在页面交互或持久化验收有缺口时读取 [浏览器验收](../../../_shared/browser-verification.md)。按实际缺口选读，不联读。本模式仍保持只读。
+
 ## Findings
 
 Accepted finding 表示问题已证实，使用稳定 `CR-n / IM-n / MI-n`（首次编号分别对应 Critical / Important / Minor；复审保留原 ID，另记严重度变化），必须包含定位、实际证据和可观察影响。修复方向与验证建议仅在有把握时补充；修法或验证设计未定不撤销 finding，也不代表已具备修复条件。严重度按已证实的触发条件和实际影响判断；影响严重但可达性未证实时保留待验证项。推测、纯风格偏好或证据不足不冒充 finding。
