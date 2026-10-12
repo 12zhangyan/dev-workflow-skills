@@ -4,7 +4,31 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 29;
+const BOARD_VERSION = 30;
+
+const UI_ICONS = {
+  "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
+  "layers": "<path d=\"m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5\"/>",
+  "clock": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>",
+  "archive": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 8v12h14V8M10 12h4\"/>",
+  "doc": "<path d=\"M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h6\"/>",
+  "bug": "<path d=\"M8 8h8v7a4 4 0 0 1-8 0V8Zm1 0V6a3 3 0 0 1 6 0v2M4 9l4 2m8 0 4-2M3 15h5m8 0h5M5 21l4-3m6 0 4 3M12 10v9\"/>",
+  "book": "<path d=\"M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1v15\"/>",
+  "flow": "<rect x=\"9\" y=\"2\" width=\"6\" height=\"5\" rx=\"1\"/><rect x=\"2\" y=\"17\" width=\"6\" height=\"5\" rx=\"1\"/><rect x=\"16\" y=\"17\" width=\"6\" height=\"5\" rx=\"1\"/><path d=\"M12 7v5M5 17v-5h14v5\"/>",
+  "code": "<path d=\"m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 20\"/>",
+  "search": "<circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 5 5\"/>",
+  "arrow": "<path d=\"M4 12h16m-6-6 6 6-6 6\"/>",
+  "back": "<path d=\"M20 12H4m6-6-6 6 6 6\"/>",
+  "check": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8 12 3 3 5-6\"/>",
+  "folder": "<path d=\"M3 7V4h6l2 3h10v13H3V7Z\"/>",
+  "menu": "<path d=\"M4 6h16M4 12h16M4 18h16\"/>",
+  "history": "<path d=\"M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l4 2\"/>",
+  "link": "<path d=\"M14 3h7v7m0-7L10 14M10 5H3v16h16v-7\"/>",
+  "filter": "<path d=\"M4 6h16M7 12h10m-7 6h4\"/>"
+};
+function uiIcon(name) {
+  return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (UI_ICONS[name] || UI_ICONS.doc) + '</svg>';
+}
 
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
@@ -79,7 +103,7 @@ function cycleStatus(ev) {
 
 // ─── 过滤 ────────────────────────────────────────────────────────────────────
 function kindOf(c) { return c.kind === 'bug' ? 'bug' : c.kind === 'reading' ? 'reading' : c.kind === 'biz' ? 'biz' : 'doc'; }
-function icoOf(c) { return c.kind === 'bug' ? '🐛' : c.kind === 'reading' ? '📖' : c.kind === 'biz' ? '🔀' : '📄'; }
+function icoOf(c) { return uiIcon({ bug: 'bug', reading: 'book', biz: 'flow' }[c.kind] || 'doc'); }
 // 一句话导语：取主叙述字段的第一句，让人不点开也能扫读这条记录在讲什么。
 // 确定性提取（Rule 5），不依赖 skill 额外撰写字段。
 function leadOf(c) {
@@ -210,45 +234,7 @@ function riskNotes(d) {
       </div>`).join('')}</div>
   </div>`;
 }
-function roleHint(d, role) {
-  if (role === 'biz') {
-    if (d.kind === 'bug') return shortText(d.impact || d.symptom || d.rootCause || leadOf(d), 118);
-    if (d.kind === 'biz') return shortText(d.background || firstItems(d.testPoints, 1)[0] || leadOf(d), 118);
-    if (d.kind === 'reading') return shortText(d.background || d.entry || leadOf(d), 118);
-    const plan = d.delivery && d.delivery.plan || {};
-    return shortText(plan.background || plan.summary || d.background || firstItems(d.goals, 1)[0] || d.solution || leadOf(d), 118);
-  }
-  if (d.kind === 'bug') return shortText(d.fixPlan || d.rootCause || firstItems(d.verifySteps, 1)[0] || leadOf(d), 118);
-  if (d.kind === 'biz') return shortText(firstItems(d.testPoints, 1)[0] || firstItems(d.bizRules, 1).map(x => x.desc || x.title)[0] || leadOf(d), 118);
-  if (d.kind === 'reading') return shortText(firstItems(d.keyImpl, 1).map(x => `${x.title || ''} ${x.desc || ''}`.trim())[0] || d.entry || leadOf(d), 118);
-  const plan = d.delivery && d.delivery.plan || {};
-  const reviewEvents = d.delivery && d.delivery.review && d.delivery.review.events || [];
-  const latest = reviewEvents[reviewEvents.length - 1];
-  return shortText(latest && (latest.summary || latest.conclusion) || plan.solution || plan.coreDesign || d.solution || d.coreDesign || firstItems(d.keyImpl, 1).map(x => x.title || x.desc)[0] || leadOf(d), 118);
-}
-function roleBoard(title, subtitle, ids, role, emptyText) {
-  const rows = ids.slice(0, 4).map(i => {
-    const c = changes[i], st = effStatus(c);
-    return `<div class="role-row" role="button" tabindex="0" onclick="pick(${i})" onkeydown="if(activateKey(event))pick(${i})">
-      <div class="role-main">
-        <div class="role-title"><span>${icoOf(c)}</span>${esc(c.title)}</div>
-        <div class="role-desc">${esc(roleHint(c, role) || '暂无摘要')}</div>
-      </div>
-      <div class="role-side">
-        <span class="role-path">${esc(svcOf(c))}/${esc(modOf(c))}</span>
-        <span class="idx-status"><span class="sdot" style="background:${statusColor(st)}"></span>${esc(st)}</span>
-      </div>
-    </div>`;
-  }).join('');
-  return `<section class="role-card ${role === 'biz' ? 'role-biz' : 'role-dev'}">
-    <div class="role-head">
-      <div><div class="role-kicker">${role === 'biz' ? 'BUSINESS VIEW' : 'ENGINEERING VIEW'}</div><div class="role-h">${esc(title)}</div></div>
-      <div class="role-sub">${esc(subtitle)}</div>
-    </div>
-    ${rows || `<div class="role-empty">${esc(emptyText)}</div>`}
-  </section>`;
-}
-let q = '', kindF = 'all', scopeF = 'workspace', openOnly = false, homeLimit = 30;
+let q = '', kindF = 'all', scopeF = 'workspace', openOnly = false, homeLimit = 30, sortF = 'newest';
 // 搜索语料：覆盖各类条目的叙述字段，避免内容只在 solution/fixPlan/testPoints 时搜不到。
 function searchHay(c) {
   const parts = [c.title, c.service, c.module, c.type, c.summary, c.searchText,
@@ -276,12 +262,37 @@ function matchF(c) {
   }
   return true;
 }
-function refreshView() { if (sel === null) showHome(); else if (sel === -2) showApis(); }
+function refreshView() { if (sel === -2) showApis(); else showHome(); }
 function resetHomeLimit() { homeLimit = 30; }
 function onSearch(v) { q = v.trim().toLowerCase(); resetHomeLimit(); renderSidebar(); refreshView(); }
 function setKind(k) { kindF = k; resetHomeLimit(); renderSidebar(); refreshView(); }
 function setScope(s) { scopeF = s; resetHomeLimit(); renderSidebar(); refreshView(); }
 function toggleOpen() { openOnly = !openOnly; resetHomeLimit(); renderSidebar(); refreshView(); }
+
+function toggleSidebar(force) {
+  const open = typeof force === 'boolean' ? force : !document.body.classList.contains('nav-open');
+  document.body.classList.toggle('nav-open', open);
+  const toggle = document.getElementById('menu-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '收起导航' : '展开导航');
+  }
+}
+function closeSidebar() {
+  if (!document.body) return;
+  const moveFocus = document.body.classList.contains('nav-open') && document.getElementById('sidebar')?.contains(document.activeElement);
+  toggleSidebar(false);
+  if (moveFocus) document.getElementById('main')?.focus({ preventScroll: true });
+}
+function resetMainScroll() {
+  document.getElementById('main').scrollTop = 0;
+  if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'auto' });
+}
+function detailBack() {
+  if (typeof STANDALONE !== 'undefined' && STANDALONE) return '';
+  if (typeof DETAIL_PAGE !== 'undefined' && DETAIL_PAGE) return '<a class="back-link" href="../index.html">' + uiIcon('back') + '返回工作台</a>';
+  return '<button type="button" class="back-link" onclick="showHome()">' + uiIcon('back') + '返回' + SCOPE_LABEL[scopeF] + '</button>';
+}
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let sel = null; // null=浏览索引（首页）, -1=变更日志, -2=接口索引, 0+=文档下标
@@ -306,17 +317,17 @@ function grp() {
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 function renderSidebar() {
   const g = grp();
-  const docCnt = changes.filter(c => kindOf(c) === 'doc').length;
-  const bugCnt = changes.filter(c => kindOf(c) === 'bug').length;
-  const readCnt = changes.filter(c => kindOf(c) === 'reading').length;
-  const bizCnt = changes.filter(c => kindOf(c) === 'biz').length;
   const scopeCnt = { workspace: 0, backlog: 0, archive: 0 };
   changes.forEach(c => { scopeCnt[scopeOf(c)]++; });
   const parts = [`${scopeCnt.workspace} 工作台`, `${scopeCnt.backlog} 待办`, `${scopeCnt.archive} 归档`];
   document.getElementById("sub").textContent = parts.join(' · ');
-  document.querySelectorAll('.fpill[data-k]').forEach(el => el.classList.toggle('active', el.dataset.k === kindF));
-  document.querySelectorAll('.fpill[data-scope]').forEach(el => el.classList.toggle('active', el.dataset.scope === scopeF));
-  document.getElementById('openPill').classList.toggle('active', openOnly);
+  document.querySelectorAll('.fpill[data-scope]').forEach(el => {
+    el.classList.toggle('active', el.dataset.scope === scopeF);
+    el.setAttribute('aria-pressed', String(el.dataset.scope === scopeF));
+  });
+  document.querySelectorAll('[data-count]').forEach(el => { el.textContent = el.dataset.count === 'all' ? changes.length : scopeCnt[el.dataset.count]; });
+  const viewLabel = document.getElementById('view-label');
+  if (viewLabel) viewLabel.textContent = sel === -2 ? '接口索引' : sel === -1 ? '变更日志' : sel === null ? SCOPE_LABEL[scopeF] : '变更详情';
 
   const forceOpen = !!q || kindF !== 'all' || openOnly;
   const entries = Object.entries(g);
@@ -331,9 +342,9 @@ function renderSidebar() {
         const limit = treeLimits.get(mk(svc, mod)) || 20;
         const shown = ids.slice(0, limit);
         return `<div>
-          <button type="button" class="mod-hd" onclick="togMod('${esc(svc)}','${esc(mod)}')" aria-expanded="${modOpen}">
+          <button type="button" class="mod-hd" onclick="togMod(decodeURIComponent('${encArg(svc)}'),decodeURIComponent('${encArg(mod)}'))" aria-expanded="${modOpen}">
             <span class="chev ${modOpen ? 'open' : ''}">▶</span>
-            <span class="mod-ico">📁</span>
+            <span class="mod-ico">${uiIcon('folder')}</span>
             <span class="mod-nm">${esc(mod)}</span>
             <span class="mod-badge">${ids.length}</span>
           </button>
@@ -351,9 +362,9 @@ function renderSidebar() {
         </div>`;
       }).join('');
       return `<div>
-        <button type="button" class="svc-hd" onclick="togSvc('${esc(svc)}')" aria-expanded="${svcOpen}">
+        <button type="button" class="svc-hd" onclick="togSvc(decodeURIComponent('${encArg(svc)}'))" aria-expanded="${svcOpen}">
           <span class="chev ${svcOpen ? 'open' : ''}">▶</span>
-          <span class="mod-ico">📦</span>
+          <span class="mod-ico">${uiIcon('layers')}</span>
           <span class="mod-nm">${esc(svc)}</span>
           <span class="mod-badge">${total}</span>
         </button>
@@ -402,106 +413,82 @@ function pageLink(d) {
   return `<a class="md-link" href="pages/${esc(pageSlug(d))}.html" target="_blank" onclick="event.stopPropagation()">↗ 详情页面</a>`;
 }
 
+function shortDate(d) { return String(d.updatedAt || d.date || '').slice(0, 10); }
 function indexRow(i) {
-  const c = changes[i], isBug = c.kind === 'bug';
-  const tag = c.deliveryId
-    ? `<span class="tag delivery-index-gate">${esc(gateLabel(currentGateOf(c)))} Gate</span>`
-    : isBug
-    ? `<span class="tag t-${esc(tcls(c.severity || 'P2'))}">${esc(c.severity || 'P2')}</span>`
-    : `<span class="tag t-${esc(tcls(c.type))}">${esc(c.type || '')}</span>`;
-  const st = effStatus(c), lead = leadOf(c);
-  return `<tr class="${DONE.has(st) ? '' : 'idx-open'}">
-    <td style="width:20px">${icoOf(c)}</td>
-    <td><button type="button" class="idx-title" onclick="pick(${i})">${esc(c.title)}</button>${lead ? `<div class="idx-lead">${esc(lead)}</div>` : ''}</td>
-    <td class="idx-path">${esc(svcOf(c))} / ${esc(modOf(c))}</td>
-    <td style="width:90px">${tag}</td>
-    <td style="width:90px"><span class="idx-status"><span class="sdot" style="background:${statusColor(st)}"></span>${esc(st)}</span></td>
-    <td style="width:90px" class="idx-date">${esc(c.updatedAt || c.date || '')}</td>
-    <td style="width:130px">${mdLink(c)} ${pageLink(c)}</td>
-  </tr>`;
+  const c = changes[i], st = effStatus(c), lead = leadOf(c);
+  const tag = c.deliveryId ? gateLabel(currentGateOf(c)) + '阶段' : c.kind === 'bug' ? c.severity || 'P2' : c.type || '';
+  return '<article class="record-row' + (DONE.has(st) ? ' record-done' : '') + '">' +
+    '<span class="record-icon kind-' + kindOf(c) + '">' + icoOf(c) + '</span>' +
+    '<div class="record-main"><button type="button" class="idx-title" onclick="pick(' + i + ')">' + esc(c.title) + '</button>' +
+    (lead ? '<p class="idx-lead">' + esc(lead) + '</p>' : '') +
+    '<div class="record-meta"><span class="record-path">' + esc(svcOf(c)) + ' <span>/</span> ' + esc(modOf(c)) + '</span>' +
+    (tag ? '<span class="record-tag">' + esc(tag) + '</span>' : '') + '<time>' + esc(shortDate(c)) + '</time></div></div>' +
+    '<div class="record-side"><span class="idx-status"><span class="sdot" style="background:' + statusColor(st) + '"></span>' + esc(st || '未标记') + '</span>' +
+    '<div class="record-links">' + mdLink(c, '源文档') + ' ' + pageLink(c) + '</div></div></article>';
 }
-function showMoreHome() { homeLimit += 30; showHome(); }
-
-function showHome() {
-  sel = null; renderSidebar();
-  const g = grp();
+function showMoreHome() { homeLimit += 30; showHome(true); }
+function setSort(value) { sortF = value; resetHomeLimit(); showHome(); }
+function resetFilters() {
+  q = ''; kindF = 'all'; openOnly = false; resetHomeLimit();
+  const input = document.getElementById('q');
+  if (input) input.value = '';
+  refreshView();
+}
+function filterBar() {
+  const types = [['all', '全部类型'], ['doc', '研发档案'], ['bug', 'Bug 记录'], ['reading', '代码阅读'], ['biz', '业务流程']];
+  return '<div class="filters" aria-label="记录筛选"><div class="kind-filters">' + types.map(([key, label]) =>
+    '<button type="button" class="fpill' + (kindF === key ? ' active' : '') + '" data-k="' + key + '" aria-pressed="' + (kindF === key) + '" onclick="setKind(\'' + key + '\')">' + label + '</button>'
+  ).join('') + '</div><button type="button" class="fpill toggle' + (openOnly ? ' active' : '') + '" id="openPill" aria-pressed="' + openOnly + '" onclick="toggleOpen()">' + uiIcon('filter') + '仅未完成</button></div>';
+}
+function emptyRecords() {
+  const filtered = q || kindF !== 'all' || openOnly;
+  return '<div class="list-empty"><span class="empty-symbol">' + uiIcon(filtered ? 'search' : 'folder') + '</span><h2>' +
+    (filtered ? '没有找到匹配记录' : '这里暂时没有记录') + '</h2><p>' +
+    (filtered ? '试试其他关键词，或清除筛选条件。' : changes.length ? '切换记录空间，看看其他变更与方案。' : '变更方案、问题记录与业务流程，都将在这里有序归集。') + '</p>' +
+    (filtered ? '<button type="button" class="secondary-button" onclick="resetFilters()">清除筛选</button>' : changes.length ? '<button type="button" class="secondary-button" onclick="setScope(\'all\')">查看全部记录</button>' : '') + '</div>';
+}
+function showHome(preserveScroll = false) {
+  sel = null; renderSidebar(); closeSidebar();
   const visible = changes.map((c, i) => i).filter(i => matchF(changes[i]));
-  const docCnt = visible.filter(i => kindOf(changes[i]) === 'doc').length;
-  const bugCnt = visible.filter(i => kindOf(changes[i]) === 'bug').length;
-  const readCnt = visible.filter(i => kindOf(changes[i]) === 'reading').length;
-  const bizCnt = visible.filter(i => kindOf(changes[i]) === 'biz').length;
-  const openCnt = visible.filter(i => !DONE.has(effStatus(changes[i]))).length;
-  const svcCnt = Object.keys(g).length;
   const totalCnt = visible.length;
+  const openCnt = visible.filter(i => !DONE.has(effStatus(changes[i]))).length;
   const doneCnt = totalCnt - openCnt;
+  const svcCnt = new Set(visible.map(i => svcOf(changes[i]))).size;
   const pct = totalCnt ? Math.round(doneCnt / totalCnt * 100) : 0;
-  const sortedVisible = [...visible].sort((a, b) => (changes[b].date || '').localeCompare(changes[a].date || ''));
-  const businessIds = sortedVisible.filter(i => {
-    const c = changes[i];
-    return c.kind === 'biz' || c.kind === 'bug' || c.summary || c.background || c.goals?.length || c.deliveryId;
-  });
-  const devIds = sortedVisible.filter(i => {
-    const c = changes[i];
-    return !DONE.has(effStatus(c)) || c.summary || c.keyImpl?.length || c.kind === 'reading' || c.deliveryId;
-  });
-
-  let h = `<div class="doc-view">
-    <div class="home-hero">
-      <div>
-        <div class="home-kicker">ONE CHANGE · ONE STORY</div>
-        <h1 class="doc-h1">研发变更档案馆</h1>
-        <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}。每项变更只保留一份主档案，把开发方案、实现、验证、代码审查和提交状态串成可追踪的完整故事。</p>
-      </div>
-      <div class="home-health">
-        <div class="health-num">${pct}%</div>
-        <div class="health-label">整体完成度</div>
-        <div class="health-sub">${doneCnt} / ${totalCnt} 已完成</div>
-      </div>
-    </div>
-    <div class="home-stats">
-      <div class="stat-card sc-accent"><div class="stat-num">${docCnt}</div><div class="stat-lbl">🗂️ 研发档案</div></div>
-      <div class="stat-card sc-red"><div class="stat-num">${bugCnt}</div><div class="stat-lbl">🐛 Bug 记录</div></div>
-      ${readCnt ? `<div class="stat-card sc-purple"><div class="stat-num">${readCnt}</div><div class="stat-lbl">📖 代码阅读</div></div>` : ''}
-      ${bizCnt ? `<div class="stat-card sc-teal"><div class="stat-num">${bizCnt}</div><div class="stat-lbl">🔀 业务流</div></div>` : ''}
-      <div class="stat-card sc-amber"><div class="stat-num">${openCnt}</div><div class="stat-lbl">⏳ 未完成</div></div>
-      <div class="stat-card sc-blue"><div class="stat-num">${svcCnt}</div><div class="stat-lbl">📦 微服务</div></div>
-    </div>
-    <div class="progress-wrap">
-      <div class="progress-hd"><span>整体完成度</span><span class="progress-pct">${doneCnt} / ${totalCnt} 已完成 · ${pct}%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-    </div>
-    <div class="role-grid">
-      ${roleBoard('变更概览', '背景、影响范围、当前 Gate 与下一步', businessIds, 'biz', '暂无可展示的变更档案')}
-      ${roleBoard('研发证据', '方案取舍、Review 结论与验证状态', devIds, 'dev', '暂无研发证据记录')}
-    </div>
-    <div class="reader-guide">
-      <div class="guide-card"><div class="guide-title">先看 Gate</div><div class="guide-text">先确认变更现在走到哪一阶段，是否有阻塞项，以及下一步由谁处理。</div></div>
-      <div class="guide-card"><div class="guide-title">再读证据</div><div class="guide-text">开发方案解释为什么这样改；Review 和验证记录说明结论是否有证据支撑。</div></div>
-      <div class="guide-card"><div class="guide-title">按档交接</div><div class="guide-text">同一 deliveryId 持续更新，不再在多个孤立文档间寻找上下文。</div></div>
-    </div>`;
-
-  const recent = sortedVisible.slice(0, 8);
-  if (recent.length) {
-    h += `<div class="recent"><div class="sec-title">最近更新</div>${recent.map(i => {
-      const c = changes[i];
-      return `<div class="recent-item">
-        <span class="doc-ico">${icoOf(c)}</span>
-        <button type="button" class="recent-title" onclick="pick(${i})">${esc(c.title)}</button>
-        <span class="recent-path">${esc(svcOf(c))} / ${esc(modOf(c))}</span>
-        <span class="idx-date">${esc(c.date || '')}</span>
-      </div>`;
-    }).join('')}</div>`;
-  }
-
+  const sortedVisible = [...visible].sort((a, b) => sortF === 'title'
+    ? String(changes[a].title || '').localeCompare(String(changes[b].title || ''), 'zh-CN')
+    : ((recordTime(changes[b]) || 0) - (recordTime(changes[a]) || 0)) * (sortF === 'oldest' ? -1 : 1) || a - b);
   const listed = sortedVisible.slice(0, homeLimit);
-  h += `<section class="bounded-list">
-    <div class="home-list-head"><div><div class="sec-title">${SCOPE_LABEL[scopeF]}清单</div><div class="home-list-sub">默认最多显示 30 条；搜索与筛选只作用于当前范围</div></div><span class="idx-svc-badge">显示 ${listed.length} / ${sortedVisible.length}</span></div>
-    ${listed.length ? `<table class="idx-table"><tbody>${listed.map(indexRow).join('')}</tbody></table>` : `<div class="role-empty">当前范围没有匹配记录</div>`}
-    ${listed.length < sortedVisible.length ? `<button class="load-more" onclick="showMoreHome()">加载更多（剩余 ${sortedVisible.length - listed.length} 条）</button>` : ''}
-  </section>`;
-
-  h += '</div>';
-  document.getElementById("main").innerHTML = h;
+  const descriptions = {
+    workspace: '从每一次变更，看见项目的进展。', backlog: '收拢尚未完成的工作，让下一步更清晰。',
+    archive: '沉淀已完成的变更，留下可追溯的答案。', all: '方案、问题与业务流程，在这里连接起来。'
+  };
+  const kinds = [['doc', '研发档案', 'doc'], ['bug', 'Bug 记录', 'bug'], ['reading', '代码阅读', 'book'], ['biz', '业务流程', 'flow']];
+  const stats = [
+    ['layers', '当前记录', totalCnt, '当前范围内的全部记录', 'accent'],
+    ['clock', '待完成', openCnt, openCnt ? '持续跟进，逐项推进' : totalCnt ? '当前范围已全部完成' : '等待新的变更记录', 'amber'],
+    ['check', '已完成', doneCnt, totalCnt ? '占当前记录的 ' + pct + '%' : '完成后在这里沉淀', 'green'],
+    ['grid', '覆盖服务', svcCnt, '按服务与模块有序归集', 'blue']
+  ];
+  const h = '<div class="doc-view home-view"><div class="home-heading"><div><div class="home-kicker"><span></span> PROJECT JOURNAL</div>' +
+    '<h1 class="doc-h1">' + (scopeF === 'workspace' ? '研发工作台' : SCOPE_LABEL[scopeF]) + '</h1><p class="doc-intro">' + descriptions[scopeF] + '</p></div>' +
+    '<button type="button" class="secondary-button" onclick="showApis()">' + uiIcon('code') + '接口索引' + uiIcon('arrow') + '</button></div>' +
+    '<section class="home-stats" aria-label="当前记录统计">' + stats.map(([icon, label, value, note, color]) =>
+      '<div class="stat-card"><div class="stat-top"><span>' + label + '</span><span class="stat-icon tone-' + color + '">' + uiIcon(icon) + '</span></div><div class="stat-num">' + value + '</div><div class="stat-note">' + note + '</div></div>'
+    ).join('') + '</section><div class="home-columns"><section class="bounded-list" aria-label="变更记录"><div class="home-list-head"><div><h2>变更记录 <span class="count-badge">' + totalCnt + '</span></h2><p>每一份记录，都有完整的来龙去脉。</p></div>' +
+    '<label class="sort-control"><span class="sr-only">记录排序</span><select aria-label="记录排序" onchange="setSort(this.value)">' +
+    [['newest', '最近更新'], ['oldest', '最早更新'], ['title', '按标题']].map(([key, label]) => '<option value="' + key + '"' + (sortF === key ? ' selected' : '') + '>' + label + '</option>').join('') + '</select></label></div>' +
+    filterBar() + (listed.length ? '<div class="record-list">' + listed.map(indexRow).join('') + '</div>' : emptyRecords()) +
+    '<div class="list-footer"><span role="status">' + (q ? '搜索“' + esc(q) + '” · ' : '') + '显示 ' + listed.length + ' / ' + totalCnt + ' 条记录</span>' +
+    (listed.length < totalCnt ? '<button type="button" class="load-more" onclick="showMoreHome()">加载更多 ' + uiIcon('arrow') + '</button>' : '<span>已显示全部</span>') + '</div></section>' +
+    '<aside class="overview-rail" aria-label="记录概览"><section class="distribution-panel"><h2>记录分布</h2><p class="panel-caption">当前筛选范围</p>' + kinds.map(([key, label, icon]) => {
+      const count = visible.filter(i => kindOf(changes[i]) === key).length;
+      return '<div class="distribution-row"><div><span class="kind-' + key + '">' + uiIcon(icon) + '</span><span>' + label + '</span><strong>' + count + '</strong></div><div class="distribution-track"><span class="fill-' + key + '" style="width:' + (totalCnt ? count / totalCnt * 100 : 0) + '%"></span></div></div>';
+    }).join('') + '</section><section class="reading-guide"><span class="guide-icon">' + uiIcon('book') + '</span><h2>让变更有迹可循</h2><p>从背景到方案，从验证到交付，把上下文留给下一位同行者。</p><ol><li><span>01</span><div><strong>了解为什么</strong><p>先读背景与影响范围</p></div></li><li><span>02</span><div><strong>看清怎么做</strong><p>再看方案与关键取舍</p></div></li><li><span>03</span><div><strong>确认做到了</strong><p>查阅审查与验证证据</p></div></li></ol></section></aside></div>' +
+    '<footer class="home-footer"><span>' + uiIcon('layers') + ' 每项变更，一份清晰档案</span><span>ONE CHANGE · ONE STORY</span></footer></div>';
+  const main = document.getElementById('main');
+  main.innerHTML = h;
+  if (!preserveScroll) resetMainScroll();
 }
 
 // ─── 接口表格（pick / renderBiz 共用）─────────────────────────────────────────
@@ -593,7 +580,7 @@ function addToc() {
   const chips = titles.map((t, i) => {
     const id = 'sec-' + i;
     if (t.parentElement) t.parentElement.id = id;
-    return `<a class="toc-chip" href="#${id}" onclick="event.preventDefault();var e=document.getElementById('${id}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${esc(t.textContent.trim())}</a>`;
+    return `<a class="toc-chip" href="#${id}" onclick="event.preventDefault();var e=document.getElementById('${id}');if(e)e.scrollIntoView({block:'start'})">${esc(t.textContent.trim())}</a>`;
   }).join('');
   const nav = document.createElement('nav');
   nav.className = 'doc-toc';
@@ -703,7 +690,7 @@ function renderDelivery(d) {
   const summary = plan.summary || plan.background || leadOf(d);
   const next = latest.next || delivery[current]?.next ||
     (current === 'submit' ? '完成 VCS 与人工确认后进入提交' : `继续补齐${gateLabel(current)}阶段证据`);
-  let h = `<div class="doc-view delivery-view">
+  let h = `<div class="doc-view delivery-view">${detailBack()}
     <div class="breadcrumb"><span>🗂️ 研发变更档案</span><span class="bc-sep">/</span><span>${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>${esc(modOf(d))}</span></div>
     <div class="delivery-kicker">${esc(d.deliveryId || 'LEGACY DELIVERY')} · ${esc(gateLabel(current).toUpperCase())} GATE</div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
@@ -735,7 +722,7 @@ function renderDelivery(d) {
       <section class="delivery-card review-card">
         <div class="delivery-card-label">02 · Review 摘要</div>
         <h2>${events.length ? `${events.length} 次审查记录` : '尚未进入审查'}</h2>
-        ${events.length ? reviewEventView(latest) : '<p class="delivery-empty">code-review 运行后会按同一 deliveryId 追加到这里。</p>'}
+        ${events.length ? reviewEventView(latest) : '<p class="delivery-empty">后续审查结论与处理进展会持续记录在这份档案中。</p>'}
       </section>
       <section class="delivery-card verification-card">
         <div class="delivery-card-label">03 · 验证证据</div>
@@ -779,10 +766,10 @@ function renderDelivery(d) {
   if (plan.flowchart) renderMermaid(document.getElementById('mmd-wrap'), plan.flowchart);
 }
 function pick(i) {
-  sel = i; renderSidebar();
+  sel = i; renderSidebar(); closeSidebar(); resetMainScroll();
   const catalog = changes[i];
   if (catalog.detailPath && catalog.detailId && !BOARD_DETAILS[catalog.detailId]) {
-    document.getElementById('main').innerHTML = `<div class="empty-state"><div class="empty-ico">⌛</div><div>正在加载人类方案详情…</div></div>`;
+    document.getElementById('main').innerHTML = `<div class="empty-state"><div class="loading-spinner" aria-hidden="true"></div><div>正在打开变更详情…</div></div>`;
     loadDetail(catalog, error => {
       if (sel !== i) return;
       if (error) showDetailLoadError(catalog, error); else pick(i);
@@ -797,7 +784,7 @@ function pick(i) {
   const st = effStatus(d);
   const main = document.getElementById("main");
 
-  let h = `<div class="doc-view">
+  let h = `<div class="doc-view">${detailBack()}
     <div class="breadcrumb">${isReading ? '<span>📖 代码阅读</span><span class="bc-sep">/</span>' : ''}<span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
@@ -867,7 +854,7 @@ function pick(i) {
 function renderBug(d) {
   const sev = d.severity || 'P2';
   const st = effStatus(d);
-  let h = `<div class="doc-view">
+  let h = `<div class="doc-view">${detailBack()}
     <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
@@ -920,7 +907,7 @@ function renderBug(d) {
 // ─── 业务流 view（kind:"biz"，由 /biz-flow 追加，面向测试人员）──────────────────
 function renderBiz(d) {
   const st = effStatus(d);
-  let h = `<div class="doc-view">
+  let h = `<div class="doc-view">${detailBack()}
     <div class="breadcrumb"><span>🔀 业务流</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     ${leadOf(d) ? `<p class="doc-lead">${esc(leadOf(d))}</p>` : ''}
@@ -987,7 +974,7 @@ function renderBiz(d) {
 
 // ─── 接口索引（聚合所有记录的 apis 字段，单独展示）────────────────────────────
 function showApis() {
-  sel = -2; renderSidebar();
+  sel = -2; renderSidebar(); closeSidebar(); resetMainScroll();
   const g = grp();
   let total = 0;
   let body = Object.entries(g).map(([svc, mods]) => {
@@ -1035,15 +1022,16 @@ function showApis() {
 
   if (!total) body = `<div class="sb-empty" style="padding:60px 0">暂无接口记录（仅当任务新增或变更接口时才会登记）</div>`;
   document.getElementById("main").innerHTML = `<div class="doc-view">
-    <h1 class="doc-h1">🔌 接口索引</h1>
-    <p class="doc-intro">汇总所有记录的接口变更（共 ${total} 个），点击来源文档查看上下文。仅登记新增或参数有变动的接口。</p>
+    <div class="home-kicker">API DIRECTORY</div><h1 class="doc-h1">接口索引</h1>
+    <p class="doc-intro">当前范围：${SCOPE_LABEL[scopeF]}，共 ${total} 个接口变更，点击来源文档查看上下文。仅登记新增或参数有变动的接口。</p>
+    ${filterBar()}
     ${body}
   </div>`;
 }
 
 // ─── Changelog view ──────────────────────────────────────────────────────────
 function showLog() {
-  sel = -1; renderSidebar();
+  sel = -1; renderSidebar(); closeSidebar(); resetMainScroll();
   const items = [...htmlChangelog].reverse().map(e => `
     <div class="tl-item">
       <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
@@ -1053,15 +1041,15 @@ function showLog() {
       </div>
     </div>`).join('');
   document.getElementById("main").innerHTML = `<div class="doc-view">
-    <h1 class="doc-h1">📋 HTML 变更日志</h1>
-    <p class="doc-intro">每次修改看板时自动追加</p>
+    <div class="home-kicker">CHANGELOG</div><h1 class="doc-h1">看板变更日志</h1>
+    <p class="doc-intro">回看这个工作空间的演进。</p>
     <div class="timeline">${items}</div>
   </div>`;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function sec(title, body) {
-  return `<div class="sec"><div class="sec-title">${title}</div>${body}</div>`;
+  return `<section class="sec"><h2 class="sec-title">${title}</h2>${body}</section>`;
 }
 // 叙述字段按段落渲染：\n 分段（看板内容面向人类撰写，允许多段）
 function para(s) {
@@ -1076,3 +1064,17 @@ function esc(s) {
 const g0 = grp();
 Object.keys(g0).forEach(s => { expSvc.add(s); Object.keys(g0[s]).forEach(m => expMod.add(mk(s, m))); });
 showHome();
+
+// 搜索快捷键避开输入控件；移动端导航采用展开布局，不遮挡正文。
+if (document.addEventListener) document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.body.classList.contains('nav-open')) {
+    closeSidebar();
+    document.getElementById('menu-toggle')?.focus();
+  }
+  const target = event.target;
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey &&
+      !/INPUT|TEXTAREA|SELECT/.test(target.tagName) && !target.isContentEditable) {
+    const input = document.getElementById('q');
+    if (input) { event.preventDefault(); input.focus(); }
+  }
+});

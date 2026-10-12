@@ -73,7 +73,7 @@ The board is a multi-file static page; skills write its lightweight catalog and 
 ```
 project-html/
   index.html               ← shell (local mermaid vendor with CDN fallback)
-  css/board.css            ← styles (paper/editorial theme: serif headings, vermilion accent)
+  css/board.css            ← styles (light workspace: system fonts, green accents, responsive navigation)
   js/board.js              ← rendering; declares `const BOARD_VERSION = N` at top
   js/vendor/mermaid.min.js ← ~3MB local vendor for intranet use; copy via bash cp, never Read+Write
   build.js                 ← Node build script (no deps): hydrates catalog + detail, generates pages/ + docs/INDEX.md + first-run archive

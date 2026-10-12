@@ -78,6 +78,42 @@ assert(sidebar.innerHTML.includes('tree-more'), 'sidebar should expose a load-mo
 context.showMoreHome();
 assert((main.innerHTML.match(/class="idx-title"/g) || []).length === 43, 'home load-more should reveal the remaining workspace rows');
 
+
+// The workspace keeps search/scope state while recovering from empty results and sorting updates.
+const uiElements = new Map();
+const uiElement = id => {
+  if (!uiElements.has(id)) uiElements.set(id, { innerHTML: '', textContent: '', value: '', classList: { toggle() {} } });
+  return uiElements.get(id);
+};
+const uiContext = {
+  changes: [
+    { title: 'Alpha', date: '2026-01-01', updatedAt: '2026-09-30', status: '进行中', lifecycle: 'active' },
+    { title: 'Beta', date: '2026-08-01', updatedAt: '2026-08-02', status: '已完成', lifecycle: 'active' },
+    { title: 'Backlog', date: '2020-01-01', status: '草稿', lifecycle: 'backlog' }
+  ],
+  htmlChangelog: [], console,
+  localStorage: { getItem() { return null; }, setItem() {} },
+  document: { getElementById: uiElement, querySelectorAll() { return []; } }
+};
+vm.createContext(uiContext);
+vm.runInContext(source, uiContext, { filename: 'board-workspace.js' });
+const rowTitles = () => Array.from(uiElement('main').innerHTML.matchAll(/class="idx-title"[^>]*>([^<]+)</g), match => match[1]);
+assert(rowTitles().join(',') === 'Alpha,Beta', 'default sorting should honor updatedAt over creation date');
+uiContext.setSort('oldest');
+assert(rowTitles().join(',') === 'Beta,Alpha', 'oldest sorting should reverse update order');
+uiContext.toggleOpen();
+assert(rowTitles().join(',') === 'Alpha', 'unfinished filter should exclude completed entries');
+uiContext.setScope('backlog');
+uiContext.onSearch('missing-workspace-record');
+assert(uiElement('main').innerHTML.includes('清除筛选'), 'empty search should expose a recovery action');
+uiContext.resetFilters();
+assert(rowTitles().join(',') === 'Backlog', 'clearing search should retain the selected scope');
+assert(uiElement('q').value === '', 'clearing filters should also clear the visible search input');
+uiContext.setScope('all');
+uiContext.setSort('title');
+assert(rowTitles().join(',') === 'Alpha,Backlog,Beta', 'title sorting should order all scoped results');
+assert(!uiElement('main').innerHTML.includes('role-grid'), 'home should present one primary record list without duplicate overview lists');
+
 const indexHtml = fs.readFileSync(path.join(ROOT, 'project-html/index.html'), 'utf8');
 for (const scope of ['workspace', 'backlog', 'archive', 'all']) {
   assert(indexHtml.includes(`data-scope="${scope}"`), `index should expose ${scope} scope filter`);
@@ -86,16 +122,24 @@ assert(indexHtml.includes('<button type="button" class="fpill"'), 'scope and kin
 assert(indexHtml.includes('<button type="button" class="log-btn"'), 'footer navigation should use semantic buttons');
 
 const boardCss = fs.readFileSync(path.join(ROOT, 'project-html/css/board.css'), 'utf8');
-for (const marker of ['@media (max-width: 840px)', 'body { display: block; min-height: 100vh; overflow: auto; }', '.sidebar-footer { display: grid;', '[role="button"]:focus-visible', 'A 方案：一事一档生命周期', '.delivery-overview {', '.review-timeline {']) {
+for (const marker of ['@media (max-width: 840px)', 'body { display: block; min-height: 100vh; overflow: auto; }', '.sidebar-footer { display: grid;', '[role="button"]:focus-visible', '.nav-open .sidebar', '@media (prefers-reduced-motion: reduce)', '.delivery-overview {', '.review-timeline {']) {
   assert(boardCss.includes(marker), `board CSS should include responsive/accessibility marker: ${marker}`);
 }
-assert(indexHtml.includes('研发变更档案馆') && indexHtml.includes('ONE CHANGE · ONE STORY'), 'formal board shell should use the selected A dossier identity');
+assert(indexHtml.includes('研发变更档案馆') && indexHtml.includes('ONE CHANGE · ONE STORY'), 'formal board shell should retain the dossier identity');
+
+assert(indexHtml.includes('aria-label="搜索当前范围的记录"'), 'search should have an explicit accessible name');
+assert(indexHtml.includes('aria-controls="sidebar"') && indexHtml.includes('id="menu-toggle"'), 'mobile navigation should expose its controlled region');
+assert(!indexHtml.includes('fonts.googleapis.com'), 'board typography should work without an external font request');
 
 const buildJs = fs.readFileSync(path.join(ROOT, 'project-html/build.js'), 'utf8');
 assert(buildJs.includes('window.DETAIL_PAGE = true'), 'regular detail pages should use shared-resource mode');
 assert(buildJs.includes("process.argv[2] === '--standalone'"), 'build should support explicit standalone export');
 assert(buildJs.includes('hydratedEntry(catalog)'), 'build should merge catalog and human detail before generating a page');
 assert(!/for \(const f of oldPages\) \{\s*fs\.unlinkSync/.test(buildJs), 'build should not unconditionally delete all detail pages');
+const boardVersion = source.match(/const BOARD_VERSION = (\d+)/)[1];
+for (const shell of [indexHtml, buildJs]) {
+  assert(shell.includes('board.css?v=' + boardVersion) && shell.includes('board.js?v=' + boardVersion), 'index and generated pages should invalidate stale shell resources together');
+}
 assert(source.includes('detailLoads') && source.includes('loadDetail'), 'board should lazily load human detail after selection');
 
 // 首页只用 catalog；pick 后才执行对应 detail sidecar。
