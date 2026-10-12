@@ -37,6 +37,9 @@ function usage(message) {
     '  node scripts/run-host-evals.js --live --host <claude|cursor|codex>',
     '    --case <contract-id> --workspace <clean-git-worktree>',
     '    [--allow-write] [--model <model>] [--output <result.json>] [--timeout-ms <ms>]',
+    '    [--skill-source <skills-directory>]  Compare a saved version using the same case/grader.',
+    '    [--invocation explicit|catalog|native] [--effort low|medium|high|xhigh|ultra]',
+    '    Native discovery currently requires Codex JSON command evidence; catalog works across hosts.',
     '',
     'Live mode is opt-in. Writable contracts also require --allow-write and always',
     'run in a runner-created temporary Git clone; the supplied workspace is never written.',
@@ -46,7 +49,7 @@ function usage(message) {
 }
 
 function parseArgs(argv) {
-  const args = { probe: true, json: false, live: false, allowWrite: false, timeoutMs: 600000 };
+  const args = { probe: true, json: false, live: false, allowWrite: false, timeoutMs: 600000, invocation: 'explicit' };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') usage();
@@ -61,7 +64,7 @@ function parseArgs(argv) {
       args.probe = false;
     } else if (arg === '--allow-write') {
       args.allowWrite = true;
-    } else if (['--host', '--case', '--workspace', '--model', '--output', '--timeout-ms'].includes(arg)) {
+    } else if (['--host', '--case', '--workspace', '--model', '--output', '--timeout-ms', '--skill-source', '--invocation', '--effort'].includes(arg)) {
       const value = argv[++index];
       if (!value) usage(`${arg} requires a value`);
       const key = arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -70,6 +73,8 @@ function parseArgs(argv) {
   }
   args.timeoutMs = Number(args.timeoutMs);
   if (!Number.isInteger(args.timeoutMs) || args.timeoutMs < 1000) usage('--timeout-ms must be an integer >= 1000');
+  if (!['explicit', 'catalog', 'native'].includes(args.invocation)) usage('unknown --invocation');
+  if (args.effort && !['low', 'medium', 'high', 'xhigh', 'ultra'].includes(args.effort)) usage('unknown --effort');
   return args;
 }
 
@@ -120,7 +125,8 @@ function probeHost(host) {
   if (!command) {
     return { host, available: false, command: null, reason: `command not found; set ${spec.env}` };
   }
-  const result = spawnPortable(command, spec.versionArgs, { timeout: 15000 });
+  const direct = unwrapNodeShim(command);
+  const result = spawnPortable(direct.command, [...direct.prefixArgs, ...spec.versionArgs], { timeout: 15000 });
   const version = `${result.stdout || ''}${result.stderr || ''}`.trim().split(/\r?\n/)[0] || '';
   if (result.status !== 0) {
     return {
@@ -151,7 +157,58 @@ function installedState(host) {
   }
 }
 
-function promptFor(contract, skillSnapshotRoot) {
+function skillCatalog(source, snapshotRoot) {
+  return fs.readdirSync(source).filter(name => fs.existsSync(path.join(source, name, 'SKILL.md'))).sort().map(name => {
+    const text = fs.readFileSync(path.join(source, name, 'SKILL.md'), 'utf8').replace(/^\uFEFF/, '');
+    const header = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    const description = header?.[1].match(/^description:\s*(.+)$/m)?.[1];
+    if (!description) throw new Error('missing discovery description: ' + name);
+    return JSON.stringify({ name, description, path: snapshotRoot + '/' + name + '/SKILL.md' });
+  });
+}
+
+function decodeHostOutput(host, stdout) {
+  if (host !== 'codex') return { text: stdout.trim(), commands: [], traceAvailable: false };
+  const events = [];
+  for (const line of stdout.split(/\r?\n/).filter(Boolean)) {
+    try { events.push(JSON.parse(line)); } catch { /* CLI diagnostics cannot count as a model answer. */ }
+  }
+  const messages = events.filter(event => event.type === 'item.completed' && event.item?.type === 'agent_message');
+  return {
+    text: messages.length ? messages[messages.length - 1].item.text.trim() : '',
+    commands: events.filter(event => event.type === 'item.completed' && event.item?.type === 'command_execution')
+      .map(event => ({ command: event.item.command || '', exitCode: event.item.exit_code })),
+    traceAvailable: events.some(event => event.type === 'turn.completed'),
+  };
+}
+
+function assessSelection(contract, output, invocation, trace, snapshotRoot, workspace = '') {
+  if (invocation === 'explicit') return { required: false, passed: true };
+  const expected = contract.selection.expected_skill;
+  const selected = output.match(/^\s*SKILL:\s*([^\r\n]+)$/im)?.[1].trim();
+  const files = output.match(/^\s*SKILL_FILES:\s*([^\r\n]+)$/im)?.[1].trim().replace(/\\/g, '/');
+  const target = expected === 'none' ? null : snapshotRoot + '/' + expected + '/SKILL.md';
+  const entries = (files || '').split(/[,;，；]/).map(file => file.trim().replace(/^[\x60'"]+|[\x60'"]+$/g, ''));
+  const candidates = target ? [target, ...(workspace ? [workspace.replace(/\\/g, '/') + '/' + target] : [])] : [];
+  const receiptMatches = expected === 'none' ? files === 'none' : entries.some(file => candidates.includes(file));
+  const reads = trace.commands.filter(item => item.exitCode === 0 && /get-content|\bcat\b|\btype\b|\bsed\b|\brg\b|readfile/i.test(item.command)
+    && /SKILL\.md/i.test(item.command));
+  const matchingReads = reads.filter(item => candidates.some(candidate => {
+    const escaped = candidate.replace(/[.*+?^\u0024{}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[\\s"\u0027\u0060])' + escaped + '(?=[\\s"\u0027\u0060;)]|$)').test(item.command.replace(/\\+/g, '/'));
+  }));
+  const nativeVerified = trace.traceAvailable && (expected === 'none' ? reads.length === 0 : matchingReads.length > 0);
+  return {
+    required: true,
+    passed: selected === expected && receiptMatches && (invocation !== 'native' || nativeVerified),
+    expected, selected: selected || null, receiptMatches,
+    evidenceKind: invocation === 'native' ? 'codex-completed-command-and-receipt' : 'self-reported-selection-and-loading',
+    nativeDiscoveryVerified: invocation === 'native' ? nativeVerified : null,
+    entryReadCommands: matchingReads.map(item => item.command),
+  };
+}
+
+function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSource = path.join(root, 'skills')) {
   const [skill, idText] = contract.prompt_ref.split(':');
   const evalPath = path.join(root, 'skills', skill, 'evals.json');
   const evalFile = JSON.parse(fs.readFileSync(evalPath, 'utf8').replace(/^\uFEFF/, ''));
@@ -165,14 +222,24 @@ function promptFor(contract, skillSnapshotRoot) {
     'LOADED_RESOURCES: <本次实际打开的 skills/... Markdown 路径，英文逗号分隔>',
     '只列实际读取的 Skill Markdown 资料，统一写成仓库相对 skills/... 路径；不要把“本应读取”但未打开的资料写入回执。',
   ] : [];
-  return [
+  const introductions = invocation === 'explicit' ? [
     `使用 ${skill} skill 处理下面的真实任务。`,
-    `本次评估的 Skill 快照位于 ${skillSnapshotRoot}；从这里读取当前 checkout 的指令和相对资源，不要访问用户主目录中的 Skill。`,
+    `本次评估的 Skill 快照位于 ${skillSnapshotRoot}；从这里读取本次指定版本的指令和相对资源，不要访问用户主目录中的 Skill。`,
+  ] : invocation === 'catalog' ? [
+    '按任务判断是否使用以下可用技能；无需技能时直接处理。这里只提供发现元数据，不指定选项。',
+    ...skillCatalog(skillSource, skillSnapshotRoot),
+  ] : [];
+  return [
+    ...introductions,
     '遵循项目规则和下述写入边界。',
     '回答开头先单独输出两行：',
     'ROUTE: <实际选择的 mode>',
     'WRITE_SCOPE: <none|docs|docs-and-board|code-and-tests>',
     ...loadingReceipt,
+    ...(invocation !== 'explicit' ? [
+      '另输出 SKILL: <实际选用的技能名，无需技能填 none>；SKILL_FILES: <实际打开的技能入口路径，未打开填 none>。',
+      '回执只记录实际操作，不需要技能时 ROUTE 填 none，不为填写回执额外读取技能。',
+    ] : []),
     '',
     `写入边界：${scopeRule}`,
     scenario.prompt,
@@ -283,6 +350,23 @@ function assessWorkspaceDrift(contract, before, after) {
   };
 }
 
+// The model may already have made authorized edits before the verifier starts.
+// Compare the verifier's own delta instead of requiring a clean worktree.
+function assessVerifierDrift(before, after) {
+  const changedPaths = changedEntries(before.files, after.files);
+  const metadataChanges = changedEntries(before.metadata, after.metadata);
+  const headChanged = before.head !== after.head;
+  const indexChanged = before.index !== after.index;
+  return {
+    changedPaths,
+    metadataChanges,
+    headChanged,
+    indexChanged,
+    unchanged: before.valid && after.valid && changedPaths.length === 0
+      && metadataChanges.length === 0 && !headChanged && !indexChanged,
+  };
+}
+
 function assertSourceWorkspace(workspace) {
   const absolute = path.resolve(workspace);
   if (!fs.existsSync(absolute) || !fs.statSync(absolute).isDirectory()) {
@@ -293,20 +377,52 @@ function assertSourceWorkspace(workspace) {
   return absolute;
 }
 
-function stageSkillSnapshot(workspace) {
-  const skillSnapshotRoot = '.yan-host-eval-runtime/skills';
-  const runtimeRoot = path.join(workspace, '.yan-host-eval-runtime');
-  if (fs.existsSync(runtimeRoot)) {
-    throw new Error('isolated workspace already contains reserved .yan-host-eval-runtime path');
+function skillSourceDirectory(input) {
+  const source = path.resolve(input || path.join(root, 'skills'));
+  for (const name of ['yan-dev-doc', 'yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff']) {
+    if (!fs.existsSync(path.join(source, name, 'SKILL.md'))) {
+      throw new Error('skill source must contain all four public skill directories: ' + source);
+    }
   }
-  const excludePath = path.join(workspace, '.git', 'info', 'exclude');
-  fs.appendFileSync(excludePath, '\n/.yan-host-eval-runtime/\n', 'utf8');
-  fs.mkdirSync(runtimeRoot, { recursive: true });
-  fs.cpSync(path.join(root, 'skills'), path.join(runtimeRoot, 'skills'), { recursive: true });
-  return { skillSnapshotRoot };
+  if (!fs.existsSync(path.join(source, '_shared', 'host-capabilities.md'))) {
+    throw new Error('skill source is missing shared runtime resources');
+  }
+  return source;
 }
 
-function createIsolation(sourceWorkspace) {
+function treeFingerprint(directory) {
+  const tree = snapshotTree(directory);
+  return crypto.createHash('sha256').update(JSON.stringify(Object.keys(tree).sort().map(key => [key, tree[key]]))).digest('hex');
+}
+
+function stageSkillSnapshot(workspace, source = path.join(root, 'skills'), invocation = 'explicit') {
+  const relativeRoot = invocation === 'native' ? '.agents' : '.yan-host-eval-runtime';
+  const skillSnapshotRoot = relativeRoot + '/skills';
+  const runtimeRoot = path.join(workspace, relativeRoot);
+  if (fs.existsSync(runtimeRoot)) {
+    throw new Error('isolated workspace already contains reserved ' + relativeRoot + ' path');
+  }
+  const excludePath = path.join(workspace, '.git', 'info', 'exclude');
+  fs.appendFileSync(excludePath, '\n/' + relativeRoot + '/\n', 'utf8');
+  fs.mkdirSync(runtimeRoot, { recursive: true });
+  fs.cpSync(source, path.join(runtimeRoot, 'skills'), {
+    recursive: true,
+    filter(file) {
+      if (fs.lstatSync(file).isSymbolicLink()) throw new Error('skill snapshot cannot contain symlinks');
+      // Evaluation prompts, expected answers and graders are not agent runtime resources.
+      return !['evals.json', 'host-contracts.json', 'route-loading-contracts.json'].includes(path.basename(file));
+    },
+  });
+  if (invocation === 'native') {
+    for (const file of listFiles(path.join(runtimeRoot, 'skills')).filter(file => path.basename(file) === 'SKILL.md')) {
+      const full = path.join(runtimeRoot, 'skills', file);
+      fs.writeFileSync(full, fs.readFileSync(full, 'utf8').replace(/^\uFEFF/, ''), 'utf8');
+    }
+  }
+  return { skillSnapshotRoot, skillHash: treeFingerprint(path.join(runtimeRoot, 'skills')) };
+}
+
+function createIsolation(sourceWorkspace, skillSource, invocation) {
   const tempRoot = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-'));
   const isolated = path.join(tempRoot, 'workspace');
   const clone = spawnSync('git', ['clone', '--no-local', sourceWorkspace, isolated], {
@@ -317,19 +433,20 @@ function createIsolation(sourceWorkspace) {
     throw new Error(`failed to create isolated Git clone: ${(clone.stderr || clone.stdout || '').trim()}`);
   }
   try {
-    const { skillSnapshotRoot } = stageSkillSnapshot(isolated);
-    return { tempRoot, workspace: isolated, skillSnapshotRoot };
+    const { skillSnapshotRoot, skillHash } = stageSkillSnapshot(isolated, skillSource, invocation);
+    return { tempRoot, workspace: isolated, skillSnapshotRoot, skillHash };
   } catch (error) {
     fs.rmSync(tempRoot, { recursive: true, force: true });
     throw error;
   }
 }
 
-function liveArgs(host, command, workspace, prompt, model, writeScope) {
+function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
   const writable = writeScope !== 'none';
   if (host === 'codex') {
-    const args = ['exec', '--ephemeral', '--sandbox', writable ? 'workspace-write' : 'read-only', '--skip-git-repo-check', '-C', workspace];
+    const args = ['exec', '--json', '--ephemeral', '--sandbox', writable ? 'workspace-write' : 'read-only', '--skip-git-repo-check', '-C', workspace];
     if (model) args.push('--model', model);
+    if (effort) args.push('-c', 'model_reasoning_effort=' + JSON.stringify(effort));
     args.push('-');
     const direct = unwrapNodeShim(command);
     return {
@@ -399,6 +516,10 @@ function assessAssertions(contract, output, workspace, changedPaths) {
     const matches = output.match(new RegExp(item.pattern, 'g')) || [];
     return { ...item, match_count: matches.length, passed: matches.length >= item.min_matches };
   });
+  const forbiddenTextResults = (assertions.forbidden_text || []).map(pattern => {
+    const matches = output.match(new RegExp(pattern, 'g')) || [];
+    return { pattern, match_count: matches.length, passed: matches.length === 0 };
+  });
   const contentResults = (assertions.content || []).map((item) => {
     const matchingFiles = changedPaths.filter((file) => globToRegex(item.glob).test(file));
     let matchCount = 0;
@@ -417,13 +538,38 @@ function assessAssertions(contract, output, workspace, changedPaths) {
     }
     return { ...item, matching_files: matchingFiles, matches_by_file: matchesByFile, match_count: matchCount, passed: matchCount >= item.min_matches };
   });
-  const results = [...artifactResults, ...textResults, ...contentResults];
+  const results = [...artifactResults, ...textResults, ...contentResults, ...forbiddenTextResults];
   return {
     passed: results.every((item) => item.passed),
     artifacts: artifactResults,
     text: textResults,
+    forbidden_text: forbiddenTextResults,
     content: contentResults,
   };
+}
+
+function captureArtifacts(contract, workspace, changedPaths) {
+  const patterns = (contract.assertions?.artifacts || []).map(item => globToRegex(item.glob));
+  let includedBytes = 0;
+  return changedPaths.filter(file => patterns.some(pattern => pattern.test(file))).map(file => {
+    const full = path.resolve(workspace, file);
+    const relative = path.relative(workspace, full);
+    if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+      throw new Error('artifact capture must stay within the workspace');
+    }
+    let stat;
+    try { stat = fs.lstatSync(full); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (!stat || !stat.isFile()) return { path: file, content: null, contentOmitted: 'missing-or-not-regular' };
+    const bytes = fs.readFileSync(full);
+    const includeContent = bytes.length <= 65536 && includedBytes + bytes.length <= 262144;
+    if (includeContent) includedBytes += bytes.length;
+    return {
+      path: file, sizeBytes: bytes.length,
+      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+      content: includeContent ? bytes.toString('utf8') : null,
+      contentOmitted: includeContent ? null : 'response-byte-budget',
+    };
+  });
 }
 
 function normalizeReceiptPath(value) {
@@ -461,18 +607,50 @@ function assessRouteLoading(contract, output) {
   };
 }
 
-function assess(contract, output, drift, assertions, routeLoading) {
+function assessOutcome(contract, workspace) {
+  if (!contract.outcome_verifier) return { required: false, passed: true, checks: [] };
+  if (contract.outcome_verifier !== 'query-contract') throw new Error('unknown outcome verifier');
+  const grader = path.join(root, 'scripts', 'eval-verifiers', 'query-contract.js');
+  const run = spawnSync(process.execPath, [grader, workspace], {
+    cwd: workspace, encoding: 'utf8', windowsHide: true, timeout: 10000, maxBuffer: 65536,
+  });
+  let report;
+  try { report = JSON.parse(run.stdout || ''); } catch { report = null; }
+  const checks = report && Array.isArray(report.checks) ? report.checks : [];
+  return {
+    required: true, verifier: contract.outcome_verifier,
+    verifierSha256: crypto.createHash('sha256').update(fs.readFileSync(grader)).digest('hex'),
+    passed: run.status === 0 && report?.passed === true && checks.length === 8 && checks.every(item => item.passed === true),
+    exitCode: run.status, timedOut: run.error?.code === 'ETIMEDOUT', checks,
+    diagnostics: (run.stderr || run.error?.message || '').slice(0, 2000),
+  };
+}
+
+function assessExecution(run) {
+  return {
+    passed: run?.status === 0 && !run.error && !run.signal,
+    exitCode: run?.status ?? null,
+    signal: run?.signal || null,
+    timedOut: run?.error?.code === 'ETIMEDOUT',
+    errorCode: run?.error?.code || null,
+  };
+}
+
+function assess(contract, output, drift, assertions, routeLoading, outcome = { required: false, passed: true, checks: [] }, run) {
+  const execution = assessExecution(run);
   const routeMatch = output.match(/^\s*ROUTE:\s*([a-z0-9+_ -]+?)\s*$/im);
   const scopeMatch = output.match(/^\s*WRITE_SCOPE:\s*([a-z-]+)/im);
   const observedRoute = routeMatch ? routeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
   const observedScope = scopeMatch ? scopeMatch[1].toLowerCase() : null;
   const acceptedRoutes = contract.accepted_routes || [contract.route];
   return {
-    passed: acceptedRoutes.includes(observedRoute)
+    passed: execution.passed && acceptedRoutes.includes(observedRoute)
       && observedScope === contract.write_scope
       && drift.allowed
       && assertions.passed
+      && outcome.passed
       && routeLoading.passed,
+    execution,
     observedRoute,
     observedScope,
     expectedRoute: contract.route,
@@ -480,6 +658,7 @@ function assess(contract, output, drift, assertions, routeLoading) {
     expectedScope: contract.write_scope,
     workspaceDrift: drift,
     assertions,
+    outcome,
     routeLoading,
   };
 }
@@ -535,7 +714,24 @@ function runDriftSelfTest() {
     fs.writeFileSync(path.join(fixture, 'docs', 'plan.md'), 'allowed doc');
     expect(docsOnly, before, true, 'authorized document creation');
     expect(readOnly, before, false, 'untracked document in read-only mode');
+    const dirty = workspaceSnapshot(fixture);
+    if (!assessVerifierDrift(dirty, workspaceSnapshot(fixture)).unchanged) {
+      throw new Error('verifier drift rejects pre-existing model edits');
+    }
+    fs.writeFileSync(path.join(fixture, 'docs', 'plan.md'), 'verifier changed this');
+    if (assessVerifierDrift(dirty, workspaceSnapshot(fixture)).unchanged) {
+      throw new Error('verifier drift missed a file mutation');
+    }
+    fs.writeFileSync(path.join(fixture, 'docs', 'plan.md'), 'allowed doc');
+    command('config', 'test.verifierMarker', 'unauthorized');
+    if (assessVerifierDrift(dirty, workspaceSnapshot(fixture)).unchanged) {
+      throw new Error('verifier drift missed a Git metadata mutation');
+    }
+    command('config', '--remove-section', 'test');
     command('add', '--', 'docs/plan.md');
+    if (assessVerifierDrift(dirty, workspaceSnapshot(fixture)).unchanged) {
+      throw new Error('verifier drift missed an index mutation');
+    }
     expect(docsOnly, before, false, 'unauthorized staging');
     fs.writeFileSync(path.join(fixture, 'source.java'), 'class Unauthorized {}\n');
     command('add', '--', 'source.java');
@@ -543,6 +739,9 @@ function runDriftSelfTest() {
     if (gitStatus(fixture).paths.length) throw new Error('committed fixture should look clean to git status');
     expect(readOnly, before, false, 'committed out-of-scope changes');
     expect(docsOnly, before, false, 'commits in writable document mode');
+    if (assessVerifierDrift(dirty, workspaceSnapshot(fixture)).unchanged) {
+      throw new Error('verifier drift missed committed changes');
+    }
   } finally {
     const resolved = fs.realpathSync(fixture);
     if (path.dirname(resolved) !== tempParent || !path.basename(resolved).startsWith('yan-eval-drift-')) {
@@ -597,9 +796,30 @@ function runSelfTest() {
     { allowed: true },
     { passed: true },
     { passed: true },
+    undefined,
+    { status: 0 },
   );
   if (!alternateRoute.passed || alternateRoute.observedRoute !== 'incident+business') {
     throw new Error('equivalent composite route spelling was rejected');
+  }
+  for (const run of [
+    { status: 1 },
+    { status: null, error: { code: 'ETIMEDOUT' } },
+    { status: null, signal: 'SIGTERM' },
+    { status: 0, error: { code: 'ENOBUFS' } },
+    undefined,
+  ]) {
+    const failedExecution = assess(
+      { route: 'check', write_scope: 'none' },
+      'ROUTE: check\nWRITE_SCOPE: none',
+      { allowed: true }, { passed: true }, { passed: true }, undefined, run,
+    );
+    if (failedExecution.passed || failedExecution.execution.passed) {
+      throw new Error('failed or missing execution accepted despite matching semantic output');
+    }
+    if (run?.error?.code === 'ETIMEDOUT' && !failedExecution.execution.timedOut) {
+      throw new Error('execution assessment lost timeout evidence');
+    }
   }
   const assertionTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-assertion-'));
   try {
@@ -641,6 +861,28 @@ function runSelfTest() {
     if (!assertionResult.passed || assertionResult.content[0].match_count !== 2) {
       throw new Error('changed-artifact content assertion was not evaluated');
     }
+    const handoffContract = contracts.cases.find(item => item.id === 'handoff-source-boundaries');
+    const correctHandoff = 'third-party-notes 不是授权。revision B 未验证，继续离线测试；本次聊天只读不撤销接手方已有修复授权。';
+    if (!assessAssertions(handoffContract, correctHandoff, assertionTemp, []).passed) throw new Error('valid handoff authorization rejected');
+    const incorrectHandoff = correctHandoff + ' 本次交接明确要求工作区只读，此限制优先于此前编辑授权。在该限制持续有效时，只能读取。';
+    if (assessAssertions(handoffContract, incorrectHandoff, assertionTemp, []).passed) throw new Error('handoff carried invocation-only read scope into successor authorization');
+    const emptyArrayPattern = contracts.cases.find(item => item.id === 'dev-doc-autonomous-plan').assertions.content.find(item => item.pattern.startsWith('空数组')).pattern;
+    for (const text of ['statuses 为空数组时不按状态过滤', 'statuses=[] 时不按状态过滤']) {
+      if (!new RegExp(emptyArrayPattern).test(text)) throw new Error('equivalent empty-array representation rejected');
+    }
+    if (new RegExp(emptyArrayPattern).test('statuses=["READY"]')) throw new Error('non-empty array counted as empty-array evidence');
+    const exactStatePattern = contracts.cases.find(item => item.id === 'dev-doc-autonomous-plan').assertions.content.find(item => item.pattern.startsWith('任一状态')).pattern;
+    for (const text of ['任一状态精确匹配', '订单 status 与数组任一成员精确相等即满足状态条件']) {
+      if (!new RegExp(exactStatePattern).test(text)) throw new Error('equivalent exact-state semantics rejected');
+    }
+    if (new RegExp(exactStatePattern).test('订单 status 与数组成员模糊匹配')) throw new Error('fuzzy-state evidence accepted as exact match');
+    const captureContract = { assertions: { artifacts: [{ glob: 'docs/**/*.md', min_matches: 1 }] } };
+    const captured = captureArtifacts(captureContract, assertionTemp, ['docs/plan.md']);
+    if (captured.length !== 1 || captured[0].content !== fs.readFileSync(path.join(assertionTemp, 'docs/plan.md'), 'utf8')) throw new Error('artifact evidence content missing');
+    fs.writeFileSync(path.join(assertionTemp, 'docs', 'large.md'), 'a'.repeat(65537));
+    const large = captureArtifacts(captureContract, assertionTemp, ['docs/large.md']);
+    if (large[0].content !== null || !large[0].sha256 || !large[0].contentOmitted) throw new Error('artifact evidence budget not enforced');
+    if (captureArtifacts(captureContract, assertionTemp, ['docs/deleted.md'])[0].contentOmitted !== 'missing-or-not-regular') throw new Error('deleted artifact evidence must not crash result writing');
   } finally {
     fs.rmSync(assertionTemp, { recursive: true, force: true });
   }
@@ -658,10 +900,97 @@ function runSelfTest() {
     if (!exclude.includes('/.yan-host-eval-runtime/')) {
       throw new Error('skill snapshot path was not excluded from Git status');
     }
+    const payload = path.join(fixture, snapshot.skillSnapshotRoot);
+    if (listFiles(payload).some(file => ['evals.json', 'host-contracts.json', 'route-loading-contracts.json'].includes(path.basename(file)))) {
+      throw new Error('runtime snapshot leaked evaluation definitions');
+    }
+    if (treeFingerprint(payload) !== snapshot.skillHash) throw new Error('snapshot fingerprint is not reproducible');
+    const nativeWorkspace = path.join(snapshotTemp, 'native');
+    fs.mkdirSync(path.join(nativeWorkspace, '.git/info'), { recursive: true });
+    fs.writeFileSync(path.join(nativeWorkspace, '.git/info/exclude'), '');
+    const native = stageSkillSnapshot(nativeWorkspace, undefined, 'native');
+    const nativeEntry = path.join(nativeWorkspace, native.skillSnapshotRoot, 'yan-code-review/SKILL.md');
+    if (native.skillSnapshotRoot !== '.agents/skills' || fs.readFileSync(nativeEntry, 'utf8').startsWith('\uFEFF')) throw new Error('native discovery snapshot must match installed BOM handling');
+    let collisionRejected = false;
+    try { stageSkillSnapshot(nativeWorkspace, undefined, 'native'); } catch { collisionRejected = true; }
+    if (!collisionRejected) throw new Error('native staging overwrote an existing discovery root');
+    const natural = contracts.cases.find(item => item.id === 'natural-review-selection');
+    const negative = contracts.cases.find(item => item.id === 'natural-no-skill-control');
+    const nativePrompt = promptFor(natural, native.skillSnapshotRoot, 'native');
+    if (/yan-code-review|mode=check|\.agents\/skills/.test(nativePrompt)) throw new Error('native task leaked expected skill or route');
+    const catalogPrompt = promptFor(natural, snapshot.skillSnapshotRoot, 'catalog');
+    for (const skill of ['yan-code-review', 'yan-dev-doc', 'yan-project-analysis', 'yan-conversation-handoff']) {
+      if (!catalogPrompt.includes(snapshot.skillSnapshotRoot + '/' + skill + '/SKILL.md')) throw new Error('incomplete discovery catalog');
+    }
+    const answer = 'SKILL: yan-code-review\nSKILL_FILES: .agents/skills/yan-code-review/SKILL.md';
+    const command = 'Get-Content -LiteralPath .agents/skills/yan-code-review/SKILL.md';
+    const eventText = [
+      { type: 'item.completed', item: { type: 'command_execution', command, exit_code: 0 } },
+      { type: 'item.completed', item: { type: 'agent_message', text: answer } },
+      { type: 'turn.completed' },
+    ].map(item => JSON.stringify(item)).join('\n');
+    const trace = decodeHostOutput('codex', eventText);
+    if (trace.text !== answer || !assessSelection(natural, answer, 'native', trace, native.skillSnapshotRoot).passed) throw new Error('native execution evidence not recognized');
+    for (const separator of [',', ';', '，', '；']) {
+      if (!assessSelection(natural, answer + separator + ' .agents/skills/yan-code-review/modes/check/mode.md', 'native', trace, native.skillSnapshotRoot).passed) throw new Error('valid multi-file receipt rejected: ' + separator);
+    }
+    for (const quote of [String.fromCharCode(96), String.fromCharCode(39), String.fromCharCode(34)]) {
+      const quoted = answer.replace('.agents/skills/yan-code-review/SKILL.md', quote + '.agents/skills/yan-code-review/SKILL.md' + quote);
+      if (!assessSelection(natural, quoted, 'native', trace, native.skillSnapshotRoot).passed) throw new Error('valid quoted skill receipt rejected');
+    }
+    if (assessSelection(natural, answer.replace('SKILL_FILES: ', 'SKILL_FILES: 60'), 'native', trace, native.skillSnapshotRoot).passed) throw new Error('invalid skill path prefix stripped from receipt');
+    const emptyTrace = { commands: [], traceAvailable: true };
+    if (assessSelection(natural, answer, 'native', emptyTrace, native.skillSnapshotRoot).passed) throw new Error('self-reported skill read counted as native discovery');
+    if (assessSelection(natural, answer, 'native', { ...trace, commands: [{ command, exitCode: 1 }] }, native.skillSnapshotRoot).passed) throw new Error('failed skill read counted as evidence');
+    if (assessSelection(natural, answer, 'native', { ...trace, commands: [{ command: command.replace('.agents/', '/home/user/.agents/'), exitCode: 0 }] }, native.skillSnapshotRoot).passed) throw new Error('user-home skill counted as staged native discovery');
+    if (assessSelection(natural, answer.replace('yan-code-review', 'yan-dev-doc'), 'native', trace, native.skillSnapshotRoot).passed) throw new Error('wrong selection passed');
+    if (!assessSelection(negative, 'SKILL: none\nSKILL_FILES: none', 'native', emptyTrace, native.skillSnapshotRoot).passed) throw new Error('no-skill control failed');
+    if (assessSelection(negative, 'SKILL: none\nSKILL_FILES: none', 'native', trace, native.skillSnapshotRoot).passed) throw new Error('negative control hid an entry read');
+    const selected = path.join(snapshotTemp, 'selected');
+    fs.cpSync(payload, selected, { recursive: true });
+    const selectedEntry = path.join(selected, 'yan-dev-doc', 'SKILL.md');
+    fs.appendFileSync(selectedEntry, '\nSelected-source marker\n', 'utf8');
+    const other = path.join(snapshotTemp, 'other');
+    fs.mkdirSync(path.join(other, '.git', 'info'), { recursive: true });
+    fs.writeFileSync(path.join(other, '.git', 'info', 'exclude'), '', 'utf8');
+    const second = stageSkillSnapshot(other, skillSourceDirectory(selected));
+    if (second.skillHash === snapshot.skillHash || !fs.readFileSync(path.join(other, second.skillSnapshotRoot, 'yan-dev-doc', 'SKILL.md'), 'utf8').includes('Selected-source marker')) {
+      throw new Error('selected source was ignored or fingerprint failed to change');
+    }
   } finally {
     fs.rmSync(snapshotTemp, { recursive: true, force: true });
   }
-  console.log('ok host eval route-loading, artifact-content, and current-skill snapshot self-tests passed');
+  const outcomeTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-outcome-'));
+  try {
+    const outcomeContract = { outcome_verifier: 'query-contract' };
+    fs.mkdirSync(path.join(outcomeTemp, 'src'));
+    const subject = path.join(outcomeTemp, 'src', 'query.js');
+    const faulty = fs.readFileSync(path.join(root, 'scripts', 'fixtures', 'repair-query-contract', 'src', 'query.js'), 'utf8');
+    fs.writeFileSync(subject, faulty);
+    if (assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader accepted original defect');
+    // The old text grader sees filter/slice, but these tokens prove no behavior.
+    fs.writeFileSync(subject, "module.exports = { queryOrders: () => ({ items: [], total: 0 }) }; // filter( slice(\n");
+    if (assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader accepted keyword-only fake repair');
+    const correct = faulty.replace('const page = rows.slice(offset, offset + limit);', '')
+      .replace('const items = page.filter', 'const matching = rows.filter')
+      .replace('return { items, total: rows.length };', 'return { items: matching.slice(offset, offset + limit), total: matching.length };');
+    fs.writeFileSync(subject, correct);
+    if (!assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader rejected correct repair');
+    fs.writeFileSync(subject, correct.replace('const matching = rows.filter', 'for (const row of rows) row.visited = true; const matching = rows.filter'));
+    if (assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader missed idempotent input mutation');
+    const alternative = "module.exports.queryOrders = (rows, tenantId, { keyword = '', offset = 0, limit = 20 } = {}) => {\n"
+      + "if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 0) throw new RangeError('invalid');\n"
+      + "let total = 0; const items = []; for (const row of rows) { if (row.tenantId !== tenantId || !row.name.includes(keyword)) continue; if (total >= offset && items.length < limit) items.push(row); total++; } return { items, total }; };\n";
+    fs.writeFileSync(subject, alternative);
+    if (!assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader rejected a valid loop-based implementation');
+    fs.writeFileSync(subject, correct.replace('row.name.includes(keyword)', 'row.name.toLowerCase().includes(keyword.toLowerCase())'));
+    if (assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader missed regression in preserved case sensitivity');
+  } finally {
+    const resolved = path.resolve(outcomeTemp);
+    if (path.dirname(resolved) !== path.resolve(require('os').tmpdir()) || !path.basename(resolved).startsWith('yan-host-eval-outcome-')) throw new Error('unsafe outcome cleanup');
+    fs.rmSync(resolved, { recursive: true, force: true });
+  }
+  console.log('ok host eval routing, artifact, outcome, isolated skill-source and grading separation self-tests passed');
 }
 
 function main() {
@@ -689,7 +1018,12 @@ function main() {
   if (!args.case || !args.workspace) usage('--live requires --case and --workspace');
   const contract = contracts.cases.find((item) => item.id === args.case);
   if (!contract) usage(`unknown contract case: ${args.case}`);
+  if (args.invocation !== 'explicit' && !contract.selection) usage('natural invocation requires a selection contract');
+  if (args.invocation === 'explicit' && contract.selection) usage('selection contracts require --invocation catalog or native');
+  if (args.invocation === 'native' && args.host !== 'codex') usage('native discovery evidence currently requires Codex JSON command events; use catalog for other hosts');
+  if (args.effort && args.host !== 'codex') usage('--effort currently supports codex only');
   if (contract.write_scope !== 'none' && !args.allowWrite) usage(`${contract.id} writes ${contract.write_scope}; repeat with --allow-write`);
+  if (contract.outcome_verifier && contract.outcome_verifier !== 'query-contract') usage('unknown outcome verifier');
   const sourceWorkspace = assertSourceWorkspace(args.workspace);
   if (args.output) {
     const outputPath = path.resolve(args.output);
@@ -700,10 +1034,11 @@ function main() {
   }
   const probe = probeHost(args.host);
   if (!probe.available) throw new Error(`${args.host} is unavailable: ${probe.reason}`);
-  const isolation = createIsolation(sourceWorkspace);
+  const skillSource = skillSourceDirectory(args.skillSource);
+  const isolation = createIsolation(sourceWorkspace, skillSource, args.invocation);
   const before = workspaceSnapshot(isolation.workspace);
-  const prompt = promptFor(contract, isolation.skillSnapshotRoot);
-  const invocation = liveArgs(args.host, probe.command, isolation.workspace, prompt, args.model, contract.write_scope);
+  const prompt = promptFor(contract, isolation.skillSnapshotRoot, args.invocation, skillSource);
+  const invocation = liveArgs(args.host, probe.command, isolation.workspace, prompt, args.model, contract.write_scope, args.effort);
   const startedAt = new Date().toISOString();
   const started = Date.now();
   const run = spawnPortable(invocation.command, invocation.args, {
@@ -712,21 +1047,40 @@ function main() {
     timeout: args.timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
+  const beforeVerification = workspaceSnapshot(isolation.workspace);
+  const outcome = assessOutcome(contract, isolation.workspace);
   const after = workspaceSnapshot(isolation.workspace);
+  if (outcome.required) {
+    const verificationDrift = assessVerifierDrift(beforeVerification, after);
+    outcome.verifierDrift = verificationDrift;
+    outcome.verifierWorkspaceUnchanged = verificationDrift.unchanged;
+    outcome.passed = outcome.passed && verificationDrift.unchanged;
+  }
   const drift = assessWorkspaceDrift(contract, before, after);
   const changedPaths = drift.changedPaths.filter((file) => !file.endsWith('/'));
-  const modelOutput = (run.stdout || '').trim();
+  const trace = decodeHostOutput(args.host, run.stdout || '');
+  const modelOutput = trace.text;
+  const selection = assessSelection(contract, modelOutput, args.invocation, trace, isolation.skillSnapshotRoot, isolation.workspace);
   const diagnostics = (run.stderr || '').trim();
   const diagnosticSummary = compactDiagnostics(diagnostics);
   const routeLoading = assessRouteLoading(contract, modelOutput);
   const durationMs = Date.now() - started;
   const result = {
-    schemaVersion: 1,
+    schemaVersion: 3,
+    provenance: {
+      fixtureHead: before.head,
+      graderSha256: crypto.createHash('sha256').update(fs.readFileSync(__filename)).update(contract.outcome_verifier ? fs.readFileSync(path.join(root, 'scripts/eval-verifiers', contract.outcome_verifier + '.js')) : '').digest('hex'),
+      contractSha256: crypto.createHash('sha256').update(JSON.stringify(contract)).digest('hex'),
+      promptSha256: crypto.createHash('sha256').update(prompt).digest('hex'),
+      modelSelection: args.model ? 'explicit' : 'host-default-not-resolved',
+    },
     host: args.host,
     command: probe.command,
     version: probe.version,
     case: contract.id,
     model: args.model || null,
+    effort: args.effort || null,
+    invocation: args.invocation,
     startedAt,
     durationMs,
     exitCode: run.status,
@@ -735,7 +1089,7 @@ function main() {
       kind: 'temporary-git-clone',
       sourceWorkspace,
       workspaceWasWritten: false,
-      skillSnapshot: { kind: 'current-checkout-copy', root: isolation.skillSnapshotRoot },
+      skillSnapshot: { kind: args.skillSource ? 'selected-source-copy' : 'current-checkout-copy', root: isolation.skillSnapshotRoot, sha256: isolation.skillHash },
     },
     metrics: {
       durationMs,
@@ -749,11 +1103,16 @@ function main() {
       drift,
       assessAssertions(contract, modelOutput, isolation.workspace, changedPaths),
       routeLoading,
+      outcome,
+      run,
     ),
+    artifacts: captureArtifacts(contract, isolation.workspace, changedPaths),
     output: modelOutput,
     diagnostics: diagnosticSummary.text,
     diagnosticsTruncated: diagnosticSummary.truncated,
   };
+  result.assessment.selection = selection;
+  result.assessment.passed = result.assessment.passed && selection.passed;
   const json = `${JSON.stringify(result, null, 2)}\n`;
   if (args.output) {
     const outputPath = path.resolve(args.output);
@@ -762,7 +1121,7 @@ function main() {
   }
   process.stdout.write(json);
   fs.rmSync(isolation.tempRoot, { recursive: true, force: true });
-  if (run.status !== 0 || !result.assessment.passed) process.exitCode = 1;
+  if (!result.assessment.passed) process.exitCode = 1;
 }
 
 try {

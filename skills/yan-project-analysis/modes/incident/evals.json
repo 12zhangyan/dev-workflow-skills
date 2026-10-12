@@ -77,6 +77,56 @@
         "partial_evidence_draft",
         "unattended"
       ]
+    },
+    {
+      "id": 15,
+      "prompt": "使用 yan-project-analysis mode=incident，根据当前代码更新 docs/bugs/2026-10-10/订单查询.md 的证据和验证部分，其他人工备注原样保留。我已经授权修改该文件，目标可以读取，不要重复确认。",
+      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库、VCS 或看板。",
+      "tags": [
+        "existing_authorization",
+        "scoped_document_update",
+        "preserve_user_content"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "使用 yan-project-analysis mode=incident 生成一份新的订单查询文档。默认日期目录中的同名文件已存在且可读，我没有锁定文件名，也没有授权覆盖旧文件。",
+      "expected_output": "保留旧文件，选择稳定时间或版本后缀并重新检查目标状态，再生成新文档，报告实际路径；不把可安全绕开的默认撞名升级为全任务 blocker。若后缀目标不可读或状态未知，停止该目标写入，不视为文件不存在。",
+      "tags": [
+        "path_conflict",
+        "safe_suffix",
+        "unknown_file_state"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "只读排查一次订单查询超时：请求日志只能证明 Controller 进入，checkout 已有过滤条件，但部署版本未知；同事怀疑旧包没更新或数据库锁等待。只给下一步诊断，不写代码或文档。",
+      "expected_output": "明确两个解释及当前证据不足；选择能区分它们的最小只读核验，说明不同观察会支持或推翻什么；不能从入口日志断言 SQL 已执行，也不能同时建议改超时、加索引和重发请求碰运气。",
+      "tags": [
+        "falsifiable_hypothesis",
+        "runtime_evidence",
+        "read_only"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "事故记录补充：同一版本同一数据下已分别检查部署摘要和锁等待，排除了旧包与阻塞，最近两次延长超时均无改善；服务端追踪显示耗时在外部接口。继续给出当前诊断方向。",
+      "expected_output": "依据新证据更新假设，保留已排除解释的适用范围，不重复延长超时；选择外部调用的可观察检查，明确未证实根因和权限边界，不因失败次数强制要求架构重写。",
+      "tags": [
+        "failed_experiment",
+        "hypothesis_update",
+        "no_fixed_retry_pipeline"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "只读分析偶发重复扣量：生产是两个消费者并发处理相同事件，精简复现改成单线程后不再出现，是否能排除并发问题？不要操作业务系统。",
+      "expected_output": "单线程改变了关键并发前提，不触发只能说明该复现不足；保留竞争假设并给安全的证据收集或隔离复现设计，不为验证而重放生产扣量请求。",
+      "tags": [
+        "minimal_reproduction",
+        "preserve_preconditions",
+        "no_production_replay"
+      ]
     }
   ]
 }

@@ -45,6 +45,18 @@
           {
             "target": "skills/yan-dev-doc/publishing-board.md",
             "guard": "只有用户明确要求看板、已有交付档案需要续写，或下游契约明确要求记录生命周期时"
+          },
+          {
+            "target": "skills/_shared/behavioral-testing.md",
+            "guard": "仅在行为回归的断言或覆盖设计有缺口时读取"
+          },
+          {
+            "target": "skills/_shared/backend-verification.md",
+            "guard": "仅在后端技术语义影响验证结论时读取"
+          },
+          {
+            "target": "skills/_shared/browser-verification.md",
+            "guard": "仅在页面交互或持久化验收有缺口时读取"
           }
         ],
         "index_only": []
@@ -145,6 +157,18 @@
           {
             "target": "skills/_shared/workflow-brief.md",
             "guard": "实际收到或需要交接 Brief 时读取"
+          },
+          {
+            "target": "skills/_shared/behavioral-testing.md",
+            "guard": "仅在行为回归的断言或覆盖设计有缺口时读取"
+          },
+          {
+            "target": "skills/_shared/backend-verification.md",
+            "guard": "仅在后端技术语义影响验证结论时读取"
+          },
+          {
+            "target": "skills/_shared/browser-verification.md",
+            "guard": "仅在页面交互或持久化验收有缺口时读取"
           }
         ],
         "index_only": []
@@ -176,6 +200,18 @@
           {
             "target": "skills/_shared/workflow-brief.md",
             "guard": "实际收到或生成 Brief 时读取"
+          },
+          {
+            "target": "skills/_shared/behavioral-testing.md",
+            "guard": "仅在行为回归的断言或覆盖设计有缺口时读取"
+          },
+          {
+            "target": "skills/_shared/backend-verification.md",
+            "guard": "仅在后端技术语义影响验证结论时读取"
+          },
+          {
+            "target": "skills/_shared/browser-verification.md",
+            "guard": "仅在页面交互或持久化验收有缺口时读取"
           }
         ],
         "index_only": []

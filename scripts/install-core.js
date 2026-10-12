@@ -451,11 +451,16 @@ function rollbackInstall(context) {
     ));
   }
   attempt(() => fs.rmSync(context.stageRoot, { recursive: true, force: true }));
-  attempt(() => fs.rmSync(context.transactionRoot, { recursive: true, force: true }));
   attempt(() => cleanupEmptyParents(
     path.dirname(context.stageRoot),
     path.join(context.home, STAGING_DIR),
   ));
+  // An unsuccessful restore may leave the only copy of a Skill or manifest here.
+  if (errors.length) {
+    throw new Error('rollback incomplete for ' + context.targetName + ': ' + errors.join('; ')
+      + '; recovery files retained at ' + context.transactionRoot);
+  }
+  attempt(() => fs.rmSync(context.transactionRoot, { recursive: true, force: true }));
   attempt(() => cleanupEmptyParents(
     path.dirname(context.transactionRoot),
     path.join(context.home, BACKUP_DIR, context.targetName),

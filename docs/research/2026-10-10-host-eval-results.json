@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-10",
+  "fixture": "scripts/fixtures/review-preview",
+  "scope": "Recorded local samples, not a general success or improvement rate.",
+  "runs": [
+    {
+      "run": "native-review",
+      "phase": "exploratory",
+      "rawResultSha256": "5f581bf21b26e2e51f55f9bbc8b4864bc892395d5d524600790dd3611e129b99",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:32:05.982Z",
+      "durationMs": 41186,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "3f0d7d4554168d4c193158098a9688d690360ba8536b0b9e635dfa691bdf90e5",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".agents/skills",
+        "sha256": "0614a309e2da2bed115733ac8e374cdec2f7c3f62d278adaed9aadcf8ac45d36"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 1
+        }
+      }
+    },
+    {
+      "run": "native-negative",
+      "phase": "exploratory",
+      "rawResultSha256": "d0e8f9d38cbfd794290bf8f4e1b03caf81903b91e12b92076eacb117ea673e73",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-no-skill-control",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:32:05.983Z",
+      "durationMs": 10561,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "3f0d7d4554168d4c193158098a9688d690360ba8536b0b9e635dfa691bdf90e5",
+        "contractSha256": "6d9eda16e18e48eebf3857122cefb87159f4954995d14e4177f63b16a521e385",
+        "promptSha256": "f1dab789efd998737433ffb2f3fe1a462c4988815803fec55fc408493634c1be",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".agents/skills",
+        "sha256": "0614a309e2da2bed115733ac8e374cdec2f7c3f62d278adaed9aadcf8ac45d36"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "none",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "none",
+          "selected": "none",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 0
+        }
+      }
+    },
+    {
+      "run": "native-review-before",
+      "phase": "exploratory",
+      "rawResultSha256": "aa09fc0a415c7b7c0020699c639c1e906b0b187d03a30ce67e96ce956fe8dbc2",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:33:17.380Z",
+      "durationMs": 60663,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "3f0d7d4554168d4c193158098a9688d690360ba8536b0b9e635dfa691bdf90e5",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "selected-source-copy",
+        "root": ".agents/skills",
+        "sha256": "b1ef2d606bdc5b79558863d73c5bdf581e4a102d2d855c2c910c497c6f8b42c1"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 1
+        }
+      }
+    },
+    {
+      "run": "catalog-review",
+      "phase": "exploratory",
+      "rawResultSha256": "0f4b7dbfe590c89c4b47b06efd862c83a6ea361c5053783e91deefc7ea0baf4e",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "catalog",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:33:17.382Z",
+      "durationMs": 40466,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "3f0d7d4554168d4c193158098a9688d690360ba8536b0b9e635dfa691bdf90e5",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "4f9d4553c1104ac9431510062eaaffb791e8409fb8dabd5e3cb54bc0d6e11aeb",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".yan-host-eval-runtime/skills",
+        "sha256": "c0f7ac713c38d2307952fea29a1ab0834136b788dd950b83bde14de622f366ca"
+      },
+      "assessment": {
+        "passed": false,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": false,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": false,
+          "evidenceKind": "self-reported-selection-and-loading",
+          "nativeDiscoveryVerified": null,
+          "entryReadCommandCount": 0
+        }
+      },
+      "note": "Correct route and finding; receipt parser rejected a Chinese semicolon. Fixed and rerun."
+    },
+    {
+      "run": "final-native-review",
+      "phase": "final",
+      "rawResultSha256": "3b95d0d93dcea60050610466c0373eda2644bcb6e72c150087473f951f026d25",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:36:52.379Z",
+      "durationMs": 134988,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "eae00a55f2716dd2d6b160ad3b3bed4cc306504abf8e74561aa9d167295ce420",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".agents/skills",
+        "sha256": "2e8c559bbb94feb615f1901958a59b58530c38244ad4bae5727dd8c035ef8c0f"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 1
+        }
+      }
+    },
+    {
+      "run": "final-native-before",
+      "phase": "final",
+      "rawResultSha256": "c77081686d80b98c92c5c604744506b50417b50cd34b54876a05a6533a1d64bf",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:36:52.251Z",
+      "durationMs": 241038,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "eae00a55f2716dd2d6b160ad3b3bed4cc306504abf8e74561aa9d167295ce420",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "selected-source-copy",
+        "root": ".agents/skills",
+        "sha256": "b1ef2d606bdc5b79558863d73c5bdf581e4a102d2d855c2c910c497c6f8b42c1"
+      },
+      "assessment": {
+        "passed": false,
+        "execution": {
+          "passed": false,
+          "exitCode": null,
+          "signal": "SIGTERM",
+          "timedOut": true,
+          "errorCode": "ETIMEDOUT"
+        },
+        "observedRoute": null,
+        "observedScope": null,
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": false,
+          "expected": "yan-code-review",
+          "selected": null,
+          "receiptMatches": false,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": false,
+          "entryReadCommandCount": 0
+        }
+      },
+      "note": "Service reported busy and retried until timeout; no final model answer. Not evidence of old-skill behavior."
+    },
+    {
+      "run": "final-native-negative",
+      "phase": "final",
+      "rawResultSha256": "5ec2371f3332037178f2a81504e7d16a2a1e3459295d54e758ff1591815c423b",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-no-skill-control",
+      "invocation": "native",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:36:52.379Z",
+      "durationMs": 21916,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "eae00a55f2716dd2d6b160ad3b3bed4cc306504abf8e74561aa9d167295ce420",
+        "contractSha256": "6d9eda16e18e48eebf3857122cefb87159f4954995d14e4177f63b16a521e385",
+        "promptSha256": "f1dab789efd998737433ffb2f3fe1a462c4988815803fec55fc408493634c1be",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".agents/skills",
+        "sha256": "2e8c559bbb94feb615f1901958a59b58530c38244ad4bae5727dd8c035ef8c0f"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "none",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "none",
+          "selected": "none",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 0
+        }
+      }
+    },
+    {
+      "run": "final-catalog-review",
+      "phase": "final",
+      "rawResultSha256": "b1efe8d37c1dc88765a454150f7c05fdabc840ad46153dce5e0b6294089317e5",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "case": "natural-review-selection",
+      "invocation": "catalog",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "startedAt": "2026-10-10T07:36:52.340Z",
+      "durationMs": 113354,
+      "provenance": {
+        "fixtureHead": "1c67d43cda811ea61f633099a73bdc673ec49693",
+        "graderSha256": "eae00a55f2716dd2d6b160ad3b3bed4cc306504abf8e74561aa9d167295ce420",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "4f9d4553c1104ac9431510062eaaffb791e8409fb8dabd5e3cb54bc0d6e11aeb",
+        "modelSelection": "explicit"
+      },
+      "skillSnapshot": {
+        "kind": "current-checkout-copy",
+        "root": ".yan-host-eval-runtime/skills",
+        "sha256": "860638228dbba7e05818a0ab1d299082d857b568aa1523b249d2218bfd994d41"
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "workspaceUnchanged": true,
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "self-reported-selection-and-loading",
+          "nativeDiscoveryVerified": null,
+          "entryReadCommandCount": 1
+        }
+      }
+    }
+  ],
+  "finalComparison": {
+    "comparable": false,
+    "reasons": [
+      "before host execution incomplete"
+    ],
+    "conditions": {
+      "host": "codex",
+      "case": "natural-review-selection",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "native"
+    },
+    "before": {
+      "skillSha256": "b1ef2d606bdc5b79558863d73c5bdf581e4a102d2d855c2c910c497c6f8b42c1",
+      "passed": false
+    },
+    "after": {
+      "skillSha256": "2e8c559bbb94feb615f1901958a59b58530c38244ad4bae5727dd8c035ef8c0f",
+      "passed": true
+    },
+    "deltas": {
+      "durationMs": null,
+      "outputChars": null,
+      "loadedResourceCount": null
+    },
+    "limitation": "One matched pair is a regression sample, not an improvement rate. Unrecorded host settings and service variability remain uncontrolled."
+  },
+  "unavailableHosts": [
+    {
+      "host": "cursor",
+      "cliAvailable": true,
+      "authentication": "Not logged in"
+    },
+    {
+      "host": "claude",
+      "cliAvailable": false
+    }
+  ],
+  "installedVerification": {
+    "files": 63,
+    "mismatches": [],
+    "sourceTreeHash": "438c0e6b48b4de6add0379bcbca5535dfbae077ca1f89e3bc2cace72487b8f58"
+  }
+}

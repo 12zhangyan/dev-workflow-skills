@@ -4,6 +4,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const vm = require('vm');
 const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
@@ -115,6 +116,12 @@ for (const contract of contracts.cases || []) {
       }
     }
   }
+  if (contract.selection && !['none', ...publicSkills].includes(contract.selection.expected_skill)) {
+    fail(contract.id + ' has an invalid expected selection');
+  }
+  if (contract.outcome_verifier !== undefined && contract.outcome_verifier !== 'query-contract') {
+    fail(`${contract.id} has unsupported outcome_verifier; only trusted repository graders may run`);
+  }
   if (contract.assertions !== undefined) {
     if (!contract.assertions || typeof contract.assertions !== 'object') {
       fail(`${contract.id} assertions must be an object`);
@@ -128,6 +135,14 @@ for (const contract of contracts.cases || []) {
         if (typeof textAssertion.pattern !== 'string' || !textAssertion.pattern || !Number.isInteger(textAssertion.min_matches) || textAssertion.min_matches < 1) {
           fail(`${contract.id} has an invalid text assertion`);
         }
+      }
+      const forbiddenText = contract.assertions.forbidden_text || [];
+      if (!Array.isArray(forbiddenText)) fail(contract.id + ' forbidden_text must be an array');
+      for (const pattern of Array.isArray(forbiddenText) ? forbiddenText : []) {
+        try {
+          if (typeof pattern !== 'string' || !pattern) throw new Error('empty pattern');
+          new RegExp(pattern);
+        } catch (error) { fail(contract.id + ' has an invalid forbidden_text assertion: ' + error.message); }
       }
       for (const contentAssertion of contract.assertions.content || []) {
         if (typeof contentAssertion.glob !== 'string' || !contentAssertion.glob
@@ -229,12 +244,58 @@ if (!fs.existsSync(helper)) {
     if (output && !fs.existsSync(path.join(tempRoot, ...output.split('/')))) {
       fail('workflow-fs.js did not create its reported directory');
     }
-    const stateResult = spawnSync(process.execPath, [helper, 'file-state', path.join(tempRoot, 'missing.md')], {
-      encoding: 'utf8',
-      windowsHide: true,
-    });
-    if (stateResult.status !== 0 || stateResult.stdout.trim() !== 'MISSING') {
-      fail('workflow-fs.js file-state did not report a missing file deterministically');
+    const readable = path.join(tempRoot, 'existing.md');
+    fs.writeFileSync(readable, 'Keep this user document.\n');
+    for (const [target, expected] of [
+      [path.join(tempRoot, 'missing.md'), 'MISSING'],
+      [readable, 'EXISTS_READABLE'],
+      [tempRoot, 'EXISTS_UNREADABLE_OR_UNKNOWN'],
+    ]) {
+      const stateResult = spawnSync(process.execPath, [helper, 'file-state', target], {
+        encoding: 'utf8', windowsHide: true,
+      });
+      if (stateResult.status !== 0 || stateResult.stdout.trim() !== expected) {
+        fail('workflow-fs.js file-state returned an unsafe state for ' + target);
+      }
+    }
+    if (fs.readFileSync(readable, 'utf8') !== 'Keep this user document.\n') {
+      fail('file-state changed the inspected document');
+    }
+
+    // ACL failures and broken links are not portable to create on every host.
+    // Exercise the actual CLI with filesystem failures injected at each read stage.
+    for (const scenario of [
+      { name: 'missing', lookupError: 'ENOENT', expected: 'MISSING' },
+      { name: 'lookup-denied', lookupError: 'EACCES' },
+      { name: 'invalid-parent', lookupError: 'ENOTDIR' },
+      { name: 'metadata-denied', statError: 'EACCES' },
+      { name: 'dangling-link', statError: 'ENOENT' },
+      { name: 'open-denied', openError: 'EACCES' },
+      { name: 'removed-after-lookup', openError: 'ENOENT' },
+    ]) {
+      let stdout = '';
+      const throwIf = (code) => { if (code) throw Object.assign(new Error(code), { code }); };
+      const mockFs = {
+        existsSync: () => !scenario.lookupError && !scenario.statError,
+        lstatSync: () => { throwIf(scenario.lookupError); return {}; },
+        statSync: () => { throwIf(scenario.statError); return { isFile: () => true }; },
+        openSync: () => { throwIf(scenario.openError); return 17; },
+        closeSync: () => {},
+      };
+      vm.runInNewContext(fs.readFileSync(helper, 'utf8'), {
+        require: (name) => name === 'fs' ? mockFs : require(name),
+        __dirname: path.dirname(helper),
+        process: {
+          argv: [process.execPath, helper, 'file-state', 'target.md'],
+          stdout: { write: (text) => { stdout += text; } },
+          stderr: { write: (text) => { throw new Error(text); } },
+          exit: (code) => { throw new Error('unexpected exit: ' + code); },
+        },
+      }, { filename: helper, timeout: 1000 });
+      const expected = scenario.expected || 'EXISTS_UNREADABLE_OR_UNKNOWN';
+      if (stdout.trim() !== expected) {
+        fail('file-state ' + scenario.name + ': expected ' + expected + ', got ' + stdout.trim());
+      }
     }
     const vcsResult = spawnSync(process.execPath, [helper, 'detect-vcs', root], {
       encoding: 'utf8',

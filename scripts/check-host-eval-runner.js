@@ -24,8 +24,8 @@ const selfTest = spawnSync(process.execPath, [runner, '--self-test'], {
 
 if (selfTest.status !== 0
     || !selfTest.stdout.includes('workspace drift checks reject committed, staged, ignored and runtime writes')
-    || !selfTest.stdout.includes('artifact-content')
-    || !selfTest.stdout.includes('current-skill snapshot self-tests passed')) {
+    || !selfTest.stdout.includes('outcome')
+    || !selfTest.stdout.includes('isolated skill-source and grading separation self-tests passed')) {
   console.error(`FAIL: host eval self-test exited ${selfTest.status}: ${selfTest.stderr || selfTest.stdout}`);
   process.exit(1);
 }
@@ -86,7 +86,7 @@ if (!runnerText.includes('const contentResults = (assertions.content || [])')
 }
 if (!runnerText.includes('function parsePorcelainZ(value)')
     || !runnerText.includes("'core.quotePath=false'")
-    || !runnerText.includes('const modelOutput = (run.stdout || \'\').trim()')) {
+    || !runnerText.includes('const modelOutput = trace.text')) {
   console.error('FAIL: host eval runner must preserve Unicode Git paths and assess model stdout separately from diagnostics');
   process.exit(1);
 }
@@ -95,10 +95,15 @@ if (!runnerText.includes('function compactDiagnostics(value, limit = 8000)')
   console.error('FAIL: host eval results must bound duplicated host diagnostics');
   process.exit(1);
 }
-if (!runnerText.includes('function stageSkillSnapshot(workspace)')
-    || !runnerText.includes("fs.cpSync(path.join(root, 'skills')")
-    || !runnerText.includes("skillSnapshot: { kind: 'current-checkout-copy'")) {
+if (!runnerText.includes('function stageSkillSnapshot(workspace, source =')
+    || !runnerText.includes("fs.cpSync(source, path.join(runtimeRoot, 'skills')")
+    || !runnerText.includes("'current-checkout-copy'")) {
   console.error('FAIL: live evaluation must stage the current checkout skills inside the isolated workspace');
+  process.exit(1);
+}
+if (!contracts.cases.some(item => item.selection?.expected_skill === 'none')
+    || !contracts.cases.some(item => item.selection?.expected_skill === 'yan-code-review')) {
+  console.error('FAIL: natural selection needs both positive and no-skill controls');
   process.exit(1);
 }
 const loadingCases = contracts.cases.filter((item) => item.route_loading);
@@ -112,6 +117,11 @@ if (loadingCases.length < 4
 const writable = contracts.cases.filter((item) => item.write_scope !== 'none');
 if (!writable.length || !contracts.cases.some((item) => item.prompt_ref.startsWith('yan-dev-doc:'))) {
   console.error('FAIL: contracts must include writable and yan-dev-doc representative cases');
+  process.exit(1);
+}
+const queryContract = contracts.cases.find((item) => item.id === 'repair-query-contract');
+if (queryContract?.outcome_verifier !== 'query-contract' || queryContract.assertions?.content) {
+  console.error('FAIL: query repair requires behavioral grading without implementation-spelling constraints');
   process.exit(1);
 }
 const repairContract = contracts.cases.find((item) => item.id === 'review-repair-scoped-write');

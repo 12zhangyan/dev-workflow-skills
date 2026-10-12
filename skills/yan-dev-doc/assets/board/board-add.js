@@ -18,6 +18,7 @@ const BOARD_DIR = __dirname;
 const DATA = path.join(BOARD_DIR, 'data', 'changes.js');
 const DETAILS_DIR = path.join(BOARD_DIR, 'data', 'details');
 const BAK = DATA + '.bak';
+const LOCK = DATA + '.lock';
 const CATALOG_KEYS = [
   'kind', 'service', 'module', 'title', 'date', 'updatedAt', 'createdAt',
   'type', 'complexity', 'status', 'severity', 'branch', 'docPath',
@@ -36,7 +37,7 @@ const CATALOG_HEADER = `
 // 目录字段由 board-add.js 白名单控制；禁止手工整体重写本文件。
 `;
 
-function die(msg) { console.error('✗ ' + msg); process.exit(1); }
+function die(msg) { throw new Error(msg); }
 function today() { return new Date().toISOString().slice(0, 10); }
 function exists(file) { try { fs.accessSync(file); return true; } catch (e) { return false; } }
 function emit(obj) { return JSON.stringify(obj, null, 2).split('\n').map(l => '  ' + l).join('\n'); }
@@ -48,6 +49,56 @@ function deliveryIdOf(entry) {
     [entry.service, entry.module, entry.date, entry.title].filter(Boolean).join('::') ||
     JSON.stringify(entry);
   return 'DLV-' + stableHash(stable).slice(0, 10).toUpperCase();
+}
+// Keep mutable board files inside the board, including through junctions/links.
+function localFile(file) {
+  const relative = path.relative(BOARD_DIR, file);
+  if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) die('BOARD_PATH_INVALID: ' + file);
+  let current = BOARD_DIR;
+  for (const part of relative.split(path.sep)) {
+    current = path.join(current, part);
+    try {
+      if (fs.lstatSync(current).isSymbolicLink()) die('BOARD_PATH_INVALID: linked path ' + current);
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  return file;
+}
+function detailPathOf(id) {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(id)
+    || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(id)) die('BOARD_PATH_INVALID: invalid detailId');
+  return 'data/details/' + id + '.js';
+}
+function detailFile(catalog) {
+  const relative = detailPathOf(catalog.detailId);
+  if (catalog.detailPath && catalog.detailPath !== relative) die('BOARD_PATH_INVALID: detailPath does not match detailId');
+  return localFile(path.join(BOARD_DIR, relative));
+}
+function atomicWrite(file, content) {
+  localFile(file);
+  const temporary = file + '.' + process.pid + '-' + crypto.randomBytes(8).toString('hex') + '.tmp';
+  try {
+    fs.writeFileSync(temporary, content, { flag: 'wx' });
+    fs.renameSync(temporary, file);
+  } finally {
+    if (exists(temporary)) fs.unlinkSync(temporary);
+  }
+}
+function withWriteLock(operation) {
+  localFile(DATA);
+  localFile(BAK);
+  let fd;
+  try { fd = fs.openSync(LOCK, 'wx'); }
+  catch (error) {
+    if (error.code === 'EEXIST') die('BOARD_WRITE_LOCKED: another publisher holds ' + LOCK + '; retry after it finishes');
+    throw error;
+  }
+  try {
+    fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }) + '\n');
+    return operation();
+  } finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(LOCK);
+  }
 }
 function detailIdOf(entry) {
   const stable = entry.deliveryId || entry.docPath || entry.sourceDocPath ||
@@ -94,7 +145,7 @@ function splitEntry(entry, explicitDetail) {
     collectStrings(detail[key], words, 120);
   }
   catalog.detailId = detailId;
-  catalog.detailPath = `data/details/${detailId}.js`;
+  catalog.detailPath = detailPathOf(detailId);
   catalog.summary = firstSentence(lead);
   catalog.searchText = words.join(' ').replace(/\s+/g, ' ').trim().slice(0, 600);
   return { catalog, detail };
@@ -109,28 +160,37 @@ function validateDetail(source, detailId) {
   if (!holder.BOARD_DETAILS || !holder.BOARD_DETAILS[detailId]) throw new Error(`详情脚本校验失败：${detailId}`);
 }
 function writeDetail(detailId, detail) {
+  const file = detailFile({ detailId });
   fs.mkdirSync(DETAILS_DIR, { recursive: true });
   const source = detailSource(detailId, detail);
   validateDetail(source, detailId);
-  const file = path.join(DETAILS_DIR, detailId + '.js');
-  if (!exists(file) || fs.readFileSync(file, 'utf8') !== source) fs.writeFileSync(file, source);
+  if (!exists(file) || fs.readFileSync(file, 'utf8') !== source) atomicWrite(file, source);
   return file;
 }
 function loadDetail(catalog) {
   if (!catalog.detailPath || !catalog.detailId) return null;
-  const file = path.join(BOARD_DIR, catalog.detailPath.replace(/\//g, path.sep));
+  const file = detailFile(catalog);
   if (!exists(file)) return null;
   const holder = {};
   new Function('window', fs.readFileSync(file, 'utf8'))(holder);
   return holder.BOARD_DETAILS && holder.BOARD_DETAILS[catalog.detailId] || null;
 }
 function loadCurrent() {
+  localFile(DATA);
   if (!exists(DATA)) die(`找不到 ${DATA}（看板尚未创建？先复制外壳与 data 模板）`);
   const raw = fs.readFileSync(DATA, 'utf8');
   let cur;
   try {
     cur = new Function(raw + '\n;return { changes: typeof changes!=="undefined"?changes:[], htmlChangelog: typeof htmlChangelog!=="undefined"?htmlChangelog:[] };')();
   } catch (e) { die('现有 data/changes.js 解析失败，请先修复：' + e.message); }
+  const ids = new Set();
+  for (const catalog of cur.changes) {
+    if (!catalog.detailId && !catalog.detailPath) continue;
+    detailFile(catalog);
+    const identity = catalog.detailId.toLowerCase();
+    if (ids.has(identity)) die('BOARD_DETAIL_CONFLICT: duplicate detailId');
+    ids.add(identity);
+  }
   return { raw, changes: cur.changes, changelog: cur.htmlChangelog };
 }
 function isPlainObject(value) {
@@ -194,8 +254,8 @@ function writeData(raw, changes, changelog, oldLen) {
     const unexpected = Object.keys(c).filter(k => !allowed.has(k));
     if (unexpected.length) throw new Error(`目录仍含详情/执行字段：${c.title || '(无标题)'} -> ${unexpected.join(', ')}`);
   }
-  fs.copyFileSync(DATA, BAK);
-  fs.writeFileSync(DATA, out);
+  atomicWrite(BAK, fs.readFileSync(DATA));
+  atomicWrite(DATA, out);
 }
 function migrate() {
   const { raw, changes, changelog } = loadCurrent();
@@ -260,7 +320,10 @@ function add(arg) {
     });
     action = 'update';
   }
-  if (action === 'append') changes.push(Object.assign({ updatedAt: entry.date || today() }, catalog));
+  if (action === 'append') {
+    if (changes.some(current => current.detailId && current.detailId.toLowerCase() === catalog.detailId.toLowerCase())) die('BOARD_DETAIL_CONFLICT: detailId belongs to another record');
+    changes.push(Object.assign({ updatedAt: entry.date || today() }, catalog));
+  }
   writeDetail(catalog.detailId, detail);
   if (input.changelog) changelog.push({ date: entry.date || today(), desc: input.changelog });
   try { writeData(raw, changes, changelog, oldLen); }
@@ -271,7 +334,7 @@ function main() {
   const arg = process.argv[2];
   if (!arg) die('用法：node project-html/board-add.js <entry.json> | --check-migration | --migrate');
   if (arg === '--check-migration') return checkMigration();
-  if (arg === '--migrate') return migrate();
-  add(arg);
+  return withWriteLock(() => arg === '--migrate' ? migrate() : add(arg));
 }
-main();
+try { main(); }
+catch (error) { console.error('✗ ' + error.message); process.exitCode = 1; }

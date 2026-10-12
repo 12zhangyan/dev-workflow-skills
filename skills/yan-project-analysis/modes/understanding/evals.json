@@ -75,6 +75,26 @@
         "impact_analysis",
         "chat_only"
       ]
+    },
+    {
+      "id": 15,
+      "prompt": "使用 yan-project-analysis mode=understanding 的 CodeMap，根据当前代码更新 docs/code-reading/2026-10-10/订单查询.md 的证据和验证部分，其他人工备注原样保留。我已经授权修改该文件，目标可以读取，不要重复确认。",
+      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库、VCS 或看板。",
+      "tags": [
+        "existing_authorization",
+        "scoped_document_update",
+        "preserve_user_content"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "使用 yan-project-analysis mode=understanding 的 CodeMap 生成一份新的订单查询文档。默认日期目录中的同名文件已存在且可读，我没有锁定文件名，也没有授权覆盖旧文件。",
+      "expected_output": "保留旧文件，选择稳定时间或版本后缀并重新检查目标状态，再生成新文档，报告实际路径；不把可安全绕开的默认撞名升级为全任务 blocker。若后缀目标不可读或状态未知，停止该目标写入，不视为文件不存在。",
+      "tags": [
+        "path_conflict",
+        "safe_suffix",
+        "unknown_file_state"
+      ]
     }
   ]
 }

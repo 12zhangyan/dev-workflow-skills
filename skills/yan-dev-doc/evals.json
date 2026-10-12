@@ -196,6 +196,95 @@
         "parallel_delegation",
         "self_contained_workflow"
       ]
+    },
+    {
+      "id": 47,
+      "prompt": "使用 yan-dev-doc，根据当前代码更新 docs/2026-10-10/订单查询.md 的证据和验证部分，其他人工备注原样保留。我已经授权修改该文件，目标可以读取，不要重复确认。 原文包含人工备注“保留备注：OP-17，验收窗口由人工安排。”；依据 OrderQueryService.java 的实际实现更新证据，未执行的验证必须如实标注。",
+      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库、VCS 或看板。",
+      "tags": [
+        "existing_authorization",
+        "scoped_document_update",
+        "preserve_user_content"
+      ]
+    },
+    {
+      "id": 48,
+      "prompt": "使用 yan-dev-doc 生成一份新的订单查询文档。默认日期目录中的同名文件已存在且可读，我没有锁定文件名，也没有授权覆盖旧文件。",
+      "expected_output": "保留旧文件，选择稳定时间或版本后缀并重新检查目标状态，再生成新文档，报告实际路径；不把可安全绕开的默认撞名升级为全任务 blocker。若后缀目标不可读或状态未知，停止该目标写入，不视为文件不存在。",
+      "tags": [
+        "path_conflict",
+        "safe_suffix",
+        "unknown_file_state"
+      ]
+    },
+    {
+      "id": 49,
+      "prompt": "使用 yan-dev-doc 生成到精确路径 docs/固定方案.md。file-state 返回 EXISTS_UNREADABLE_OR_UNKNOWN，读取失败；不要等待回复。",
+      "expected_output": "不能将权限错误或未知状态当成 MISSING，不覆盖该精确目标，也不自动换成其他持久路径；继续可独立完成的只读取证，在聊天中说明已确认方案内容和受阻写入范围，不创建看板或 VCS 变更。",
+      "tags": [
+        "exists_unreadable",
+        "exact_path",
+        "no_write"
+      ]
+    },
+    {
+      "id": 50,
+      "prompt": "为跨 Controller、Service、Mapper 的订单筛选功能写实施方案，过滤字段契约已经确认，权限检查沿用现有入口。希望尽早知道接口到真实查询能否连通，拆分方式由你决定。",
+      "expected_output": "优先安排可独立验证的最小完整查询路径，说明输入到查询结果的验收与真实依赖；不只把三个技术层分别完成当成三个业务验收，不扩大到未授权写库、强制 TDD 或提交。",
+      "tags": [
+        "vertical_slice",
+        "observable_acceptance",
+        "real_dependencies"
+      ]
+    },
+    {
+      "id": 51,
+      "prompt": "只需给共享方法做一次机械改名，调用方很多且单独修改无法编译，要求保持外部兼容。帮我写简洁方案。",
+      "expected_output": "按真实编译和兼容边界组织原子改动或兼容过渡，保留最终集成验证点；不机械强拆可独立交付的纵向切片，也不为小改动制造长流水线。",
+      "tags": [
+        "slicing_exception",
+        "compatibility",
+        "minimal_plan"
+      ]
+    },
+    {
+      "id": 52,
+      "prompt": "写订单导出方案：用户只能导出自己租户的订单；无权限或查询失败时不得创建导出任务或发送消息，其他契约不变。",
+      "expected_output": "验收包含成功导出以及拒绝路径不创建任务/不发送消息的可观察结果，说明隔离与副作用核对位置；不只写返回成功、不编造未提供的表名或外部接口。",
+      "tags": [
+        "negative_acceptance",
+        "tenant_isolation",
+        "side_effect_contract"
+      ]
+    },
+    {
+      "id": 53,
+      "prompt": "使用 yan-dev-doc，为当前 Node 项目写精简方案。执行方是未列名的 Agent，能读取、搜索、范围内写文件和运行命令，没有结构化提问或子 Agent。用户已明确接受需求；有依赖的两处修改可以由同一 Agent 连续完成。",
+      "expected_output": "按通用能力生成方案，普通聊天可承载真正阻塞的问题；不要求安装特定宿主或模型，不因缺少委派功能阻塞任务或强造多 Agent 流程。",
+      "tags": [
+        "capability_portability",
+        "single_agent_supported"
+      ]
+    },
+    {
+      "id": 54,
+      "prompt": "为订单保存后的页面反馈写精简方案：成功数据需要持久化，失败保留输入可重试；仓库已有 Vue 与浏览器测试，无服务端改造。只设计方案，不操作线上页面。",
+      "expected_output": "按相关缺口选读浏览器验收参考；验收关联同一记录的请求、页面、刷新后结果及失败重试，区分 stub 测试与真实后端证据；不执行保存、不安装浏览器工具、不引入完整性能审计。",
+      "tags": [
+        "browser_verification",
+        "conditional_reference",
+        "plan_only"
+      ]
+    },
+    {
+      "id": 55,
+      "prompt": "给 Java 8 和既有 MyBatis 项目写分页改造方案。现有术语文档明确“关闭”不等于“完成”，暂无数据库测试环境，不允许建表造数；不升级依赖。",
+      "expected_output": "沿已确认术语和真实版本设计页内容、筛选后 total 及方言验证；保留数据库证据缺口，不采用外部 Java 21 模板、不写库、不编造术语或强制新增 glossary。",
+      "tags": [
+        "backend_verification",
+        "version_and_domain_context",
+        "read_only_db"
+      ]
     }
   ]
 }

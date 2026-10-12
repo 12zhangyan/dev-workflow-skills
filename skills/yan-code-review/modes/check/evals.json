@@ -10,7 +10,9 @@
       "id": 2,
       "prompt": "帮我按这些 findings 直接把代码改好：CR-1 OrderService.java:88 customerId 为空 NPE",
       "expected_output": "不应使用 review-check；应建议改用 review-repair 直接修复，因为本 skill 只读不改代码。",
-      "tags": ["routing_review_repair"]
+      "tags": [
+        "routing_review_repair"
+      ]
     },
     {
       "id": 3,
@@ -41,61 +43,94 @@
       "id": 8,
       "prompt": "在外层 Git、内层 SVN 的仓库根执行 review-check，变更文件都位于内层 SVN",
       "expected_output": "必须按每个变更文件最近控制标记确定内层 SVN 为 VCS_OWNER；外层 Git 的 ?? 子目录只作嵌套提示，不能替代内层 svn status/diff。",
-      "tags": ["nested_vcs", "vcs_owner"]
+      "tags": [
+        "nested_vcs",
+        "vcs_owner"
+      ]
     },
     {
       "id": 9,
       "prompt": "review-check 发现新增测试本地存在但 SVN 状态为 ?，其他代码审查没有问题",
       "expected_output": "应输出提交完整性 finding 和 VCSGateBlocked；可继续报告只读 findings，但不得给 Review Gate 通过或可提交结论。",
-      "tags": ["vcs_gate", "untracked_test"]
+      "tags": [
+        "vcs_gate",
+        "untracked_test"
+      ]
     },
     {
       "id": 10,
       "prompt": "非交互运行 review-check，未提供入口、diff、任务包或当前改动范围",
       "expected_output": "应直接输出 InsufficientMaterial、最小缺失材料和无法判断的范围，不等待用户回复，不输出未发现问题。",
-      "tags": ["non_interactive", "insufficient_material"]
+      "tags": [
+        "non_interactive",
+        "insufficient_material"
+      ]
     },
     {
       "id": 11,
       "prompt": "review-check 执行 git status 时因 safe.directory/权限失败且没有可靠输出",
       "expected_output": "应保留退出码和错误摘要，标记 VCSStatusUnknown，不能把空输出当 clean，也不能给 VCS/Review Gate 通过结论。",
-      "tags": ["vcs_status_unknown", "evidence_blocked"]
+      "tags": [
+        "vcs_status_unknown",
+        "evidence_blocked"
+      ]
     },
     {
       "id": 12,
       "prompt": "review-check 发现 @SpringBootTest 在默认 profile 调真实 AI，mvn verify 因缺 API Key 失败；GitHub Actions 只执行 verify 且未声明 secret",
       "expected_output": "应输出 TestDependencyClass=Mixed 或 LiveExternal、TestEvidenceStatus=Failed，并给出 Important 测试架构/CI 契约 finding：默认 CI 必然失败且测试不应默认调用真实外部服务。不能归为 EnvironmentBlocked，修复建议是 profile/tag/job 隔离并保留 Hermetic 默认验证。",
-      "tags": ["external_test_dependency", "ci_contract", "important_finding"]
+      "tags": [
+        "external_test_dependency",
+        "ci_contract",
+        "important_finding"
+      ]
     },
     {
       "id": 13,
       "prompt": "请用一个 AI 审查当前改动，发现问题就直接修复、跑验证，再复审一遍直到关闭 Critical/Important",
       "expected_output": "不应停在只读 review-check；应路由到 review-loop，由同一 AI 按证据状态完成审查、修复、验证和必要复审，无法继续取得有效进展时停止。",
-      "tags": ["routing_review_loop"]
+      "tags": [
+        "routing_review_loop"
+      ]
     },
     {
       "id": 14,
       "prompt": "同会话刚按 yan-dev-doc 完成实现；用户只发 /yan-code-review 或“使用 yan-code-review”，未给 entry；会话内已有明确 docs/.../*.md 与 changed 文件",
       "expected_output": "应进入 check；不追问“审查什么”；默认针对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings；未要求记录时不写看板。",
-      "tags": ["same_session_default", "implementation_review"]
+      "tags": [
+        "same_session_default",
+        "implementation_review"
+      ]
     },
     {
       "id": 15,
       "prompt": "review-check 已从 yan-dev-doc 找到 deliveryId；业务代码必须保持只读，但我要在看板看到本轮结论",
       "expected_output": "业务代码与正式文档保持只读；使用稳定 check eventId 更新同一 deliveryId，写入 ReviewScopeType、结论、finding ID/状态和验证摘要，不把精确 File/Line 或完整 diff 写入看板；输出 BoardPublishStatus。",
-      "tags": ["board_lifecycle", "same_delivery", "read_only"]
+      "tags": [
+        "board_lifecycle",
+        "same_delivery",
+        "read_only"
+      ]
     },
     {
       "id": 16,
       "prompt": "执行 check 只读审查；请同时加载 package/repair/loop 的 reference、模板和全部示例以统一格式。",
       "expected_output": "只加载 check mode；审查维度或输出格式需要补充时才读自己的 reference，共享协议按冲突、门禁、Brief 或实际发布条件加载。不得加载其他 mode 的资料。",
-      "tags": ["route_minimal_loading", "read_only", "lazy_examples"]
+      "tags": [
+        "route_minimal_loading",
+        "read_only",
+        "lazy_examples"
+      ]
     },
     {
       "id": 17,
       "prompt": "ImplementationReview 已核对 yan-dev-doc、SVN diff 和两个 Java 文件，17 个 Hermetic 测试全部通过，结论为 NoEvidenceIssue。请输出审查结果。",
       "expected_output": "答复应直接说明在已检查范围内未发现有证据的问题、17 个测试实际通过及仍有必要的下一动作；审计字段放在用户结论之后。不得把 PlanReview 或未验证范围写成通过，不输出空 finding 分组，不建议 repair；未要求归档时也不推荐 package。",
-      "tags": ["human_readable_no_findings", "no_false_repair_handoff", "implementation_review"]
+      "tags": [
+        "human_readable_no_findings",
+        "no_false_repair_handoff",
+        "implementation_review"
+      ]
     },
     {
       "id": 18,
@@ -104,6 +139,92 @@
       "tags": [
         "finding_acceptance",
         "repair_readiness"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "只读审查：private first(List<String> values) 直接 values.get(0)，唯一调用方在同一线程先检查 isEmpty()，随后传入 new ArrayList<>(values) 的非空快照，没有其他入口。有人说缺少重复判空会导致线上越界。",
+      "expected_output": "追踪唯一调用路径与快照，核对检查到调用之间的变化可能性；已有证据排除了所述空集合触发路径，不制造 finding 或修复建议；结论限于提供的实现和入口，不声称线上已验证。",
+      "tags": [
+        "counterevidence",
+        "false_positive",
+        "read_only"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "只读审查：first(List<String>) 有两个入口，HTTP Controller 先校验非空再调用；批量任务直接传 mapper.findRows()，查询明确可能返回空列表。不能因为 HTTP 已有校验就判整段安全。",
+      "expected_output": "分别核对两个入口；保留批量任务空列表到 get(0) 的真实缺陷，定位触发路径和影响，不能因一个安全入口漏报，也不把源码路径证据包装成事故已发生。",
+      "tags": [
+        "multiple_callers",
+        "true_positive",
+        "read_only"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "只读审查：输入解析新支持 PARTIAL，Controller 测试通过；未修改的标签函数默认把 PARTIAL 显示成未知。导出契约仍明确只导出 COMPLETED，不应导出处理中记录。",
+      "expected_output": "追踪新增状态的真实消费者，报告标签映射遗漏；核对导出业务契约后保留原过滤规则，不把所有没有 PARTIAL 的位置都报缺陷，不修改代码。",
+      "tags": [
+        "unchanged_consumer",
+        "enum_completeness",
+        "intentional_exclusion"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "审核订单筛选修复是否被测试证明：ServiceTest 的 repository mock 直接返回过滤后的三条订单，Service 只是返回这个结果；被修改的 SQL 位于 Mapper.xml，尚未提供数据库或 Mapper 集成测试。",
+      "expected_output": "说明 Service 单测证明传参或结果处理，未执行真实 SQL；确认是否有其他有效覆盖后指出 SQL 验证缺口，不因 mock 存在否定所有单测，也不声称修复已在数据库生效。",
+      "tags": [
+        "mock_boundary",
+        "verification_scope"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "查询服务没有同名 Test 文件，但 ApiQueryTest 的参数化用例经真实 Controller 调用真实 Service，分别断言不同租户、分页和空列表；审查者建议新增一个只断言 mock Service 返回结果的测试。",
+      "expected_output": "沿调用与断言核对已有间接覆盖，不用文件名判断覆盖缺失，不建议为数量添加空洞重复测试；缺陷只能依据实际未覆盖的行为提出。",
+      "tags": [
+        "indirect_coverage",
+        "no_redundant_test"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "审查已确认要求：保存失败不得发送通知。当前 patch 编译、格式和 happy-path 测试都通过，但 finally 中无条件调用 notifier.send。",
+      "expected_output": "按验收检查保存异常到发送通知路径，保留违反明确副作用约束的 finding；不把编译或 happy-path 通过当整体通过，也不扩展到无关最佳实践。",
+      "tags": [
+        "acceptance_trace",
+        "negative_side_effect"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "只读审查折扣测试：已确认业务折扣为 10%，实现导出的 DISCOUNT_RATE 被改成 0.15，测试导入这个常量再计算 expected，所有测试通过。",
+      "expected_output": "用 100 应付 90 的独立契约例子定位实现和断言共同漂移，区分真实行为缺陷与测试敏感性缺口；不因现有绿灯关闭问题，也不改文件。",
+      "tags": [
+        "independent_test_oracle",
+        "behavioral_testing"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "只读核对验收：受控测试记录显示保存点击后 HTTP 202 返回 QUEUED，页面立即显示“已保存”，刷新同一记录仍为旧值；没有消费完成证据，测试的成功断言只检查 toast。",
+      "expected_output": "把受理、页面提示、终态及持久化分开，指出已证实的提示语义问题和未完成持久化验证，不冒充实际浏览器执行、不重放保存。",
+      "tags": [
+        "browser_verification",
+        "async_acceptance",
+        "read_only"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "审查离线草稿验收，已批准契约仅要求本机保存：真实浏览器测试断言输入、刷新后从本地存储恢复，以及明确提示“仅本机草稿”；没有服务端请求。",
+      "expected_output": "按离线草稿契约承认证据，不提出缺少服务端保存的伪缺陷，也不要求所有页面必须有网络请求。",
+      "tags": [
+        "browser_verification",
+        "negative_control",
+        "offline_contract"
       ]
     }
   ]

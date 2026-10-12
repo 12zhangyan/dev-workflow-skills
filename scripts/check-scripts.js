@@ -34,6 +34,7 @@ for (const file of files) {
   const text = fs.readFileSync(full, 'utf8');
   if (!/^#!\/usr\/bin\/env node\r?\n/.test(text)) fail(`${rel} must start with a node shebang`);
   if (!text.includes("'use strict';")) fail(`${rel} must enable strict mode`);
+  if (text.includes('\0')) fail(`${rel} must not contain literal NUL bytes`);
 
   const result = spawnSync('node', ['--check', rel], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {
@@ -51,7 +52,7 @@ if (selfTest.status !== 0) {
   if (selfTest.stderr) process.stderr.write(selfTest.stderr);
 }
 
-for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js', 'scripts/check-git-diff.js', 'scripts/check-route-loading.js', 'scripts/check-skill-metadata.js', 'scripts/check-skill-inventory.js', 'scripts/check-workflow-briefs.js', 'scripts/run-host-evals.js']) {
+for (const scriptSelfTest of ['scripts/check-docs.js', 'scripts/check-evals.js', 'scripts/check-git-diff.js', 'scripts/check-route-loading.js', 'scripts/check-skill-metadata.js', 'scripts/check-skill-inventory.js', 'scripts/check-workflow-briefs.js', 'scripts/run-host-evals.js', 'scripts/compare-host-evals.js']) {
   const result = spawnSync('node', [scriptSelfTest, '--self-test'], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {
     fail(`${scriptSelfTest} self-test failed`);

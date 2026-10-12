@@ -173,14 +173,14 @@ function listFiles(directory) {
   return files;
 }
 
-function budgetKind(rel, routeSources) {
+function budgetKind(rel, routeSources, runtimeResources = new Set()) {
   const name = path.basename(rel);
   if (routeSources.has(rel)) return name === 'SKILL.md' ? 'public_entry' : 'mode';
   if (name === 'completion.md') return 'completion';
   if (name === 'reference.md') return 'reference';
   if (name === 'examples.md') return 'examples';
   if (/(?:^|-)template(?:-|\.md$)/i.test(name)) return 'template';
-  return '';
+  return runtimeResources.has(rel) ? 'reference' : '';
 }
 
 function routeBudgetKind(route) {
@@ -198,6 +198,12 @@ function defaultRouteFootprint(base, route) {
     if (fs.existsSync(full)) chars += readText(base, rel).length;
   }
   return { paths, chars };
+}
+
+function runtimeResourcePaths(contract) {
+  return new Set((contract.routes || []).flatMap((route) => (
+    [...collectDeclaredResources(route, []).keys()]
+  )));
 }
 
 function validateBudgets(base, contract) {
@@ -222,11 +228,12 @@ function validateBudgets(base, contract) {
     }
   }
   const routeSources = new Set((contract.routes || []).map((route) => normalizeRel(route.source || '')));
+  const runtimeResources = runtimeResourcePaths(contract);
   const skillRoot = path.join(base, 'skills');
   for (const full of listFiles(skillRoot)) {
     const rel = normalizeRel(path.relative(base, full));
-    if (!/^skills\/yan-[^/]+\//.test(rel) && !routeSources.has(rel)) continue;
-    const kind = budgetKind(rel, routeSources);
+    if (!/^skills\/yan-[^/]+\//.test(rel) && !routeSources.has(rel) && !runtimeResources.has(rel)) continue;
+    const kind = budgetKind(rel, routeSources, runtimeResources);
     if (!kind || !Number.isInteger(limits[kind])) continue;
     const chars = readText(base, rel).length;
     if (chars > limits[kind]) {
@@ -247,13 +254,14 @@ function validateBudgets(base, contract) {
 
 function loadingReport(base, contract) {
   const routeSources = new Set(contract.routes.map((route) => normalizeRel(route.source)));
+  const runtimeResources = runtimeResourcePaths(contract);
   const limits = contract.budgets.max_chars;
   const defaultLimits = contract.budgets.max_default_chars;
   const resources = [];
   for (const full of listFiles(path.join(base, 'skills'))) {
     const rel = normalizeRel(path.relative(base, full));
-    if (!/^skills\/yan-[^/]+\//.test(rel) && !routeSources.has(rel)) continue;
-    const kind = budgetKind(rel, routeSources);
+    if (!/^skills\/yan-[^/]+\//.test(rel) && !routeSources.has(rel) && !runtimeResources.has(rel)) continue;
+    const kind = budgetKind(rel, routeSources, runtimeResources);
     if (!kind) continue;
     const chars = readText(base, rel).length;
     resources.push({ path: rel, kind, chars, limit: limits[kind], utilization: Number((chars / limits[kind]).toFixed(3)) });
@@ -427,6 +435,29 @@ function runSelfTest() {
     });
     if (!budgetErrors.some((message) => message.includes('exceeds public_entry budget'))) {
       throw new Error('oversized route fixture was not rejected');
+    }
+
+    const sharedRel = 'skills/_shared/conditional-guide.md';
+    fs.mkdirSync(path.join(temp, 'skills', '_shared'), { recursive: true });
+    fs.writeFileSync(path.join(temp, sharedRel), 'x'.repeat(101), 'utf8');
+    const sharedRoute = JSON.parse(JSON.stringify(validRoute));
+    sharedRoute.direct_resources.conditional.push({ target: sharedRel, guard: 'only when needed' });
+    const sharedContract = {
+      routes: [sharedRoute],
+      budgets: {
+        max_chars: { public_entry: 1000, mode: 1000, completion: 1000, reference: 100, examples: 1000, template: 1000 },
+        max_default_chars: { public_entry: 1000, mode: 1000 },
+      },
+    };
+    if (!validateBudgets(temp, sharedContract).some((message) => message.includes(sharedRel + ' exceeds reference budget'))) {
+      throw new Error('oversized conditional shared reference was not rejected');
+    }
+    const sharedReport = loadingReport(temp, sharedContract);
+    if (!sharedReport.resources.some((item) => item.path === sharedRel && item.kind === 'reference')) {
+      throw new Error('shared reference was missing from the loading report');
+    }
+    if (defaultRouteFootprint(temp, sharedRoute).chars !== defaultRouteFootprint(temp, validRoute).chars) {
+      throw new Error('conditional reference was counted as default-loaded');
     }
 
     fs.writeFileSync(path.join(temp, 'skills', 'sample', 'completion.md'), '# completion\nmore context\n', 'utf8');

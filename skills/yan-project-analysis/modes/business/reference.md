@@ -43,4 +43,4 @@
 
 ## 可选发布
 
-仅在已授权发布看板时读取 [共享看板发布流程](../../../_shared/board-publish-flow.md)。条目先写到 `project-html/data/_entry.json`，再由 `board-add.js` 处理；禁止手工插入标记行或整体重写 `data/changes.js`。
+仅在已授权发布看板时读取 [共享看板发布流程](../../../_shared/board-publish-flow.md)。条目先写到 本次独占的临时 JSON（由 `workflow-fs.js prepare-board-entry` 分配），再由 `board-add.js` 处理；禁止手工插入标记行或整体重写 `data/changes.js`。

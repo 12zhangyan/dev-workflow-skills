@@ -54,6 +54,66 @@ function requireText(rel, needles) {
   }
 }
 
+
+function smokeIncompleteRollback(tempRoot) {
+  const vm = require('vm');
+  // Load functions without the CLI entry point; inject only the failing I/O.
+  const source = read('scripts/install-core.js').split('const options = parseArgs(process.argv.slice(2));')[0];
+  for (const failure of ['skill-restore', 'manifest-restore', 'active-cleanup']) {
+    const home = path.join(tempRoot, 'rollback-' + failure);
+    const skillsRoot = path.join(home, '.agents/skills');
+    const transactionRoot = path.join(home, '.yan-dev-workflow-skills-backups/agents/snapshot');
+    const stageRoot = path.join(home, '.yan-dev-workflow-skills-staging/agents/snapshot');
+    const active = path.join(skillsRoot, 'yan-dev-doc');
+    const held = path.join(transactionRoot, 'yan-dev-doc');
+    const manifest = path.join(transactionRoot, '.yan-dev-workflow-skills.json');
+    fs.mkdirSync(held, { recursive: true });
+    fs.mkdirSync(skillsRoot, { recursive: true });
+    fs.mkdirSync(stageRoot, { recursive: true });
+    fs.writeFileSync(path.join(held, 'SKILL.md'), 'original user-modified Skill');
+    fs.writeFileSync(manifest, 'original manifest');
+    if (failure === 'active-cleanup') {
+      fs.mkdirSync(active);
+      fs.writeFileSync(path.join(active, 'SKILL.md'), 'new installation');
+    }
+    const context = {
+      home, targetName: 'agents', skillsRoot, transactionRoot, stageRoot,
+      manifestWritten: false, previousManifestMoved: true,
+      activated: failure === 'active-cleanup' ? [{ active }] : [], moved: [{ active, held }],
+    };
+    const blocked = Object.assign(new Error('simulated rollback I/O failure'), { code: 'EACCES' });
+    const io = Object.assign({}, fs, {
+      renameSync(from, to) {
+        if ((failure === 'skill-restore' && from === held)
+          || (failure === 'manifest-restore' && from === manifest)) throw blocked;
+        return fs.renameSync(from, to);
+      },
+      rmSync(file, options) {
+        if (failure === 'active-cleanup' && file === active) throw blocked;
+        return fs.rmSync(file, options);
+      },
+    });
+    let message = '';
+    try {
+      vm.runInNewContext(source + '\nrollbackInstall(testContext);', {
+        require: name => name === 'fs' ? io : require(name),
+        process: { env: {}, stdout: { write() {} } }, testContext: context,
+      }, { timeout: 5000 });
+    } catch (error) { message = error.message; }
+    if (!message.includes('rollback incomplete') || !message.includes(transactionRoot)) {
+      fail('incomplete rollback must report its recovery directory: ' + failure);
+    }
+    const original = failure === 'manifest-restore' ? manifest : path.join(held, 'SKILL.md');
+    const expected = failure === 'manifest-restore' ? 'original manifest' : 'original user-modified Skill';
+    if (!fs.existsSync(original) || fs.readFileSync(original, 'utf8') !== expected) {
+      fail('incomplete rollback deleted the last recoverable original: ' + failure);
+    }
+    if (failure !== 'manifest-restore' && fs.readFileSync(path.join(skillsRoot, '.yan-dev-workflow-skills.json'), 'utf8') !== 'original manifest') {
+      fail('one restore failure must not stop other restoration attempts');
+    }
+  }
+}
+
 function sourceDirectories() {
   return fs.readdirSync(path.join(root, 'skills'), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && !legacyNames.includes(entry.name))
@@ -626,6 +686,7 @@ cmdBytes.forEach((byte, index) => {
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-workflow-skills-installer-'));
 try {
+  smokeIncompleteRollback(tempRoot);
   smokeSharedBoundary(tempRoot);
   if (process.platform === 'win32') smokeWindows(tempRoot);
   else smokePosix(tempRoot);
