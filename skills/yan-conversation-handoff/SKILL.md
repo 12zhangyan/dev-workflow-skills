@@ -1,6 +1,6 @@
 ﻿---
 name: yan-conversation-handoff
-description: 基于当前对话和已取得证据，生成供下一段 AI 对话继续执行的精简移交文档。用户要求“写移交文档”“给下一个对话交接”“总结当前对话供另一个 AI 继续”“生成 handoff”时使用；不替代开发方案、项目分析或代码审查。
+description: 从当前对话生成供下一段 AI 对话继续工作的精简移交文档。用于跨对话交接、接手提示或 handoff；不替代开发方案、项目分析或代码审查。
 ---
 
 # Conversation handoff

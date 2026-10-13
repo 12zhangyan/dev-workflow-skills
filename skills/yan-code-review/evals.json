@@ -208,6 +208,20 @@
         "route_minimal_loading",
         "specialist_negative_control"
       ]
+    },
+    {
+      "id": 20,
+      "prompt": "使用 yan-code-review 只读审核 src/example/NotificationPreview.java 是否满足 README.md 已确认需求与项目规则。说明有证据的问题、实际触发输入和影响，也说明哪些结论已有依据、哪些验证尚未进行。不要修复、运行会写入文件的命令或扩展到外部系统。",
+      "expected_output": "区分需求符合性与实现风险：requested 大于 available 时返回 false 但仍调用 notifier，违反失败不通知契约；例如 available=1/requested=2。承认可见构造校验、输入校验和私有 final 字段，不为无 DB 的预览新增持久化、租户或控制器要求。只报告源码证据，不声称已运行测试；零写入。",
+      "files": [
+        "scripts/fixtures/review-requirement-evidence"
+      ],
+      "tags": [
+        "live_fixture",
+        "requirement_coverage",
+        "negative_side_effect",
+        "scope_negative_control"
+      ]
     }
   ]
 }

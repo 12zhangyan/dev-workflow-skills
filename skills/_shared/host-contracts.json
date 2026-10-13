@@ -813,6 +813,42 @@
           }
         ]
       }
+    },
+    {
+      "id": "review-requirement-evidence",
+      "prompt_ref": "yan-code-review:20",
+      "route": "check",
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 4,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(repair|loop|package)/"
+        ]
+      },
+      "assertions": {
+        "text": [
+          {
+            "pattern": "NotificationPreview\\.java",
+            "min_matches": 1
+          },
+          {
+            "pattern": "notifier\\.accept|notifier|通知",
+            "min_matches": 1
+          },
+          {
+            "pattern": "false|拒绝|不足|超过",
+            "min_matches": 1
+          },
+          {
+            "pattern": "README(?:\\.md)?",
+            "min_matches": 1
+          }
+        ]
+      }
     }
   ]
 }

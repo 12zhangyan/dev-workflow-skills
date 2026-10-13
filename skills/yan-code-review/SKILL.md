@@ -1,6 +1,6 @@
 ﻿---
 name: yan-code-review
-description: 统一处理代码审查及 findings 闭环：check 只读找问题，repair 修复已有 findings，loop 在明确授权下自主完成审查、修复与验证，package 组织独立多 reviewer 或汇总结果。用户提到 review、代码审查、修复 findings、审查并修复、生成 review task 或多个 AI 独立审查时使用。仅要求“看看有没有问题”时保持只读；不依赖外部方法论 Skill。兼容 review-check、review-repair、review-loop、review-fix。
+description: 代码审查与 findings 闭环。用于只读找问题、修复已有 findings、审查并修复，以及独立多 reviewer 或结果汇总；未授权修改时只读。兼容 review-check、review-repair、review-loop、review-fix。
 ---
 
 # Code Review

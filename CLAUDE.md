@@ -120,6 +120,7 @@ Two copies must stay in sync: `project-html/` and `skills/yan-dev-doc/assets/boa
 ## Editing Skills
 
 When modifying a skill:
+- Write each behavioral rule once at its authoritative entry or reference; keep unavoidable permission guardrails visible at the entry. Describe observable completion and the condition for reading each optional reference. Prefer deleting a redundant instruction over shortening every sentence, and measure the full selected route rather than only the entry length. Treat a shorter prompt as a loading result, not evidence of better decisions; compare representative positive and negative cases before making that claim.
 - The execution steps in SKILL.md are the authoritative source of behavior — keep them precise and sequential
 - Focused Markdown resources hold runtime templates and question banks; `SKILL.md` must link directly to only the resources needed for the selected route. A `reference.md` compatibility index must not become an eager-load instruction.
 - Keep `skills/_shared/route-loading-contracts.json` synchronized with each entry/mode's direct Markdown links, load guards, eval binding, and character budget; examples must remain conditional and mode templates must remain routed or conditional.
