@@ -187,6 +187,36 @@
         "coordination_cost",
         "write_ownership"
       ]
+    },
+    {
+      "id": 23,
+      "prompt": "汇总两位独立 reviewer 的任务：A 已送达并已读，但未返回；B 已返回空回复且工具记录超时，当前没有可用 findings。已有两个任务句柄，只报告进度，不重发。",
+      "expected_output": "区分送达、已读、返回与核验，A 在途、B 失败或不可用；不计作两份成功 review，不报通过，不编造结果或重复派发。",
+      "tags": [
+        "delivery_receipts",
+        "review_coverage",
+        "no_duplicate_dispatch"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "聚合 A 与 B 的审查：A 对工作区版本 v1 返回 IM-4；B 对 v2 返回通过。两个版本 HEAD 相同，但 v2 未提交的接口和调用方已修改。请复核后报告。",
+      "expected_output": "检查实际diff/内容及受影响调用方，不能仅凭HEAD或人数合并为通过；保留IM-4身份和来源，核验是否仍存在，无关且证据一致的单元可复用，未知项待重审。",
+      "tags": [
+        "review_baseline",
+        "stale_result",
+        "partial_reuse"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "两位 reviewer 均返回同一实际 diff 的完整审查，协调者核验覆盖与证据后确认无 findings。未要求文档、看板或更多 reviewer。",
+      "expected_output": "报告多 reviewer 覆盖与无有证据问题边界，不强制重新审查、增加角色、生成任务包或持久 ledger。",
+      "tags": [
+        "delivery_receipts",
+        "negative_control",
+        "complete_review"
+      ]
     }
   ]
 }

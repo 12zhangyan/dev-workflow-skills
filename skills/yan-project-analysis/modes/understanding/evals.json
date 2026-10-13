@@ -95,6 +95,16 @@
         "safe_suffix",
         "unknown_file_state"
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "只在聊天解释这条调用链并画一个简单图：Controller 调 publish 返回任务号；远端 Listener 没有源码或完成日志。有人给的旧图把 publish 直接连到数据库保存成功。",
+      "expected_output": "使用有证据的请求/投递关系，远端与持久化终态标未展开或待确认；不凭旧图补实线成功路径，不写HTML/看板，不为了类型齐全画五张图。",
+      "tags": [
+        "diagram_evidence",
+        "async_boundary",
+        "negative_control"
+      ]
     }
   ]
 }

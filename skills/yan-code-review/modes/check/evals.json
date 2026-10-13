@@ -246,6 +246,45 @@
         "partial_evidence",
         "no_mechanical_question"
       ]
+    },
+    {
+      "id": 30,
+      "prompt": "复核一次三文件审查记录：A.java 完成且发现 IM-2，B.java 渲染后的提示词超限未发起模型调用，C.java 因取消尚未审查。只汇报本轮结果，不继续扫描。",
+      "expected_output": "保留 A 的 IM-2 与完成证据；B 为失败，C 为待审，整体审查未完成。零新增 findings 不代表通过，不把超限文件作为可复用成功单元，不丢掉已完成结果。",
+      "tags": [
+        "review_coverage",
+        "prompt_overflow",
+        "partial_results"
+      ]
+    },
+    {
+      "id": 31,
+      "prompt": "审查汇总器返回 findings=[]，但应审的两个文件都因读取超时没有取得内容。请判断本轮是否通过，不重试。",
+      "expected_output": "明确全部未完成、本轮审查失败及文件/原因，不用空 findings 宣称未发现问题或通过；没有代码证据不制造业务缺陷。",
+      "tags": [
+        "review_coverage",
+        "all_failed",
+        "empty_findings"
+      ]
+    },
+    {
+      "id": 32,
+      "prompt": "复核窄范围审查：应审 A.java 和 B.java 均已完成且无有证据问题，当前 diff/内容与审查基线一致；build/generated 的缓存经项目规则明确排除，必要验证通过。只给结论。",
+      "expected_output": "可说明请求范围已覆盖、未发现有证据问题与排除依据；不把合规排除项当待审，不强制全仓扫描、额外 reviewer 或持久覆盖表。",
+      "tags": [
+        "review_coverage",
+        "negative_control",
+        "valid_exclusion"
+      ]
+    },
+    {
+      "id": 33,
+      "prompt": "只读核对 IM-6 的行级反馈：旧回执是 Service.java:80，当前文件新增了 30 行，问题语句现在在 110 行；被删除的条件只存在于 diff 原侧。",
+      "expected_output": "回到当前文件/diff核验并定位 110 行，删除条件标原侧；保留 finding ID，不照搬旧行号或编造当前侧定位，证据缺失时改用可复核符号。",
+      "tags": [
+        "line_evidence",
+        "stale_location"
+      ]
     }
   ]
 }

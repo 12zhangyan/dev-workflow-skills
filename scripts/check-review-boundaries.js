@@ -36,6 +36,11 @@ requireText('skills/yan-code-review/modes/check/mode.md', [
   '不得修改代码',
   '同会话刚完成的实现默认审其实际 changed 文件和 diff',
   '不能把空结果当 clean',
+  '已审、按规则排除、失败、待审',
+  '保留已完成单元的证据和 findings',
+  '全部未完成时明确审查失败',
+  '零 findings 只表示没有已证实问题，不证明审查完成',
+  '行号不可验证时用符号/片段定位，不猜行号',
   '证据不足不冒充 finding',
   '修法或验证设计未定不撤销 finding',
   '关键材料不足时列出缺口和受影响结论，不写成通过',
@@ -59,6 +64,9 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
   '委派不可用',
   'reviewer 首轮独立取证',
   '委派不扩大用户原有权限',
+  '不把发送成功、沉默或空回复算作完成',
+  '重试前检查原句柄',
+  '不能按成功人数推导整体通过',
   '至少两个独立 reviewer 成功返回时才称为多 reviewer 结果',
   '`BK` 未裁决时不能下发对应修复',
 ]);
@@ -67,6 +75,8 @@ requireText('skills/yan-code-review/modes/loop/mode.md', [
   'SingleAgentReview',
   '读取并执行 [check mode](../check/mode.md)',
   '没有 accepted finding 就停止修复',
+  '若仍有审查失败或待审范围',
+  '不得为结束循环删除必要检查、放宽断言或把失败改成不适用',
   '不执行数据库写入、DDL、add/commit/push',
   '没有新证据或连续动作没有实质进展',
   '不设为了流程完整而必须跑满的轮次',
@@ -86,6 +96,9 @@ requireText('skills/yan-code-review/modes/package/aggregation.md', [
   'Accepted 只表示问题已证实',
   '不因建议缺失归入 `RJ`',
   '下发执行型修复前',
+  '只有 HEAD 相同不能证明未提交内容相同',
+  '不同版本的结果不能拼成一次完整通过',
+  '覆盖不完整与缺陷是否存在分别判断',
 ]);
 
 const allTestEvidenceStatuses = 'Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable';

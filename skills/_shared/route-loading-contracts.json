@@ -57,6 +57,10 @@
           {
             "target": "skills/_shared/browser-verification.md",
             "guard": "仅在页面交互或持久化验收有缺口时读取"
+          },
+          {
+            "target": "skills/_shared/diagram-evidence.md",
+            "guard": "需要用图解释组件、调用、数据或状态关系时"
           }
         ],
         "index_only": []
@@ -366,6 +370,10 @@
           {
             "target": "skills/yan-project-analysis/modes/understanding/codemap-template.md",
             "guard": "`CodeMap` 在准备落盘时才读取"
+          },
+          {
+            "target": "skills/_shared/diagram-evidence.md",
+            "guard": "需要用图解释调用、数据或状态关系时"
           }
         ],
         "index_only": []
@@ -428,6 +436,10 @@
           {
             "target": "skills/yan-project-analysis/modes/business/reference.md",
             "guard": "证据足以落盘时读取"
+          },
+          {
+            "target": "skills/_shared/diagram-evidence.md",
+            "guard": "需要用图解释流程、调用、数据或状态时"
           }
         ],
         "index_only": []

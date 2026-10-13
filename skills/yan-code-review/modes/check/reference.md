@@ -43,6 +43,7 @@ Check 产生稳定 source ID：`CR-n / IM-n / MI-n`。package 首次聚合可映
 ReviewScopeType: <PlanReview|ImplementationReview|FixHandoffReview>
 Conclusion: <Findings|NoEvidenceIssue|InsufficientMaterial>
 Scope: <已检查与未检查范围>
+Coverage: <仅在分批/中断/审计需要时；本轮基线、应审单元、已审/排除/失败/待审及原因>
 VCS: <owners/status/untracked/unknown>
 Tests: TestDependencyClass=<Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown|NotApplicable>; TestEvidenceStatus=<Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>; command/result=<证据与限制>
 BoardPublishStatus: <NotRequested|Published|Blocked>

@@ -295,6 +295,15 @@
         "existing_coverage",
         "compact_plan"
       ]
+    },
+    {
+      "id": 57,
+      "prompt": "为同步保存改异步任务写方案，用时序图解释拟议设计。已有实现只有同步Service；目前没有队列和消费者，未要求发布看板。",
+      "expected_output": "图中区分当前实现与拟议队列/消费者，设计验收包含受理和终态；只按需加载图表参考，不声称链路已运行，不安装绘图库/服务或初始化看板。",
+      "tags": [
+        "diagram_evidence",
+        "planned_vs_actual"
+      ]
     }
   ]
 }
