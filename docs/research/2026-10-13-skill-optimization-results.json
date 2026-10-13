@@ -1,0 +1,837 @@
+{
+  "date": "2026-10-13",
+  "kind": "skill-writing-and-review-optimization",
+  "staticMetrics": [
+    {
+      "skill": "yan-dev-doc",
+      "entryBefore": 2669,
+      "entryAfter": 2381,
+      "descriptionBefore": 156,
+      "descriptionAfter": 82
+    },
+    {
+      "skill": "yan-code-review",
+      "entryBefore": 1672,
+      "entryAfter": 1542,
+      "descriptionBefore": 259,
+      "descriptionAfter": 129
+    },
+    {
+      "skill": "yan-project-analysis",
+      "entryBefore": 2086,
+      "entryAfter": 1960,
+      "descriptionBefore": 237,
+      "descriptionAfter": 111
+    },
+    {
+      "skill": "yan-conversation-handoff",
+      "entryBefore": 1737,
+      "entryAfter": 1696,
+      "descriptionBefore": 110,
+      "descriptionAfter": 69
+    }
+  ],
+  "conditionalResourceMetrics": {
+    "yan-code-review/modes/check/mode.md": {
+      "before": 1858,
+      "after": 2019
+    },
+    "yan-code-review/modes/package/mode.md": {
+      "before": 2001,
+      "after": 2051
+    },
+    "_shared/behavioral-testing.md": {
+      "before": 830,
+      "after": 1043
+    }
+  },
+  "uiMetadataChars": {
+    "before": 2684,
+    "after": 1616
+  },
+  "comparisons": [
+    {
+      "label": "native-selection",
+      "comparable": true,
+      "reasons": [],
+      "conditions": {
+        "host": "codex",
+        "case": "natural-review-selection",
+        "model": "gpt-6-astra",
+        "effort": "high",
+        "invocation": "native"
+      },
+      "before": {
+        "skillSha256": "64f2ef0ea36fda5ff960cfedcb47cec36ad0da54cfe1efd8b21f38ec2a0952b9",
+        "passed": true
+      },
+      "after": {
+        "skillSha256": "2a77c7539ce9fde05104c30beade2819501a2031e2487d0d8dd43144d642513a",
+        "passed": true
+      },
+      "deltas": {
+        "durationMs": 56304,
+        "outputChars": 63,
+        "loadedResourceCount": 0
+      },
+      "limitation": "One matched pair is a regression sample, not an improvement rate. Unrecorded host settings and service variability remain uncontrolled."
+    },
+    {
+      "label": "requirement-evidence",
+      "comparable": true,
+      "reasons": [],
+      "conditions": {
+        "host": "codex",
+        "case": "review-requirement-evidence",
+        "model": "gpt-6-astra",
+        "effort": "high",
+        "invocation": "explicit"
+      },
+      "before": {
+        "skillSha256": "3adc91543f574c8fe99ad6e64fdc5e4d6cc464be52f96aae606ab93fc4dea2c6",
+        "passed": true
+      },
+      "after": {
+        "skillSha256": "94b7942f6b57d7f871f6b12d59cf9bfdae1ce7e5a8407658bf271003144c33cf",
+        "passed": true
+      },
+      "deltas": {
+        "durationMs": 28486,
+        "outputChars": 180,
+        "loadedResourceCount": 0
+      },
+      "limitation": "One matched pair is a regression sample, not an improvement rate. Unrecorded host settings and service variability remain uncontrolled."
+    }
+  ],
+  "runs": [
+    {
+      "label": "before-selection",
+      "case": "natural-review-selection",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "catalog",
+      "startedAt": "2026-10-13T01:35:30.038Z",
+      "provenance": {
+        "fixtureHead": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "4f9d4553c1104ac9431510062eaaffb791e8409fb8dabd5e3cb54bc0d6e11aeb",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "3adc91543f574c8fe99ad6e64fdc5e4d6cc464be52f96aae606ab93fc4dea2c6",
+      "metrics": {
+        "durationMs": 52092,
+        "outputChars": 722,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 0
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headAfter": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "PreviewService\\.java",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            },
+            {
+              "pattern": "limit\\s*-\\s*1|少[一1]条|少返回|off.by.one",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": false,
+          "passed": true,
+          "resources": [],
+          "count": 0
+        },
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "self-reported-selection-and-loading",
+          "nativeDiscoveryVerified": null,
+          "entryReadCommandCount": 0
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nSKILL: yan-code-review\nSKILL_FILES: .yan-host-eval-runtime/skills/yan-code-review/SKILL.md\n\n发现 **1 个可证实的问题**；输入不变契约得到遵守。\n\n**IM-1：返回数量少一行。** 定位：[PreviewService.java:19](src/example/PreviewService.java#L19)。[README.md:5](README.md#L5) 要求返回前 `min(limit, 非空行数)` 行，但实现使用 `Math.min(limit - 1, rows.size())` 计算截取终点。\n\n- **触发条件：**合法输入中，非空行数大于或等于 `limit`。\n- **影响：**应返回 `limit` 行，实际只返回 `limit - 1` 行。例如 `source = [\"A\"]、limit = 1`，应返回 `[\"A\"]`，实际返回空列表。\n- 非空行数小于 `limit` 时返回数量正确；空输入也正确。入口已限制 `limit` 为 `1..50`，因此不能据此报告负索引异常。\n\n输入不变方面，第 13 行先复制 `source`，第 14 行仅从副本移除空值，后续截取也操作副本，没有修改调用方列表；非空行的原顺序得到保留。\n\n验证采用契约与源码逐行核对及边界推演，未执行编译或运行测试。范围内 Git status、工作区及暂存区 diff 均无变更输出；Git 提示全局 ignore 文件读取权限不足。全程未创建、修改或删除文件。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "after-selection",
+      "case": "natural-review-selection",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "catalog",
+      "startedAt": "2026-10-13T01:38:59.037Z",
+      "provenance": {
+        "fixtureHead": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "f6e0174bc87b9c47b4da435e192bb33e1f8ce26652b13512ed0e82d30f7c2f48",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "94b7942f6b57d7f871f6b12d59cf9bfdae1ce7e5a8407658bf271003144c33cf",
+      "metrics": {
+        "durationMs": 62473,
+        "outputChars": 730,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 0
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headAfter": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "PreviewService\\.java",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            },
+            {
+              "pattern": "limit\\s*-\\s*1|少[一1]条|少返回|off.by.one",
+              "min_matches": 1,
+              "match_count": 3,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": false,
+          "passed": true,
+          "resources": [],
+          "count": 0
+        },
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "self-reported-selection-and-loading",
+          "nativeDiscoveryVerified": null,
+          "entryReadCommandCount": 1
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nSKILL: yan-code-review\nSKILL_FILES: .yan-host-eval-runtime/skills/yan-code-review/SKILL.md\n\n发现 **1 个已证实的问题**；输入不变契约符合要求。\n\n- **MI-1：返回数量少一条。** 定位：[PreviewService.java:19](<isolated-workspace>/src/example/PreviewService.java:19)。README 第 5 行要求返回 `min(limit, 非 null 行数)` 条，实际计算为 `Math.min(limit - 1, rows.size())`。当非 null 行数 **大于或等于 `limit`** 时，实际只返回 `limit - 1` 条，漏掉应返回的最后一条。例如 `source = [\"A\"]、limit = 1`，按代码推导返回 `[]`，契约要求 `[\"A\"]`。影响限定为本地预览结果缺行。\n\n输入不变契约：第 13 行先复制 `source`，第 14 行仅对副本移除 null；后续截取也没有修改原列表。跳过 null、保留顺序和空输入返回空列表均符合契约。\n\n验证采用 README 与完整实现的静态逐行核对，未执行编译或运行测试。范围内 Git status、工作区及暂存区 diff 均无变更输出，但 Git 提示无法读取全局 ignore 文件，故不据此宣称整个工作区干净。全程未创建、修改或删除文件。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "before-requirement",
+      "case": "review-requirement-evidence",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-13T01:35:46.421Z",
+      "provenance": {
+        "fixtureHead": "daa6348688a806a9c45900a6d45343cc6a398362",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "da2e70fbf57fa54d998a685c46451c921d31e2dbd17f720450e4e9822132555a",
+        "promptSha256": "8159e3a6922cc78cf6134133d9e062c69f12c9b25abd91e9b5261968c63b6732",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "3adc91543f574c8fe99ad6e64fdc5e4d6cc464be52f96aae606ab93fc4dea2c6",
+      "metrics": {
+        "durationMs": 76877,
+        "outputChars": 1195,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 2
+      },
+      "assessment": {
+        "passed": false,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headAfter": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": false,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "NotificationPreview\\.java",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "notifier\\.accept|notifier|通知",
+              "min_matches": 1,
+              "match_count": 14,
+              "passed": true
+            },
+            {
+              "pattern": "false|拒绝|不足|超过",
+              "min_matches": 1,
+              "match_count": 4,
+              "passed": true
+            },
+            {
+              "pattern": "README\\.md",
+              "min_matches": 1,
+              "match_count": 0,
+              "passed": false
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md"
+          ],
+          "count": 2,
+          "maxResources": 4,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md\n\n**结论：当前实现不完全满足 README 已确认需求，发现 1 个有明确源码依据的问题。** 全程只读，未修改文件，也未访问外部系统。\n\n- **IM-1（Important）：库存不足时仍发送通知。**  \n  定位：`src/example/NotificationPreview.java:17-18`。README 第 8 行要求：`requested > available` 时返回 `false`，且不发送任何通知。实现计算 `accepted` 后无条件调用 `notifier.accept(accepted)`。\n  \n  **触发输入：**传入一个记录通知的正常 `Consumer<Boolean>`，调用 `submit(0, 1)`。按源码路径，返回值为 `false`，但记录器会收到一次 `false` 通知；需求要求通知次数为零。所有满足 `available >= 0` 且 `requested > available` 的输入均会触发。调用方会因此记录一条本不应存在的预览通知。该结论来自静态路径分析，尚未运行复现。\n\n其余要求已有源码依据：\n\n| 要求 | 审核结果 |\n|---|---|\n| 非法参数在通知前抛出 `IllegalArgumentException` | 第 14–15 行先校验并抛异常，通知尚未执行 |\n| 数量足够时发送一次 `true` 通知并返回 `true` | 正常返回的 notifier 下，路径符合要求 |\n| 构造时校验 notifier | 第 10 行使用 `Objects.requireNonNull` |\n| 字段为 `private final`，不暴露可变状态 | 唯一字段符合限定，未发现对外暴露入口 |\n| 预览不扣库存 | 方法仅校验、比较和通知，没有库存扣减操作 |\n\n实际执行了文件读取、`rg` 文件及引用搜索，以及 `git --no-optional-locks` 下的仓库定位、状态检查、工作区和暂存区 diff。未发现额外 `AGENTS.md`；按本轮提供的规则和 README 审核。Git 状态及 diff 没有列出变更，但提示无法读取用户级 Git ignore 文件，因此不能把这次检查描述为毫无限制的全量干净性确认。\n\n**尚未执行编译、单元测试或运行时复现。** 当前结论足以确认上述通知分支违反需求，但不代表已完成运行验证。未将数据库、持久化或租户隔离列为缺陷，README 明确将其排除在本功能之外。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "before-requirement-corrected",
+      "case": "review-requirement-evidence",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-13T01:38:39.610Z",
+      "provenance": {
+        "fixtureHead": "daa6348688a806a9c45900a6d45343cc6a398362",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "9ba56dba16105a3c2dd31b4bba583158aef4acf857d7985933bb6f6e4b419df8",
+        "promptSha256": "8159e3a6922cc78cf6134133d9e062c69f12c9b25abd91e9b5261968c63b6732",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "3adc91543f574c8fe99ad6e64fdc5e4d6cc464be52f96aae606ab93fc4dea2c6",
+      "metrics": {
+        "durationMs": 80095,
+        "outputChars": 1222,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 2
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headAfter": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "NotificationPreview\\.java",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "notifier\\.accept|notifier|通知",
+              "min_matches": 1,
+              "match_count": 11,
+              "passed": true
+            },
+            {
+              "pattern": "false|拒绝|不足|超过",
+              "min_matches": 1,
+              "match_count": 7,
+              "passed": true
+            },
+            {
+              "pattern": "README(?:\\.md)?",
+              "min_matches": 1,
+              "match_count": 4,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md"
+          ],
+          "count": 2,
+          "maxResources": 4,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md\n\n结论：发现 **1 个有代码证据的问题**，当前实现不完全满足 README 已确认需求。未修改任何文件。\n\n**IM-1｜数量不足时仍发送通知（Important）**\n\n- **定位：** `src/example/NotificationPreview.java:17–18`。\n- **需求：** `README.md:8` 要求 `requested > available` 时返回 `false`，且不发送通知。\n- **触发输入：** 使用记录通知的正常 `Consumer<Boolean>` 构造对象，再调用 `submit(0, 1)`。\n- **代码证据：** 第 17 行计算出 `accepted = false`，第 18 行仍无条件执行 `notifier.accept(false)`，随后返回 `false`。\n- **可观察影响：** 调用方会记录一条本不应存在的 `false` 通知。返回值符合要求，但通知行为违反需求。此结果由源码路径确定，尚未运行复现。\n\n其余已检查要求有源码依据：\n\n| 要求 | 依据与结论 |\n|---|---|\n| 非法数量在通知前抛出 `IllegalArgumentException` | 第 14–15 行覆盖 `available < 0` 或 `requested <= 0`，校验先于通知 |\n| 数量足够时通知一次 `true` 并返回 `true` | 第 17–19 行满足，前提是调用方的 Consumer 正常返回 |\n| 预览不扣库存 | 方法只比较参数并调用通知器，没有扣减逻辑 |\n| 构造时校验通知器 | 第 10 行通过 `Objects.requireNonNull` 拒绝 `null` |\n| 字段为 private、final，不暴露可变状态 | 唯一字段符合要求，未提供暴露字段的访问方法 |\n\n验证采用只读文件检查、`rg` 调用点搜索，以及 `git --no-optional-locks` 的 `status`、`diff`、`diff --cached`、`ls-files` 和 `rev-parse`。目标文件和 README 未显示暂存或未暂存差异；Git 提示无法读取用户级 ignore 文件，因此不将空的 status 输出视为完整的工作区干净证明。\n\n**未执行编译、测试或运行时复现**，也未访问外部系统。已列出的项目文件中没有测试文件；本次结论限于当前源码与 README 的一致性，不包含部署、持久化或租户隔离验证，这些能力也明确不在本功能范围内。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "after-requirement",
+      "case": "review-requirement-evidence",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "explicit",
+      "startedAt": "2026-10-13T01:39:49.310Z",
+      "provenance": {
+        "fixtureHead": "daa6348688a806a9c45900a6d45343cc6a398362",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "9ba56dba16105a3c2dd31b4bba583158aef4acf857d7985933bb6f6e4b419df8",
+        "promptSha256": "8159e3a6922cc78cf6134133d9e062c69f12c9b25abd91e9b5261968c63b6732",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "94b7942f6b57d7f871f6b12d59cf9bfdae1ce7e5a8407658bf271003144c33cf",
+      "metrics": {
+        "durationMs": 108581,
+        "outputChars": 1402,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 2
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headAfter": "daa6348688a806a9c45900a6d45343cc6a398362",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "NotificationPreview\\.java",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            },
+            {
+              "pattern": "notifier\\.accept|notifier|通知",
+              "min_matches": 1,
+              "match_count": 8,
+              "passed": true
+            },
+            {
+              "pattern": "false|拒绝|不足|超过",
+              "min_matches": 1,
+              "match_count": 7,
+              "passed": true
+            },
+            {
+              "pattern": "README(?:\\.md)?",
+              "min_matches": 1,
+              "match_count": 5,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": true,
+          "passed": true,
+          "resources": [
+            "skills/yan-code-review/SKILL.md",
+            "skills/yan-code-review/modes/check/mode.md"
+          ],
+          "count": 2,
+          "maxResources": 4,
+          "requiredMissing": [],
+          "forbiddenMatches": [],
+          "withinLimit": true,
+          "receiptPresent": true
+        },
+        "selection": {
+          "required": false,
+          "passed": true
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nLOADED_RESOURCES: skills/yan-code-review/SKILL.md, skills/yan-code-review/modes/check/mode.md\n\n结论：**发现 1 个有源码证据的问题，不完全满足 README 已确认需求。** 全程只读，未修改文件、执行修复或访问外部系统。\n\n**IM-1：库存不足时仍发送通知，违反“返回 false 且不通知”的要求。**\n\n- 定位：[NotificationPreview.java 第 17–19 行](<isolated-workspace>/src/example/NotificationPreview.java:17)。\n- 需求依据：[README.md 第 8 行](<isolated-workspace>/README.md:8) 明确要求，`requested > available` 时返回 `false`，且不发送通知。\n- 触发输入：使用正常记录通知的 `Consumer<Boolean>` 构造实例，调用 `submit(0, 1)`。\n- 源码路径：输入通过参数校验，`accepted` 为 `false`，随后无条件执行 `notifier.accept(false)`，最后返回 `false`。\n- 可观察影响：调用方会记录一条本不应出现的 `false` 通知。该问题适用于所有合法且 `requested > available` 的输入；方法内没有阻止该调用的分支。\n- 证据性质：通过源码直接确认，未执行运行时复现。\n\n其余已检查规则有以下源码依据：\n\n| 要求或规则 | 审查结果 |\n|---|---|\n| 非法输入在通知前抛出 `IllegalArgumentException` | 第 14–15 行先校验，覆盖 `available < 0`、`requested <= 0` |\n| 库存充足时发送一次 `true` 并返回 `true` | 回调正常返回时，第 17–19 行满足要求 |\n| 不扣减库存 | 方法没有库存扣减逻辑 |\n| 构造时校验通知器 | 第 10 行使用 `Objects.requireNonNull` |\n| 字段保持 `private final`，不暴露可变状态 | 第 7 行符合，未发现字段暴露接口 |\n\n验证边界：已读取目标源码、完整 README 及指定技能的 `check` 入口；已执行 Git 状态、暂存与未暂存差异检查，最终状态为空，目标文件无差异。首次 Git 检查出现用户级 ignore 文件权限警告，尝试使用 `NUL` 替代失败；随后通过命令级 `git -c core.excludesFile= status --short --untracked-files=all` 成功完成检查，没有修改 Git 配置。\n\n**未执行编译、单元测试或运行时复现**，因此不声称测试通过。未将持久化、租户隔离或新增控制器等 README 明确排除的内容列为缺陷。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "before-native-selection",
+      "case": "natural-review-selection",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "native",
+      "startedAt": "2026-10-13T01:41:10.682Z",
+      "provenance": {
+        "fixtureHead": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "64f2ef0ea36fda5ff960cfedcb47cec36ad0da54cfe1efd8b21f38ec2a0952b9",
+      "metrics": {
+        "durationMs": 69643,
+        "outputChars": 760,
+        "diagnosticChars": 1551,
+        "loadedResourceCount": 0
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headAfter": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "PreviewService\\.java",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            },
+            {
+              "pattern": "limit\\s*-\\s*1|少[一1]条|少返回|off.by.one",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": false,
+          "passed": true,
+          "resources": [],
+          "count": 0
+        },
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 1
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nSKILL: yan-code-review\nSKILL_FILES: <isolated-workspace>/.agents/skills/yan-code-review/SKILL.md\n\n发现 **1 个可证实的问题**；输入不变契约符合要求。\n\n- **IM-1：返回数量存在减一错误。** [PreviewService.java:19](src/example/PreviewService.java:19) 使用 `Math.min(limit - 1, rows.size())`，而 [README.md:5](README.md:5) 要求返回 `min(limit, 非空行数)` 条。**当非空行数大于或等于 `limit` 时，结果少一条。** 例如 `source = [\"A\", \"B\"]`、`limit = 2`，应返回 `[\"A\", \"B\"]`，实际返回 `[\"A\"]`；`limit = 1` 且存在非空行时，实际返回空列表，导致预览遗漏应展示的数据。\n\n输入不变方面，第 13 行先复制 `source`，第 14 行仅在副本上删除空值，后续截取也基于副本，因此不会修改调用方列表。空值跳过、原有顺序和空输入处理均符合契约。\n\n验证采用 README 与完整实现的静态逐行核对；上述示例为代码推导，未运行测试或构建。执行了 `git --no-optional-locks status --short` 和范围内 `git diff`，均无变更输出，但有全局 Git ignore 文件读取权限警告。全程未创建、修改或删除文件。",
+      "diagnosticNotes": [],
+      "workspaceWasWritten": false
+    },
+    {
+      "label": "after-native-selection",
+      "case": "natural-review-selection",
+      "host": "codex",
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "invocation": "native",
+      "startedAt": "2026-10-13T01:41:35.295Z",
+      "provenance": {
+        "fixtureHead": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+        "graderSha256": "1475a8a6b44e1747a7d6c57455d76f320fef14a8e89c8f454d7d06ae7f84a2a7",
+        "contractSha256": "cc17a33f1a86ee95857aac5b57037733f6d5707ec96de52bbfa50ae7fb652f20",
+        "promptSha256": "c61a6e74bc0de0f2de212699c1312463d7eeff06453b0e1b063e95baaff18075",
+        "modelSelection": "explicit"
+      },
+      "skillSha256": "2a77c7539ce9fde05104c30beade2819501a2031e2487d0d8dd43144d642513a",
+      "metrics": {
+        "durationMs": 125947,
+        "outputChars": 823,
+        "diagnosticChars": 1865,
+        "loadedResourceCount": 0
+      },
+      "assessment": {
+        "passed": true,
+        "execution": {
+          "passed": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "errorCode": null
+        },
+        "observedRoute": "check",
+        "observedScope": "none",
+        "expectedRoute": "check",
+        "acceptedRoutes": [
+          "check"
+        ],
+        "expectedScope": "none",
+        "workspaceDrift": {
+          "before": [],
+          "after": [],
+          "changedPaths": [],
+          "headBefore": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headAfter": "2fce3a02bfd868202141944f8ab0970ddc7dcf74",
+          "headChanged": false,
+          "indexChanged": false,
+          "metadataChanges": [],
+          "allowedPathPatterns": [],
+          "allowed": true
+        },
+        "assertions": {
+          "passed": true,
+          "artifacts": [],
+          "text": [
+            {
+              "pattern": "PreviewService\\.java",
+              "min_matches": 1,
+              "match_count": 1,
+              "passed": true
+            },
+            {
+              "pattern": "limit\\s*-\\s*1|少[一1]条|少返回|off.by.one",
+              "min_matches": 1,
+              "match_count": 2,
+              "passed": true
+            }
+          ],
+          "forbidden_text": [],
+          "content": []
+        },
+        "outcome": {
+          "required": false,
+          "passed": true,
+          "checks": []
+        },
+        "routeLoading": {
+          "required": false,
+          "passed": true,
+          "resources": [],
+          "count": 0
+        },
+        "selection": {
+          "required": true,
+          "passed": true,
+          "expected": "yan-code-review",
+          "selected": "yan-code-review",
+          "receiptMatches": true,
+          "evidenceKind": "codex-completed-command-and-receipt",
+          "nativeDiscoveryVerified": true,
+          "entryReadCommandCount": 1
+        }
+      },
+      "output": "ROUTE: check\nWRITE_SCOPE: none\nSKILL: yan-code-review\nSKILL_FILES: <isolated-workspace>/.agents/skills/yan-code-review/SKILL.md\n\n发现 **1 个可证实的问题**；输入不变契约得到遵守。\n\n- **IM-1：返回数量少一行。** 定位：`src/example/PreviewService.java:19`。README 第 5 行要求返回前 `min(limit, 非空行数)` 个非空行，实际代码计算的是 `Math.min(limit - 1, rows.size())`。当非空行数 **大于或等于 limit** 时，实际只返回 `limit - 1` 行，比约定少一行。例如，`source = [\"A\", null, \"B\"]`、`limit = 2` 时，按代码推导返回 `[\"A\"]`，契约要求 `[\"A\", \"B\"]`；`limit = 1` 且有非空行时也会错误返回空列表。影响是预览结果缺少应展示的最后一行。\n\n输入不变方面，第 13 行先复制 `source`，第 14 行仅在副本上移除空行，后续截取也操作副本，因此不会修改调用方列表。空行跳过、原有顺序和空输入返回空列表均符合契约。公开入口已限制 `limit` 为 1–50，且 README 明确私有辅助方法只能通过该入口调用，因此不存在可证实的负数截取边界问题。\n\n验证采用 `Get-Content`、`rg` 静态检查，并执行了限定文件的 Git status、工作区 diff 和暂存区 diff；未输出文件变更，但 Git 提示无法读取用户级 ignore 文件。上述示例为代码推导，未执行编译或运行测试。全程未创建、修改或删除文件。",
+      "diagnosticNotes": [
+        "Host reported a transient disconnected/busy stream and retried."
+      ],
+      "workspaceWasWritten": false
+    }
+  ],
+  "notes": [
+    "The first requirement run failed only because the grader required README.md instead of accepting README; the original failure is preserved and excluded from paired comparisons.",
+    "Catalog prompts embed skill descriptions: the two catalog results passed individually but prompt fingerprints differ, so they are not a matched pair.",
+    "Only the explicit requirement case reports LOADED_RESOURCES; zero loadedResourceCount in selection cases means no receipt required, not zero files read.",
+    "All included artifacts are isolated fixture evidence, not production behavior or cross-host live validation."
+  ]
+}

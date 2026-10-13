@@ -1,7 +1,7 @@
 interface:
   display_name: "Yan Dev Doc"
-  short_description: "显式需要先评审方案时生成可执行开发文档"
-  default_prompt: "Use yan-dev-doc when the user explicitly wants a development or implementation plan, when unresolved contract, database, permission, state, transaction, or cross-module decisions need review before coding, or when an evidenced bug needs a repair plan. Do not invoke it for a direct implementation request whose scope and acceptance criteria are clear. Route unresolved incident analysis and business or code-impact mapping to yan-project-analysis; route review and findings repair to yan-code-review. Produce an evidence-backed md plan whose slices have outcomes, boundaries, real dependencies, and verification evidence while leaving implementation structure and delegation to the Agent. Publish the HTML board only when the user, an existing delivery record, or a downstream contract requires it. Generate OpenAPI only for new or changed contracts. Do not depend on external methodology skills."
+  short_description: "按需求和未决契约生成可评审开发方案"
+  default_prompt: "Use yan-dev-doc to produce an evidence-backed development plan with observable acceptance criteria, real dependencies, and unresolved decisions. Follow its scope and conditional artifact rules; leave implementation choices to the executing Agent."
 
 policy:
   allow_implicit_invocation: true

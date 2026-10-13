@@ -285,6 +285,16 @@
         "version_and_domain_context",
         "read_only_db"
       ]
+    },
+    {
+      "id": 56,
+      "prompt": "为查询分页修复写短方案。已确认只修复筛选后总量；已有 Controller 到 Service 的真实参数化测试覆盖，测试设施和权限不变。测试入口由你选，不必逐项问我。",
+      "expected_output": "沿用既有稳定入口并按实际总量缺口设计独立断言，明确现有覆盖与新增验证分别证明什么；不重复确认测试边界，不拆成固定 Controller/Service/Mapper 批次，不因短方案加载全部验证资源。",
+      "tags": [
+        "autonomous_test_boundary",
+        "existing_coverage",
+        "compact_plan"
+      ]
     }
   ]
 }

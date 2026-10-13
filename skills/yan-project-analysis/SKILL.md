@@ -1,6 +1,6 @@
 ﻿---
 name: yan-project-analysis
-description: 统一处理低频但相邻的项目分析任务，并按目标读者与产物选择 understanding（代码地图、调用链、接口兼容影响；可零写入）、incident（Bug 现象、复现、根因证据和修复边界文档）或 business（面向测试/产品的业务流、数据流、状态机和测试关注点）模式。用户要求理解代码结构/影响、记录事故或 Bug、梳理业务流程时使用；不直接实现功能、不执行 review findings 修复。兼容旧名称 code-reading、bug-fix、biz-flow。
+description: 分析代码结构与兼容影响、记录事故根因证据，或梳理面向测试和产品的业务流。用于理解项目、诊断或记录 Bug、业务流程文档；简单方法解释和直接实现或修复不触发。兼容 code-reading、bug-fix、biz-flow。
 ---
 
 # Project Analysis 统一入口

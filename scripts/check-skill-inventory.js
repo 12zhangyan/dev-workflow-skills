@@ -267,7 +267,32 @@ function parseWorkflowChainSection(text, rel, heading, expectedHeader) {
   return { counts, labels, rows, errors };
 }
 
+function validateInvocationPrompt(skill, prompt) {
+  const errors = [];
+  if (!prompt.includes(skill)) errors.push('default_prompt must invoke its own Skill');
+  if (skill === 'yan-project-analysis' && /select exactly one mode/i.test(prompt)) {
+    errors.push('default_prompt must preserve composite analysis requests');
+  }
+  if (skill === 'yan-code-review' && /state the mode.*before executing/i.test(prompt)) {
+    errors.push('default_prompt must not impose unconditional mode announcements');
+  }
+  return errors;
+}
+
 function runSelfTest() {
+  const promptCases = [
+    ['yan-code-review', 'Use yan-code-review and follow the selected mode.', true],
+    ['yan-code-review', 'Use yan-code-review. State the mode and write authority before executing.', false],
+    ['yan-project-analysis', 'Use yan-project-analysis; select exactly one mode.', false],
+    ['yan-project-analysis', 'Use yan-project-analysis; split composite requests when appropriate.', true],
+    ['yan-conversation-handoff', 'Use yan-dev-doc instead.', false],
+  ];
+  for (const [skill, prompt, valid] of promptCases) {
+    if ((validateInvocationPrompt(skill, prompt).length === 0) !== valid) {
+      fail('self-test failed for invocation boundary: ' + skill);
+    }
+  }
+
   const cases = [
     ['plain text', true],
     ['"quoted text"', true],
@@ -390,25 +415,13 @@ for (const rel of ['AGENTS.md', 'CLAUDE.md']) {
 }
 
 const rows = [];
+// Discovery carries intent and exclusions; mode names and artifact rules belong in
+// SKILL.md, where the portable/route-loading/boundary suites check them.
 const skillDescriptionRequirements = {
-  'yan-dev-doc': ['需求和验收已清楚且用户要求直接实现时不要触发'],
-  'yan-project-analysis': ['understanding', 'incident', 'business', 'code-reading', 'bug-fix', 'biz-flow'],
-  'yan-code-review': ['check', 'repair', 'loop', 'package', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
-};
-const agentPromptRequirements = {
-  'yan-conversation-handoff': [
-    'yan-dev-doc',
-    'yan-project-analysis',
-    'yan-code-review',
-  ],
-  'yan-dev-doc': [
-    'Do not invoke it for a direct implementation request',
-    'Publish the HTML board only',
-    'yan-project-analysis',
-    'yan-code-review',
-  ],
-  'yan-project-analysis': ['understanding', 'incident', 'business'],
-  'yan-code-review': ['package', 'check', 'repair', 'loop'],
+  'yan-dev-doc': ['开发方案', '直接实现请求不触发'],
+  'yan-project-analysis': ['代码结构', '事故', '业务流', '直接实现或修复不触发', 'code-reading', 'bug-fix', 'biz-flow'],
+  'yan-code-review': ['未授权修改时只读', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
+  'yan-conversation-handoff': ['当前对话', '移交', '不替代开发方案'],
 };
 
 for (const skill of skillNames) {
@@ -437,10 +450,8 @@ for (const skill of skillNames) {
   if (agent.display_name && !agent.display_name.startsWith('Yan ')) {
     fail(`${agentRel} interface.display_name must use Yan prefix`);
   }
-  for (const needle of agentPromptRequirements[skill] || []) {
-    if (!agent.default_prompt.includes(needle)) {
-      fail(`${agentRel} default_prompt missing routing boundary: ${needle}`);
-    }
+  for (const error of validateInvocationPrompt(skill, agent.default_prompt || '')) {
+    fail(`${agentRel} ${error}`);
   }
 
   for (const [docRel, text] of docTextByRel.entries()) {

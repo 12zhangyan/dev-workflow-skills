@@ -226,6 +226,26 @@
         "negative_control",
         "offline_contract"
       ]
+    },
+    {
+      "id": 28,
+      "prompt": "只读审查当前工作区。当前分支与主分支的提交差异为空，但一个暂存的 Java 修改、一个未暂存的 Mapper 修改和一个未跟踪的调用方都属于本次任务。",
+      "expected_output": "读取三个实际变更面的内容并沿必要调用链审查，不能因分支差异为空而报告无改动或通过；保持零写入，不自动 add。",
+      "tags": [
+        "worktree_scope",
+        "untracked",
+        "staged_unstaged"
+      ]
+    },
+    {
+      "id": 29,
+      "prompt": "只读审查一个 Java 缓存实现；没有独立需求文档或确认过的业务规则，代码可证实 key 为 null 时先解引用才做校验。暂时无法联系用户。",
+      "expected_output": "继续对可证实的执行路径做实现风险审查，说明缺少需求来源无法判断需求覆盖；不从现有行为编造业务需求，不因缺少 spec 停止全部审查，不误称整体通过。",
+      "tags": [
+        "missing_spec",
+        "partial_evidence",
+        "no_mechanical_question"
+      ]
     }
   ]
 }
