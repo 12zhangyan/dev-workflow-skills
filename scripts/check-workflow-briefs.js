@@ -123,7 +123,7 @@ if (process.argv.includes('--self-test')) runSelfTest();
 const sharedBriefRel = 'skills/_shared/workflow-brief.md';
 const sharedBrief = read(sharedBriefRel);
 checkFile(sharedBriefRel, true);
-for (const needle of ['最小核心', '旧产物', '只有提供信息增益时才出现', 'inFlight']) {
+for (const needle of ['最小核心', '旧产物', '只有提供信息增益时才出现', 'inFlight', '先用索引定位任务相关范围', '摘要只帮助选择证据', '失效条件', '生成 Brief 不授权写入长期记忆库', '先查原句柄再决定重试']) {
   if (!sharedBrief.includes(needle)) fail(`${sharedBriefRel} missing contract: ${needle}`);
 }
 for (const rel of [

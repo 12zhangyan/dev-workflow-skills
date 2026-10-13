@@ -255,11 +255,20 @@ requireText('skills/yan-conversation-handoff/SKILL.md', [
   '只有任务范围本身无法识别时才阻止生成交接内容',
   '不得在文档或复制提示中转录 API key',
   '不要登记 HTML 看板',
-  '不设固定文件数量',
+  '不设固定层数或文件数量',
   '普通 handoff 不重复这套字段',
   '默认生成路径撞名且用户未锁定文件名时',
   '互不覆盖的动作可以并行',
   '有在途 Agent 或任务时',
+  '送达或已读不代表已完成',
+  '摘要定位，再核验',
+]);
+
+requireText('skills/_shared/diagram-evidence.md', [
+  '未知连接显式标待确认或未展开',
+  '方案中的拟议关系与当前实现分开',
+  '只能遍历已确认的图边',
+  '没有渲染工具时明确仅检查源码',
 ]);
 
 const boardShellBootstrap = 'skills/_shared/board-shell-bootstrap.md';

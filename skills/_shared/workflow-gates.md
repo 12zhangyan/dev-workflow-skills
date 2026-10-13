@@ -8,7 +8,7 @@
 - 实现结论以实际文件、VCS status/diff 或用户提供的 patch 为准，不能从任务名或旧 Brief 猜 `changed`。
 - 验证结论必须给出本轮命令、结果和能证明的目标行为。未运行、只验证前置条件、陈旧报告或没有断言目标逻辑，均不能写成通过。
 - Review finding 需要可复核定位、证据和影响；修复与关闭前须补齐验证方式。修复沿用 finding ID；只有最新实现和验证都支持时才能关闭。
-- 未关闭的 Critical/Important、敏感信息、目标验证失败或关键文件未纳管时，不得宣称 Review/Submit 已通过。
+- 请求范围内的审查仍有失败/待审单元、未关闭的 Critical/Important、敏感信息、目标验证失败或关键文件未纳管时，不得宣称 Review/Submit 已通过。
 - 材料不足只限制受影响结论；其他有独立证据的切片可以继续。
 
 常用状态名只在交接或机器消费有价值时使用：`Plan / Implementation / VCS / Verification / Review / Submit Gate`，以及 `Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable`。普通任务用自然语言说明即可。
