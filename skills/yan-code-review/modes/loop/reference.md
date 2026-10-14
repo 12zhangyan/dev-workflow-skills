@@ -8,11 +8,11 @@ ReviewReceipt: <stable receipt id>
 Scope: <actual reviewed implementation and tests>
 VCS_OWNER: <owner roots>
 UntrackedInScope: <paths|none>
-RepairCycles: <0|1|2>
+RepairCycles: <实际发生的修复轮次；无修复为 0>
 Recheck: <Passed|FindingsRemain|NotRequiredNoCodeChange|Blocked>
-TestDependencyClass: <Hermetic|ServiceBacked|LiveExternal|Mixed|NotApplicable>
 TestEvidenceStatus: <Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>
-BoardPublishStatus: <Published|NotRequested|Blocked>
+TestDependencyClass: <仅外部依赖或失败归因需要时：Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown>
+BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
 自动提交：未执行
 ```
 

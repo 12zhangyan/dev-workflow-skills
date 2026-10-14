@@ -40,9 +40,23 @@ function skillRoots() {
   ].filter(Boolean);
 }
 
+const USAGE = [
+  'usage: node workflow-fs.js <command> [args]',
+  '  prepare-date-dir <base-directory>      create <base>/<today> and print it',
+  '  prepare-board-entry <board-data-dir>   allocate a private data/.entry-*/entry.json and print it',
+  '  exists <path>                          print EXISTS | MISSING',
+  '  file-state <path>                      print EXISTS_READABLE | MISSING | EXISTS_UNREADABLE_OR_UNKNOWN',
+  '  ensure-dir <directory>                 create the directory and print it',
+  '  detect-vcs [start-directory]           print {"type":"git|svn|none","root":...}',
+  '  resolve-skill-file <skill> <rel-path>  print the installed absolute path',
+  '  contains <file> <text>                 print YES | NO',
+].join('\n');
+
 const [command, ...args] = process.argv.slice(2);
 
-if (command === 'prepare-date-dir') {
+if (command === 'help' || command === '--help' || command === '-h') {
+  process.stdout.write(USAGE + '\n');
+} else if (command === 'prepare-date-dir') {
   if (args.length !== 1 || !args[0]) fail('usage: prepare-date-dir <base-directory>');
   const relative = path.join(args[0], todayLocal());
   fs.mkdirSync(relative, { recursive: true });
@@ -103,5 +117,5 @@ if (command === 'prepare-date-dir') {
   if (!fs.existsSync(args[0])) fail(`file not found: ${args[0]}`);
   process.stdout.write(fs.readFileSync(args[0], 'utf8').includes(args[1]) ? 'YES\n' : 'NO\n');
 } else {
-  fail('commands: prepare-date-dir, prepare-board-entry, exists, file-state, ensure-dir, detect-vcs, resolve-skill-file, contains');
+  fail(`unknown command: ${command || '(none)'}\n${USAGE}`);
 }

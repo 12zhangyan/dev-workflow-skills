@@ -8,6 +8,7 @@
 - 复制范围只有外壳、构建脚本和写入脚本。`data/changes.js` 仅在目标不存在时初始化；不得覆盖既有 `data/` 或 `data/details/`。
 - `js/vendor/mermaid.min.js` 由 adapter 做二进制复制，禁止读取后用文本写入。
 - Adapter 会先使用当前 skill 树的 yan-dev-doc 资产，再检查显式环境配置和 Claude Code、Cursor、Codex、通用安装根。
+- adapter 与 `workflow-fs.js` 同在 `_shared/scripts/`；路径不明时运行 `node <workflow-fs.js 绝对路径> resolve-skill-file _shared scripts/board-bootstrap.js` 取得。共享脚本的参数用法可用 `help` 查看。
 
 ## 只读比较版本
 
@@ -25,7 +26,7 @@ node <_shared/scripts/board-bootstrap.js 绝对路径> status <项目根目录>
 node <_shared/scripts/board-bootstrap.js 绝对路径> sync <项目根目录>
 ```
 
-`sync` 创建所需目录，复制 `index.html`、CSS、board.js、Mermaid vendor、`build.js`、`board-add.js`；只有 `project-html/data/changes.js` 不存在时才复制空模板，并始终保留已有详情 sidecar。成功输出 `BOARD_SHELL_SYNCED=<版本>`。
+`sync` 创建所需目录，复制 `index.html`、CSS、board.js、Mermaid vendor、`build.js`、`board-add.js`；只有 `project-html/data/changes.js` 不存在时才复制空模板，并始终保留已有详情 sidecar；`project-html/.gitignore` 不存在时写入一份，只忽略生成页、导出、备份、锁和临时输入，已有的不改。成功输出 `BOARD_SHELL_SYNCED=<版本>`。
 
 ## 写入前检查数据格式
 

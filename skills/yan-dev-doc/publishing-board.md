@@ -4,7 +4,7 @@
 
 ## Entry 语义
 
-目录至少包含能定位同一交付的 `docPath`、标题、日期和当前 plan 状态；已有 `deliveryId` 时沿用。接口契约确有新增或变化时才附 `apiSpecPath`、`apiIndexPath` 和对应 `apis`。
+目录至少包含能定位同一交付的 `docPath`、标题、日期和当前 plan 状态；已有 `deliveryId` 时沿用。`NeedsConfirmation` 方案也发布：entry `status` 写 `待确认`、`plan.status` 写 `NeedsConfirmation`，待裁决问题逐条写入 `plan.openQuestions`（看板会置顶提示并在首页汇总），只写已证实内容，不写未裁决的接口、权限或数据口径；裁决后续写同一档案，显式将 entry `status` 改回 `草稿` 或 `进行中`，同步更新 `plan.status`；问题全部关闭时写入 `plan.openQuestions: []`，仍有未决项则只保留剩余问题。接口契约确有新增或变化时才附 `apiSpecPath`、`apiIndexPath` 和对应 `apis`。
 
 `detail.delivery.plan` 保留当前任务真正需要的人类信息：
 
@@ -12,7 +12,9 @@
 - 整体方案、关键数据/状态流和重要取舍；
 - 可观察验收及当前未决边界。
 
-组件关系、流程图、关键实现决策和下一动作只有能提高理解时才写。精确文件清单、类/方法级步骤、执行命令、Todo、堆栈和 `codeLocation` 留在 md，不进入看板。省略空字段，不制造重复摘要。
+看板详情顶部的“一页读懂”直接取 `summary`、`solution`、`scopeOut`、`acceptance` 前几项，因此这几项各用一两句读者能独立看懂的话写。组件关系、流程图（`flowchart`，可放大查看）、关键实现决策和下一动作只有能提高理解时才写。精确文件清单、类/方法级步骤、执行命令、Todo、堆栈和 `codeLocation` 留在 md，不进入看板。省略空字段，不制造重复摘要。
+
+看板只识别这些 `plan` 字段，其他字段名不会显示，不要自造：`status`、`summary`、`background`、`goals`、`scopeIn`、`scopeOut`、`solution`、`dataFlowSummary`、`coreDesign`、`decisions`（取舍列表）、`flowchart`、`keyImpl`（`[{title, desc}]`）、`acceptance`、`assumptions`、`openQuestions`、`next`（给读者的下一步）。
 
 示意结构仅表示归属，不是完整字段模板：
 
@@ -28,10 +30,14 @@
   "detail": {
     "delivery": {
       "plan": {
-        "summary": "<human summary>",
-        "scope": ["<in/out boundary>"],
+        "summary": "<要解决什么>",
+        "scopeIn": ["<包含>"],
+        "scopeOut": ["<不做>"],
         "solution": "<flow and key decisions>",
-        "acceptance": ["<observable result>"]
+        "acceptance": ["<observable result>"],
+        "decisions": ["<关键取舍及理由>"],
+        "openQuestions": ["<仅待确认时：待裁决问题>"],
+        "next": "<读者现在该做什么>"
       }
     }
   }

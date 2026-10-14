@@ -157,6 +157,14 @@ function smokeBoardShellBootstrap() {
     const detailSentinel = '// BOARD_BOOTSTRAP_DETAIL_SENTINEL\n';
     fs.writeFileSync(changesPath, changesSentinel, 'utf8');
     fs.writeFileSync(detailPath, detailSentinel, 'utf8');
+    const ignorePath = path.join(project, 'project-html', '.gitignore');
+    const ignoreText = fs.existsSync(ignorePath) ? fs.readFileSync(ignorePath, 'utf8') : '';
+    if (!['pages/', 'data/.entry-*/', 'data/changes.js.bak'].every((line) => ignoreText.split('\n').includes(line))
+        || /^data\/(changes\.js|details\/?)$/m.test(ignoreText)) {
+      fail('board-shell initial copy must ignore generated/temporary board files but keep catalog and details tracked');
+    }
+    const ignoreSentinel = '# user-owned ignore\n';
+    fs.writeFileSync(ignorePath, ignoreSentinel, 'utf8');
 
     const secondCopy = runBoardAdapter('sync', project, 'board-shell repeat copy smoke');
     if (secondCopy && fs.readFileSync(changesPath, 'utf8') !== changesSentinel) {
@@ -164,6 +172,9 @@ function smokeBoardShellBootstrap() {
     }
     if (secondCopy && fs.readFileSync(detailPath, 'utf8') !== detailSentinel) {
       fail('board-shell repeat copy overwrote an existing data/details sidecar');
+    }
+    if (secondCopy && fs.readFileSync(ignorePath, 'utf8') !== ignoreSentinel) {
+      fail('board-shell repeat copy overwrote an existing project-html/.gitignore');
     }
 
     const current = runBoardAdapter('status', project, 'board-shell current-version smoke');
@@ -194,7 +205,8 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '按实际文件定位 Git/SVN owner',
   '真实 reactor/POM 关系',
   '不依赖任何外部 Skill 或方法论',
-  '用户明确要求看板',
+  '主方案实际落盘后才读取 [看板发布协议](publishing-board.md)',
+  '用户明确不要看板或只要聊天输出，或主方案未安全写入时，不初始化或修改 `project-html`',
   '执行 Agent 可合并、细分、重排或委派非约束性切片',
 ]);
 
@@ -242,7 +254,7 @@ requireText('skills/yan-project-analysis/modes/understanding/mode.md', [
   '禁止修改工作区、文档、看板、VCS 或业务系统',
   '不判断 Bug、不关闭 findings、不输出修复方案',
   '目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入',
-  '看板不是隐含副作用',
+  'ImpactAnalysis 永不发布看板',
 ]);
 
 requireText('skills/yan-project-analysis/modes/understanding/impact-output.md', [
@@ -281,13 +293,14 @@ requireText(boardShellBootstrap, [
 ]);
 
 for (const rel of [
-  'skills/yan-project-analysis/modes/incident/reference.md',
-  'skills/yan-project-analysis/modes/business/reference.md',
+  'skills/yan-project-analysis/modes/incident/mode.md',
+  'skills/yan-project-analysis/modes/business/mode.md',
+  'skills/yan-project-analysis/modes/understanding/mode.md',
 ]) {
   requireText(rel, [
+    '实际落盘后才读取',
     '../../../_shared/board-publish-flow.md',
-    'workflow-fs.js prepare-board-entry',
-    '禁止手工插入标记行或整体重写 `data/changes.js`',
+    '通过 `board-add.js` 写入',
   ]);
 }
 
@@ -303,10 +316,12 @@ requireText('skills/_shared/board-publish-flow.md', [
   'BoardPublishBlocked',
   'BoardBuildBlocked',
   '失败时不得绕过',
-  '当前协调者拥有发布职责三者同时成立',
+  '匹配到已有档案、且当前协调者拥有发布职责时更新同一档案',
+  '身份缺失或档案不存在时不得创建孤立 Review 条目',
   '协调者至多汇总写入一次',
   '不建议目录级兜底',
-  '不自动删除',
+  '脚本失败时保留临时 JSON 和错误证据',
+  '其他位置的输入文件不动，调用方也不另行删除',
 ]);
 
 smokeBoardShellBootstrap();

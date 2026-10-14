@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /* 看板构建脚本 — 各 skill 在更新 data/changes.js 后调用：node project-html/build.js
  *   1) 为每条记录生成轻量详情页 pages/<slug>.html（共享 css / board.js / mermaid，内容未变不重写）
- *   2) 由 data/changes.js 重新生成 docs/INDEX.md 文档总索引（每次运行覆盖刷新）
- *   3) 首次运行（docs/archive 不存在）扫描项目根，复制散落的旧 md / 旧看板 / 接口文档
- *      到 docs/archive/（只复制不删除原件，便于后续统一归档）
+ *   2) 由 data/changes.js 重新生成 docs/INDEX.md 文档总索引；已存在的非本脚本生成的 INDEX.md 不覆盖
+ *   3) 显式执行 node project-html/build.js --archive-legacy 且 docs/archive 不存在时，扫描项目根，
+ *      复制散落的旧 md / 旧看板 / 接口文档到 docs/archive/（只复制不删除原件）；默认构建不扫描
  *   4) 需要单文件外发时显式执行：node project-html/build.js --standalone <docPath|slug>
  * 纯 Node，无第三方依赖。与 skills/yan-dev-doc/assets/board/build.js 保持一致，修改时两处同步。 */
 'use strict';
@@ -112,7 +112,7 @@ function buildPages(data) {
 <title>${escHtml(d.title || '')}</title>
 <script src="../js/vendor/mermaid.min.js"></script>
 <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
-<link rel="stylesheet" href="../css/board.css?v=30">
+<link rel="stylesheet" href="../css/board.css?v=34">
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
 </head>
 <body>
@@ -120,7 +120,7 @@ function buildPages(data) {
 <main class="main" id="main"></main>
 <script>window.DETAIL_PAGE = true;</script>
 <script>${entryJs}</script>
-<script src="../js/board.js?v=30"></script>
+<script src="../js/board.js?v=34"></script>
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;
@@ -172,7 +172,10 @@ ${mermaidTag}
 // ════════════════════════════════════════════════════════════════════════════
 // 2) docs/INDEX.md 文档总索引
 // ════════════════════════════════════════════════════════════════════════════
+const INDEX_MARKER = '本文件由 `node project-html/build.js` 自动生成';
 function buildIndex(data, archiveSummary) {
+  const indexFile = path.join(DOCS, 'INDEX.md');
+  if (exists(indexFile) && !read(indexFile).includes(INDEX_MARKER)) return false;
   fs.mkdirSync(DOCS, { recursive: true });
   const today = new Date().toISOString().slice(0, 10);
   const kindLabel = { doc: '开发文档', bug: 'Bug', reading: '代码阅读', biz: '业务流' };
@@ -192,7 +195,7 @@ function buildIndex(data, archiveSummary) {
 
   const L = [];
   L.push('# 📚 文档总索引', '');
-  L.push(`> 本文件由 \`node project-html/build.js\` 自动生成，请勿手工编辑（每次运行覆盖刷新）。`);
+  L.push(`> ${INDEX_MARKER}，请勿手工编辑（每次运行覆盖刷新）。`);
   L.push(`> 共 ${data.changes.length} 篇 · 📄 开发文档 ${cnt.doc} · 🐛 Bug ${cnt.bug} · 📖 代码阅读 ${cnt.reading} · 🔀 业务流 ${cnt.biz} · 最后更新 ${today}`, '');
   L.push('> 完整可视化看板：[project-html/index.html](../project-html/index.html)（浏览器打开）', '');
 
@@ -204,7 +207,7 @@ function buildIndex(data, archiveSummary) {
       L.push('|---|---|---|---|---|---|---|---|');
       g[svc][mod].forEach(d => {
         const ico = icoOf(d);
-        const type = d.kind === 'bug' ? (d.severity || 'P2') : (d.type || kindLabel[kindOf(d)]);
+        const type = d.kind === 'bug' ? (d.severity || '缺陷') : (d.type || kindLabel[kindOf(d)]);
         const docCell = d.docPath ? `[md](../${d.docPath})` : '-';
         const pageCell = `[页](../project-html/pages/${slugMap.get(d)}.html)`;
         const apiCell = d.apiSpecPath ? `[yaml](../${d.apiSpecPath})` : '-';
@@ -216,17 +219,18 @@ function buildIndex(data, archiveSummary) {
 
   if (archiveSummary && archiveSummary.total) {
     L.push('## 🗄️ 历史归档', '');
-    L.push(`> 首次运行时从项目根目录扫描并**复制**（原文件保留）到 \`docs/archive/\` 的历史资料，共 ${archiveSummary.total} 个，供后续统一整理。`, '');
+    L.push(`> 由 \`--archive-legacy\` 从项目根目录扫描并**复制**（原文件保留）到 \`docs/archive/\` 的历史资料，共 ${archiveSummary.total} 个，供后续统一整理。`, '');
     archiveSummary.items.forEach(rel => L.push(`- [${mdEsc(path.basename(rel))}](${rel})`));
     L.push('');
   }
 
-  fs.writeFileSync(path.join(DOCS, 'INDEX.md'), L.join('\n'));
+  fs.writeFileSync(indexFile, L.join('\n'));
+  return true;
 }
 function mdEsc(s) { return String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\n/g, ' '); }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3) 首次运行：扫描项目根，复制散落历史资料到 docs/archive/
+// 3) 显式 --archive-legacy：扫描项目根，复制散落历史资料到 docs/archive/
 // ════════════════════════════════════════════════════════════════════════════
 const SKIP_DIRS = new Set(['node_modules', '.git', '.svn', '.idea', '.vscode', 'target', 'dist', 'build', 'out', 'docs', 'project-html']);
 const MD_DENY = new Set(['readme.md', 'claude.md', 'contributing.md', 'license.md', 'changelog.md', 'index.md']);
@@ -325,11 +329,13 @@ function main() {
     }
     return;
   }
-  const archiveSummary = archiveLegacy();
+  const archiveSummary = process.argv.includes('--archive-legacy') ? archiveLegacy() : null;
   const pages = buildPages(data);
-  buildIndex(data, archiveSummary);
-  let msg = `✓ build.js 完成：详情页 ${pages.total} 个（写入 ${pages.written}，清理孤儿 ${pages.removed}）+ docs/INDEX.md`;
-  if (archiveSummary && archiveSummary.total) msg += `；首次归档 ${archiveSummary.total} 个历史文件到 docs/archive/`;
+  const indexWritten = buildIndex(data, archiveSummary);
+  let msg = `✓ build.js 完成：详情页 ${pages.total} 个（写入 ${pages.written}，清理孤儿 ${pages.removed}）` +
+    (indexWritten ? ' + docs/INDEX.md' : '');
+  if (archiveSummary && archiveSummary.total) msg += `；归档 ${archiveSummary.total} 个历史文件到 docs/archive/`;
   console.log(msg);
+  if (!indexWritten) console.warn('⚠ docs/INDEX.md 已存在且不是 build.js 生成的文件，未覆盖；如需看板索引请改名后重跑。');
 }
 main();

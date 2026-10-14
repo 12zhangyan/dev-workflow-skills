@@ -279,8 +279,13 @@ function runSelfTest() {
 if (process.argv.includes('--self-test')) runSelfTest();
 
 const readme = read('README.md');
-const optInBoardPolicy = '`yan-dev-doc` 只在用户明确要求、既有交付档案需要续写或下游约定需要时创建“一事一档”看板记录';
-if (!readme.includes(optInBoardPolicy)) fail(`README.md missing opt-in board policy: ${optInBoardPolicy}`);
+for (const boardPolicy of [
+  '看板默认自动发布',
+  '匹配不到时不新建孤立记录；check 默认零写入',
+  'ImpactAnalysis 与会话交接从不写看板',
+]) {
+  if (!readme.includes(boardPolicy)) fail(`README.md missing board publishing policy: ${boardPolicy}`);
+}
 for (const needle of [
   'install.ps1',
   'install.sh',

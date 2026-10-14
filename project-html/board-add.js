@@ -116,11 +116,15 @@ function collectStrings(value, out, limit) {
   else if (value && typeof value === 'object') Object.values(value).slice(0, 6).forEach(v => collectStrings(v, out, limit));
 }
 function humanDetailOf(entry, explicitDetail) {
-  const source = explicitDetail && typeof explicitDetail === 'object' ? explicitDetail : entry;
-  const detail = {};
-  for (const [key, value] of Object.entries(source)) {
-    if (CATALOG_KEYS.includes(key) || GENERATED.has(key) || EXECUTION_ONLY.has(key) || INPUT_ONLY.has(key)) continue;
-    detail[key] = value;
+  let detail = {};
+  for (const source of [entry, explicitDetail]) {
+    if (!isPlainObject(source)) continue;
+    const narrative = {};
+    for (const [key, value] of Object.entries(source)) {
+      if (CATALOG_KEYS.includes(key) || GENERATED.has(key) || EXECUTION_ONLY.has(key) || INPUT_ONLY.has(key)) continue;
+      narrative[key] = value;
+    }
+    detail = mergeHumanDetail(detail, narrative);
   }
   return detail;
 }
@@ -202,7 +206,8 @@ function mergeHumanDetail(base, patch) {
   for (const [key, value] of Object.entries(patch)) {
     if (Array.isArray(value)) {
       const old = Array.isArray(out[key]) ? out[key] : [];
-      const eventArray = value.every(item => isPlainObject(item) && item.eventId);
+      const eventArray = (key === 'events' || value.length > 0)
+        && value.every(item => isPlainObject(item) && item.eventId);
       if (eventArray) {
         const byId = new Map(old.filter(item => isPlainObject(item) && item.eventId).map(item => [item.eventId, item]));
         for (const item of value) {
@@ -315,7 +320,7 @@ function add(arg) {
       if (!Object.prototype.hasOwnProperty.call(entry, key) && Object.prototype.hasOwnProperty.call(old, key)) catalog[key] = old[key];
     }
     changes[idx] = Object.assign({}, old, catalog, {
-      status: old.status,
+      status: Object.prototype.hasOwnProperty.call(entry, 'status') ? entry.status : old.status,
       updatedAt: entry.updatedAt || today()
     });
     action = 'update';
@@ -328,7 +333,20 @@ function add(arg) {
   if (input.changelog) changelog.push({ date: entry.date || today(), desc: input.changelog });
   try { writeData(raw, changes, changelog, oldLen); }
   catch (e) { die(e.message); }
-  console.log(`✓ 看板已${action === 'update' ? '更新' : '追加'}：${entry.title || '(无标题)'}（目录 ${oldLen} → ${changes.length}，详情 ${catalog.detailPath}，备份 data/changes.js.bak）`);
+  const cleaned = removeAllocatedInput(arg);
+  console.log(`✓ 看板已${action === 'update' ? '更新' : '追加'}：${entry.title || '(无标题)'}（目录 ${oldLen} → ${changes.length}，详情 ${catalog.detailPath}，备份 data/changes.js.bak${cleaned ? '，已清理本次临时输入' : ''}）`);
+}
+// 只清理 workflow-fs.js prepare-board-entry 为本次发布分配的 data/.entry-*/entry.json；其他输入路径一律保留。
+function removeAllocatedInput(arg) {
+  const file = path.resolve(arg);
+  const dir = path.dirname(file);
+  if (path.basename(file) !== 'entry.json' || !path.basename(dir).startsWith('.entry-') ||
+      path.dirname(dir) !== path.dirname(DATA) || fs.lstatSync(dir).isSymbolicLink()) return false;
+  try {
+    fs.unlinkSync(file);
+    fs.rmdirSync(dir);
+    return true;
+  } catch (e) { return false; }
 }
 function main() {
   const arg = process.argv[2];

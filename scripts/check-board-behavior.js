@@ -248,8 +248,26 @@ assert((lifecycleHtml.match(/class="delivery-step /g) || []).length === 5, 'deli
 for (const marker of ['DLV-REVIEW', '1 次审查记录', 'IM-1', 'cleanup is missing', 'targeted tests passed']) {
   assert(lifecycleHtml.includes(marker), `review lifecycle should expose ${marker}`);
 }
+assert(!lifecycleHtml.includes('confirm-banner'), 'a passed plan should not show the pending-confirmation banner');
 
-// board-add 更新同一 docPath 时必须保留人工治理字段和原 status。
+devContext.renderDelivery({
+  deliveryId: 'DLV-CONFIRM', service: 'order', module: 'query', title: 'status filter', date: today, status: '待确认', currentGate: 'plan',
+  delivery: { plan: {
+    status: 'NeedsConfirmation', summary: 'filter orders by status', solution: 'add optional statuses',
+    scope: ['only the query endpoint'], acceptance: ['unknown status returns 400'],
+    openQuestions: ['which status dictionary is authoritative'],
+    decisions: ['exact casing is required'], nextAction: 'review the casing rule'
+  } }
+});
+const confirmHtml = devElement('main').innerHTML;
+for (const marker of ['confirm-banner', '一页读懂', 'only the query endpoint', 'which status dictionary is authoritative', '1 项需要裁决', 'scope-note', 'exact casing is required', '下一步：review the casing rule']) {
+  assert(confirmHtml.includes(marker), `pending plan should expose ${marker}`);
+}
+assert(!confirmHtml.includes('LEGACY DELIVERY') && !confirmHtml.includes(' GATE'), 'delivery kicker should use reader-facing wording');
+assert(buildJs.includes("process.argv.includes('--archive-legacy') ? archiveLegacy() : null"), 'legacy archiving must be explicit');
+assert(buildJs.includes('!read(indexFile).includes(INDEX_MARKER)) return false'), 'build must not overwrite a user-owned docs/INDEX.md');
+
+// board-add 更新同一 docPath 时保留省略的治理字段，显式 status 更新生效。
 const temp = fs.mkdtempSync(path.join(ROOT, '.tmp-board-behavior-'));
 try {
   fs.mkdirSync(path.join(temp, 'data'));
@@ -326,7 +344,7 @@ try {
   runAdd({ deliveryId: entry.deliveryId, currentGate: 'verification' });
   const moved = new Function(fs.readFileSync(path.join(temp, 'data/changes.js'), 'utf8') + ';return changes[0]')();
   assert(moved.currentGate === 'verification', 'an explicit gate change must still take effect');
-  assert(entry.status === '草稿', 'board-add should preserve original status on update');
+  assert(entry.status === '进行中', 'board-add should apply explicit status and preserve it when later updates omit status');
   assert(entry.lifecycle === 'archived' && entry.pinned === true, 'board-add should preserve omitted lifecycle governance fields');
   assert(entry.updatedAt === today, 'board-add should refresh updatedAt on update');
   assert(entry.deliveryId && entry.currentGate === 'review' && entry.gateStatus === 'passed', 'catalog should expose stable delivery and current gate state');
@@ -378,6 +396,25 @@ try {
   legacyCommand(input);
   assert(new Function(fs.readFileSync(legacyData, 'utf8') + ';return changes.length')() === 3, 'publishing after migration must retain old entries and append the new one');
 
+  // Auto-initialized boards must not scan legacy files or replace a user-owned docs index.
+  const buildProject = path.join(temp, 'build-project');
+  fs.mkdirSync(path.join(buildProject, 'project-html/data'), { recursive: true });
+  fs.mkdirSync(path.join(buildProject, 'docs'), { recursive: true });
+  fs.mkdirSync(path.join(buildProject, 'design'), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'project-html/build.js'), path.join(buildProject, 'project-html/build.js'));
+  fs.copyFileSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/changes.js'), path.join(buildProject, 'project-html/data/changes.js'));
+  fs.writeFileSync(path.join(buildProject, 'docs/INDEX.md'), '# team index\n');
+  fs.writeFileSync(path.join(buildProject, 'design/old-plan.md'), '# legacy plan\n');
+  const runBuild = (...args) => spawnSync(process.execPath, [path.join(buildProject, 'project-html/build.js'), ...args], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  const plainBuild = runBuild();
+  assert(plainBuild.status === 0, plainBuild.stderr);
+  assert(fs.readFileSync(path.join(buildProject, 'docs/INDEX.md'), 'utf8') === '# team index\n', 'build must preserve a user-owned docs/INDEX.md');
+  assert(!fs.existsSync(path.join(buildProject, 'docs/archive')), 'default build must not scan or copy legacy files');
+  assert(runBuild('--archive-legacy').status === 0 && fs.existsSync(path.join(buildProject, 'docs/archive/docs/old-plan.md')), 'explicit archive flag must copy legacy docs');
+  fs.unlinkSync(path.join(buildProject, 'docs/INDEX.md'));
+  assert(runBuild().status === 0 && fs.readFileSync(path.join(buildProject, 'docs/INDEX.md'), 'utf8').includes('自动生成'), 'build should create its own docs/INDEX.md when absent');
+  assert(runBuild().status === 0 && fs.readFileSync(path.join(buildProject, 'docs/INDEX.md'), 'utf8').includes('自动生成'), 'build should refresh its own generated index');
+
   // Validate filesystem boundaries before any persistent write.
   const createBoard = name => {
     const directory = path.join(temp, name);
@@ -388,6 +425,55 @@ try {
   };
   const invokeBoard = (directory, arg, extra = []) => spawnSync(process.execPath,
     [...extra, path.join(directory, 'board-add.js'), arg], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  // Publishing accepts entry narratives alongside an explicit (possibly empty) detail.
+  const publishBoard = createBoard('publish-contract');
+  const publishInput = path.join(publishBoard, 'entry.json');
+  const publishPayload = payload => {
+    fs.writeFileSync(publishInput, JSON.stringify(payload));
+    const result = invokeBoard(publishBoard, publishInput);
+    assert(result.status === 0, 'publish-contract fixture should succeed: ' + result.stderr);
+    const catalog = new Function(fs.readFileSync(path.join(publishBoard, 'data/changes.js'), 'utf8') + ';return changes[0]')();
+    const window = {};
+    new Function('window', fs.readFileSync(path.join(publishBoard, catalog.detailPath), 'utf8'))(window);
+    return { catalog, detail: window.BOARD_DETAILS[catalog.detailId] };
+  };
+  let published = publishPayload({ entry: {
+    title: 'awaiting decision', date: today, docPath: 'docs/confirmation.md', status: '待确认',
+    lifecycle: 'backlog', pinned: true, background: 'entry background', solution: 'entry solution',
+    changeList: ['must not publish'],
+    delivery: { plan: { status: 'NeedsConfirmation', summary: 'human plan', openQuestions: ['decide scope'] } }
+  }, detail: {} });
+  assert(published.detail.background === 'entry background' && published.detail.solution === 'entry solution', 'empty detail must not discard entry narratives');
+  assert(published.detail.delivery.plan.summary === 'human plan', 'empty detail must retain nested entry narratives');
+  published = publishPayload({ entry: {
+    docPath: 'docs/confirmation.md', solution: 'entry fallback',
+    delivery: { plan: { goals: ['keep a complete path'] } }
+  }, detail: {
+    solution: 'explicit human solution', todos: ['must not publish'],
+    delivery: { plan: { acceptance: ['observable outcome'] }, review: { events: [
+      { eventId: 'check:confirmation:1', summary: 'reviewed draft', findings: ['previous concern'] }
+    ] } }
+  } });
+  assert(published.catalog.status === '待确认', 'omitting status must retain the current state');
+  assert(published.detail.solution === 'explicit human solution' && published.detail.background === 'entry background', 'explicit detail should override matching narrative fields and preserve the rest');
+  assert(published.detail.delivery.plan.goals[0] === 'keep a complete path' && published.detail.delivery.plan.acceptance[0] === 'observable outcome', 'entry and detail should merge complementary nested plan fields');
+  assert(!('changeList' in published.detail) && !('todos' in published.detail), 'both narrative sources must filter Agent-only fields');
+  const confirmationIdentity = published.catalog.detailId;
+  published = publishPayload({ entry: { docPath: 'docs/confirmation.md', status: '进行中' }, detail: {
+    delivery: { plan: { status: 'Passed', openQuestions: [], goals: [] }, review: { events: [
+      { eventId: 'check:confirmation:1', summary: 'reviewed resolved plan', findings: [] }
+    ] } }
+  } });
+  assert(published.catalog.status === '进行中' && published.detail.delivery.plan.status === 'Passed', 'explicit resolution must advance both catalog and plan status');
+  assert(published.detail.delivery.plan.openQuestions.length === 0 && published.detail.delivery.plan.goals.length === 0, 'empty ordinary arrays must clear prior values');
+  assert(published.detail.delivery.review.events.length === 1 && published.detail.delivery.review.events[0].findings.length === 0, 'an idempotent event update must clear resolved findings without duplicating the event');
+  published = publishPayload({ entry: { docPath: 'docs/confirmation.md' }, detail: { delivery: { review: { events: [] } } } });
+  assert(published.catalog.status === '进行中' && published.catalog.detailId === confirmationIdentity, 'later metadata-only updates must retain explicit state and identity');
+  assert(published.catalog.lifecycle === 'backlog' && published.catalog.pinned, 'resolution must preserve omitted human governance');
+  assert(published.detail.delivery.review.events.length === 1, 'an empty audit event patch must preserve review history');
+  devContext.renderDelivery(Object.assign({}, published.catalog, published.detail));
+  assert(!devElement('main').innerHTML.includes('confirm-banner') && !devElement('main').innerHTML.includes('decide scope'), 'resolved persisted data must remove the confirmation banner and stale question');
+
   const bounded = createBoard('bounded');
   const boundedData = path.join(bounded, 'data/changes.js');
   const untouched = fs.readFileSync(boundedData, 'utf8');
@@ -429,7 +515,7 @@ try {
   assert(fs.readFileSync(boundedData, 'utf8') === collisionBefore && fs.readFileSync(path.join(bounded, 'data/details/safe-id.js'), 'utf8') === detailBefore, 'detail conflicts must preserve existing content');
 
   // Two publishers finish preparing input before either writes the catalog.
-  // Their operation-owned JSON files must survive independently, including retries.
+  // Each operation-owned input survives a failed attempt for retry and is removed only after its own success.
   const inputsBoard = createBoard('independent-inputs');
   const inputPaths = ['a', 'b'].map(id => {
     const allocated = spawnSync(process.execPath, [path.join(ROOT, 'skills/_shared/scripts/workflow-fs.js'), 'prepare-board-entry', path.join(inputsBoard, 'data')], {
@@ -443,10 +529,18 @@ try {
     return file;
   });
   assert(new Set(inputPaths).size === 2, 'publishers must never share a payload path');
+  const inputsLock = path.join(inputsBoard, 'data/changes.js.lock');
+  fs.writeFileSync(inputsLock, 'another writer');
+  assert(invokeBoard(inputsBoard, inputPaths[0]).stderr.includes('BOARD_WRITE_LOCKED'), 'held lock must block publication');
+  assert(fs.existsSync(inputPaths[0]), 'a blocked publication must preserve its input for retry');
+  fs.unlinkSync(inputsLock);
   for (const file of inputPaths) assert(invokeBoard(inputsBoard, file).status === 0, 'independent input should publish');
   const preparedRecords = new Function(fs.readFileSync(path.join(inputsBoard, 'data/changes.js'), 'utf8') + ';return changes')();
   assert(preparedRecords.map(item => item.docPath).sort().join(',') === 'docs/a.md,docs/b.md', 'preparing B must not replace A');
-  assert(inputPaths.every(file => fs.existsSync(file)), 'publication must preserve inputs for evidence or retry');
+  assert(inputPaths.every(file => !fs.existsSync(path.dirname(file))), 'successful publication must remove only its own allocated input directory');
+  const outsideInput = path.join(inputsBoard, 'manual-entry.json');
+  fs.writeFileSync(outsideInput, JSON.stringify({ entry: { title: 'manual', docPath: 'docs/manual.md' } }));
+  assert(invokeBoard(inputsBoard, outsideInput).status === 0 && fs.existsSync(outsideInput), 'inputs outside allocated entry directories must never be deleted');
 
   // Hold writer A immediately after reading its catalog. B must fail visibly,
   // then succeed on retry; two successful stale reads must never lose a record.

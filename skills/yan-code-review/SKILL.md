@@ -14,8 +14,8 @@ description: 代码审查与 findings 闭环。用于只读找问题、修复已
 | 意图 | 模式 | 权限 |
 |---|---|---|
 | 只审查、找问题，或没有明确修改授权 | `check` | 只读 |
-| 已有 findings/明确问题并要求修复 | `repair` | 可改问题涉及的代码与测试 |
-| 没有 findings，但明确要求审查并按需修复 | `loop` | 可在授权范围内修改 |
+| 已有 findings/明确问题，只要求修复 | `repair` | 可改问题涉及的代码与测试 |
+| 明确要求审查并按需修复（可附带已知 findings 作为首审输入） | `loop` | 可在授权范围内修改 |
 | 独立多 reviewer、外部分发、汇总结果或修复交接 | `package` | 可写必要协作产物，不改业务代码 |
 
 旧名称 `review-check / review-repair / review-loop / review-fix` 分别映射为以上四种模式。模糊的 review 请求选择 `check`；同任务 Brief 的 `next` 可在证据吻合时指向 `package`，但 Brief 不能授予修复权限。旧 Brief 字段只读兼容。
@@ -33,7 +33,7 @@ description: 代码审查与 findings 闭环。用于只读找问题、修复已
 
 - `check` 不改代码、测试或正式文档；`repair` 必须有可定位的问题；`loop` 必须有明确修改授权。
 - 多 reviewer 保持独立，只汇总真实返回；委派失败不编造 findings。
-- 写看板需要稳定交付身份、明确同步意图和当前发布所有权同时成立；届时才读取 [看板发布流程](../_shared/board-publish-flow.md)。内部 reviewer/repair 不发布，由协调者至多汇总写入一次；无发布动作时不输出看板状态字段。
+- 看板：`repair`、`loop`、`package` 的发布所有者在稳定交付身份能匹配已有档案时默认同步审查/修复事件；`check` 只在用户明确要求记录生命周期时同步。身份为 `deliveryId` 或来源方案 `docPath`，用 `workflow-fs.js contains project-html/data/changes.js <身份值>` 判断（传具体值，不传字段名）；只从 PR/提交出发、没有方案文档时视为无身份；`kind:"bug"` 等其他条目不是交付档案。看板或档案不存在时不新建孤立 Review 条目；用户明确不要看板时跳过。届时才读取 [看板发布流程](../_shared/board-publish-flow.md)。内部 reviewer/repair 不发布，由协调者至多汇总写入一次；无发布动作时不输出看板状态字段。
 - 数据库只读；不执行 DDL、数据修复，不写入或暴露凭据。
 - 不自动 add、commit、push、merge、发布或回滚无关改动。
 - finding 保留稳定 ID、定位、证据和影响；修复方向或验证建议只在有把握且有助于后续时给出。材料不足不冒充通过；审查中断、超限或部分失败也不能由零 findings 推导为通过。

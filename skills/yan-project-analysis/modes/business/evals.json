@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 biz-flow skill 给'询价到下单'生成业务流方案，给测试看",
-      "expected_output": "应触发 business；生成 docs/biz-flow/<日期>/<业务名>.md，覆盖与证据相关的流程、规则、数据副作用、校验与测试口径。图表按复杂度选择；未明确要求时不写看板，只在确有跨任务交接时生成 Brief。"
+      "expected_output": "应触发 business；生成 docs/biz-flow/<日期>/<业务名>.md，覆盖与证据相关的流程、规则、数据副作用、校验与测试口径。图表按复杂度选择；文档落盘后默认以 kind:\"biz\" 发布看板，只在确有跨任务交接时生成 Brief。"
     },
     {
       "id": 2,
@@ -70,7 +70,7 @@
     {
       "id": 13,
       "prompt": "使用 yan-project-analysis mode=business，根据当前代码更新 docs/biz-flow/2026-10-10/订单查询.md 的证据和验证部分，其他人工备注原样保留。我已经授权修改该文件，目标可以读取，不要重复确认。",
-      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库、VCS 或看板。",
+      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库或 VCS；看板按默认发布规则只同步同一 docPath 的记录，不新建第二条。",
       "tags": [
         "existing_authorization",
         "scoped_document_update",
@@ -108,7 +108,7 @@
     {
       "id": 17,
       "prompt": "生成发货业务地图。源码只能证明排队受理，日志只有QUEUED；用户明确要一张状态图，消费者、补偿和完成证据未提供。",
-      "expected_output": "按图表问题选择状态图，保留已证实受理与待确认终态，不编造补偿或完成边；生成有边界的NeedsConfirmation文档，源码/渲染/运行证据分开，未授权不写看板。",
+      "expected_output": "按图表问题选择状态图，保留已证实受理与待确认终态，不编造补偿或完成边；生成有边界的NeedsConfirmation文档，源码/渲染/运行证据分开；默认发布的看板只含已证实流程并标明待确认终态。",
       "tags": [
         "diagram_evidence",
         "unknown_edges"

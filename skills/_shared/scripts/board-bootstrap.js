@@ -66,6 +66,13 @@ if (command === 'status') {
   fs.mkdirSync(path.join(target, 'data', 'details'), { recursive: true });
   const changes = path.join(target, 'data', 'changes.js');
   if (!fs.existsSync(changes)) copyFile(source, target, 'data/changes.js');
+  const ignore = path.join(target, '.gitignore');
+  if (!fs.existsSync(ignore)) {
+    fs.writeFileSync(ignore, [
+      '# 由 build.js / board-add.js 生成或临时使用；data/changes.js 与 data/details/ 是需要保留的看板数据。',
+      'pages/', 'exports/', 'data/changes.js.bak', 'data/changes.js.lock', 'data/.entry-*/', '',
+    ].join('\n'), { flag: 'wx' });
+  }
   process.stdout.write(`BOARD_SHELL_SYNCED=${templateVersion}\n`);
 } else {
   fail('usage: board-bootstrap.js <status|sync> [project-directory]');

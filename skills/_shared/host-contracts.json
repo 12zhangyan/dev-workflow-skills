@@ -255,11 +255,19 @@
       "id": "analysis-incident-artifacts",
       "prompt_ref": "yan-project-analysis:3",
       "route": "incident",
-      "write_scope": "docs",
+      "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
           {
             "glob": "docs/bugs/**/*.md",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/changes.js",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/details/*.js",
             "min_matches": 1
           }
         ],
@@ -281,11 +289,19 @@
       "id": "analysis-business-artifacts",
       "prompt_ref": "yan-project-analysis:4",
       "route": "business",
-      "write_scope": "docs",
+      "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
           {
             "glob": "docs/biz-flow/**/*.md",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/changes.js",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/details/*.js",
             "min_matches": 1
           }
         ],
@@ -405,11 +421,19 @@
       "id": "dev-doc-artifacts",
       "prompt_ref": "yan-dev-doc:1",
       "route": "standard",
-      "write_scope": "docs",
+      "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
           {
             "glob": "docs/**/*.md",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/changes.js",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/details/*.js",
             "min_matches": 1
           }
         ]
@@ -419,7 +443,7 @@
       "id": "dev-doc-api-artifacts",
       "prompt_ref": "yan-dev-doc:17",
       "route": "standard",
-      "write_scope": "docs",
+      "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
           {
@@ -432,6 +456,14 @@
           },
           {
             "glob": "docs/apifox/INDEX.md",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/changes.js",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/details/*.js",
             "min_matches": 1
           }
         ]
@@ -638,7 +670,7 @@
           "skills/yan-dev-doc/SKILL.md"
         ],
         "forbidden_patterns": [
-          "^skills/yan-dev-doc/(reference|publishing-(openapi|board))\\.md$",
+          "^skills/yan-dev-doc/(reference|plan-template|publishing-(openapi|board))\\.md$",
           "^skills/_shared/",
           "^skills/(yan-code-review|yan-project-analysis|yan-conversation-handoff)/"
         ]
@@ -648,11 +680,19 @@
       "id": "dev-doc-authorized-update",
       "prompt_ref": "yan-dev-doc:47",
       "route": "yan-dev-doc",
-      "write_scope": "docs",
+      "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
           {
             "glob": "docs/2026-10-10/订单查询.md",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/changes.js",
+            "min_matches": 1
+          },
+          {
+            "glob": "project-html/data/details/*.js",
             "min_matches": 1
           }
         ],

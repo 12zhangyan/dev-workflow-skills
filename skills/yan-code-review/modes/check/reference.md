@@ -45,15 +45,15 @@ Conclusion: <Findings|NoEvidenceIssue|InsufficientMaterial>
 Scope: <已检查与未检查范围>
 Coverage: <仅在分批/中断/审计需要时；本轮基线、应审单元、已审/排除/失败/待审及原因>
 VCS: <owners/status/untracked/unknown>
-Tests: TestDependencyClass=<Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown|NotApplicable>; TestEvidenceStatus=<Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>; command/result=<证据与限制>
-BoardPublishStatus: <NotRequested|Published|Blocked>
+Tests: TestEvidenceStatus=<Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>; command/result=<证据与限制>; TestDependencyClass=<仅外部依赖或失败归因需要时：Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown>
+BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
 Findings: <结构化条目或无>
 Next: <必要动作>
 ```
 
-结论差异：
-
 测试状态全集：Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable。
+
+结论差异：
 
 - `Findings`：按严重度给有证据的条目；只有用户已授权修改时才指向 repair。
 - `NoEvidenceIssue`：写“在已检查范围内未发现有证据的问题”，列出范围与限制；不输出空 finding 分组，不自动建议 repair/package。只有实现范围、VCS 完整性和必要验证都满足时，Review Gate 才可为 passed；PlanReview 不代表实现通过。
