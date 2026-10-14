@@ -27,6 +27,10 @@
         "routed": [],
         "conditional": [
           {
+            "target": "skills/yan-dev-doc/plan-template.md",
+            "guard": "写入主方案前才读取"
+          },
+          {
             "target": "skills/_shared/host-capabilities.md",
             "guard": "仅在工具、终端或路径行为存在宿主差异时读取"
           },
@@ -44,7 +48,7 @@
           },
           {
             "target": "skills/yan-dev-doc/publishing-board.md",
-            "guard": "只有用户明确要求看板、已有交付档案需要续写，或下游契约明确要求记录生命周期时"
+            "guard": "主方案实际落盘后才读取"
           },
           {
             "target": "skills/_shared/behavioral-testing.md",
@@ -129,7 +133,7 @@
           },
           {
             "target": "skills/_shared/board-publish-flow.md",
-            "guard": "写看板需要稳定交付身份、明确同步意图和当前发布所有权同时成立"
+            "guard": "在稳定交付身份能匹配已有档案时默认同步审查/修复事件"
           }
         ],
         "index_only": []
@@ -361,7 +365,7 @@
           },
           {
             "target": "skills/_shared/board-publish-flow.md",
-            "guard": "仅在用户明确要求登记看板，或输入 Brief 明确要求同步同一交付档案时"
+            "guard": "CodeMap 实际落盘后才读取并执行"
           },
           {
             "target": "skills/yan-project-analysis/modes/understanding/impact-output.md",
@@ -400,7 +404,7 @@
           },
           {
             "target": "skills/_shared/board-publish-flow.md",
-            "guard": "需要看板时才读取并严格执行"
+            "guard": "事故文档实际落盘后才读取并严格执行"
           },
           {
             "target": "skills/yan-project-analysis/modes/incident/reference.md",
@@ -431,7 +435,7 @@
           },
           {
             "target": "skills/_shared/board-publish-flow.md",
-            "guard": "需要看板时才读取并严格执行"
+            "guard": "业务流文档实际落盘后才读取并严格执行"
           },
           {
             "target": "skills/yan-project-analysis/modes/business/reference.md",

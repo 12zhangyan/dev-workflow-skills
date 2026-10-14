@@ -107,5 +107,25 @@ requireText('skills/yan-code-review/modes/loop/reference.md', [
   'TestEvidenceStatus: <Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>',
 ]);
 
+function listMarkdown(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return listMarkdown(full);
+    return entry.name.endsWith('.md') ? [full] : [];
+  });
+}
+
+const obsoleteReceiptPatterns = [
+  [/BoardPublishStatus[^\n]*NotRequested/, 'board status placeholder when nothing was published'],
+  [/RepairCycles\s*:\s*<\s*0\s*\|\s*1\s*\|\s*2\s*>/, 'fixed repair-cycle cap'],
+];
+for (const file of listMarkdown(path.join(root, 'skills'))) {
+  const rel = path.relative(root, file).replace(/\\/g, '/');
+  const text = fs.readFileSync(file, 'utf8');
+  for (const [pattern, label] of obsoleteReceiptPatterns) {
+    if (pattern.test(text)) fail(`${rel} reintroduces ${label}`);
+  }
+}
+
 if (failed) process.exit(1);
 console.log('ok review boundary checks passed');

@@ -4,7 +4,7 @@
 
 // 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 30;
+const BOARD_VERSION = 34;
 
 const UI_ICONS = {
   "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
@@ -33,11 +33,11 @@ function uiIcon(name) {
 if (typeof mermaid !== 'undefined') mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'inherit' });
 
 // ─── 状态（可点击切换，保存在浏览器 localStorage）─────────────────────────────
-const DOC_CYCLE = ['草稿', '进行中', '已完成'];
+const DOC_CYCLE = ['待确认', '草稿', '进行中', '已完成'];
 const BUG_CYCLE = ['未修复', '修复中', '已修复', '已验证'];
 const DONE = new Set(['已完成', '已验证']);
 const SK = 'dwf-status';
-const SC = { '草稿': '#b8ad99', '进行中': '#9a6b1f', '已完成': '#3e6b4f', '未修复': '#a02c2c', '修复中': '#9a6b1f', '已修复': '#3e6b4f', '已验证': '#2b5876' };
+const SC = { '待确认': '#c2410c', '草稿': '#b8ad99', '进行中': '#9a6b1f', '已完成': '#3e6b4f', '未修复': '#a02c2c', '修复中': '#9a6b1f', '已修复': '#3e6b4f', '已验证': '#2b5876' };
 let overrides = {};
 try { overrides = JSON.parse(localStorage.getItem(SK) || '{}'); } catch (e) {}
 function svcOf(d) { return d.service || '通用'; }
@@ -124,6 +124,25 @@ function shortText(s, n = 96) {
 }
 function firstItems(arr, n = 2) {
   return Array.isArray(arr) ? arr.filter(Boolean).slice(0, n) : [];
+}
+function listOf(v) { return Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []; }
+// 范围既接受 scopeIn/scopeOut，也接受发布协议里的混合 scope 列表。
+function scopeBlock(src) {
+  const row = (label, items, cls) => items.length
+    ? `<div class="scope-row"><span class="scope-label">${label}</span>${items.map(x => `<span class="${cls}">${esc(x)}</span>`).join('')}</div>` : '';
+  const html = row('✅ 包含', listOf(src.scopeIn), 'scope-in') + row('❌ 不含', listOf(src.scopeOut), 'scope-out') +
+    row('📐 边界', listOf(src.scope), 'scope-note');
+  return html ? `<div class="scope-block">${html}</div>` : '';
+}
+const RISK_KEYS = ['blockers', 'conflicts', 'assumptions', 'openQuestions'];
+function riskSource(d, plan) {
+  const out = {};
+  RISK_KEYS.forEach(k => { out[k] = [...listOf(d[k]), ...listOf(plan && plan[k])]; });
+  return out;
+}
+function pendingCount(src) { return ['blockers', 'conflicts', 'openQuestions'].reduce((n, k) => n + listOf(src[k]).length, 0); }
+function needsConfirmation(d, plan) {
+  return /needs|confirm|待确认/i.test(String(plan && plan.status || '')) || effStatus(d) === '待确认';
 }
 function summaryRows(d) {
   const rows = [];
@@ -215,6 +234,7 @@ function noteText(x) {
   return parts.join('；');
 }
 function riskNotes(d) {
+  d = Object.assign({}, d, riskSource(d, d.delivery && d.delivery.plan));
   const groups = [
     ['blockers', '阻塞项', 'risk-blocker'],
     ['conflicts', '冲突/需裁决', 'risk-conflict'],
@@ -225,7 +245,7 @@ function riskNotes(d) {
     return { title, cls, items };
   }).filter(g => g.items.length);
   if (!groups.length) return '';
-  return `<div class="risk-notes">
+  return `<div class="risk-notes" id="risk-notes">
     <div class="risk-title">判断依据与待确认</div>
     <div class="risk-grid">${groups.map(g => `
       <div class="risk-card ${g.cls}">
@@ -416,7 +436,7 @@ function pageLink(d) {
 function shortDate(d) { return String(d.updatedAt || d.date || '').slice(0, 10); }
 function indexRow(i) {
   const c = changes[i], st = effStatus(c), lead = leadOf(c);
-  const tag = c.deliveryId ? gateLabel(currentGateOf(c)) + '阶段' : c.kind === 'bug' ? c.severity || 'P2' : c.type || '';
+  const tag = c.deliveryId ? gateLabel(currentGateOf(c)) + '阶段' : c.kind === 'bug' ? c.severity || '缺陷' : c.type || '';
   return '<article class="record-row' + (DONE.has(st) ? ' record-done' : '') + '">' +
     '<span class="record-icon kind-' + kindOf(c) + '">' + icoOf(c) + '</span>' +
     '<div class="record-main"><button type="button" class="idx-title" onclick="pick(' + i + ')">' + esc(c.title) + '</button>' +
@@ -459,6 +479,10 @@ function showHome(preserveScroll = false) {
     ? String(changes[a].title || '').localeCompare(String(changes[b].title || ''), 'zh-CN')
     : ((recordTime(changes[b]) || 0) - (recordTime(changes[a]) || 0)) * (sortF === 'oldest' ? -1 : 1) || a - b);
   const listed = sortedVisible.slice(0, homeLimit);
+  const waiting = sortedVisible.filter(i => effStatus(changes[i]) === '待确认');
+  const confirmPanel = waiting.length ? '<section class="confirm-panel"><h2>待你确认 <span class="count-badge">' + waiting.length + '</span></h2><p class="panel-caption">这些方案有未裁决的问题，确认后才能按方案实施</p>' +
+    waiting.slice(0, 5).map(i => '<button type="button" class="confirm-item" onclick="pick(' + i + ')"><strong>' + esc(changes[i].title) + '</strong><span>' + esc(svcOf(changes[i])) + ' / ' + esc(modOf(changes[i])) + '</span></button>').join('') +
+    (waiting.length > 5 ? '<p class="panel-caption">另有 ' + (waiting.length - 5) + ' 项，可用“仅未完成”筛选查看</p>' : '') + '</section>' : '';
   const descriptions = {
     workspace: '从每一次变更，看见项目的进展。', backlog: '收拢尚未完成的工作，让下一步更清晰。',
     archive: '沉淀已完成的变更，留下可追溯的答案。', all: '方案、问题与业务流程，在这里连接起来。'
@@ -481,7 +505,7 @@ function showHome(preserveScroll = false) {
     filterBar() + (listed.length ? '<div class="record-list">' + listed.map(indexRow).join('') + '</div>' : emptyRecords()) +
     '<div class="list-footer"><span role="status">' + (q ? '搜索“' + esc(q) + '” · ' : '') + '显示 ' + listed.length + ' / ' + totalCnt + ' 条记录</span>' +
     (listed.length < totalCnt ? '<button type="button" class="load-more" onclick="showMoreHome()">加载更多 ' + uiIcon('arrow') + '</button>' : '<span>已显示全部</span>') + '</div></section>' +
-    '<aside class="overview-rail" aria-label="记录概览"><section class="distribution-panel"><h2>记录分布</h2><p class="panel-caption">当前筛选范围</p>' + kinds.map(([key, label, icon]) => {
+    '<aside class="overview-rail" aria-label="记录概览">' + confirmPanel + '<section class="distribution-panel"><h2>记录分布</h2><p class="panel-caption">当前筛选范围</p>' + kinds.map(([key, label, icon]) => {
       const count = visible.filter(i => kindOf(changes[i]) === key).length;
       return '<div class="distribution-row"><div><span class="kind-' + key + '">' + uiIcon(icon) + '</span><span>' + label + '</span><strong>' + count + '</strong></div><div class="distribution-track"><span class="fill-' + key + '" style="width:' + (totalCnt ? count / totalCnt * 100 : 0) + '%"></span></div></div>';
     }).join('') + '</section><section class="reading-guide"><span class="guide-icon">' + uiIcon('book') + '</span><h2>让变更有迹可循</h2><p>从背景到方案，从验证到交付，把上下文留给下一位同行者。</p><ol><li><span>01</span><div><strong>了解为什么</strong><p>先读背景与影响范围</p></div></li><li><span>02</span><div><strong>看清怎么做</strong><p>再看方案与关键取舍</p></div></li><li><span>03</span><div><strong>确认做到了</strong><p>查阅审查与验证证据</p></div></li></ol></section></aside></div>' +
@@ -562,13 +586,54 @@ function renderMermaid(wrap, code) {
   div.textContent = code;
   wrap.appendChild(div);
   if (typeof mermaid !== 'undefined') {
-    mermaid.run({ nodes: [div] }).catch(() => {
+    mermaid.run({ nodes: [div] }).then(() => addDiagramZoom(wrap)).catch(() => {
       wrap.innerHTML = `<pre class="flowchart-fallback">${esc(code)}</pre>`;
     });
   } else {
     wrap.innerHTML = `<pre class="flowchart-fallback">${esc(code)}</pre>`;
   }
 }
+function addDiagramZoom(wrap) {
+  if (!wrap.querySelector('svg') || wrap.querySelector('.diagram-zoom')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'diagram-zoom'; btn.textContent = '⤢ 放大查看';
+  btn.onclick = () => openDiagram(wrap);
+  wrap.insertBefore(btn, wrap.firstChild);
+}
+// 复杂流程图在正文宽度里会被压缩到难以阅读，放大层按原始尺寸展示并支持缩放与滚动。
+let diagramScale = 1;
+function openDiagram(wrap) {
+  closeDiagram();
+  const svg = wrap.querySelector('svg');
+  if (!svg) return;
+  const title = wrap.closest('.sec')?.querySelector('.sec-title')?.textContent || '流程图';
+  const layer = document.createElement('div');
+  layer.className = 'diagram-overlay'; layer.id = 'diagram-overlay';
+  layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-label', title);
+  layer.innerHTML = `<div class="diagram-panel"><div class="diagram-bar"><strong>${esc(title)}</strong><span>
+    <button type="button" onclick="zoomDiagram(-0.25)" aria-label="缩小">－</button>
+    <button type="button" onclick="zoomDiagram(0)" aria-label="原始大小">1:1</button>
+    <button type="button" onclick="zoomDiagram(0.25)" aria-label="放大">＋</button>
+    <button type="button" class="diagram-close" onclick="closeDiagram()" aria-label="关闭">✕ 关闭</button></span></div>
+    <div class="diagram-stage"></div></div>`;
+  const copy = svg.cloneNode(true);
+  const box = svg.viewBox && svg.viewBox.baseVal;
+  copy.removeAttribute('style');
+  copy.dataset.baseWidth = String(Math.round(box && box.width ? box.width : svg.getBoundingClientRect().width));
+  layer.querySelector('.diagram-stage').appendChild(copy);
+  layer.addEventListener('click', event => { if (event.target === layer) closeDiagram(); });
+  document.body.appendChild(layer);
+  diagramScale = 1; zoomDiagram(0);
+  layer.querySelector('.diagram-close').focus();
+}
+function zoomDiagram(step) {
+  const copy = document.querySelector('#diagram-overlay .diagram-stage svg');
+  if (!copy) return;
+  diagramScale = step ? Math.min(3, Math.max(0.5, diagramScale + step)) : 1;
+  copy.style.width = Math.round(Number(copy.dataset.baseWidth || 800) * diagramScale) + 'px';
+  copy.style.maxWidth = 'none'; copy.style.height = 'auto';
+}
+function closeDiagram() { document.getElementById('diagram-overlay')?.remove(); }
 
 // 详情页导读：渲染完成后扫描页面里的小标题，生成可点击章节导航（章节≥3 才显示）。
 // 对 pick / renderBug / renderBiz 统一生效，轻量详情页与自包含导出同样适用。
@@ -679,6 +744,27 @@ function reviewEventView(event) {
     </div>
   </article>`;
 }
+// 一页读懂：没参与开发的人先看这里，再决定是否展开完整方案。
+function deliveryBrief(plan, latest, next, pending) {
+  const rows = [];
+  if (plan.summary || plan.background) rows.push(['要解决什么', shortText(plan.summary || plan.background, 180)]);
+  if (plan.solution) rows.push(['怎么做', shortText(plan.solution, 180)]);
+  if (plan.dataFlowSummary) rows.push(['数据怎么流转', shortText(plan.dataFlowSummary, 180)]);
+  const out = listOf(plan.scopeOut), mixed = listOf(plan.scope);
+  if (out.length) rows.push(['不做什么', shortText(out.slice(0, 3).join('；'), 180)]);
+  else if (mixed.length) rows.push(['范围边界', shortText(mixed.slice(0, 3).join('；'), 180)]);
+  const acceptance = firstItems(plan.acceptance, 3);
+  if (acceptance.length) rows.push(['怎么验收', shortText(acceptance.join('；'), 180)]);
+  if (pending) rows.push(['待你确认', `${pending} 项需要裁决，见下方“判断依据与待确认”`]);
+  if (latest && (latest.summary || latest.conclusion)) rows.push(['最近审查', shortText(latest.summary || latest.conclusion, 180)]);
+  if (!rows.length) return '';
+  return `<div class="quick-brief delivery-brief">
+    <div class="qb-head"><span>一页读懂</span><span class="qb-action">下一步：${esc(next)}</span></div>
+    <div class="qb-grid">${rows.map(([k, v]) =>
+      `<div class="qb-item${k === '待你确认' ? ' qb-alert' : ''}"><div class="qb-k">${esc(k)}</div><div class="qb-v">${esc(v)}</div></div>`
+    ).join('')}</div>
+  </div>`;
+}
 function renderDelivery(d) {
   const delivery = deliveryModel(d);
   const plan = delivery.plan;
@@ -688,11 +774,21 @@ function renderDelivery(d) {
   const current = currentGateOf(d);
   const st = effStatus(d);
   const summary = plan.summary || plan.background || leadOf(d);
-  const next = latest.next || delivery[current]?.next ||
+  const next = latest.next || delivery[current]?.next || delivery[current]?.nextAction ||
     (current === 'submit' ? '完成 VCS 与人工确认后进入提交' : `继续补齐${gateLabel(current)}阶段证据`);
+  const decisions = listOf(plan.decisions).map(x => typeof x === 'string' ? x : [x.title, x.desc].filter(Boolean).join('：'));
+  const risks = riskSource(d, plan);
+  const pending = pendingCount(risks);
+  const confirm = needsConfirmation(d, plan);
+  const verified = verification.status || verification.testEvidenceStatus || verification.summary || verification.result;
+  const planFacts = [
+    listOf(plan.goals).length ? `${listOf(plan.goals).length} 个目标` : '',
+    listOf(plan.acceptance).length ? `${listOf(plan.acceptance).length} 条验收` : '',
+    pending ? `${pending} 项待确认` : ''
+  ].filter(Boolean).join(' · ');
   let h = `<div class="doc-view delivery-view">${detailBack()}
     <div class="breadcrumb"><span>🗂️ 研发变更档案</span><span class="bc-sep">/</span><span>${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>${esc(modOf(d))}</span></div>
-    <div class="delivery-kicker">${esc(d.deliveryId || 'LEGACY DELIVERY')} · ${esc(gateLabel(current).toUpperCase())} GATE</div>
+    <div class="delivery-kicker">研发档案 · 当前阶段：${esc(gateLabel(current))}${d.deliveryId ? ` · <span class="delivery-id">${esc(d.deliveryId)}</span>` : ''}</div>
     <h1 class="doc-h1">${esc(d.title)}</h1>
     ${summary ? `<p class="doc-lead">${esc(summary)}</p>` : ''}
     <div class="tags">
@@ -712,22 +808,25 @@ function renderDelivery(d) {
         <span class="delivery-dot"></span><span class="delivery-step-num">0${index + 1}</span><strong>${esc(gateLabel(gate))}</strong>
       </div>`).join('')}
     </div>
+    ${confirm ? `<div class="confirm-banner" role="note"><strong>方案待确认</strong><span>${pending ? `还有 ${pending} 项需要裁决；` : ''}确认前，未决部分不要按方案实施。</span></div>` : ''}
+    ${deliveryBrief(plan, latest, next, pending)}
+    ${riskNotes(risks)}
     <div class="delivery-overview">
       <section class="delivery-card plan-card">
         <div class="delivery-card-label">01 · 开发方案</div>
-        <h2>${esc(plan.title || '这次为什么改')}</h2>
-        ${plan.background ? para(plan.background) : summary ? para(summary) : '<p class="delivery-empty">尚未登记方案说明</p>'}
-        ${plan.coreDesign ? `<div class="delivery-callout"><b>核心取舍</b>${esc(plan.coreDesign)}</div>` : ''}
+        <h2>${confirm ? '方案待确认' : summary ? '方案已形成' : '尚未登记方案'}</h2>
+        ${planFacts ? `<p>${esc(planFacts)}</p>` : ''}
+        ${plan.coreDesign || decisions.length ? `<div class="delivery-callout"><b>核心取舍</b>${esc(shortText(plan.coreDesign || decisions[0], 160))}</div>` : ''}
       </section>
-      <section class="delivery-card review-card">
+      <section class="delivery-card review-card${events.length ? '' : ' is-empty'}">
         <div class="delivery-card-label">02 · Review 摘要</div>
         <h2>${events.length ? `${events.length} 次审查记录` : '尚未进入审查'}</h2>
-        ${events.length ? reviewEventView(latest) : '<p class="delivery-empty">后续审查结论与处理进展会持续记录在这份档案中。</p>'}
+        ${events.length ? reviewEventView(latest) : ''}
       </section>
-      <section class="delivery-card verification-card">
+      <section class="delivery-card verification-card${verified ? '' : ' is-empty'}">
         <div class="delivery-card-label">03 · 验证证据</div>
-        <h2>${esc(verification.status || verification.testEvidenceStatus || '待补充')}</h2>
-        <p>${esc(verification.summary || verification.result || '尚未登记能够证明目标逻辑的验证结果。')}</p>
+        <h2>${esc(verification.status || verification.testEvidenceStatus || '尚未验证')}</h2>
+        ${verification.summary || verification.result ? `<p>${esc(verification.summary || verification.result)}</p>` : ''}
         ${verification.dependencyClass ? `<code>${esc(verification.dependencyClass)}</code>` : ''}
       </section>
       <section class="delivery-card next-card">
@@ -737,29 +836,31 @@ function renderDelivery(d) {
       </section>
     </div>`;
 
-  const hasPlan = plan.background || plan.goals?.length || plan.scopeIn?.length || plan.scopeOut?.length ||
-    plan.solution || plan.dataFlowSummary || plan.coreDesign;
+  const hasPlan = plan.background || listOf(plan.goals).length || listOf(plan.scopeIn).length || listOf(plan.scopeOut).length ||
+    listOf(plan.scope).length || plan.solution || plan.dataFlowSummary || plan.coreDesign || decisions.length;
   if (hasPlan) {
     let body = '';
-    if (plan.goals?.length) body += `<p class="sub-label">目标</p><ul class="checklist">${plan.goals.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
-    if (plan.scopeIn?.length || plan.scopeOut?.length) {
-      if (plan.scopeIn?.length) body += `<div class="scope-row"><span class="scope-label">✅ 包含</span>${plan.scopeIn.map(x => `<span class="scope-in">${esc(x)}</span>`).join('')}</div>`;
-      if (plan.scopeOut?.length) body += `<div class="scope-row"><span class="scope-label">❌ 不含</span>${plan.scopeOut.map(x => `<span class="scope-out">${esc(x)}</span>`).join('')}</div>`;
-    }
+    if (plan.background) body += `<p class="sub-label">背景</p>${para(plan.background)}`;
+    if (listOf(plan.goals).length) body += `<p class="sub-label">目标</p><ul class="checklist">${listOf(plan.goals).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    const scope = scopeBlock(plan);
+    if (scope) body += `<p class="sub-label">范围</p>${scope}`;
     if (plan.solution) body += `<p class="sub-label">实现方式</p>${para(plan.solution)}`;
     if (plan.dataFlowSummary) body += `<p class="sub-label">数据流转</p>${para(plan.dataFlowSummary)}`;
-    if (plan.coreDesign) body += `<p class="sub-label">关键边界与取舍</p>${para(plan.coreDesign)}`;
+    if (plan.coreDesign || decisions.length) {
+      body += `<p class="sub-label">关键边界与取舍</p>${plan.coreDesign ? para(plan.coreDesign) : ''}` +
+        (decisions.length ? `<ul class="checklist">${decisions.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+    }
     h += sec('完整开发方案', body);
   }
-  if (d.apis?.length) h += sec('接口文档', apiTable(d.apis));
   if (plan.flowchart) h += sec('数据流转与处理链路', '<div class="mermaid-wrap" id="mmd-wrap"></div>');
   if (plan.keyImpl?.length) {
     h += sec('关键实现决策', `<div class="keyimpl-list">${plan.keyImpl.map(k =>
       `<div class="keyimpl-item"><div class="ki-title">${esc(k.title)}</div><div class="ki-desc">${esc(k.desc)}</div></div>`
     ).join('')}</div>`);
   }
+  if (d.apis?.length) h += sec('接口文档', apiTable(d.apis));
+  if (listOf(plan.acceptance).length) h += sec('验收与回归', `<ul class="checklist">${listOf(plan.acceptance).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`);
   if (events.length > 1) h += sec('Review 生命周期', `<div class="review-timeline">${events.map(reviewEventView).join('')}</div>`);
-  if (plan.acceptance?.length) h += sec('验收与回归', `<ul class="checklist">${plan.acceptance.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`);
   h += '</div>';
   document.getElementById('main').innerHTML = h;
   addToc();
@@ -852,7 +953,7 @@ function pick(i) {
 
 // ─── Bug view ─────────────────────────────────────────────────────────────────
 function renderBug(d) {
-  const sev = d.severity || 'P2';
+  const sev = d.severity || '缺陷';
   const st = effStatus(d);
   let h = `<div class="doc-view">${detailBack()}
     <div class="breadcrumb"><span>🐛 Bug</span><span class="bc-sep">/</span><span>📦 ${esc(svcOf(d))}</span><span class="bc-sep">/</span><span>📁 ${esc(modOf(d))}</span><span class="bc-sep">/</span><span>${esc(d.title)}</span></div>
@@ -1067,6 +1168,7 @@ showHome();
 
 // 搜索快捷键避开输入控件；移动端导航采用展开布局，不遮挡正文。
 if (document.addEventListener) document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('diagram-overlay')) { closeDiagram(); return; }
   if (event.key === 'Escape' && document.body.classList.contains('nav-open')) {
     closeSidebar();
     document.getElementById('menu-toggle')?.focus();

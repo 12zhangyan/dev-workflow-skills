@@ -1,13 +1,13 @@
 ﻿---
 name: yan-code-review-loop
-description: 同一 Agent 在明确修改授权下，基于当前实现证据自主完成只读审查、必要修复、目标验证和聚焦复审；不生成无用任务包，不自动提交或推送。
+description: 同一 Agent 在明确修改授权下，基于当前实现证据自主完成只读审查、必要修复、目标验证和聚焦复审；不生成无用任务包，不自动提交或推送。由 yan-code-review 根入口的 loop mode 加载。
 ---
 
 # Review–Repair Loop
 
 ## 目标与边界
 
-用于“审查并在必要时修复”，且尚无一组可直接交给 repair 的 findings。只读任务用 `check`，已有 findings 用 `repair`，需要独立多 reviewer 或外部聚合用 `package`。本模式是单 Agent 闭环，不能冒充独立交叉审查。
+用于“审查并在必要时修复”；用户附带的已知 findings 作为首审输入，在首审中核实后沿用原 ID。只读任务用 `check`，只要求修复已有 findings 用 `repair`，需要独立多 reviewer 或外部聚合用 `package`。本模式是单 Agent 闭环，不能冒充独立交叉审查。
 
 不执行数据库写入、DDL、add/commit/push，也不回滚无关改动。涉及业务语义、权限、状态、API/数据契约或数据归属且证据无法裁决时，只阻塞相关 finding；需要提问时读取 [交互策略](../../../_shared/interaction-policy.md)。
 
@@ -15,7 +15,7 @@ description: 同一 Agent 在明确修改授权下，基于当前实现证据自
 
 先用当前规则、代码、Git/SVN status、实际 diff、范围内未跟踪文件和测试证据判断是否有可审实现。没有实现证据时返回材料缺口；未跟踪文件仍可审查和修复，但必须保留纳管风险，不能擅自 add。
 
-有实现证据时读取并执行 [check mode](../check/mode.md)，保持首审零写入。没有 accepted finding 就停止修复；若仍有审查失败或待审范围，继续可行的补证据或报告未完成，不能宣称通过；存在 accepted finding 且在授权范围内时，读取并执行 [repair mode](../repair/mode.md)。内部模式按需加载自己的参考，本模式不预加载。
+有实现证据时读取并执行 [check mode](../check/mode.md)，保持首审零写入。没有 accepted finding 就停止修复；若仍有审查失败或待审范围，继续可行的补证据或报告未完成，不能宣称通过；存在 accepted finding 且在授权范围内时，先读取 [repair mode](../repair/mode.md) 再改任何代码或测试，并按其执行。内部模式按需加载自己的参考，本模式不预加载。
 
 代码变化后选择能证明目标行为的真实验证，再读取最新 status/diff，聚焦复审原问题、相邻风险和测试有效性。已确认的验收条件保持有效，不得为结束循环删除必要检查、放宽断言或把失败改成不适用。Agent 可按新证据继续修复、拆分 blocker、调整测试或停止；不设为了流程完整而必须跑满的轮次。出现以下任一条件即停止受影响路径：
 

@@ -37,11 +37,11 @@ description: 分析代码结构与兼容影响、记录事故根因证据，或�
 - `incident`：[modes/incident/mode.md](modes/incident/mode.md)
 - `business`：[modes/business/mode.md](modes/business/mode.md)
 
-模板和示例仅在对应 mode 要求时读取其同目录 `reference.md` / `examples.md`。
+模板只按所选 mode 内的链接和条件读取；根入口不直接加载任何 mode 的模板。
 
 ## 统一边界
 
-`ImpactAnalysis` 严格零写入；`incident` 不把未证实假设写成根因；`business` 不编造入口、状态或数据闭环。HTML 看板仅在用户明确要求或 Brief 明确要求同步时发布，且 ImpactAnalysis 始终不写。数据库只读，不执行 DDL 或数据修复；不自动 add、commit 或 push。持久产物路径仍为 `docs/code-reading/...`、`docs/bugs/...`、`docs/biz-flow/...`。
+`ImpactAnalysis` 严格零写入；`incident` 不把未证实假设写成根因；`business` 不编造入口、状态或数据闭环。CodeMap、incident、business 文档实际落盘后默认发布 HTML 看板（项目尚无看板时初始化）；用户明确不要看板或要求只读时跳过，ImpactAnalysis 始终不写。数据库只读，不执行 DDL 或数据修复；不自动 add、commit 或 push。持久产物路径仍为 `docs/code-reading/...`、`docs/bugs/...`、`docs/biz-flow/...`。
 
 ## 输出
 

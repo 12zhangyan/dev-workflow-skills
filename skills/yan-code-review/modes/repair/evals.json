@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-repair skill，按下面 review-check findings 直接修复并运行验证：Critical CR-1 File/Line: src/main/java/com/acme/order/OrderService.java:88 Problem: customerId 为 null 时继续查询导致 NPE Fix: 增加入参校验 Verify: mvn -pl order-service test",
-      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。未明确要求同步看板，不输出看板状态字段。"
+      "expected_output": "应触发 review-repair；归一化 CR-1 为 accepted，修改目标文件或说明缺失文件，运行或明确无法运行验证，并输出 fixed/blocked/rejected/deferred 状态。没有可匹配的交付档案时不写看板、不输出看板状态字段。"
     },
     {
       "id": 2,
@@ -112,7 +112,7 @@
     {
       "id": 16,
       "prompt": "根据 DLV-ORDER 的 IM-1 修复并验证，把处理结果更新到看板",
-      "expected_output": "已有稳定 DLV-ORDER 身份、用户明确要求同步，且直接 repair Agent 是发布所有者，因此按 IM-1 最小修复和验证，保留 finding ID，并写入同一档案的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
+      "expected_output": "已有稳定 DLV-ORDER 身份且能匹配已有档案，直接 repair Agent 是发布所有者，因此按 IM-1 最小修复和验证，保留 finding ID，并写入同一档案的稳定 repair 事件；回填 fixed/deferred/blocked/rejected、验证摘要和 gateStatus，不另建 repair 文档档案。",
       "tags": [
         "board_lifecycle",
         "same_delivery",
@@ -122,7 +122,7 @@
     {
       "id": 17,
       "prompt": "已有 IM-2，执行 repair；先预读 loop/check/package 的全部运行资料以免漏项。",
-      "expected_output": "只加载 repair mode；完整归一化或完成格式、共享门禁、Brief 都按实际需要读取，看板流程只在稳定身份+明确同步意图+当前发布 owner 三条件成立时读取。不得预加载 check、loop、package 的资料，修复范围仍由 IM-2 授权边界决定。",
+      "expected_output": "只加载 repair mode；完整归一化或完成格式、共享门禁、Brief 都按实际需要读取，看板流程只在稳定身份匹配已有档案且当前 Agent 是发布所有者时读取。不得预加载 check、loop、package 的资料，修复范围仍由 IM-2 授权边界决定。",
       "tags": [
         "route_minimal_loading",
         "finding_scope",

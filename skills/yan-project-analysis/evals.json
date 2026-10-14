@@ -13,7 +13,7 @@
     {
       "id": 2,
       "prompt": "生成支付回调模块的代码地图，方便人工 Review。",
-      "expected_output": "选择 understanding 的 CodeMap，生成持久化代码地图；未明确要求时不把登记看板作为隐含副作用。",
+      "expected_output": "选择 understanding 的 CodeMap，生成持久化代码地图；落盘后默认以 kind:\"reading\" 发布看板，项目尚无看板时初始化。",
       "tags": [
         "route_understanding",
         "code_map"

@@ -9,7 +9,7 @@ description: 生成可评审、可执行的开发方案。用于明确要求先�
 
 把需要先评审的需求写成 `docs/<日期>/<任务>.md`。让后续 Agent 依据事实、硬边界和验收结果自主实施。
 
-本 Skill 只形成方案，不实现业务代码，不执行数据库写入，不自动 add、commit 或 push。默认产物只有主方案；OpenAPI、看板和 Workflow Brief 均按实际需要生成。本 Skill 自包含运行，不依赖任何外部 Skill 或方法论。
+本 Skill 只形成方案，不实现业务代码，不执行数据库写入，不自动 add、commit 或 push。默认产物是主方案和同一交付的看板档案；OpenAPI 和 Workflow Brief 按实际需要生成。本 Skill 自包含运行，不依赖任何外部 Skill 或方法论。
 
 ## 完成标准
 
@@ -42,11 +42,13 @@ description: 生成可评审、可执行的开发方案。用于明确要求先�
 
 ### 写入与条件产物
 
+写入主方案前才读取 [方案骨架](plan-template.md) 并按任务裁剪；执行卡片、工作切片和验收矩阵让执行 Agent 不必通读全文即可开工。
+
 用 [workflow-fs.js](../_shared/scripts/workflow-fs.js) 创建日期目录并检查目标 `file-state`。已授权更新时先读后改，保留任务外内容，不重复确认；默认名称冲突且未锁定路径时选稳定后缀，重新检查后写入并报告实际路径。目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入。只修改本任务产物。
 
 新增接口或请求/响应/鉴权/错误语义发生契约变化时，才读取 [OpenAPI 发布协议](publishing-openapi.md)。纯行为变化或仅调用既有接口不重写规范。
 
-只有用户明确要求看板、已有交付档案需要续写，或下游契约明确要求记录生命周期时，才读取 [看板发布协议](publishing-board.md)；否则不初始化或修改 `project-html`。
+主方案实际落盘后才读取 [看板发布协议](publishing-board.md)，默认创建或续写同一交付档案；项目尚无 `project-html` 时由协议初始化。用户明确不要看板或只要聊天输出，或主方案未安全写入时，不初始化或修改 `project-html`。
 
 只有真实跨 Agent、跨任务或稍后恢复时，才读取 [Workflow Brief](../_shared/workflow-brief.md) 并在持久产物中保留一份。当前 Agent 能继续或任务已结束时不制造交接块。
 

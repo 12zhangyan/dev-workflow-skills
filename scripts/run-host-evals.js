@@ -232,7 +232,7 @@ function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSo
   return [
     ...introductions,
     '遵循项目规则和下述写入边界。',
-    '回答开头先单独输出两行：',
+    '最终答复开头先单独输出两行（必须在最终回复中保留，不只写在进度消息中）：',
     'ROUTE: <实际选择的 mode>',
     'WRITE_SCOPE: <none|docs|docs-and-board|code-and-tests>',
     ...loadingReceipt,
@@ -823,13 +823,17 @@ function runSelfTest() {
   }
   const assertionTemp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yan-host-eval-assertion-'));
   try {
-    const behaviorFixtures = [
-      ['review-loop-closed-loop', null, ''],
-      ['analysis-incident-artifacts', 'docs/bugs/fixture.md', '现象：重复扣款。证据：日志显示两次回调，根因待验证。'],
-      ['analysis-business-artifacts', 'docs/biz-flow/fixture.md', '入口：退款申请。状态：提交后待审批，驳回不归档。'],
-      ['handoff-persistent-doc', 'docs/handoffs/fixture.md', '目标：排查订单。证据：测试未运行。下一步：核验入口。']
+    const boardArtifacts = [
+      ['project-html/data/changes.js', 'const changes = [];'],
+      ['project-html/data/details/fixture.js', 'window.BOARD_DETAILS = {};'],
     ];
-    for (const [id, artifact, content] of behaviorFixtures) {
+    const behaviorFixtures = [
+      ['review-loop-closed-loop', []],
+      ['analysis-incident-artifacts', [['docs/bugs/fixture.md', '现象：重复扣款。证据：日志显示两次回调，根因待验证。'], ...boardArtifacts]],
+      ['analysis-business-artifacts', [['docs/biz-flow/fixture.md', '入口：退款申请。状态：提交后待审批，驳回不归档。'], ...boardArtifacts]],
+      ['handoff-persistent-doc', [['docs/handoffs/fixture.md', '目标：排查订单。证据：测试未运行。下一步：核验入口。']]]
+    ];
+    for (const [id, artifacts] of behaviorFixtures) {
       const behaviorContract = contracts.cases.find(item => item.id === id);
       const receipt = `ROUTE: ${behaviorContract.route}\nWRITE_SCOPE: ${behaviorContract.write_scope}`;
       const bare = assessAssertions(behaviorContract, receipt, assertionTemp, []);
@@ -839,14 +843,14 @@ function runSelfTest() {
           && assessAssertions(behaviorContract, receipt + '\n已审查 backend/src/Order.java，未发现问题；测试未运行。', assertionTemp, []).passed) {
         throw new Error('loop accepted missing verification evidence as completion');
       }
-      if (artifact) {
+      for (const [artifact, content] of artifacts) {
         fs.mkdirSync(path.dirname(path.join(assertionTemp, artifact)), { recursive: true });
         fs.writeFileSync(path.join(assertionTemp, artifact), content, 'utf8');
-        if (assessAssertions(behaviorContract, receipt, assertionTemp, []).passed) {
-          throw new Error(`${id} accepted an unchanged historical artifact`);
-        }
       }
-      if (!assessAssertions(behaviorContract, output, assertionTemp, artifact ? [artifact] : []).passed) {
+      if (artifacts.length && assessAssertions(behaviorContract, receipt, assertionTemp, []).passed) {
+        throw new Error(`${id} accepted an unchanged historical artifact`);
+      }
+      if (!assessAssertions(behaviorContract, output, assertionTemp, artifacts.map(([artifact]) => artifact)).passed) {
         throw new Error(`${id} rejected the scoped behavioral evidence fixture`);
       }
     }

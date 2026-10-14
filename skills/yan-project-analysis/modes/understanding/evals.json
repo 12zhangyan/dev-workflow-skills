@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 code-reading skill 基于 docs/2026-07-09/quote-tag.md 生成代码地图",
-      "expected_output": "应触发 understanding 的 CodeMap；综合文档索引、实际改动和点名入口选择可信起点，生成有证据的调用链、状态/副作用、关键位置及必要方案对照。不提修改建议、不判定问题；未明确要求时不登记看板。"
+      "expected_output": "应触发 understanding 的 CodeMap；综合文档索引、实际改动和点名入口选择可信起点，生成有证据的调用链、状态/副作用、关键位置及必要方案对照。不提修改建议、不判定问题；落盘后默认以 kind:\"reading\" 登记看板。"
     },
     {
       "id": 3,
@@ -79,7 +79,7 @@
     {
       "id": 15,
       "prompt": "使用 yan-project-analysis mode=understanding 的 CodeMap，根据当前代码更新 docs/code-reading/2026-10-10/订单查询.md 的证据和验证部分，其他人工备注原样保留。我已经授权修改该文件，目标可以读取，不要重复确认。",
-      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库、VCS 或看板。",
+      "expected_output": "先读取当前文档及相关实现，只更新授权部分，保留人工备注和任务外内容；不因文件已存在而重新请求覆盖确认，不另写后缀副本。已有授权不扩展到业务代码、数据库或 VCS；看板按默认发布规则只同步同一 docPath 的记录，不新建第二条。",
       "tags": [
         "existing_authorization",
         "scoped_document_update",

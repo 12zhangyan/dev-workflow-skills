@@ -222,6 +222,16 @@
         "negative_side_effect",
         "scope_negative_control"
       ]
+    },
+    {
+      "id": 21,
+      "prompt": "审查并修复上次合入的会话隔离改动；已确认 IM-1：重置后目录不再加载。改完验证、复审，不要提交。",
+      "expected_output": "选择 loop 而不是 repair：已知 IM-1 作为首审输入并在首审中核实、沿用原 ID，新 finding 接续编号；改代码前先读取 repair mode；验证并复审最新 diff；从提交出发且没有方案文档时不写看板，不自动提交。",
+      "tags": [
+        "route_loop",
+        "known_findings_input",
+        "finding_id_stability"
+      ]
     }
   ]
 }

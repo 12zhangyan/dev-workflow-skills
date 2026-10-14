@@ -68,7 +68,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 | 你要做什么 | 用哪个 skill | 主要产物 |
 |------------|--------------|----------|
-| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md；看板仅在明确要求或既有交付契约需要时发布；契约变化时按需生成 OpenAPI |
+| 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md，落盘后默认同步看板档案；契约变化时按需生成 OpenAPI |
 | 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `yan-project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
 | 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
 | 把当前对话交给另一段 AI 对话继续 | `yan-conversation-handoff` | `docs/handoffs/YYYY-MM-DD/<task>-handoff.md` |
@@ -79,7 +79,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 按当前证据选择最小组合：需求未决时由当前 Agent 先澄清或写方案；目标与验收已清楚时直接实施和验证；复杂逻辑是否测试先行、问题如何定位、是否需要独立 reviewer，都由 Agent 按风险决定。只有理解复杂调用链确有收益时才生成代码地图。
 
-不要求每个任务走完整链路。范围和验收清楚时，当前 Agent 可以直接实施并验证；复杂任务按独立结果切片，在既有授权内并行委派。需要多视角 Review 时使用 `yan-code-review mode=package`：任务授权与宿主规则允许委派时直接组织只读 reviewers 并汇总；委派不可用且需要外部继续时才留下便携任务包。代码地图、看板和修复交接只在需要时生成。
+不要求每个任务走完整链路。范围和验收清楚时，当前 Agent 可以直接实施并验证；复杂任务按独立结果切片，在既有授权内并行委派。需要多视角 Review 时使用 `yan-code-review mode=package`：任务授权与宿主规则允许委派时直接组织只读 reviewers 并汇总；委派不可用且需要外部继续时才留下便携任务包。代码地图和修复交接只在需要时生成；已落盘的方案与分析文档默认同步看板。
 
 `yan-project-analysis mode=business` 的默认终点是测试设计；需要进入开发时，目标与验收已清楚且用户已授权就直接实施。只有用户要求方案或关键决策尚未裁决时，才进入 `yan-dev-doc`。
 
@@ -128,7 +128,7 @@ Brief 只在接口产物影响接手时写 `api`，只在 VCS owner、未跟踪�
 
 ## HTML 看板
 
-`yan-dev-doc` 只在用户明确要求、既有交付档案需要续写或下游约定需要时创建“一事一档”看板记录。`yan-code-review` 的 package/repair/loop 也只在已有稳定交付身份且实际要求同步时更新同一档案；check 默认零写入。`yan-project-analysis` 的 business/CodeMap 看板同样是按授权副作用，ImpactAnalysis 始终零写入。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
+看板默认自动发布：`yan-dev-doc` 方案、`yan-project-analysis` 的 CodeMap / incident / business 文档实际落盘后，都会创建或更新对应的“一事一档”记录；项目尚无 `project-html/` 时自动初始化。`yan-code-review` 的 package/repair/loop 在 `deliveryId` 或来源方案 `docPath` 能匹配已有档案时自动同步审查/修复事件，匹配不到时不新建孤立记录；check 默认零写入。ImpactAnalysis 与会话交接从不写看板。任何一次请求里说“不要看板”即可跳过。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
