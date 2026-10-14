@@ -57,7 +57,7 @@ if (!runnerText.includes("git', ['clone', '--no-local', sourceWorkspace, isolate
   console.error('FAIL: writable live evaluation must use a runner-created isolated Git clone');
   process.exit(1);
 }
-if (!runnerText.includes("repeat with --allow-write") || !runnerText.includes("--output must not be inside the supplied workspace")) {
+if (!fs.readFileSync(path.join(root, 'scripts/host-eval-preflight.js'), 'utf8').includes("repeat with --allow-write") || !fs.readFileSync(path.join(root, 'scripts/host-eval-preflight.js'), 'utf8').includes("--output must not be inside the supplied workspace")) {
   console.error('FAIL: runner must reject implicit writes and result paths inside the supplied workspace');
   process.exit(1);
 }
@@ -151,13 +151,13 @@ if (!loopContract.assertions || !loopContract.assertions.text || !loopContract.a
   process.exit(1);
 }
 
-const refused = spawnSync(process.execPath, [runner, '--live', '--host', 'codex', '--case', 'dev-doc-standard-artifacts', '--workspace', root], {
+const refused = spawnSync(process.execPath, [runner, '--live', '--host', 'codex', '--case', 'dev-doc-artifacts', '--workspace', root], {
   cwd: root,
   encoding: 'utf8',
   windowsHide: true,
   timeout: 30000,
 });
-if (refused.status !== 2 || !(`${refused.stderr}${refused.stdout}`).includes('--allow-write')) {
+if (refused.status !== 2 || !(`${refused.stderr}${refused.stdout}`).includes('writes docs-and-board; repeat with --allow-write')) {
   console.error('FAIL: writable live evaluation must be refused before a host invocation unless --allow-write is explicit');
   process.exit(1);
 }

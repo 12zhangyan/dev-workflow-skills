@@ -116,6 +116,12 @@ for (const contract of contracts.cases || []) {
       }
     }
   }
+  if (contract.required_fixture_paths !== undefined) {
+    try {
+      if (!Array.isArray(contract.required_fixture_paths)) throw new Error('must be an array');
+      contract.required_fixture_paths.forEach(require('./host-eval-preflight').fixturePath);
+    } catch (error) { fail(contract.id + ' has invalid required_fixture_paths: ' + error.message); }
+  }
   if (contract.selection && !['none', ...publicSkills].includes(contract.selection.expected_skill)) {
     fail(contract.id + ' has an invalid expected selection');
   }

@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { inspect: inspectPreflight } = require('./host-eval-preflight');
 
 const root = path.resolve(__dirname, '..');
 const contracts = JSON.parse(fs.readFileSync(path.join(root, 'skills', '_shared', 'host-contracts.json'), 'utf8'));
@@ -34,6 +35,8 @@ function usage(message) {
     'Usage:',
     '  node scripts/run-host-evals.js --probe [--json]',
     '  node scripts/run-host-evals.js --self-test',
+    '  node scripts/run-host-evals.js --preflight --host <host> --case <id> --workspace <worktree> [--allow-write]',
+    '    Offline read-only Git/file inspection; no agent, clone, verifier or network.',
     '  node scripts/run-host-evals.js --live --host <claude|cursor|codex>',
     '    --case <contract-id> --workspace <clean-git-worktree>',
     '    [--allow-write] [--model <model>] [--output <result.json>] [--timeout-ms <ms>]',
@@ -53,12 +56,16 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') usage();
-    else if (arg === '--probe') args.probe = true;
+    else if (arg === '--probe') { args.probe = true; args.explicitProbe = true; }
     else if (arg === '--self-test') {
       args.selfTest = true;
       args.probe = false;
     }
     else if (arg === '--json') args.json = true;
+    else if (arg === '--preflight') {
+      args.preflight = true;
+      args.probe = false;
+    }
     else if (arg === '--live') {
       args.live = true;
       args.probe = false;
@@ -71,6 +78,7 @@ function parseArgs(argv) {
       args[key] = value;
     } else usage(`unknown argument: ${arg}`);
   }
+  if (args.preflight && (args.live || args.selfTest || args.explicitProbe)) usage('--preflight cannot be combined with --live, --probe or --self-test');
   args.timeoutMs = Number(args.timeoutMs);
   if (!Number.isInteger(args.timeoutMs) || args.timeoutMs < 1000) usage('--timeout-ms must be an integer >= 1000');
   if (!['explicit', 'catalog', 'native'].includes(args.invocation)) usage('unknown --invocation');
@@ -247,7 +255,9 @@ function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSo
 }
 
 function git(workspace, args) {
-  return spawnSync('git', ['--no-optional-locks', '-C', workspace, ...args], { encoding: 'utf8', windowsHide: true });
+  return spawnSync('git', ['--no-optional-locks', '--no-lazy-fetch', '-c', 'core.fsmonitor=false', '-C', workspace, ...args], {
+    encoding: 'utf8', windowsHide: true, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+  });
 }
 
 function parsePorcelainZ(value) {
@@ -1018,27 +1028,21 @@ function main() {
     return;
   }
 
-  if (!args.live || !hostSpecs[args.host]) usage('--live requires a supported --host');
-  if (!args.case || !args.workspace) usage('--live requires --case and --workspace');
-  const contract = contracts.cases.find((item) => item.id === args.case);
-  if (!contract) usage(`unknown contract case: ${args.case}`);
-  if (args.invocation !== 'explicit' && !contract.selection) usage('natural invocation requires a selection contract');
-  if (args.invocation === 'explicit' && contract.selection) usage('selection contracts require --invocation catalog or native');
-  if (args.invocation === 'native' && args.host !== 'codex') usage('native discovery evidence currently requires Codex JSON command events; use catalog for other hosts');
-  if (args.effort && args.host !== 'codex') usage('--effort currently supports codex only');
-  if (contract.write_scope !== 'none' && !args.allowWrite) usage(`${contract.id} writes ${contract.write_scope}; repeat with --allow-write`);
-  if (contract.outcome_verifier && contract.outcome_verifier !== 'query-contract') usage('unknown outcome verifier');
-  const sourceWorkspace = assertSourceWorkspace(args.workspace);
-  if (args.output) {
-    const outputPath = path.resolve(args.output);
-    const sourcePrefix = `${sourceWorkspace}${path.sep}`;
-    if (outputPath === sourceWorkspace || outputPath.startsWith(sourcePrefix)) {
-      throw new Error('--output must not be inside the supplied workspace; write results outside the source tree');
-    }
+  if (!args.live && !args.preflight) usage('select --preflight or --live');
+  const preflight = inspectPreflight(args, {
+    root, contracts, hosts: Object.keys(hostSpecs), git, skillSourceDirectory, promptFor, globToRegex,
+  });
+  if (args.preflight) {
+    console.log(JSON.stringify(preflight, null, 2));
+    if (!preflight.valid) process.exitCode = 1;
+    return;
   }
-  const probe = probeHost(args.host);
-  if (!probe.available) throw new Error(`${args.host} is unavailable: ${probe.reason}`);
+  if (!preflight.valid) usage(preflight.checks.filter(item => item.status === 'invalid').map(item => item.id + ': ' + item.detail).join('\n'));
+  const contract = contracts.cases.find(item => item.id === args.case);
+  const sourceWorkspace = assertSourceWorkspace(args.workspace);
   const skillSource = skillSourceDirectory(args.skillSource);
+  const probe = probeHost(args.host);
+  if (!probe.available) throw new Error(args.host + ' is unavailable: ' + probe.reason);
   const isolation = createIsolation(sourceWorkspace, skillSource, args.invocation);
   const before = workspaceSnapshot(isolation.workspace);
   const prompt = promptFor(contract, isolation.skillSnapshotRoot, args.invocation, skillSource);
@@ -1071,6 +1075,7 @@ function main() {
   const durationMs = Date.now() - started;
   const result = {
     schemaVersion: 3,
+    preflight,
     provenance: {
       fixtureHead: before.head,
       graderSha256: crypto.createHash('sha256').update(fs.readFileSync(__filename)).update(contract.outcome_verifier ? fs.readFileSync(path.join(root, 'scripts/eval-verifiers', contract.outcome_verifier + '.js')) : '').digest('hex'),

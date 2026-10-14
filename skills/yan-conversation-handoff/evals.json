@@ -189,6 +189,24 @@
         "stale_summary",
         "delivery_receipts"
       ]
+    },
+    {
+      "id": 24,
+      "prompt": "使用 yan-conversation-handoff，只在聊天生成接手提示。读取 docs/recovery-handoff.md 和其中当前可用的必要证据；这是重建后的 TypeMe 隔离工作区。说明哪些下一步有证据支持、哪些依赖尚不完整，不运行测试、不写文件、不访问旧机器或服务。",
+      "expected_output": "核对当前必要文件是否存在和版本是否吻合；缺失的业务契约或日志不由历史摘要补造，历史测试通过不代表新环境可运行。只阻塞依赖缺失材料的动作，仍保留已授权且可独立推进的检查；交接只读不撤销接手方原有实现授权。",
+      "tags": [
+        "recovery_integrity",
+        "handoff_vs_successor_scope"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "只做聊天交接：换机恢复已逐一确认必需源码、契约和测试夹具存在，版本/内容与已记录基线一致；旧机器上的截图不参与下一步的本地逻辑验证。原用户已授权修复与离线测试。",
+      "expected_output": "保留已核验材料和现有授权，不因无关截图缺失阻塞所有工作或强制重建全部环境；接手可推进既定修复与验证，区分历史测试与本轮执行。",
+      "tags": [
+        "recovery_integrity",
+        "neighbor_negative"
+      ]
     }
   ]
 }
