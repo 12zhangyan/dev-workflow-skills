@@ -69,6 +69,11 @@ try {
     "for (const name of ['http','https']) { const api = require(name); api.request = api.get = () => { throw Error('unexpected network'); }; }",
   ].join('\n'));
   assert.equal(report([], 0).valid, true);
+  if (process.platform === 'win32') {
+    const alternateDrive = fixture.replace(/^[A-Z]:/, drive => drive.toLowerCase());
+    assert.equal(report(['--workspace', alternateDrive], 0).valid, true, 'drive casing must not change workspace identity');
+  }
+  assert.equal(report(['--workspace', path.join(fixture, '.git')], 1).valid, false, 'Git metadata is not a worktree root');
   for (const modes of [['--preflight', '--probe'], ['--probe', '--preflight'], ['--preflight', '--live']]) {
     const conflict = run(modes);
     assert.equal(conflict.status, 2);
@@ -121,6 +126,7 @@ try {
   delete contract.route_loading;
   const link = path.join(temp, 'source-alias');
   fs.symlinkSync(fixture, link, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.equal(report(['--workspace', link], 0).valid, true, 'a resolved alias of the worktree root is valid');
   assert.equal(inspect({ ...args, output: path.join(link, 'new', 'result.json') }, tools).valid, false);
   fs.unlinkSync(link);
   assert.equal(mustGit(['rev-parse', 'HEAD']), head);

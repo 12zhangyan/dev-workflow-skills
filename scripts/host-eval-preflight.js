@@ -11,9 +11,10 @@ function within(parent, child) {
 
 // Resolve existing ancestors too: a not-yet-created result below a link must not
 // bypass the source-workspace write boundary.
+// Native resolution canonicalizes Windows drive casing and short-name aliases.
 function physicalPath(value) {
   const absolute = path.resolve(value);
-  if (fs.existsSync(absolute)) return fs.realpathSync(absolute);
+  if (fs.existsSync(absolute)) return fs.realpathSync.native(absolute);
   const parent = path.dirname(absolute);
   if (parent === absolute) return absolute;
   return path.join(physicalPath(parent), path.basename(absolute));
@@ -132,7 +133,7 @@ function inspect(args, tools) {
     workspace = path.resolve(args.workspace);
     if (!fs.statSync(workspace).isDirectory()) throw new Error('workspace is not a directory');
     const top = readGit(['rev-parse', '--show-toplevel']).trim();
-    if (fs.realpathSync(workspace) !== fs.realpathSync(top)) throw new Error('--workspace must name the Git worktree root');
+    if (fs.realpathSync.native(workspace) !== fs.realpathSync.native(top)) throw new Error('--workspace must name the Git worktree root');
     fixtureHead = readGit(['rev-parse', '--verify', 'HEAD']).trim();
     if (/^160000 /m.test(readGit(['ls-files', '--stage']))) throw new Error('fixture contains submodules; this runner does not restore submodule worktrees');
     const reserved = args.invocation === 'native' ? '.agents' : '.yan-host-eval-runtime';
@@ -151,13 +152,13 @@ function inspect(args, tools) {
       for (const value of contract?.required_fixture_paths || []) {
         const relative = fixturePath(value);
         const full = path.join(workspace, relative);
-        if (!within(fs.realpathSync(workspace), physicalPath(full)) || fs.lstatSync(full).isSymbolicLink() || !fs.statSync(full).isFile()) throw new Error('fixture input is not a contained regular file: ' + relative);
+        if (!within(fs.realpathSync.native(workspace), physicalPath(full)) || fs.lstatSync(full).isSymbolicLink() || !fs.statSync(full).isFile()) throw new Error('fixture input is not a contained regular file: ' + relative);
         readGit(['ls-files', '--error-unmatch', '--', relative]);
       }
       return 'declared fixture files are present and tracked; undeclared or ignored dependencies are not guaranteed';
     });
     if (args.output) check('result-path', () => {
-      if (within(fs.realpathSync(workspace), physicalPath(args.output))) throw new Error('--output must not be inside the supplied workspace; write results outside the source tree');
+      if (within(fs.realpathSync.native(workspace), physicalPath(args.output))) throw new Error('--output must not be inside the supplied workspace; write results outside the source tree');
       return 'result destination stays outside the supplied workspace; no file written';
     });
   }
