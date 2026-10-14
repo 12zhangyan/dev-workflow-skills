@@ -93,7 +93,11 @@
           }
         ]
       },
-      "outcome_verifier": "query-contract"
+      "outcome_verifier": "query-contract",
+      "required_fixture_paths": [
+        "src/query.js",
+        "test/query.test.js"
+      ]
     },
     {
       "id": "business-async-contract",
@@ -885,6 +889,36 @@
           },
           {
             "pattern": "README(?:\\.md)?",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "handoff-recovery-integrity",
+      "prompt_ref": "yan-conversation-handoff:24",
+      "route": "chat-only",
+      "accepted_routes": [
+        "chat-only",
+        "handoff",
+        "conversation-handoff"
+      ],
+      "write_scope": "none",
+      "required_fixture_paths": [
+        "docs/recovery-handoff.md"
+      ],
+      "assertions": {
+        "text": [
+          {
+            "pattern": "accepted-contract",
+            "min_matches": 1
+          },
+          {
+            "pattern": "缺失|不存在|未恢复|不完整",
+            "min_matches": 1
+          },
+          {
+            "pattern": "历史|此前|旧环境",
             "min_matches": 1
           }
         ]
