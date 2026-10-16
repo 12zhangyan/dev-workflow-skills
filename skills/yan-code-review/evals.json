@@ -232,6 +232,46 @@
         "known_findings_input",
         "finding_id_stability"
       ]
+    },
+    {
+      "id": 22,
+      "prompt": "只读审查一个本地配置读取改动。受支持输入由同一进程的类型化配置产生，现有解析和错误传播满足已批准契约。有人要求仅因没有哈希、重试和多层 fallback 就记为缺陷；请基于给定证据判断，不写文件、不运行命令。",
+      "expected_output": "选择 check；机制缺席本身不构成 finding，不为可选增强发明当前义务；如材料足以覆盖范围可报告无已证实问题，同时保持只读，不反向删除任何既有防护。",
+      "tags": [
+        "scope_convergence",
+        "optional_hardening",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "只读审查以下确定证据：租户更新接口只校验请求体 tenantId 合法，直接按用户提交的 recordId 更新；批准契约要求校验记录归属，SQL 无租户条件，上游也未校验。尚无攻击事故。只基于这些事实答复，不改代码。",
+      "expected_output": "选择 check；根据可达更新路径与租户隔离契约报告有定位依据的授权缺陷，不能以防止过度防御或尚无事故为由放过，不擅自修改。",
+      "tags": [
+        "scope_convergence",
+        "required_protection",
+        "trust_boundary"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "使用 yan-code-review loop 收尾：IM-1 已修复并经最新 diff 聚焦复审，当前任务已实际运行目标行为断言和项目全部必检项且通过；之后只调整了聊天答复，源码、契约、配置、输入和环境未变，无待审单元或未闭合问题。请直接给结论，不再运行命令。",
+      "expected_output": "复用覆盖最终状态的现有验证证据并结束，保留 IM-1 和已有命令/结果的准确含义；不重跑检查、不重启全量审查、不增加审计材料或寻找额外任务，不声称本轮又执行了命令。",
+      "tags": [
+        "verification_reuse",
+        "loop_completion",
+        "no_final_audit"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "使用 yan-code-review repair 修复 IM-3：支付失败应保留重试状态。当前工作区已按 finding 改代码，但旧测试结果来自改动前；最新目标测试因明确断言失败连续两次报同样错误，输入与代码未再变化。另一个独立修复已有充分验证。请依据这些证据说明下一步，不写文件、不执行命令。",
+      "expected_output": "旧测试不能证明 IM-3 的当前实现；针对失败保留原 ID 和实际症状，只有定位具体原因或提出能检验的新假设后才重跑，不能机械第三次重试、放宽断言或把 IM-3 标 fixed。独立已验证修复保留结果，不因此重做全任务；未解决项如实保留阻塞。",
+      "tags": [
+        "verification_invalidation",
+        "retry_requires_progress",
+        "partial_completion"
+      ]
     }
   ]
 }
