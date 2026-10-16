@@ -120,6 +120,26 @@
         "async_completion",
         "live_fixture"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "使用 yan-project-analysis，只在聊天解释订单状态查询。已提供入口、服务、Mapper 和状态枚举的完整相关片段，足以解释正常与拒绝路径；同目录另有未使用的推荐模块，没有证据表明它参与查询。不要运行命令或写文件。",
+      "expected_output": "选择 understanding 的 ImpactAnalysis，基于相关片段说明查询与拒绝边界后结束；不因邻近模块存在而要求全仓巡检、审计或加固，不生成代码地图、方案或看板。",
+      "tags": [
+        "scope_convergence",
+        "analysis_completion",
+        "zero_write"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "使用 yan-project-analysis，只在聊天解释订单状态查询：Controller 和 Service 已给出，但 Service 动态调用的租户策略实现不可见，策略会改变返回字段。不要运行命令或写文件。",
+      "expected_output": "选择 understanding 的 ImpactAnalysis，说明已证实的调用和动态策略边界，保留返回字段无法定论的具体缺口；不能为了尽快结束编造完整结论，也不把一个策略不可见扩成全仓审计或实现任务。",
+      "tags": [
+        "scope_convergence",
+        "incomplete_evidence",
+        "neighbor_negative"
+      ]
     }
   ]
 }

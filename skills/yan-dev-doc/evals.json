@@ -304,6 +304,26 @@
         "diagram_evidence",
         "planned_vs_actual"
       ]
+    },
+    {
+      "id": 64,
+      "prompt": "使用 yan-dev-doc：给现有商品查询加一个可选分类筛选，数据库和分页服务已能直接支持。只要短方案，不要看板；没有缓存、重试或统一校验框架需求。",
+      "expected_output": "基于现有查询与分页能力给出最小完整方案，覆盖入参、查询和必要验收；不追加缓存、重试、抽象框架、新依赖或为这些机制再造校验材料，不把简单方案扩成平台建设。",
+      "tags": [
+        "scope_convergence",
+        "direct_solution",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 65,
+      "prompt": "使用 yan-dev-doc 写一份短方案，不要看板：现有上传接口必须拒绝未授权租户，外部存储可能超时，已批准契约要求事务回滚并保留可重试状态；有人建议为了简单删掉权限校验和恢复分支。",
+      "expected_output": "保留已明确的租户隔离、回滚及恢复要求，分析现有能力不能满足的具体缺口并设计必要措施；不能因防御代码较多或没有事故记录而删除保障，也不省略完成链路所需的调用方、状态与测试。",
+      "tags": [
+        "scope_convergence",
+        "required_protection",
+        "neighbor_negative"
+      ]
     }
   ]
 }

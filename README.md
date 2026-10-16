@@ -8,6 +8,8 @@
 
 持续优化目标：Skill 越来越轻，只保留必要目标、边界与验收；Agent 越来越强，自主决定取证、拆分、实现、测试、Review 和验收。优化本 Skill 集时，只要切片独立且不会产生写冲突，可以按收益使用全部可用子 Agent 容量并行分析、实现和复核；并行数量不是流程要求，最终结论仍由主 Agent 依据证据整合。
 
+范围收敛参考 [Stop That Shit](https://github.com/lennney/stop-that-shit/blob/8bc1ac558167121e7f28d9fb0bec05c039952206/skills/stop-that-shit/SKILL.md)：按具体缺口扩展工作，复用仍有效的验证证据，完成验收后停止。相关约束融入现有 Skill，不新增公开入口或 Hook 依赖。
+
 第一次使用建议先看 [docs/workflow-guide.md](docs/workflow-guide.md)。README 只说明这个仓库是什么、怎么安装、每个 skill 什么时候用。
 
 ## 你会得到什么
