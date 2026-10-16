@@ -272,6 +272,28 @@
         "retry_requires_progress",
         "partial_completion"
       ]
+    },
+    {
+      "id": 26,
+      "prompt": "使用 yan-code-review，mode=check。只读评估下列彼此独立的证据摘要，不运行测试或业务操作，不改文件。请按 L1、L2、L3、L4 分别给结论与依据，区分已证实问题、可承认的局部证据和缺口。L1：TenantControllerTest 使用真实 Controller 和 mock Service，实际断言请求校验失败为 400；Mapper XML 未执行且没有已知 SQL 错误。L2：SharedOrderCache 的所有租户共用缓存，key 仅 orderId；同一 orderId 可跨租户重复，命中不校验归属，A 填充后 B 实际读到 A 数据；未命中 SQL 有 tenantId 条件，没有其他分区保障。L3：ProtectedExport 方法有权限注解，但方法安全未启用，URL permitAll 且没有其他授权检查；已确认契约要求所属租户，实际调用可创建另一租户导出任务。L4：McpToolTest 仅直接调用工具函数且结果断言通过，报告却称真实 MCP 协议联调通过；没有客户端或传输证据。只依据这些摘要判断，不把测试缺口补造为 SQL 缺陷或生产事故。",
+      "expected_output": "L1 承认 HTTP 校验局部价值并保留 SQL 证据缺口，不断言 SQL 越权；L2 报告实际缓存命中隔离缺陷；L3 报告方法授权未生效及越界副作用；L4 保留函数测试价值，纠正协议通过声明。选读相关专项，保持只读，不按技术名扩任务。",
+      "tags": [
+        "specialist_boundaries",
+        "backend_verification",
+        "behavioral_testing",
+        "route_minimal_loading"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "使用 yan-code-review，mode=check。只读评估以下证据，逐项说明是否存在有证据的问题；材料已完整，不运行测试或业务操作、不改文件。N1：缓存 key 只有 orderId，但服务端按可信租户选择独立命名空间；实际测试覆盖隔离、缓存命中和写后失效且通过。N2：纯金额舍入经真实公开方法的普通单测覆盖，期望独立手算，项目 JDK 8，无框架行为变化。N3：真实 SDK 客户端已在声明的 stdio 传输上完成初始化、工具调用和错误结果断言；只声明本地协议范围通过。有人建议因为 key 不含 tenantId 就判泄漏、升级 Java 21/Spring Boot 4、增加全量 Spring 容器和数据库造数、固定 85% 覆盖率并要求额外 HTTP 传输。请依据现有证据裁决这些建议，不把局部通过外推生产，也不额外制造工作。",
+      "expected_output": "承认独立命名空间、有效普通单测和声明传输的本地协议证据，排除无依据的泄漏指控；不升级栈、不改写 key、不强制新容器/造数/覆盖率/额外传输，也不外推生产。按风险结束，不联读无关参考。",
+      "tags": [
+        "specialist_boundaries",
+        "effective_protection",
+        "negative_control",
+        "route_minimal_loading"
+      ]
     }
   ]
 }

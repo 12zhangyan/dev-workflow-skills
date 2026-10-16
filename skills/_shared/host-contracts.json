@@ -923,6 +923,114 @@
           }
         ]
       }
+    },
+    {
+      "id": "review-specialist-boundaries",
+      "prompt_ref": "yan-code-review:26",
+      "route": "check",
+      "write_scope": "none",
+      "required_fixture_paths": [
+        "README.md"
+      ],
+      "route_loading": {
+        "max_resources": 5,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(repair|loop|package)/",
+          "^skills/_shared/browser-verification\\.md$"
+        ]
+      },
+      "assertions": {
+        "text": [
+          {
+            "pattern": "L1",
+            "min_matches": 1
+          },
+          {
+            "pattern": "L2",
+            "min_matches": 1
+          },
+          {
+            "pattern": "L3",
+            "min_matches": 1
+          },
+          {
+            "pattern": "L4",
+            "min_matches": 1
+          },
+          {
+            "pattern": "400",
+            "min_matches": 1
+          },
+          {
+            "pattern": "Mapper|SQL",
+            "min_matches": 1
+          },
+          {
+            "pattern": "缓存|cache",
+            "min_matches": 1
+          },
+          {
+            "pattern": "授权|权限",
+            "min_matches": 1
+          },
+          {
+            "pattern": "协议|传输|protocol",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "review-specialist-effective-protection",
+      "prompt_ref": "yan-code-review:27",
+      "route": "check",
+      "write_scope": "none",
+      "required_fixture_paths": [
+        "README.md"
+      ],
+      "route_loading": {
+        "max_resources": 5,
+        "required": [
+          "skills/yan-code-review/SKILL.md",
+          "skills/yan-code-review/modes/check/mode.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/yan-code-review/modes/(repair|loop|package)/",
+          "^skills/_shared/browser-verification\\.md$"
+        ]
+      },
+      "assertions": {
+        "text": [
+          {
+            "pattern": "N1",
+            "min_matches": 1
+          },
+          {
+            "pattern": "N2",
+            "min_matches": 1
+          },
+          {
+            "pattern": "N3",
+            "min_matches": 1
+          },
+          {
+            "pattern": "命名空间|namespace|分区",
+            "min_matches": 1
+          },
+          {
+            "pattern": "舍入|金额|普通单测",
+            "min_matches": 1
+          },
+          {
+            "pattern": "stdio",
+            "min_matches": 1
+          }
+        ]
+      }
     }
   ]
 }

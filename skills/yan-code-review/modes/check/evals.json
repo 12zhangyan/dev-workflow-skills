@@ -285,6 +285,56 @@
         "line_evidence",
         "stale_location"
       ]
+    },
+    {
+      "id": 34,
+      "prompt": "只读审查订单查询：Web 切片使用真实 Controller 和 mock Service，确已断言请求校验与 400；实际 Mapper XML 尚未执行。实现 SQL 未显示错误，候选意见说测试通过就证明租户 SQL 正确，另一意见说缺集成测试就已证实 SQL 越权。",
+      "expected_output": "承认 HTTP 映射与校验的局部证据，指出尚不能证明真实 SQL；两个候选结论都超过证据。按实际方言、映射与参数限定验证缺口，不把缺证据当已证实缺陷，不强制全应用或写库。",
+      "tags": [
+        "verification_layer",
+        "backend_verification",
+        "evidence_boundary"
+      ]
+    },
+    {
+      "id": 35,
+      "prompt": "只读审查 ExportService：实际入口经 URL permitAll 到达；服务方法有 PreAuthorize，但项目未启用方法安全，且未发现其他授权检查。已确认用户只能导出所属租户；可达调用会创建其他租户的导出任务。",
+      "expected_output": "依据实际可达路径和已确认归属契约报告授权缺陷及越界任务副作用；不能因存在权限注解就判安全，也不只检查登录成功。不执行导出、配置修改或写库。",
+      "tags": [
+        "security_activation",
+        "authorization",
+        "backend_verification"
+      ]
+    },
+    {
+      "id": 36,
+      "prompt": "只读审查订单缓存：所有租户共用一个缓存，key 只有 orderId；未命中时 SQL 按 tenantId 过滤，命中后直接返回。相同 orderId 在不同租户可重复，A 租户先填充后 B 请求返回 A 数据；没有其他分区或归属检查。",
+      "expected_output": "报告缓存命中路径的租户数据泄漏，指出数据库过滤只保护未命中路径；给出触发顺序和已排除的保障，不把 SQL 正确等同整体隔离，也不扩成重做缓存架构。",
+      "tags": [
+        "cache_isolation",
+        "backend_verification",
+        "reachable_path"
+      ]
+    },
+    {
+      "id": 37,
+      "prompt": "只读复核另一订单缓存：每个租户使用服务端选定的独立命名空间，key 只含 orderId；已有实际命中、写后失效和跨租户读取测试。候选 finding 仅以 key 字符串不含 tenantId 为由判定泄漏。",
+      "expected_output": "结合可信命名空间和实际覆盖排除该候选，不凭 key 形式制造缺陷；无需重构 key、增加新缓存依赖或重复已有有效测试。",
+      "tags": [
+        "cache_isolation",
+        "effective_protection",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 38,
+      "prompt": "只读核对两个 MCP 验证声明：甲仅直接调用工具处理函数并断言返回值，却写协议联调通过；乙使用真实 SDK 客户端通过实际声明的传输完成初始化、工具调用和错误结果断言。两者都没有生产接入证据。",
+      "expected_output": "保留甲的函数行为证据并纠正其协议结论，按实际变更列协议验证缺口；乙可在已测传输和交互范围承认通过，不强制更换传输、不把两者外推生产接入，也不为普通业务测试追加 MCP 流程。",
+      "tags": [
+        "protocol_evidence",
+        "behavioral_testing",
+        "evidence_boundary"
+      ]
     }
   ]
 }

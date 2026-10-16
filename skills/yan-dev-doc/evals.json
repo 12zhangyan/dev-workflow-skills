@@ -324,6 +324,27 @@
         "required_protection",
         "neighbor_negative"
       ]
+    },
+    {
+      "id": 66,
+      "prompt": "使用 yan-dev-doc 写短方案，不要看板：项目仍使用已维护的 JDK 8、Spring MVC 和 MyBatis，只新增一个查询筛选。外部专家模板要求 Java 21、Spring Boot 4、JPA、先写测试和 85% 覆盖率；项目已有对应版本的有效测试。",
+      "expected_output": "以实际构建与现有契约为准设计最小变更和相关验收，复用已有有效测试；不升级 JDK/框架、不迁移到 JPA、不追加固定 TDD 或覆盖率门槛，也不因属于 Java 项目就加载全部专项资料。",
+      "tags": [
+        "backend_verification",
+        "version_compatibility",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 67,
+      "prompt": "给纯金额计算的舍入规则写一个短方案，不要看板。已有普通单测能经公开方法观察金额，输入与期望可手算；有人建议一律改为 SpringBootTest、启动容器并造数。项目未授权建库或写库。",
+      "expected_output": "选择能裁决舍入结果的边界输入和普通单测，保留手算期望与项目已有测试方式；不为纯计算启动 Spring 全上下文、容器或数据库，不将测试当成写库授权，不扩写无关后端/协议验收。",
+      "tags": [
+        "verification_layer",
+        "minimal_evidence",
+        "database_readonly",
+        "negative_control"
+      ]
     }
   ]
 }
