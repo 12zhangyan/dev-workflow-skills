@@ -270,8 +270,20 @@ assert(buildJs.includes('!read(indexFile).includes(INDEX_MARKER)) return false')
 // board-add 更新同一 docPath 时保留省略的治理字段，显式 status 更新生效。
 const temp = fs.mkdtempSync(path.join(ROOT, '.tmp-board-behavior-'));
 try {
-  fs.mkdirSync(path.join(temp, 'data'));
   fs.copyFileSync(path.join(ROOT, 'project-html/board-add.js'), path.join(temp, 'board-add.js'));
+  // CLI diagnostics must work before a data directory exists, without a write lock or filesystem mutation.
+  const cli = args => spawnSync(process.execPath, [path.join(temp, 'board-add.js'), ...args], { encoding: 'utf8', windowsHide: true });
+  for (const arg of ['--help', '-h', 'help']) {
+    const result = cli([arg]);
+    assert(result.status === 0 && result.stdout.includes('--check-migration') && !result.stderr, 'help aliases must print usage successfully without loading board data');
+  }
+  for (const args of [[], [''], ['--unknown'], ['-x'], ['--help', 'extra'], ['--migrate', 'extra'], ['--check-migration', 'extra'], ['entry.json', 'extra']]) {
+    const result = cli(args);
+    assert(result.status !== 0 && result.stderr.includes('BOARD_USAGE_ERROR'), 'invalid arguments must produce a usage error before any file read/write: ' + args.join(' '));
+    if (args.length === 1 && args[0]) assert(result.stderr.includes('未知参数'), 'unknown option must be identified as such, not treated as a JSON path');
+  }
+  assert(fs.readdirSync(temp).join(',') === 'board-add.js', 'help and invalid arguments must not create a data directory, lock or backup');
+  fs.mkdirSync(path.join(temp, 'data'));
   fs.copyFileSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/changes.js'), path.join(temp, 'data/changes.js'));
   const input = path.join(temp, 'entry.json');
   const runAdd = (entry, detail) => {

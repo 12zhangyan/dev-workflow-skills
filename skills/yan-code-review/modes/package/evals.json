@@ -217,6 +217,33 @@
         "negative_control",
         "complete_review"
       ]
+    },
+    {
+      "id": 26,
+      "prompt": "两个独立 reviewer 已返回并聚合出 IM-1（退款金额未校验上限）。用户授权修复，主 Agent 完成修复并跑过单测；宿主支持委派，要求关闭 IM-1。",
+      "expected_output": "针对 IM-1、修复 diff 和相邻风险派发一个未参与修复的 reviewer 聚焦复核，核验通过后才按独立复核关闭；若复核驳回，下一版修复优先换 Agent 或补证据。不得由修复者自审后宣称独立复核通过。",
+      "tags": [
+        "independent_closure"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "同样的 IM-1 已修复并通过单测，但当前宿主不支持委派，也没有外部 reviewer 可回传。",
+      "expected_output": "可以基于实际验证证据关闭 IM-1，但标为自验证关闭，说明未经独立复核；不伪造 reviewer 回执，也不因无法委派而阻塞整体结论。",
+      "tags": [
+        "independent_closure",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "只请汇总两个 reviewer 已返回的结果，不修复任何问题。",
+      "expected_output": "只做聚合、去重和 ID 归一，报告覆盖与未决风险；没有修复就不派发修复后复核，也不触发自验证关闭或换 Agent 规则。",
+      "tags": [
+        "independent_closure",
+        "negative_control",
+        "aggregation"
+      ]
     }
   ]
 }

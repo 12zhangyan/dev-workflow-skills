@@ -1,37 +1,38 @@
-﻿# 看板外壳定位、复制与版本检查
+﻿# 看板外壳定位与发布兼容性
 
-仅当 `yan-dev-doc`、incident、business 或 understanding/CodeMap 需要创建看板、比较外壳版本或升级外壳时读取。本流程完成外壳检查和旧数据迁移；Entry 字段由调用 mode 决定，随后按共享发布流程写入并构建。
+仅在调用方需要发布看板时读取。版本号用于提示维护更新，不是发布兼容性结论；本流程检查本次 entry 所需能力和数据格式，再交给共享发布流程。
 
 ## 执行约束
 
 - 使用共享 Node adapter，不依赖 Bash、PowerShell、前一次终端调用的变量或固定宿主目录。
-- 复制范围只有外壳、构建脚本和写入脚本。`data/changes.js` 仅在目标不存在时初始化；不得覆盖既有 `data/` 或 `data/details/`。
-- `js/vendor/mermaid.min.js` 由 adapter 做二进制复制，禁止读取后用文本写入。
-- Adapter 会先使用当前 skill 树的 yan-dev-doc 资产，再检查显式环境配置和 Claude Code、Cursor、Codex、通用安装根。
-- adapter 与 `workflow-fs.js` 同在 `_shared/scripts/`；路径不明时运行 `node <workflow-fs.js 绝对路径> resolve-skill-file _shared scripts/board-bootstrap.js` 取得。共享脚本的参数用法可用 `help` 查看。
+- 复制范围只有外壳、构建脚本和写入脚本。不得覆盖既有 `data/` 或 `data/details/`；Mermaid vendor 二进制复制，不读写文本。
+- Adapter 优先当前 skill 树，再检查显式环境配置和已知安装根。路径不明时用 `node <workflow-fs.js> resolve-skill-file _shared scripts/board-bootstrap.js` 定位；参数用法见 `help`。
 
-## 只读比较版本
+## 只读检查
 
-```text
-node <_shared/scripts/board-bootstrap.js 绝对路径> status <项目根目录>
-```
+`node <board-bootstrap.js 绝对路径> status <项目根目录>`
 
-- `BOARD_SHELL_CURRENT`：不复制外壳，继续下方数据格式检查。
-- `BOARD_SHELL_UPGRADE_REQUIRED`：执行下一节 `sync`；外壳升级不迁移业务数据。
-- `BOARD_TEMPLATE_ERROR`：显式停止看板写入，不手改 `data/changes.js` 绕过。
+- `BOARD_SHELL_INIT_REQUIRED`：尚无看板，在已授权发布范围内初始化。
+- `BOARD_SHELL_INCOMPLETE`：列出缺失文件；先判断是否影响本次写入、构建或展示，再决定修复。
+- `BOARD_SHELL_UPGRADE_AVAILABLE`：模板版本较新，仅提示可升级；兼容时沿用现有外壳。
+- `BOARD_SHELL_CURRENT` / `BOARD_SHELL_VERSION_UNKNOWN`：版本不落后或无法识别；仍检查本次所需能力，不据版本号声称已验证兼容。
+- `BOARD_TEMPLATE_ERROR`：保留错误，不手改数据绕过。
 
-## 初始化或升级外壳
+对已有看板，先只读核对写入脚本能接受本轮 entry 包装及字段、保留已有记录和生命周期，构建器与页面能读取它产生的数据格式；不把模板的非必要新功能当作发布前提。需要使用旧脚本未确认的选项时先读参数分支，不试跑未知的 `--help` 或 `--check-migration`。
 
-```text
-node <_shared/scripts/board-bootstrap.js 绝对路径> sync <项目根目录>
-```
+明确缺少本次必需能力或数据格式不兼容时，说明缺口、证据和会替换的外壳文件，再按下面的 `sync` 修复；仅版本不同不自动升级。无法判断兼容性，或用户范围排除了必需升级时，报告 `BoardPublishBlocked` 并保留主方案，不猜测、不强制覆盖。外观和非必要维护升级留给单独任务；不要为每次发布新增确认环节。
 
-`sync` 创建所需目录，复制 `index.html`、CSS、board.js、Mermaid vendor、`build.js`、`board-add.js`；只有 `project-html/data/changes.js` 不存在时才复制空模板，并始终保留已有详情 sidecar；`project-html/.gitignore` 不存在时写入一份，只忽略生成页、导出、备份、锁和临时输入，已有的不改。成功输出 `BOARD_SHELL_SYNCED=<版本>`。
+## 初始化或必要修复
 
-## 写入前检查数据格式
+`node <board-bootstrap.js 绝对路径> sync <项目根目录>`
 
-外壳可用后，无论本轮是否升级，都先运行 `node project-html/board-add.js --check-migration`。该命令只读：
+仅初始化、已证实的发布不兼容修复或明确授权的维护升级使用。模板须能保留现有数据语义；更高版本不向旧模板降级。同步复制 index、CSS、board.js、Mermaid vendor、build.js、board-add.js；仅目标缺失时创建空目录数据与 .gitignore，保留详情与已有忽略规则。成功输出 `BOARD_SHELL_SYNCED=<版本>`。升级可能改变派生页，报告实际构建影响，不把批量重建混作单条业务更新。
 
-- `BOARD_DATA_CURRENT`：继续 entry 写入。
-- `BOARD_DATA_MIGRATION_REQUIRED`：旧目录仍含正文或缺少详情指针；在本次已授权的看板发布范围内运行 `node project-html/board-add.js --migrate`，再检查得到 `BOARD_DATA_CURRENT` 后继续。迁移保留原目录备份、记录和治理状态，不从 md 摘录正文。
-- 检查或迁移失败：停止后续 entry 写入和构建，保留错误证据，不绕过校验或覆盖旧数据。
+## 数据格式
+
+确认现有脚本支持后，才运行 `node project-html/board-add.js --check-migration`：
+
+- `BOARD_DATA_CURRENT`：继续写入。
+- `BOARD_DATA_MIGRATION_REQUIRED`：在本次已授权范围内运行 `--migrate`，再检查为 CURRENT；保留原目录备份、记录与治理状态，不从 md 摘录正文。
+- 不支持该选项：只读检查旧数据与当前写入器；能完整承载本轮 entry 就沿用原发布路径，必须迁移却无此能力才构成不兼容。
+- 检查或迁移失败：停止后续写入与构建，保留证据，不覆盖旧数据。

@@ -44,6 +44,15 @@ for (const file of files) {
   }
 }
 
+for (const helper of ['skills/_shared/scripts/doc-check.js']) {
+  const result = spawnSync('node', [helper, '--self-test'], { cwd: root, encoding: 'utf8' });
+  if (result.status !== 0) {
+    fail(`${helper} self-test failed`);
+    if (result.stdout) process.stderr.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+  }
+}
+
 const validator = 'skills/yan-dev-doc/scripts/validate-openapi.js';
 const selfTest = spawnSync('node', [validator, '--self-test'], { cwd: root, encoding: 'utf8' });
 if (selfTest.status !== 0) {

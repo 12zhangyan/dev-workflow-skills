@@ -69,6 +69,8 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
   '不能按成功人数推导整体通过',
   '至少两个独立 reviewer 成功返回时才称为多 reviewer 结果',
   '`BK` 未裁决时不能下发对应修复',
+  '关闭证据应来自未参与该修复的 reviewer',
+  '须标为自验证关闭，不称独立复核通过',
 ]);
 
 requireText('skills/yan-code-review/modes/loop/mode.md', [

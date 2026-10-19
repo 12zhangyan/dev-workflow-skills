@@ -24,6 +24,12 @@ const evalSpecs = [
   { key: 'biz-flow', rel: 'yan-project-analysis/modes/business/evals.json', expectedName: 'biz-flow' },
 ];
 const evalCounts = new Map();
+const pairedRuleTags = {
+  'yan-dev-doc/evals.json': ['reference_check', 'decision_alternatives'],
+  'yan-conversation-handoff/evals.json': ['reference_check'],
+  'yan-project-analysis/modes/business/evals.json': ['diagram_budget'],
+  'yan-code-review/modes/package/evals.json': ['independent_closure'],
+};
 
 function fail(message) {
   console.error('FAIL: ' + message);
@@ -233,6 +239,12 @@ for (const spec of evalSpecs) {
   });
   if (!hasAccuracyBoundary) {
     fail(`${rel} must include at least one evidence/accuracy boundary eval`);
+  }
+  // Each guarded rule needs a case that triggers it and a negative control that must not.
+  for (const tag of pairedRuleTags[spec.rel] || []) {
+    const tagged = data.evals.filter((ev) => usableTags(ev).includes(tag));
+    if (!tagged.some((ev) => !usableTags(ev).includes('negative_control'))) fail(`${rel} needs a positive eval tagged ${tag}`);
+    if (!tagged.some((ev) => usableTags(ev).includes('negative_control'))) fail(`${rel} needs a negative_control eval tagged ${tag}`);
   }
 }
 

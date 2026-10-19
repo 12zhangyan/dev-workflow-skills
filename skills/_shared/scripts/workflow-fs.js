@@ -43,7 +43,7 @@ function skillRoots() {
 const USAGE = [
   'usage: node workflow-fs.js <command> [args]',
   '  prepare-date-dir <base-directory>      create <base>/<today> and print it',
-  '  prepare-board-entry <board-data-dir>   allocate a private data/.entry-*/entry.json and print it',
+  '  prepare-board-entry <board-data-dir>   create private data/.entry-*/entry.json containing {}; print path; edit existing file (not wx)',
   '  exists <path>                          print EXISTS | MISSING',
   '  file-state <path>                      print EXISTS_READABLE | MISSING | EXISTS_UNREADABLE_OR_UNKNOWN',
   '  ensure-dir <directory>                 create the directory and print it',

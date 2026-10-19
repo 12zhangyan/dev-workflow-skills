@@ -48,7 +48,7 @@
           },
           {
             "target": "skills/yan-dev-doc/publishing-board.md",
-            "guard": "主方案实际落盘后才读取"
+            "guard": "本轮主方案收敛并实际落盘后才读取"
           },
           {
             "target": "skills/_shared/behavioral-testing.md",
