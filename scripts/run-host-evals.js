@@ -467,7 +467,10 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     };
   }
   if (host === 'claude') {
-    const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', '12'];
+    const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', writable ? '40' : '12'];
+    // acceptEdits 不放行 shell；可写用例需运行 board-add.js、build.js 等 Node 辅助脚本。
+    // Windows 上 Claude Code 走 PowerShell 工具，Bash 规则对其不生效
+    if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)');
     if (model) args.push('--model', model);
     const direct = unwrapNodeShim(command);
     return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace };
@@ -648,7 +651,8 @@ function assessExecution(run) {
 
 function assess(contract, output, drift, assertions, routeLoading, outcome = { required: false, passed: true, checks: [] }, run) {
   const execution = assessExecution(run);
-  const routeMatch = output.match(/^\s*ROUTE:\s*([a-z0-9+_ -]+?)\s*$/im);
+  // 允许路由名后附带括号说明，如 `ROUTE: yan-dev-doc（开发方案）`
+  const routeMatch = output.match(/^\s*ROUTE:\s*([a-z0-9+_ -]+?)\s*(?:[（(][^\n]*[)）])?\s*$/im);
   const scopeMatch = output.match(/^\s*WRITE_SCOPE:\s*([a-z-]+)/im);
   const observedRoute = routeMatch ? routeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
   const observedScope = scopeMatch ? scopeMatch[1].toLowerCase() : null;
@@ -811,6 +815,18 @@ function runSelfTest() {
   );
   if (!alternateRoute.passed || alternateRoute.observedRoute !== 'incident+business') {
     throw new Error('equivalent composite route spelling was rejected');
+  }
+  const annotatedRoute = assess(
+    { route: 'standard', accepted_routes: ['standard', 'yan-dev-doc'], write_scope: 'none' },
+    'ROUTE: yan-dev-doc（开发方案）\nWRITE_SCOPE: none',
+    { allowed: true },
+    { passed: true },
+    { passed: true },
+    undefined,
+    { status: 0 },
+  );
+  if (!annotatedRoute.passed || annotatedRoute.observedRoute !== 'yan-dev-doc') {
+    throw new Error('route with a trailing parenthetical note was rejected');
   }
   for (const run of [
     { status: 1 },

@@ -12,7 +12,7 @@ RepairCycles: <实际发生的修复轮次；无修复为 0>
 Recheck: <Passed|FindingsRemain|NotRequiredNoCodeChange|Blocked>
 TestEvidenceStatus: <Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>
 TestDependencyClass: <仅外部依赖或失败归因需要时：Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown>
-BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
+BoardPublishStatus: <匹配到已有档案时填写 Published|Blocked|Skipped + 原因；无匹配档案或用户不要看板时省略>
 自动提交：未执行
 ```
 

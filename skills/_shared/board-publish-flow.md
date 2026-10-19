@@ -51,4 +51,4 @@ Review entry 只需提供稳定身份、当前结论、有人类意义的摘要�
 
 ## 完成证据
 
-报告 `board-add.js` 结果、实际 catalog/detail 路径、`build.js` 结果（含它重写的 `docs/INDEX.md`）、未生成内容和 VCS 边界。只有脚本真实成功才声称 Published；没有调用本流程时不输出看板状态占位。
+报告 `board-add.js` 结果、实际 catalog/detail 路径、`build.js` 结果（含它重写的 `docs/INDEX.md`）、未生成内容和 VCS 边界。只有脚本真实成功才声称 Published；本来不发布看板的路径（ImpactAnalysis、未要求记录生命周期的 check、无匹配档案的 review）不输出看板状态占位；默认发布路径未发布时，由调用方报告 `BoardPublishSkipped`/`BoardPublishBlocked` 及原因。

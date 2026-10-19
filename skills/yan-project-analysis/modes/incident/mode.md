@@ -32,7 +32,7 @@ description: 基于现象、复现、日志、代码和运行证据记录单次 
 
 用 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) 创建日期目录并检查 `file-state`。已授权更新时先读后改，保留任务外内容，不重复确认；默认撞名且未锁定路径时选稳定后缀并重新检查。目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入；无人值守也不擅自覆盖。
 
-事故文档实际落盘后才读取并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)；项目尚无看板时按流程初始化，用户明确不要看板时跳过。`NeedsConfirmation` 草稿只发布已证实事实、影响和待确认项，不发布未证实根因。Agent 专属字段禁止写入看板 entry；只保留面向同事的现象、影响、根因强度、修复边界和验收结果，并只通过 `board-add.js` 写入。
+事故文档实际落盘后才读取并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)；项目尚无看板时按流程初始化，用户明确不要看板时跳过。`NeedsConfirmation` 草稿只发布已证实事实、影响和待确认项，不发布未证实根因。Agent 专属字段禁止写入看板 entry；只保留面向同事的现象、影响、根因强度、修复边界和验收结果，并只通过 `board-add.js` 写入。未发布时（用户明确不要看板除外）在完成说明中报告 `BoardPublishSkipped` 或 `BoardPublishBlocked` 及具体原因，不静默省略。
 
 存在真实跨 Agent、跨任务或延期恢复时才读取 [Workflow Brief](../../../_shared/workflow-brief.md)，主文档只保留一份索引，聊天不重复。其余完成信息按实际结果裁剪，不输出无关状态占位。
 

@@ -30,7 +30,7 @@ description: 基于真实入口和实现证据，生成面向测试/产品的业
 
 用 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) 创建日期目录并检查 `file-state`。已授权更新时先读后改，保留任务外内容，不重复确认；默认撞名且未锁定路径时选稳定后缀并重新检查。目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入；无人值守也不擅自覆盖。
 
-业务流文档实际落盘后才读取并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)；项目尚无看板时按流程初始化，用户明确不要看板时跳过。`NeedsConfirmation` 草稿只发布已证实流程并标明待确认部分。条目使用 `kind:"biz"`，只保留有证据的人类叙述；Mermaid 字段也是普通 JSON 字符串，不使用反引号。只通过 `board-add.js` 写入，发布失败不抹掉已生成文档。
+业务流文档实际落盘后才读取并严格执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)；项目尚无看板时按流程初始化，用户明确不要看板时跳过。`NeedsConfirmation` 草稿只发布已证实流程并标明待确认部分。条目使用 `kind:"biz"`，只保留有证据的人类叙述；Mermaid 字段也是普通 JSON 字符串，不使用反引号。只通过 `board-add.js` 写入，发布失败不抹掉已生成文档。未发布时（用户明确不要看板除外）在完成说明中报告 `BoardPublishSkipped` 或 `BoardPublishBlocked` 及具体原因，不静默省略。
 
 存在真实跨 Agent、跨任务或延期恢复时，才读取 [Workflow Brief](../../../_shared/workflow-brief.md)，在主产物保留一份索引；聊天不重复整块 Brief。其余完成信息按实际结果裁剪。
 

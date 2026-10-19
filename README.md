@@ -194,16 +194,16 @@ $installer = irm "https://raw.githubusercontent.com/12zhangyan/dev-workflow-skil
 本地 checkout 安装：
 
 ```bat
-install-local.cmd
-install-local.cmd agents
-install-local.cmd status codex
-install-local.cmd --dry-run
-install-local.cmd status
-install-local.cmd doctor
-install-local.cmd backups agents
-install-local.cmd restore --backup SNAPSHOT_ID --skill yan-dev-doc agents
-install-local.cmd backup-prune --keep 5 --dry-run agents
-install-local.cmd backup-prune --keep 5 agents
+.\install-local.cmd
+.\install-local.cmd agents
+.\install-local.cmd status codex
+.\install-local.cmd --dry-run
+.\install-local.cmd status
+.\install-local.cmd doctor
+.\install-local.cmd backups agents
+.\install-local.cmd restore --backup SNAPSHOT_ID --skill yan-dev-doc agents
+.\install-local.cmd backup-prune --keep 5 --dry-run agents
+.\install-local.cmd backup-prune --keep 5 agents
 ```
 
 说明：

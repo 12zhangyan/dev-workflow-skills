@@ -11,7 +11,7 @@ ReviewCoordinationResult: <Packaged|PartiallyReviewed|Findings|NoEvidenceIssue|B
 Reviewers: <角色=完成/失败；外部分发时写 awaiting external results>
 Findings: <CR n / IM n / MI n / RJ n / BK n；尚未审查写 pending>
 Verification: <命令与结果；仅在外部依赖或失败归因有信息增益时附 TestDependencyClass>
-BoardPublishStatus: <仅实际发布时填写 Published: deliveryId + eventId / Blocked + 原因>
+BoardPublishStatus: <匹配到已有档案时填写 Published: deliveryId + eventId / Blocked 或 Skipped + 原因；无匹配档案时省略>
 ```
 
 确需跨 Agent、跨任务或稍后恢复时，任务包或 fix-handoff 在末尾写入唯一一段符合共享协议的 `【Workflow Brief】`；不在本文件复制第二份模板。聊天默认只返回其路径；仅零写入或接收方无法访问产物时，才按共享格式在聊天展开一份。
