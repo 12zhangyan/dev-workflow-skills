@@ -437,6 +437,15 @@
         "decision_alternatives",
         "negative_control"
       ]
+    },
+    {
+      "id": 72,
+      "prompt": "使用 yan-dev-doc 为导出接口增加按租户过滤写方案，先给我看看，确认后再开发。项目已有 project-html 看板。",
+      "expected_output": "方案首稿落盘并通过引用自检后，按默认规则用 board-add.js 创建或续写同一交付档案（status 草稿、plan.status Draft）并运行 build.js；“先给我看看/确认后再开发”只约束实施，不是跳过看板的理由。交付中报告看板实际结果；若被阻塞则报告 BoardPublishBlocked 及原因，不静默省略。",
+      "tags": [
+        "artifact_finalization",
+        "board_default_publish"
+      ]
     }
   ]
 }
