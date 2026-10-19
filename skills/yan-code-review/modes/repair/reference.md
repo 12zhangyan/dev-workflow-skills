@@ -26,7 +26,7 @@ Findings:
 - <ID>: <fixed|deferred|deferred-next-batch|blocked|rejected>; <依据>
 Tests: status=<Passed|Failed|NotRun|EnvironmentBlocked>; command/result=<证据与限制>; dependency=<可选，仅外部依赖或失败归因需要时>
 VCS: <owners、修复前后 diff、未跟踪文件、VCSGateBlocked>
-BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
+BoardPublishStatus: <匹配到已有档案时填写 Published|Blocked|Skipped + 原因；无匹配档案或用户不要看板时省略>
 Next: <有价值的后续动作；可无或并列>
 ```
 

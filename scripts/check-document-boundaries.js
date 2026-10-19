@@ -249,6 +249,16 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '执行 Agent 可合并、细分、重排或委派非约束性切片',
 ]);
 
+for (const mode of ['incident', 'business', 'understanding']) {
+  requireText(`skills/yan-project-analysis/modes/${mode}/mode.md`, [
+    '`BoardPublishSkipped` 或 `BoardPublishBlocked` 及具体原因，不静默省略',
+  ]);
+}
+
+requireText('skills/_shared/board-publish-flow.md', [
+  '默认发布路径未发布时，由调用方报告 `BoardPublishSkipped`/`BoardPublishBlocked` 及原因',
+]);
+
 requireText('skills/yan-dev-doc/publishing-board.md', [
   'node project-html/board-add.js',
   '../_shared/board-publish-flow.md',
@@ -342,6 +352,7 @@ requireText(boardShellBootstrap, [
   '仅版本不同不自动升级',
   '确认现有脚本支持后，才运行',
   'BOARD_SHELL_CURRENT',
+  '跳过下方逐项核对，直接进入数据格式检查',
 ]);
 
 for (const rel of [

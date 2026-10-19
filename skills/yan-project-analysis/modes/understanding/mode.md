@@ -40,6 +40,6 @@ description: 只读分析代码结构、调用链或兼容影响；明确要求�
 
 `CodeMap` 在准备落盘时才读取 [文档模板](codemap-template.md)。以当前 mode 目录解析 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js)，创建日期目录并检查 `file-state`。已授权更新时先读后改，保留任务外内容，不重复确认；默认撞名且未锁定路径时选稳定后缀并重新检查。目标不可读、状态未知，或精确路径冲突且未获修改授权时停止受影响写入；无人值守也不擅自覆盖。
 
-CodeMap 实际落盘后才读取并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)，默认以 `kind:"reading"` 发布；项目尚无看板时按流程初始化，用户明确不要看板时跳过。ImpactAnalysis 永不发布看板。只能通过 `board-add.js` 写入，禁止手工编辑 `data/changes.js`。发布失败不否定已经安全生成的代码地图。
+CodeMap 实际落盘后才读取并执行 [共享看板发布流程](../../../_shared/board-publish-flow.md)，默认以 `kind:"reading"` 发布；项目尚无看板时按流程初始化，用户明确不要看板时跳过。ImpactAnalysis 永不发布看板。只能通过 `board-add.js` 写入，禁止手工编辑 `data/changes.js`。发布失败不否定已经安全生成的代码地图。未发布时（用户明确不要看板除外）在完成说明中报告 `BoardPublishSkipped` 或 `BoardPublishBlocked` 及具体原因，不静默省略。
 
-完成时说明所选分析方式、证据范围、实际产物或零写入结果、未决边界和有价值的下一动作。只有看板实际参与时才报告其结果；CodeMap 的 Brief 只在主文档保留一份，聊天不重复。
+完成时说明所选分析方式、证据范围、实际产物或零写入结果、未决边界和有价值的下一动作。CodeMap 报告看板结果或未发布原因，ImpactAnalysis 不输出看板状态；CodeMap 的 Brief 只在主文档保留一份，聊天不重复。

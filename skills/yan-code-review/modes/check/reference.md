@@ -46,7 +46,7 @@ Scope: <已检查与未检查范围>
 Coverage: <仅在分批/中断/审计需要时；本轮基线、应审单元、已审/排除/失败/待审及原因>
 VCS: <owners/status/untracked/unknown>
 Tests: TestEvidenceStatus=<Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>; command/result=<证据与限制>; TestDependencyClass=<仅外部依赖或失败归因需要时：Hermetic|ServiceBacked|LiveExternal|Mixed|Unknown>
-BoardPublishStatus: <仅实际发布时填写 Published|Blocked>
+BoardPublishStatus: <仅明确要求记录生命周期时填写 Published|Blocked|Skipped + 原因>
 Findings: <结构化条目或无>
 Next: <必要动作>
 ```

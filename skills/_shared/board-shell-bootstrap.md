@@ -15,10 +15,11 @@
 - `BOARD_SHELL_INIT_REQUIRED`：尚无看板，在已授权发布范围内初始化。
 - `BOARD_SHELL_INCOMPLETE`：列出缺失文件；先判断是否影响本次写入、构建或展示，再决定修复。
 - `BOARD_SHELL_UPGRADE_AVAILABLE`：模板版本较新，仅提示可升级；兼容时沿用现有外壳。
-- `BOARD_SHELL_CURRENT` / `BOARD_SHELL_VERSION_UNKNOWN`：版本不落后或无法识别；仍检查本次所需能力，不据版本号声称已验证兼容。
+- `BOARD_SHELL_CURRENT`：外壳不低于当前模板版本，已具备模板的写入、迁移检查与构建能力；跳过下方逐项核对，直接进入数据格式检查。
+- `BOARD_SHELL_VERSION_UNKNOWN`：版本无法识别，按下方逐项核对本次所需能力，不据版本号声称已验证兼容。
 - `BOARD_TEMPLATE_ERROR`：保留错误，不手改数据绕过。
 
-对已有看板，先只读核对写入脚本能接受本轮 entry 包装及字段、保留已有记录和生命周期，构建器与页面能读取它产生的数据格式；不把模板的非必要新功能当作发布前提。需要使用旧脚本未确认的选项时先读参数分支，不试跑未知的 `--help` 或 `--check-migration`。
+外壳版本落后或无法识别时，先只读核对写入脚本能接受本轮 entry 包装及字段、保留已有记录和生命周期，构建器与页面能读取它产生的数据格式；不把模板的非必要新功能当作发布前提。需要使用旧脚本未确认的选项时先读参数分支，不试跑未知的 `--help` 或 `--check-migration`。
 
 明确缺少本次必需能力或数据格式不兼容时，说明缺口、证据和会替换的外壳文件，再按下面的 `sync` 修复；仅版本不同不自动升级。无法判断兼容性，或用户范围排除了必需升级时，报告 `BoardPublishBlocked` 并保留主方案，不猜测、不强制覆盖。外观和非必要维护升级留给单独任务；不要为每次发布新增确认环节。
 
@@ -30,7 +31,7 @@
 
 ## 数据格式
 
-确认现有脚本支持后，才运行 `node project-html/board-add.js --check-migration`：
+`BOARD_SHELL_CURRENT`、刚初始化或刚 `sync` 后直接运行；旧外壳确认现有脚本支持后，才运行 `node project-html/board-add.js --check-migration`：
 
 - `BOARD_DATA_CURRENT`：继续写入。
 - `BOARD_DATA_MIGRATION_REQUIRED`：在本次已授权范围内运行 `--migrate`，再检查为 CURRENT；保留原目录备份、记录与治理状态，不从 md 摘录正文。

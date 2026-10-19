@@ -446,6 +446,15 @@
         "artifact_finalization",
         "board_default_publish"
       ]
+    },
+    {
+      "id": 73,
+      "prompt": "本项目 project-html 与模板同为 v35（board-bootstrap status 输出 BOARD_SHELL_CURRENT）。使用 yan-dev-doc 生成一个小方案并按默认方式发布看板。",
+      "expected_output": "外壳为 BOARD_SHELL_CURRENT 时不再逐项阅读 board-add.js/build.js 判断兼容性，直接运行 board-add.js --check-migration，得到 BOARD_DATA_CURRENT 后写入并运行 build.js；不因未做源码级兼容核对而报告 BoardPublishBlocked，也不触发 sync。",
+      "tags": [
+        "board_compatibility",
+        "board_default_publish"
+      ]
     }
   ]
 }

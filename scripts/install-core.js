@@ -269,7 +269,14 @@ function sourceVersion(sourceRoot, explicit) {
     encoding: 'utf8',
     windowsHide: true,
   });
-  return result.status === 0 ? result.stdout.trim() : 'archive-main';
+  if (result.status !== 0) return 'archive-main';
+  // 未提交的 skills/ 改动会被安装，版本号需标明并非 HEAD 原样内容
+  const dirty = spawnSync('git', ['-C', sourceRoot, 'status', '--porcelain', '--', 'skills'], {
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  const suffix = dirty.status === 0 && dirty.stdout.trim() ? '+dirty' : '';
+  return result.stdout.trim() + suffix;
 }
 
 function copySkill(source, destination, stripSkillBom) {
