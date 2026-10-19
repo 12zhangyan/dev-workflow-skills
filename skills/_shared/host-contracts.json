@@ -425,6 +425,11 @@
       "id": "dev-doc-artifacts",
       "prompt_ref": "yan-dev-doc:1",
       "route": "standard",
+      "accepted_routes": [
+        "standard",
+        "yan-dev-doc",
+        "dev-doc"
+      ],
       "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
@@ -447,6 +452,11 @@
       "id": "dev-doc-api-artifacts",
       "prompt_ref": "yan-dev-doc:17",
       "route": "standard",
+      "accepted_routes": [
+        "standard",
+        "yan-dev-doc",
+        "dev-doc"
+      ],
       "write_scope": "docs-and-board",
       "assertions": {
         "artifacts": [
@@ -477,6 +487,11 @@
       "id": "dev-doc-autonomous-plan",
       "prompt_ref": "yan-dev-doc:46",
       "route": "standard",
+      "accepted_routes": [
+        "standard",
+        "yan-dev-doc",
+        "dev-doc"
+      ],
       "write_scope": "docs",
       "assertions": {
         "artifacts": [
