@@ -44,6 +44,8 @@ description: 分析代码结构与兼容影响、记录事故根因证据，或�
 
 `ImpactAnalysis` 严格零写入；`incident` 不把未证实假设写成根因；`business` 不编造入口、状态或数据闭环。CodeMap、incident、business 文档实际落盘后默认发布 HTML 看板（项目尚无看板时初始化）；用户明确不要看板或要求只读时跳过，ImpactAnalysis 始终不写。数据库只读，不执行 DDL 或数据修复；不自动 add、commit 或 push。持久产物路径仍为 `docs/code-reading/...`、`docs/bugs/...`、`docs/biz-flow/...`。
 
+持久文档落盘后用 [doc-check.js](../_shared/scripts/doc-check.js) 的 `refs <文档>` 核对仓库路径和 `路径:行` 引用：`MISSING` 只能是正文已标为外部或未找到的路径，`LINE_OUT_OF_RANGE` 必须改正；无法改正的定位改标为假设，不保留看似可核验的错误引用。
+
 ## 输出
 
 按实际结果报告模式、证据边界、产物或零写入结论、未决项和下一目标；只在旧名称或看板实际参与时补充对应状态，不制造固定回执。

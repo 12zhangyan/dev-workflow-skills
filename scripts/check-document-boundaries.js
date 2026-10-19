@@ -134,6 +134,9 @@ function smokeBoardShellBootstrap() {
     fs.cpSync(path.join(root, 'skills', 'yan-dev-doc', 'assets', 'board'), installedTemplate, { recursive: true });
     fs.mkdirSync(project, { recursive: true });
 
+    const missing = runBoardAdapter('status', project, 'board-shell absent smoke');
+    requireMarker(missing, 'BOARD_SHELL_INIT_REQUIRED', 'board-shell absent smoke');
+    if (fs.existsSync(path.join(project, 'project-html'))) fail('status must not initialize a missing shell');
     const firstCopy = runBoardAdapter('sync', project, 'board-shell initial copy smoke');
     const requiredFiles = [
       'project-html/index.html',
@@ -188,8 +191,41 @@ function smokeBoardShellBootstrap() {
       return;
     }
     fs.writeFileSync(boardJsPath, boardJs.replace(versionPattern, (_match, prefix) => `${prefix}0`), 'utf8');
-    const upgrade = runBoardAdapter('status', project, 'board-shell upgrade-version smoke');
-    requireMarker(upgrade, 'BOARD_SHELL_UPGRADE_REQUIRED', 'board-shell upgrade-version smoke');
+    const trackedFiles = [...requiredFiles, 'project-html/data/details/sentinel.js', 'project-html/.gitignore'];
+    const beforeStatus = trackedFiles.map(rel => fs.readFileSync(path.join(project, rel)));
+    const upgrade = runBoardAdapter('status', project, 'board-shell optional-update smoke');
+    requireMarker(upgrade, 'BOARD_SHELL_UPGRADE_AVAILABLE', 'board-shell optional-update smoke');
+    for (let i = 0; i < trackedFiles.length; i++) {
+      if (!fs.readFileSync(path.join(project, trackedFiles[i])).equals(beforeStatus[i])) fail('status changed ' + trackedFiles[i]);
+    }
+
+    // A lower version alone must not require a shell copy for a real publish/build.
+    const input = path.join(project, 'entry.json');
+    fs.writeFileSync(input, JSON.stringify({ entry: { title: 'compatible shell', docPath: 'docs/compatible.md', status: '草稿' }, detail: { solution: 'human solution' } }));
+    for (const [script, args] of [['board-add.js', [input]], ['build.js', []]]) {
+      const result = spawnSync(process.execPath, [path.join(project, 'project-html', script), ...args], { cwd: project, encoding: 'utf8', timeout: 30000, windowsHide: true });
+      if (result.error || result.status !== 0) fail('compatible older shell publication failed: ' + (result.error || result.stderr));
+    }
+    for (let i = 0; i < 6; i++) {
+      if (!fs.readFileSync(path.join(project, requiredFiles[i])).equals(beforeStatus[i])) fail('compatible publication replaced shell: ' + requiredFiles[i]);
+    }
+    const records = new Function(fs.readFileSync(changesPath, 'utf8') + '; return changes;')();
+    if (records.length !== 1 || records[0].docPath !== 'docs/compatible.md') fail('compatible publication must create exactly the requested record');
+    if (!fs.existsSync(path.join(project, 'docs', 'INDEX.md'))) fail('compatible publication must build its index');
+    if (fs.readFileSync(detailPath, 'utf8') !== detailSentinel) fail('compatible publication changed an unrelated sidecar');
+
+    // Unknown and newer versions must remain read-only diagnostics, not a forced downgrade.
+    fs.writeFileSync(boardJsPath, boardJs.replace(versionPattern, (_match, prefix) => prefix + '99999'), 'utf8');
+    requireMarker(runBoardAdapter('status', project, 'newer shell smoke'), 'BOARD_SHELL_CURRENT', 'newer shell smoke');
+    const newerBytes = fs.readFileSync(boardJsPath);
+    const downgrade = spawnSync(process.execPath, [path.join(root, 'skills/_shared/scripts/board-bootstrap.js'), 'sync', project], { encoding: 'utf8', windowsHide: true });
+    if (downgrade.status === 0 || !downgrade.stderr.includes('BOARD_SHELL_DOWNGRADE_REFUSED') || !fs.readFileSync(boardJsPath).equals(newerBytes)) fail('sync must reject a downgrade before copying');
+    fs.writeFileSync(boardJsPath, boardJs.replace(versionPattern, 'constUnknownVersion = 0'), 'utf8');
+    requireMarker(runBoardAdapter('status', project, 'unknown shell smoke'), 'BOARD_SHELL_VERSION_UNKNOWN', 'unknown shell smoke');
+    fs.unlinkSync(path.join(project, 'project-html', 'board-add.js'));
+    const incomplete = runBoardAdapter('status', project, 'incomplete shell smoke');
+    requireMarker(incomplete, 'BOARD_SHELL_INCOMPLETE', 'incomplete shell smoke');
+    requireMarker(incomplete, 'BOARD_SHELL_MISSING_FILES=board-add.js', 'incomplete shell smoke');
   } finally {
     removeTempRoot(tempRoot);
   }
@@ -205,7 +241,7 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '按实际文件定位 Git/SVN owner',
   '真实 reactor/POM 关系',
   '不依赖任何外部 Skill 或方法论',
-  '主方案实际落盘后才读取 [看板发布协议](publishing-board.md)',
+  '本轮主方案收敛并实际落盘后才读取 [看板发布协议](publishing-board.md)',
   '用户明确不要看板或只要聊天输出，或主方案未安全写入时，不初始化或修改 `project-html`',
   '执行 Agent 可合并、细分、重排或委派非约束性切片',
 ]);
@@ -281,14 +317,27 @@ requireText('skills/_shared/diagram-evidence.md', [
   '方案中的拟议关系与当前实现分开',
   '只能遍历已确认的图边',
   '没有渲染工具时明确仅检查源码',
+  '先认出语义模式，再选图型',
+  '超出时拆成概览图加关键路径详图',
+  '通过不等于渲染成功',
 ]);
+
+for (const rel of [
+  'skills/yan-dev-doc/SKILL.md',
+  'skills/yan-project-analysis/SKILL.md',
+  'skills/yan-conversation-handoff/SKILL.md',
+]) {
+  requireText(rel, ['../_shared/scripts/doc-check.js', '`LINE_OUT_OF_RANGE`']);
+}
 
 const boardShellBootstrap = 'skills/_shared/board-shell-bootstrap.md';
 requireText(boardShellBootstrap, [
   '不依赖 Bash、PowerShell',
   'board-bootstrap.js',
   '不得覆盖既有 `data/` 或 `data/details/`',
-  'BOARD_SHELL_UPGRADE_REQUIRED',
+  'BOARD_SHELL_UPGRADE_AVAILABLE',
+  '仅版本不同不自动升级',
+  '确认现有脚本支持后，才运行',
   'BOARD_SHELL_CURRENT',
 ]);
 

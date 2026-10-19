@@ -306,6 +306,62 @@
       ]
     },
     {
+      "id": 58,
+      "prompt": "使用 yan-dev-doc 写方案：供应商、合同各一个后端下拉接口，两个都支持项目和批次参数，返回 id/name，不改前端。已有四个按项目/批次拆开的查询方法可参考。",
+      "expected_output": "先收敛为两个对外接口及各自职责、共同参数、返回值与后端范围，再评估内部复用；不因已有四个方法改成四个接口或扩到前端，不以用户未指定 URL 为由改变接口数量，不为已明确的内容增加确认。",
+      "tags": [
+        "requirement_contract",
+        "interface_count",
+        "reuse_scope"
+      ]
+    },
+    {
+      "id": 59,
+      "prompt": "继续修订刚才的接口方案：只保留仓库和库位各一个接口，均支持 siteId 和 areaId；本轮还有一处返回字段要按最新实体核对，主方案与 OpenAPI、看板都有旧稿。",
+      "expected_output": "先读已有产物和实体收敛主方案的本轮变化，保留无关内容；接口口径收敛后才统一更新适用 OpenAPI、索引和同一看板条目，不把中间每次修订都发布一轮。若字段仍无法裁决，保留待确认草稿，不生成臆测契约；不反复向用户确认已明确内容。",
+      "tags": [
+        "artifact_finalization",
+        "incremental_plan"
+      ]
+    },
+    {
+      "id": 60,
+      "prompt": "本项目已有 v34 看板，模板 v35。现有脚本能接受本轮 entry/detail，保留既有档案和生命周期，渲染器与 build 都支持现有目录/详情格式；请生成一个小方案并按默认方式发布。",
+      "expected_output": "版本差异只提示可升级，沿用已确认兼容的外壳，只更新本次条目并构建；不触发 sync 或为发布强制维护升级，不宣称 v34 与任意未来协议都兼容。",
+      "tags": [
+        "board_compatibility",
+        "no_version_only_upgrade"
+      ]
+    },
+    {
+      "id": 61,
+      "prompt": "给旧项目发布方案。已读源码确认旧写入器忽略本次必需的 detail 内容、页面也不支持 detailPath，且没有 --check-migration；当前模板支持完整迁移。现有档案必须保留。",
+      "expected_output": "以必要内容会丢失和读取格式不兼容为升级依据，说明实际影响；在发布授权范围内修复外壳并保留数据，确认新脚本支持选项后才检查/执行迁移，再发布构建。不先调用旧脚本的未知选项，不把仅版本落后当不兼容；若兼容性或授权无法确定则保留主方案并报告看板阻塞。",
+      "tags": [
+        "board_compatibility",
+        "migration_capability"
+      ]
+    },
+    {
+      "id": 62,
+      "prompt": "方案和 OpenAPI 已生成，规范校验通过；尚无用户评审、代码实现或运行结果。请按 yan-dev-doc 收尾。",
+      "expected_output": "先说明方案已生成、未实施，单独报告规范结构校验和需求/接口依据；不把校验通过等同于需求理解正确或用户认可，不裸用 Passed 暗示交付完成。若兼容机器字段必须保留 Passed，限定为方案证据完整性。",
+      "tags": [
+        "plan_status",
+        "evidence_boundary"
+      ]
+    },
+    {
+      "id": 63,
+      "prompt": "明确按现有四个查询入口复用，接口数量和参数均不改，只在内部筛选去掉无效记录。给我一个短方案，不要看板。",
+      "expected_output": "保持用户明确的四个既有接口，不反向套用各一个接口的示例；只记录内部筛选、兼容与必要验收，不生成 OpenAPI、不初始化或升级看板，不为小变更扩写大量场景。",
+      "tags": [
+        "requirement_contract",
+        "negative_control",
+        "compact_plan"
+      ]
+    },
+    {
       "id": 64,
       "prompt": "使用 yan-dev-doc：给现有商品查询加一个可选分类筛选，数据库和分页服务已能直接支持。只要短方案，不要看板；没有缓存、重试或统一校验框架需求。",
       "expected_output": "基于现有查询与分页能力给出最小完整方案，覆盖入参、查询和必要验收；不追加缓存、重试、抽象框架、新依赖或为这些机制再造校验材料，不把简单方案扩成平台建设。",
@@ -343,6 +399,42 @@
         "verification_layer",
         "minimal_evidence",
         "database_readonly",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 68,
+      "prompt": "使用 yan-dev-doc 写退款限额方案，不要看板。草稿证据表引用 `order-service/src/main/java/com/acme/order/OrderService.java:420`，该文件实际只有 300 行；方案还计划新增 `order-service/src/main/java/com/acme/order/RefundPolicy.java`。",
+      "expected_output": "方案落盘后运行 doc-check.js refs：LINE_OUT_OF_RANGE 的定位必须改为实际行或符号定位，无法核实时改标为假设；RefundPolicy.java 的 MISSING 仅在正文明确标为拟新增时保留。不得把未核实的行号写成已证实证据，也不得为消除 MISSING 而创建业务文件。",
+      "tags": [
+        "reference_check",
+        "accuracy_boundary"
+      ]
+    },
+    {
+      "id": 69,
+      "prompt": "用 yan-dev-doc 只在聊天里给出退款限额方案，不要写文件也不要看板；方案会提到 OrderService 的现有方法。",
+      "expected_output": "只返回聊天方案，保持零写入；不创建方案文件，不为了运行 doc-check.js refs 落盘临时文件，也不声称引用已经过脚本核对，仍按证据标明定位与假设。",
+      "tags": [
+        "reference_check",
+        "negative_control",
+        "zero_write"
+      ]
+    },
+    {
+      "id": 70,
+      "prompt": "使用 yan-dev-doc 设计防重复下单方案，不要看板。证据表明订单表已有业务唯一键，单库部署；另一个可行方案是新增 Redis 分布式锁，项目已有 Redis 但未用于订单。",
+      "expected_output": "选定以数据库唯一约束为主的方案，并在证据与决策中记录被否决的 Redis 锁方案、否决理由，以及会推翻当前选择的前提（例如订单拆库或唯一键无法覆盖的跨表场景）；不把替代方案写成待实施切片。",
+      "tags": [
+        "decision_alternatives"
+      ]
+    },
+    {
+      "id": 71,
+      "prompt": "使用 yan-dev-doc 为用户资料新增一个可空备注字段写短方案，不要看板；现有接口、表结构和校验方式都很明确，没有其他实现路线。",
+      "expected_output": "输出短方案，不编造替代方案对比，也不保留空的“已否决替代”行；只写字段、兼容和验收等适用内容。",
+      "tags": [
+        "decision_alternatives",
         "negative_control"
       ]
     }

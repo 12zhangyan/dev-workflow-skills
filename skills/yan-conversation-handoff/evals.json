@@ -207,6 +207,25 @@
         "recovery_integrity",
         "neighbor_negative"
       ]
+    },
+    {
+      "id": 26,
+      "prompt": "生成跨对话移交文档。前面对话记录的证据是 `billing/src/main/java/com/acme/bill/InvoiceJob.java:88`，但本轮重构后该文件只剩 60 行，另一个引用的 `billing/docs/retry.md` 已被删除。",
+      "expected_output": "落盘后运行 doc-check.js refs：越界行号改为当前实际位置或符号定位，已删除文件在证据索引中标为已丢失/待恢复；不让接手提示指向错误定位，也不凭摘要补造已删除文档内容。",
+      "tags": [
+        "reference_check",
+        "accuracy_boundary"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "把当前任务整理成移交提示直接贴在聊天里，不要生成文件。",
+      "expected_output": "直接返回 Markdown，并写明 artifacts: 无；不创建文件，不为了运行 doc-check.js 临时落盘，证据索引仍标明哪些定位已在本对话核验。",
+      "tags": [
+        "reference_check",
+        "negative_control",
+        "zero_write"
+      ]
     }
   ]
 }
