@@ -5,7 +5,7 @@
 ## 产物与边界
 
 - 写入 `docs/apifox/<日期>/<任务名>.openapi.yaml`，并以源 md 与 YAML 路径幂等更新 `docs/apifox/INDEX.md`。
-- 规范只包含本次新增或契约变化的接口；未知字段标为待确认，不伪造契约。
+- 规范只包含主方案本轮已收敛的新增或契约变化接口；核对数量、共同/各自入参和返回值与需求一致。尚未裁决的接口不写成可导入契约，主方案保留待确认项。
 - 若同时发布看板，才写 `apiSpecPath`、`apiIndexPath` 和非空 `apis[]`；否则不触碰看板。
 
 ## 验证
@@ -19,6 +19,6 @@ node <helper> contains docs/apifox/INDEX.md <apiSpecPath>
 node <helper> contains docs/apifox/INDEX.md <mdPath>
 ```
 
-校验至少覆盖 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`。含 `$ref` 的 YAML 在没有可用解析器时返回 `OPENAPI_VALIDATION_UNAVAILABLE`，不得当作通过；可使用已有 `yaml/js-yaml`，或以 JSON 语法写同一 `.openapi.yaml` 并用内置解析器校验，不自动新增依赖。校验器能启动但报告内容错误时必须修复，不能降级绕过。若仅因沙箱禁止执行工作区外脚本，可在工作区内做等价静态检查并记录 `OPENAPI_VALIDATION_MODE=light:workspace-inline`。任何静态校验都不能证明 Apifox 实际导入成功。
+校验至少覆盖 OpenAPI 3.x、HTTP operation、`operationId` 非空/唯一和本地 `$ref`。含 `$ref` 的 YAML 在没有可用解析器时返回 `OPENAPI_VALIDATION_UNAVAILABLE`，不得当作通过；可使用已有 `yaml/js-yaml`，或以 JSON 语法写同一 `.openapi.yaml` 并用内置解析器校验，不自动新增依赖。校验器能启动但报告内容错误时必须修复，不能降级绕过。若仅因沙箱禁止执行工作区外脚本，可在工作区内做等价静态检查并记录 `OPENAPI_VALIDATION_MODE=light:workspace-inline`。任何静态校验都不能证明需求理解正确、用户已认可方案或 Apifox 实际导入成功。
 
 完成时报告实际 YAML、索引、源 md、校验模式和未确认字段；不自动 add、commit、push，也不声称已经完成真实导入。

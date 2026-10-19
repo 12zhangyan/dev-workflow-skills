@@ -348,10 +348,23 @@ function removeAllocatedInput(arg) {
     return true;
   } catch (e) { return false; }
 }
+const USAGE = [
+  '用法：node project-html/board-add.js <entry.json>',
+  '      node project-html/board-add.js --check-migration | --migrate',
+  '      node project-html/board-add.js --help | -h | help',
+  'entry.json 使用 {"entry": {...}, "detail": {...}} 包装；填写已创建的临时 JSON。',
+  '--check-migration 只读检查；--migrate 迁移并备份现有目录；帮助不读写看板数据。',
+].join('\n');
 function main() {
-  const arg = process.argv[2];
-  if (!arg) die('用法：node project-html/board-add.js <entry.json> | --check-migration | --migrate');
+  const args = process.argv.slice(2);
+  if (args.length !== 1 || !args[0]) die('BOARD_USAGE_ERROR: 需要且仅接受一个参数\n' + USAGE);
+  const arg = args[0];
+  if (['--help', '-h', 'help'].includes(arg)) {
+    console.log(USAGE);
+    return;
+  }
   if (arg === '--check-migration') return checkMigration();
+  if (arg.startsWith('-') && arg !== '--migrate') die('BOARD_USAGE_ERROR: 未知参数 ' + arg + '\n' + USAGE);
   return withWriteLock(() => arg === '--migrate' ? migrate() : add(arg));
 }
 try { main(); }

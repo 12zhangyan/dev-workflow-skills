@@ -40,7 +40,18 @@ function copyFile(sourceRoot, targetRoot, rel) {
   fs.copyFileSync(source, target);
 }
 
-const [command, projectArg = '.'] = process.argv.slice(2);
+const SHELL_FILES = [
+  'index.html', 'css/board.css', 'js/board.js', 'js/vendor/mermaid.min.js',
+  'build.js', 'board-add.js',
+];
+const USAGE = 'usage: node board-bootstrap.js <status|sync> [project-directory]';
+const [command, projectArg = '.', ...extra] = process.argv.slice(2);
+if (extra.length) fail(USAGE);
+if (['help', '--help', '-h'].includes(command)) {
+  process.stdout.write(USAGE + '\nstatus is read-only; an older version is an optional update, not a compatibility verdict.\n');
+  process.exit(0);
+}
+if (!['status', 'sync'].includes(command)) fail(USAGE);
 const source = templateRoot();
 const project = path.resolve(projectArg);
 const target = path.join(project, 'project-html');
@@ -51,18 +62,18 @@ if (command === 'status') {
   const projectVersion = versionOf(path.join(target, 'js', 'board.js'));
   process.stdout.write(`PROJECT_BOARD_VERSION=${projectVersion === null ? 'MISSING' : projectVersion}\n`);
   process.stdout.write(`TEMPLATE_BOARD_VERSION=${templateVersion}\n`);
-  process.stdout.write(projectVersion === null || projectVersion < templateVersion
-    ? 'BOARD_SHELL_UPGRADE_REQUIRED\n'
-    : 'BOARD_SHELL_CURRENT\n');
+  const missing = SHELL_FILES.filter(rel => !fs.existsSync(path.join(target, rel)));
+  if (missing.length) process.stdout.write('BOARD_SHELL_MISSING_FILES=' + missing.join(',') + '\n');
+  const state = !fs.existsSync(target) ? 'BOARD_SHELL_INIT_REQUIRED'
+    : missing.length ? 'BOARD_SHELL_INCOMPLETE'
+    : projectVersion === null ? 'BOARD_SHELL_VERSION_UNKNOWN'
+    : projectVersion < templateVersion ? 'BOARD_SHELL_UPGRADE_AVAILABLE'
+    : 'BOARD_SHELL_CURRENT';
+  process.stdout.write(state + '\n');
 } else if (command === 'sync') {
-  for (const rel of [
-    'index.html',
-    'css/board.css',
-    'js/board.js',
-    'js/vendor/mermaid.min.js',
-    'build.js',
-    'board-add.js',
-  ]) copyFile(source, target, rel);
+  const projectVersion = versionOf(path.join(target, 'js', 'board.js'));
+  if (projectVersion !== null && projectVersion > templateVersion) fail('BOARD_SHELL_DOWNGRADE_REFUSED');
+  for (const rel of SHELL_FILES) copyFile(source, target, rel);
   fs.mkdirSync(path.join(target, 'data', 'details'), { recursive: true });
   const changes = path.join(target, 'data', 'changes.js');
   if (!fs.existsSync(changes)) copyFile(source, target, 'data/changes.js');
@@ -74,6 +85,4 @@ if (command === 'status') {
     ].join('\n'), { flag: 'wx' });
   }
   process.stdout.write(`BOARD_SHELL_SYNCED=${templateVersion}\n`);
-} else {
-  fail('usage: board-bootstrap.js <status|sync> [project-directory]');
 }

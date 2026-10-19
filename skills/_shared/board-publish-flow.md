@@ -29,8 +29,8 @@
 
 ## 发布
 
-1. 按 [board-shell-bootstrap.md](board-shell-bootstrap.md) 检查并按需初始化或升级外壳；永不覆盖已有 `data/`。模板不可用时报告 `BoardPublishSkipped`，不临时发明外壳。
-2. 调用共享 `workflow-fs.js prepare-board-entry project-html/data`，在看板目录内取得本次发布独占的临时 JSON 路径；将调用方 entry 写入该文件，再运行：
+1. 按 [board-shell-bootstrap.md](board-shell-bootstrap.md) 检查完整性与发布兼容性，按需初始化或修复外壳；永不覆盖已有 `data/`。模板不可用时报告 `BoardPublishSkipped`，不临时发明外壳。
+2. 调用共享 `workflow-fs.js prepare-board-entry project-html/data`，创建包含 `{}` 的本次独占临时 JSON 并返回路径；这是已创建的文件，将调用方 entry 填写到该文件（编辑或覆盖本次占位内容，不用仅新建 / `wx` 模式），再运行：
 
    ```text
    node project-html/board-add.js "<本次返回的绝对路径>"

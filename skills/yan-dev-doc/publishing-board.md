@@ -4,6 +4,8 @@
 
 ## Entry 语义
 
+新方案的 entry `status` 用 `草稿`、`plan.status` 用 `Draft`，摘要说明“方案已生成，未实施”；已有档案按真实阶段保留，不把已实施的记录降回草稿。规范校验结果只作为具体证据，不据此标记方案获批或交付完成。
+
 目录至少包含能定位同一交付的 `docPath`、标题、日期和当前 plan 状态；已有 `deliveryId` 时沿用。`NeedsConfirmation` 方案也发布：entry `status` 写 `待确认`、`plan.status` 写 `NeedsConfirmation`，待裁决问题逐条写入 `plan.openQuestions`（看板会置顶提示并在首页汇总），只写已证实内容，不写未裁决的接口、权限或数据口径；裁决后续写同一档案，显式将 entry `status` 改回 `草稿` 或 `进行中`，同步更新 `plan.status`；问题全部关闭时写入 `plan.openQuestions: []`，仍有未决项则只保留剩余问题。接口契约确有新增或变化时才附 `apiSpecPath`、`apiIndexPath` 和对应 `apis`。
 
 `detail.delivery.plan` 保留当前任务真正需要的人类信息：

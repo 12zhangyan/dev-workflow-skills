@@ -2,9 +2,9 @@
  * 数据在 data/changes.js（dev-doc 创建主档案，code-review 按 deliveryId/sourceDocPath 追加生命周期，本文件不存数据）
  * 与 skills/yan-dev-doc/assets/board/js/board.js 保持一致，修改时两处同步 */
 
-// 外壳版本号：skill 检测到模板版本更高时自动覆盖外壳文件（index.html / css / js / build.js，不动 data/）。
+// 外壳版本号只提示维护更新；发布按实际兼容性决定是否同步外壳，不动 data/。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 34;
+const BOARD_VERSION = 35;
 
 const UI_ICONS = {
   "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
