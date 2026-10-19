@@ -243,6 +243,9 @@ requireText('skills/yan-dev-doc/SKILL.md', [
   '不依赖任何外部 Skill 或方法论',
   '本轮主方案收敛并实际落盘后才读取 [看板发布协议](publishing-board.md)',
   '用户明确不要看板或只要聊天输出，或主方案未安全写入时，不初始化或修改 `project-html`',
+  '首稿、待用户评审稿和 `NeedsConfirmation` 草稿都按本轮最终内容发布',
+  '不得以“等用户确认后再发布”为由跳过',
+  '`BoardPublishBlocked`/`BoardPublishSkipped` 及具体原因，不静默省略',
   '执行 Agent 可合并、细分、重排或委派非约束性切片',
 ]);
 
