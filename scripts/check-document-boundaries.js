@@ -259,6 +259,19 @@ requireText('skills/_shared/board-publish-flow.md', [
   '默认发布路径未发布时，由调用方报告 `BoardPublishSkipped`/`BoardPublishBlocked` 及原因',
 ]);
 
+requireText('skills/yan-dev-doc/plan-template.md', [
+  '每个事实只写一次',
+  '编号稳定：证据 `E-n`、切片 `S-n`、验收 `A-n`、待裁决 `Q-n`',
+  '只有会阻塞切片或需要用户裁决的才进入待裁决',
+  '## Compact 骨架',
+  '验证方式（计划，未运行）',
+]);
+
+requireText('skills/yan-code-review/modes/package/fix-handoff-template.md', [
+  'findings 只写在一张表里',
+  '结果（repair 回填）',
+]);
+
 requireText('skills/yan-dev-doc/publishing-board.md', [
   'node project-html/board-add.js',
   '../_shared/board-publish-flow.md',

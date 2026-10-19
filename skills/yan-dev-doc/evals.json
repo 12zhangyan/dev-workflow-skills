@@ -455,6 +455,15 @@
         "board_compatibility",
         "board_default_publish"
       ]
+    },
+    {
+      "id": 74,
+      "prompt": "使用 yan-dev-doc 为询价详情返回新增一个布尔字段写方案，只改 VO 和 Service，复用已有计数方法，没有接口数量、权限或数据变化。",
+      "expected_output": "使用 Compact 骨架（执行卡片、证据与决策、验收），证据、假设和否决替代只在证据表出现一次并以 E-n 编号，验收以 A-n 编号且标明计划未运行；不重复写背景/证据边界/待裁决，不写“无阻塞项”或空章节，不复述数据库只读、不提交等仓库默认边界。",
+      "tags": [
+        "template_compact",
+        "negative_control"
+      ]
     }
   ]
 }
