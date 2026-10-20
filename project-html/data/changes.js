@@ -82,6 +82,10 @@ const htmlChangelog = [
     "date": "2026-07-18",
     "desc": "外壳数据迁移：3 条记录拆分为轻量目录 + 人类方案详情"
   },
+  {
+    "date": "2026-10-20",
+    "desc": "新增方案：参考 superpowers 优化 Skill 集"
+  },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -141,6 +145,21 @@ const changes = [
     "detailPath": "data/details/d-e3e4d6ea051b3f0e.js",
     "summary": "看板与 md 面向不同读者：看板要让没有参与开发的人理解为什么改、方案如何运转和关键取舍，md 则要让 Agent 精确执行文件修改、Todo 和验证。",
     "searchText": "看板人类方案与 Agent 文档职责分离 dev-workflow-skills HTML 看板 重构 看板与 md 面向不同读者：看板要让没有参与开发的人理解为什么改、方案如何运转和关键取舍，md 则要让 Agent 精确执行文件修改、Todo 和验证。 保持看板人类方案与 md Agent 指令独立撰写 将轻量目录与人类方案详情拆开，详情按点击加载 删除看板中的精确代码清单、Agent Todo、堆栈和代码定位等执行型重复字段 changes.js 只保留标题、归属、状态、生命周期、摘要、搜索文本和 detailPath；每条人类方案写入独立 details/<detailId>.js。浏览索引只加载目录，点击详情时再通过本地 script 标签加载对应方案。 b"
+  },
+  {
+    "updatedAt": "2026-10-20",
+    "service": "dev-workflow-skills",
+    "module": "Skill 行为与评测",
+    "title": "参考 superpowers 优化 Skill 集",
+    "date": "2026-10-20",
+    "status": "待确认",
+    "docPath": "docs/2026-10-20/参考superpowers优化Skill集.md",
+    "currentGate": "plan",
+    "deliveryId": "DLV-4A58EFE50B",
+    "detailId": "d-4a58efe50b054c69",
+    "detailPath": "data/details/d-4a58efe50b054c69.js",
+    "summary": "方案已生成，未实施：吸收 superpowers 中尚未引入、且与“Agent 自主 + 证据边界”兼容的机制，并建立“先有基线失败再写规则”的维护方法。",
+    "searchText": "参考 superpowers 优化 Skill 集 dev-workflow-skills Skill 行为与评测 方案已生成，未实施：吸收 superpowers 中尚未引入、且与“Agent 自主 + 证据边界”兼容的机制，并建立“先有基线失败再写规则”的维护方法。 NeedsConfirmation 按 P0→P1→P2 补齐四类缺口：Agent 自主做出的决定不透明、开发方案写完后没有语义自检、reviewer 委派没有成本约束、复审输出没有统一形状。同时让评测能重复采样，规则改动要有实测依据。 仓库在 10-10 已借用过 superpowers 的系统化调试思路，10-13 又明确不设默认 TDD 和默认双 reviewer。这次不再照搬它的流程，只补还没借、又不与现有理念冲突的部分。 superpowers 的实测结论是：压力下的违规用识别表或具体字眼自查更有效；输出形状问题用正向配方更有效；给规则追加例外从句会削弱效果。当前 Skill 大多用带例外的长句写成，评测也基本只跑一次。 评测运行器支持同一条件重复采样，比较通过率 最终报告逐条列出 Agent 自主做出的决定、依据和错了的代价 开发方案写完后检查需求覆盖、命名一致和空话；可选由独立 Agent 以实现者身份试读 reviewer 不再委派、不重跑全量测试，协调者不预判 finding 复审逐条给出是否已解"
   },
   // ─── 在此行上方追加新记录 ───
 ];
