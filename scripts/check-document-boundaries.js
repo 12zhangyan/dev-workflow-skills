@@ -265,6 +265,10 @@ requireText('skills/_shared/browser-verification.md', [
   '从触发控件所在位置确认成功/失败反馈落在当前视口内且未被粘性元素遮挡',
 ]);
 
+requireText('skills/yan-project-analysis/modes/incident/reference.md', [
+  '写明修复所在的 VCS 状态（未提交 / 已提交 / 已合入）与部署状态',
+]);
+
 requireText('skills/yan-dev-doc/plan-template.md', [
   '每个事实只写一次',
   '编号稳定：证据 `E-n`、切片 `S-n`、验收 `A-n`、待裁决 `Q-n`',
