@@ -43,6 +43,7 @@ function usage(message) {
     '    [--skill-source <skills-directory>]  Compare a saved version using the same case/grader.',
     '    [--invocation explicit|catalog|native] [--effort low|medium|high|xhigh|ultra]',
     '    Native discovery currently requires Codex JSON command evidence; catalog works across hosts.',
+    '    [--reps <1-20>]  Repeat sequentially, each in a fresh isolated clone; N>1 writes one series result.',
     '',
     'Live mode is opt-in. Writable contracts also require --allow-write and always',
     'run in a runner-created temporary Git clone; the supplied workspace is never written.',
@@ -50,6 +51,8 @@ function usage(message) {
   ].join('\n'));
   process.exit(message ? 2 : 0);
 }
+
+const MAX_REPS = 20;
 
 function parseArgs(argv) {
   const args = { probe: true, json: false, live: false, allowWrite: false, timeoutMs: 600000, invocation: 'explicit' };
@@ -71,7 +74,7 @@ function parseArgs(argv) {
       args.probe = false;
     } else if (arg === '--allow-write') {
       args.allowWrite = true;
-    } else if (['--host', '--case', '--workspace', '--model', '--output', '--timeout-ms', '--skill-source', '--invocation', '--effort'].includes(arg)) {
+    } else if (['--host', '--case', '--workspace', '--model', '--output', '--timeout-ms', '--skill-source', '--invocation', '--effort', '--reps'].includes(arg)) {
       const value = argv[++index];
       if (!value) usage(`${arg} requires a value`);
       const key = arg.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -81,6 +84,10 @@ function parseArgs(argv) {
   if (args.preflight && (args.live || args.selfTest || args.explicitProbe)) usage('--preflight cannot be combined with --live, --probe or --self-test');
   args.timeoutMs = Number(args.timeoutMs);
   if (!Number.isInteger(args.timeoutMs) || args.timeoutMs < 1000) usage('--timeout-ms must be an integer >= 1000');
+  const explicitReps = args.reps !== undefined;
+  args.reps = explicitReps ? Number(args.reps) : 1;
+  if (!Number.isInteger(args.reps) || args.reps < 1 || args.reps > MAX_REPS) usage(`--reps must be an integer from 1 to ${MAX_REPS}`);
+  if (explicitReps && !args.live) usage('--reps requires --live');
   if (!['explicit', 'catalog', 'native'].includes(args.invocation)) usage('unknown --invocation');
   if (args.effort && !['low', 'medium', 'high', 'xhigh', 'ultra'].includes(args.effort)) usage('unknown --effort');
   return args;
@@ -1020,45 +1027,31 @@ function runSelfTest() {
     if (path.dirname(resolved) !== path.resolve(require('os').tmpdir()) || !path.basename(resolved).startsWith('yan-host-eval-outcome-')) throw new Error('unsafe outcome cleanup');
     fs.rmSync(resolved, { recursive: true, force: true });
   }
+  const seriesRun = (passed, executed, durationMs) => ({
+    host: 'codex', version: 'v', case: 'c', model: 'm', effort: 'high', invocation: 'explicit', provenance: { fixtureHead: 'h' },
+    isolation: { skillSnapshot: { sha256: 's' } }, metrics: { durationMs, outputChars: 10, loadedResourceCount: 2 },
+    assessment: { passed, execution: { passed: executed } },
+  });
+  const series = summarizeSeries([seriesRun(true, true, 30), seriesRun(false, true, 10), seriesRun(false, false, 20)]);
+  if (series.kind !== 'series' || series.reps !== 3 || series.summary.passed !== 1 || series.summary.executionComplete !== 2
+      || series.summary.passRate !== 1 / 3 || series.summary.durationMs.median !== 20 || series.summary.durationMs.min !== 10
+      || series.runs.length !== 3) {
+    throw new Error('series summary did not preserve every run, pass rate and metric spread');
+  }
+  for (const [argv, message] of [
+    [['--live', '--reps', '0'], '--reps must be an integer'],
+    [['--live', '--reps', '21'], '--reps must be an integer'],
+    [['--preflight', '--reps', '2'], '--reps requires --live'],
+  ]) {
+    const rejected = spawnSync(process.execPath, [__filename, ...argv], { encoding: 'utf8', windowsHide: true });
+    if (rejected.status !== 2 || !rejected.stderr.includes(message)) throw new Error('invalid --reps was not rejected: ' + argv.join(' '));
+  }
+  if (parseArgs(['--live']).reps !== 1) throw new Error('--reps must default to one run');
   console.log('ok host eval routing, artifact, outcome, isolated skill-source and grading separation self-tests passed');
+  console.log('ok repeated live runs keep every run and summarize pass rate and spread');
 }
 
-function main() {
-  const args = parseArgs(process.argv.slice(2));
-  if (args.selfTest) {
-    runSelfTest();
-    return;
-  }
-  if (args.probe) {
-    const result = {
-      mode: 'probe',
-      liveModelCalls: false,
-      hosts: contracts.hosts.map((host) => ({ ...probeHost(host), installed: installedState(host) })),
-    };
-    if (args.json) console.log(JSON.stringify(result, null, 2));
-    else {
-      for (const item of result.hosts) {
-        console.log(`${item.host}: ${item.available ? `AVAILABLE ${item.version}` : `UNAVAILABLE ${item.reason}`}`);
-      }
-    }
-    return;
-  }
-
-  if (!args.live && !args.preflight) usage('select --preflight or --live');
-  const preflight = inspectPreflight(args, {
-    root, contracts, hosts: Object.keys(hostSpecs), git, skillSourceDirectory, promptFor, globToRegex,
-  });
-  if (args.preflight) {
-    console.log(JSON.stringify(preflight, null, 2));
-    if (!preflight.valid) process.exitCode = 1;
-    return;
-  }
-  if (!preflight.valid) usage(preflight.checks.filter(item => item.status === 'invalid').map(item => item.id + ': ' + item.detail).join('\n'));
-  const contract = contracts.cases.find(item => item.id === args.case);
-  const sourceWorkspace = assertSourceWorkspace(args.workspace);
-  const skillSource = skillSourceDirectory(args.skillSource);
-  const probe = probeHost(args.host);
-  if (!probe.available) throw new Error(args.host + ' is unavailable: ' + probe.reason);
+function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, probe }) {
   const isolation = createIsolation(sourceWorkspace, skillSource, args.invocation);
   const before = workspaceSnapshot(isolation.workspace);
   const prompt = promptFor(contract, isolation.skillSnapshotRoot, args.invocation, skillSource);
@@ -1138,6 +1131,88 @@ function main() {
   };
   result.assessment.selection = selection;
   result.assessment.passed = result.assessment.passed && selection.passed;
+  fs.rmSync(isolation.tempRoot, { recursive: true, force: true });
+  return result;
+}
+
+function seriesStats(values) {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  return { min: sorted[0], median, max: sorted[sorted.length - 1] };
+}
+
+function summarizeSeries(runs) {
+  const first = runs[0];
+  const executed = runs.filter(run => run.assessment?.execution?.passed === true);
+  const passed = runs.filter(run => run.assessment?.passed === true);
+  const metric = field => seriesStats(runs.map(run => run.metrics?.[field]));
+  return {
+    schemaVersion: 3,
+    kind: 'series',
+    reps: runs.length,
+    host: first.host,
+    version: first.version,
+    case: first.case,
+    model: first.model,
+    effort: first.effort,
+    invocation: first.invocation,
+    provenance: first.provenance,
+    isolation: { kind: 'temporary-git-clone-per-run', skillSnapshot: { sha256: first.isolation.skillSnapshot.sha256 } },
+    summary: {
+      executionComplete: executed.length,
+      passed: passed.length,
+      passRate: passed.length / runs.length,
+      durationMs: metric('durationMs'),
+      outputChars: metric('outputChars'),
+      loadedResourceCount: metric('loadedResourceCount'),
+    },
+    runs,
+  };
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.selfTest) {
+    runSelfTest();
+    return;
+  }
+  if (args.probe) {
+    const result = {
+      mode: 'probe',
+      liveModelCalls: false,
+      hosts: contracts.hosts.map((host) => ({ ...probeHost(host), installed: installedState(host) })),
+    };
+    if (args.json) console.log(JSON.stringify(result, null, 2));
+    else {
+      for (const item of result.hosts) {
+        console.log(`${item.host}: ${item.available ? `AVAILABLE ${item.version}` : `UNAVAILABLE ${item.reason}`}`);
+      }
+    }
+    return;
+  }
+
+  if (!args.live && !args.preflight) usage('select --preflight or --live');
+  const preflight = inspectPreflight(args, {
+    root, contracts, hosts: Object.keys(hostSpecs), git, skillSourceDirectory, promptFor, globToRegex,
+  });
+  if (args.preflight) {
+    console.log(JSON.stringify(preflight, null, 2));
+    if (!preflight.valid) process.exitCode = 1;
+    return;
+  }
+  if (!preflight.valid) usage(preflight.checks.filter(item => item.status === 'invalid').map(item => item.id + ': ' + item.detail).join('\n'));
+  const contract = contracts.cases.find(item => item.id === args.case);
+  const sourceWorkspace = assertSourceWorkspace(args.workspace);
+  const skillSource = skillSourceDirectory(args.skillSource);
+  const probe = probeHost(args.host);
+  if (!probe.available) throw new Error(args.host + ' is unavailable: ' + probe.reason);
+  const runs = [];
+  for (let rep = 0; rep < args.reps; rep += 1) {
+    runs.push(runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, probe }));
+  }
+  const result = args.reps === 1 ? runs[0] : summarizeSeries(runs);
   const json = `${JSON.stringify(result, null, 2)}\n`;
   if (args.output) {
     const outputPath = path.resolve(args.output);
@@ -1145,8 +1220,7 @@ function main() {
     fs.writeFileSync(outputPath, json, 'utf8');
   }
   process.stdout.write(json);
-  fs.rmSync(isolation.tempRoot, { recursive: true, force: true });
-  if (!result.assessment.passed) process.exitCode = 1;
+  if (!runs.every(run => run.assessment.passed)) process.exitCode = 1;
 }
 
 try {
