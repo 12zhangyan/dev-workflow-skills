@@ -1046,6 +1046,42 @@
           }
         ]
       }
+    },
+    {
+      "id": "review-loop-independent-recheck",
+      "prompt_ref": "yan-code-review:28",
+      "route": "loop",
+      "write_scope": "code-and-tests",
+      "allowed_path_patterns": [
+        "^src/reports.js$",
+        "^test/[^/]+.test.js$"
+      ],
+      "assertions": {
+        "artifacts": [
+          {
+            "glob": "src/reports.js",
+            "min_matches": 1
+          }
+        ],
+        "text": [
+          {
+            "pattern": "(?:CR|IM)-[0-9]+",
+            "min_matches": 1
+          },
+          {
+            "pattern": "node --test",
+            "min_matches": 1
+          },
+          {
+            "pattern": "独立复核|自验证关闭",
+            "min_matches": 1
+          }
+        ]
+      },
+      "required_fixture_paths": [
+        "src/reports.js",
+        "test/reports.test.js"
+      ]
     }
   ]
 }

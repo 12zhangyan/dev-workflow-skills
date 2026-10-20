@@ -82,6 +82,11 @@ requireText('skills/yan-code-review/modes/loop/mode.md', [
   '不执行数据库写入、DDL、add/commit/push',
   '没有新证据或连续动作没有实质进展',
   '不设为了流程完整而必须跑满的轮次',
+  '在最终验证之后追加一次独立复核',
+  '不提供修复者的推理或结论',
+  '以验证证据关闭并标为自验证关闭，不称独立复核通过',
+  '只有 Minor 修复或没有代码变化时不派发',
+  '宿主规则要求用户明确授权才能派发子智能体而本次未获授权',
 ]);
 
 requireText('skills/_shared/workflow-chain.md', [
