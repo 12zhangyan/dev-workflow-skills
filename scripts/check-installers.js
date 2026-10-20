@@ -369,6 +369,13 @@ function smokeWindows(tempRoot) {
   run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call .\\install-local.cmd agents'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd default');
   assertInstall(cmdHome);
+  // SHIFT also moves %0: arguments must not make the wrapper resolve the checkout from the caller's cwd.
+  const elsewhere = path.join(tempRoot, 'elsewhere');
+  fs.mkdirSync(elsewhere, { recursive: true });
+  const outsideStatus = run(process.env.ComSpec || 'cmd.exe',
+    ['/d', '/q', '/c', `call "${path.join(root, 'install-local.cmd')}" status agents`],
+    { cwd: elsewhere, env: cmdEnv, windowsVerbatimArguments: true }, 'install-local.cmd status from another directory');
+  if (!outsideStatus.stdout.includes('agents\tCURRENT')) fail('install-local.cmd status from another directory did not resolve the checkout');
   const beforeDoctor = JSON.stringify(listTree(cmdHome));
   const doctor = run(process.env.ComSpec || 'cmd.exe', ['/d', '/q', '/c', 'call .\\install-local.cmd doctor'],
     { cwd: root, env: cmdEnv }, 'install-local.cmd doctor');
