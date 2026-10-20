@@ -32,6 +32,12 @@ function median(values) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+function sameSkillWarnings(beforeSha, afterSha) {
+  return beforeSha && beforeSha === afterSha
+    ? ['before and after use the same skill fingerprint; this is a noise (A/A) sample, not a version comparison']
+    : [];
+}
+
 function compare(before, after) {
   if (before.kind === 'series' || after.kind === 'series') return compareSeries(before, after);
   const reasons = [...conditionReasons(before, after), ...runReasons('before', before), ...runReasons('after', after)];
@@ -40,6 +46,7 @@ function compare(before, after) {
     ? after.metrics[field] - before.metrics[field] : null;
   return {
     comparable, reasons,
+    warnings: sameSkillWarnings(before.isolation?.skillSnapshot?.sha256, after.isolation?.skillSnapshot?.sha256),
     conditions: { host: before.host, case: before.case, model: before.model, effort: before.effort, invocation: before.invocation },
     before: { skillSha256: before.isolation?.skillSnapshot?.sha256, passed: before.assessment?.passed },
     after: { skillSha256: after.isolation?.skillSnapshot?.sha256, passed: after.assessment?.passed },
@@ -71,6 +78,7 @@ function compareSeries(before, after) {
   const afterSummary = describe(sides.after);
   return {
     comparable, reasons,
+    warnings: sameSkillWarnings(beforeSummary.skillSha256, afterSummary.skillSha256),
     conditions: { host: sides.before[0]?.host, case: sides.before[0]?.case, model: sides.before[0]?.model, effort: sides.before[0]?.effort, invocation: sides.before[0]?.invocation },
     before: beforeSummary,
     after: afterSummary,
@@ -111,6 +119,9 @@ function selfTest() {
   assert.equal(seriesResult.after.passRate, 0.5);
   assert.equal(seriesResult.passRateDelta, -0.5);
   assert.equal(seriesResult.medianDeltas.durationMs, 10);
+  assert.deepEqual(seriesResult.warnings, []);
+  assert.equal(compare(series([result]), series([result])).warnings.length, 1);
+  assert.equal(compare(result, result).warnings.length, 1);
   const incomplete = structuredClone(changed);
   incomplete.assessment.execution.passed = false;
   assert.equal(compare(series([result, result]), series([changed, incomplete])).comparable, false);
