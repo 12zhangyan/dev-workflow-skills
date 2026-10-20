@@ -327,10 +327,10 @@
     {
       "id": 60,
       "prompt": "本项目已有 v34 看板，模板 v35。现有脚本能接受本轮 entry/detail，保留既有档案和生命周期，渲染器与 build 都支持现有目录/详情格式；请生成一个小方案并按默认方式发布。",
-      "expected_output": "版本差异只提示可升级，沿用已确认兼容的外壳，只更新本次条目并构建；不触发 sync 或为发布强制维护升级，不宣称 v34 与任意未来协议都兼容。",
+      "expected_output": "外壳落后于模板时默认先运行 board-bootstrap sync 升级到 v35（只替换外壳文件，不动 data/），报告升级前后版本、被替换文件和备份路径，再运行 --check-migration 并写入本次条目、构建；外壳文件已纳管且有未提交修改，或用户明确不要升级时，才沿用 v34 并按旧外壳核对兼容性。",
       "tags": [
         "board_compatibility",
-        "no_version_only_upgrade"
+        "board_auto_upgrade"
       ]
     },
     {
@@ -463,6 +463,15 @@
       "tags": [
         "template_compact",
         "negative_control"
+      ]
+    },
+    {
+      "id": 75,
+      "prompt": "本项目 project-html 是 v33 且未纳入 git，模板 v35。按默认方式生成小方案并发布看板。",
+      "expected_output": "未纳管不构成“有本地修改”的证据，照常 sync 升级到 v35；依赖 sync 把被替换的旧外壳文件备份到 project-html/.shell-backup/v33-<时间>/ 并报告该路径与替换清单；data/changes.js 与 data/details/ 保持不变；升级后运行 --check-migration、写入并构建。不因无法用 VCS 判断就放弃升级。",
+      "tags": [
+        "board_compatibility",
+        "board_auto_upgrade"
       ]
     }
   ]

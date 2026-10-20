@@ -214,6 +214,19 @@ function smokeBoardShellBootstrap() {
     if (!fs.existsSync(path.join(project, 'docs', 'INDEX.md'))) fail('compatible publication must build its index');
     if (fs.readFileSync(detailPath, 'utf8') !== detailSentinel) fail('compatible publication changed an unrelated sidecar');
 
+    // An older shell is upgraded by sync: replaced shell files are backed up, data/ is untouched.
+    const oldBoardJs = fs.readFileSync(boardJsPath);
+    const upgraded = runBoardAdapter('sync', project, 'board-shell upgrade smoke');
+    requireMarker(upgraded, 'BOARD_SHELL_REPLACED=js/board.js', 'board-shell upgrade smoke');
+    const backupLine = ((upgraded && upgraded.stdout) || '').split(/\r?\n/).find((line) => line.startsWith('BOARD_SHELL_BACKUP=project-html/.shell-backup/v0-'));
+    if (!backupLine) fail('board-shell upgrade must report a versioned backup directory');
+    else if (!fs.readFileSync(path.join(project, ...backupLine.slice('BOARD_SHELL_BACKUP='.length).split('/'), 'js', 'board.js')).equals(oldBoardJs)) {
+      fail('board-shell upgrade backup must hold the replaced board.js bytes');
+    }
+    if (!fs.readFileSync(changesPath, 'utf8').includes('docs/compatible.md')) fail('board-shell upgrade lost catalog records');
+    if (fs.readFileSync(detailPath, 'utf8') !== detailSentinel) fail('board-shell upgrade changed a detail sidecar');
+    requireMarker(runBoardAdapter('status', project, 'board-shell post-upgrade smoke'), 'BOARD_SHELL_CURRENT', 'board-shell post-upgrade smoke');
+
     // Unknown and newer versions must remain read-only diagnostics, not a forced downgrade.
     fs.writeFileSync(boardJsPath, boardJs.replace(versionPattern, (_match, prefix) => prefix + '99999'), 'utf8');
     requireMarker(runBoardAdapter('status', project, 'newer shell smoke'), 'BOARD_SHELL_CURRENT', 'newer shell smoke');
@@ -372,7 +385,10 @@ requireText(boardShellBootstrap, [
   'board-bootstrap.js',
   '不得覆盖既有 `data/` 或 `data/details/`',
   'BOARD_SHELL_UPGRADE_AVAILABLE',
-  '仅版本不同不自动升级',
+  '外壳落后于模板时默认先升级到模板版本再发布',
+  '已纳管且有未提交的本地修改时，不覆盖',
+  '未纳管或没有 VCS 时照常升级',
+  '从不覆盖 `data/`',
   '确认现有脚本支持后，才运行',
   'BOARD_SHELL_CURRENT',
   '跳过下方逐项核对，直接进入数据格式检查',

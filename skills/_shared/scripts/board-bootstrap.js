@@ -48,7 +48,8 @@ const USAGE = 'usage: node board-bootstrap.js <status|sync> [project-directory]'
 const [command, projectArg = '.', ...extra] = process.argv.slice(2);
 if (extra.length) fail(USAGE);
 if (['help', '--help', '-h'].includes(command)) {
-  process.stdout.write(USAGE + '\nstatus is read-only; an older version is an optional update, not a compatibility verdict.\n');
+  process.stdout.write(USAGE + '\nstatus is read-only. sync upgrades an older shell to the template version: shell files only,'
+    + ' never data/, never a downgrade; replaced files are backed up under project-html/.shell-backup/.\n');
   process.exit(0);
 }
 if (!['status', 'sync'].includes(command)) fail(USAGE);
@@ -73,6 +74,18 @@ if (command === 'status') {
 } else if (command === 'sync') {
   const projectVersion = versionOf(path.join(target, 'js', 'board.js'));
   if (projectVersion !== null && projectVersion > templateVersion) fail('BOARD_SHELL_DOWNGRADE_REFUSED');
+  // 被替换的旧外壳文件先备份：未纳管的看板没有 VCS 可回退，升级必须可还原。
+  const replaced = SHELL_FILES.filter((rel) => {
+    const current = path.join(target, ...rel.split('/'));
+    return fs.existsSync(current) && !fs.readFileSync(current).equals(fs.readFileSync(path.join(source, ...rel.split('/'))));
+  });
+  if (replaced.length) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupRel = `.shell-backup/v${projectVersion === null ? 'unknown' : projectVersion}-${stamp}`;
+    for (const rel of replaced) copyFile(target, path.join(target, ...backupRel.split('/')), rel);
+    process.stdout.write(`BOARD_SHELL_BACKUP=project-html/${backupRel}\n`);
+    process.stdout.write(`BOARD_SHELL_REPLACED=${replaced.join(',')}\n`);
+  }
   for (const rel of SHELL_FILES) copyFile(source, target, rel);
   fs.mkdirSync(path.join(target, 'data', 'details'), { recursive: true });
   const changes = path.join(target, 'data', 'changes.js');
@@ -81,7 +94,7 @@ if (command === 'status') {
   if (!fs.existsSync(ignore)) {
     fs.writeFileSync(ignore, [
       '# 由 build.js / board-add.js 生成或临时使用；data/changes.js 与 data/details/ 是需要保留的看板数据。',
-      'pages/', 'exports/', 'data/changes.js.bak', 'data/changes.js.lock', 'data/.entry-*/', '',
+      'pages/', 'exports/', 'data/changes.js.bak', 'data/changes.js.lock', 'data/.entry-*/', '.shell-backup/', '',
     ].join('\n'), { flag: 'wx' });
   }
   process.stdout.write(`BOARD_SHELL_SYNCED=${templateVersion}\n`);
