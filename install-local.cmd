@@ -1,5 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
+REM SHIFT also shifts %0, so capture the script directory before parsing arguments.
+set "ROOT=%~dp0"
 
 REM Shared installation in .agents/skills; legacy roots are read-only.
 REM Usage:
@@ -74,9 +76,9 @@ exit /b 1
 
 :run
 if defined TARGETS (
-  node "%~dp0scripts\install-core.js" %ACTION% --source "%~dp0." --home "%USERPROFILE%" --targets %TARGETS% %MIGRATE% %EXTRA%
+  node "%ROOT%scripts\install-core.js" %ACTION% --source "%ROOT%." --home "%USERPROFILE%" --targets %TARGETS% %MIGRATE% %EXTRA%
 ) else (
-  node "%~dp0scripts\install-core.js" %ACTION% --source "%~dp0." --home "%USERPROFILE%" %MIGRATE% %EXTRA%
+  node "%ROOT%scripts\install-core.js" %ACTION% --source "%ROOT%." --home "%USERPROFILE%" %MIGRATE% %EXTRA%
 )
 set "RESULT=%ERRORLEVEL%"
 endlocal & exit /b %RESULT%
