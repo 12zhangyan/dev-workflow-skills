@@ -19,6 +19,8 @@ description: 根据已有 code review findings、fix-handoff 或明确问题清�
 - 实施前从代码、契约和用户目标补齐期望行为、修复边界及验证方式。证据足以判断且在授权内时自主完成；否则保留原 finding ID，标记修复 blocked 或 deferred，记录缺口后继续独立项。
 - 业务、权限、状态、API/数据结构或证据冲突不能自主裁决时，保留 `BK-n`，只阻塞相关项。
 - 误报、无证据、超范围或纯风格项保留 `RJ-n` 和依据；暂不处理的真实问题说明 deferred 边界。
+- 外部 reviewer 或工具建议补全实现、增加功能或“按规范完善”时，先搜索调用方确认该代码实际被使用；没有使用方的记 `RJ-n`（依据：无调用方），不为其补功能。
+- 相互关联的多条 finding 中有含义不清的条目时，先澄清该条，再修改与它关联的条目；彼此无关的条目照常推进。
 - 同一 ID 指向不同根因时停止覆盖；共享根因可以合并修复，但保留来源。
 
 复杂归一化或需要审计回执时才读取 [补充参考](reference.md)。需要处理冲突时读取 [交互策略](../../../_shared/interaction-policy.md)，需要解释 Gate 口径时读取 [工作流门禁](../../../_shared/workflow-gates.md)，实际收到或生成 Brief 时读取 [Workflow Brief](../../../_shared/workflow-brief.md)。
@@ -37,4 +39,4 @@ Agent 按依赖、风险、VCS owner、共享根因和可独立验证性合并�
 
 ## 完成
 
-loop/package 内部调用只向协调者回传，由协调者决定是否按根入口规则发布。结果说明实际修改、每个输入 ID 的事实性结果及依据、验证证据、VCS/未跟踪边界和剩余风险；可以使用 `fixed/rejected/deferred/blocked` 等词，但不为套枚举歪曲事实。只有实现与验证均能关闭问题时才标已修复；VCS 纳管状态另行判断，未关闭高风险项或验证失败时不宣称 Review/Submit 通过。
+loop/package 内部调用只向协调者回传，由协调者决定是否按根入口规则发布。结果说明实际修改、每个输入 ID 的事实性结果及依据、验证证据、VCS/未跟踪边界和剩余风险；可以使用 `fixed/rejected/deferred/blocked` 等词，但不为套枚举歪曲事实。标记 fixed 前读取 [工作流门禁](../../../_shared/workflow-gates.md) 的“声明与证据”表并逐条对照；只有实现与验证均能关闭问题时才标已修复；VCS 纳管状态另行判断，未关闭高风险项或验证失败时不宣称 Review/Submit 通过。

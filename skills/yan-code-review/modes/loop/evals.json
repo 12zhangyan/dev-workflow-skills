@@ -271,6 +271,24 @@
         "independent_recheck",
         "self_verified"
       ]
+    },
+    {
+      "id": 40,
+      "prompt": "review-loop 修复 IM-1、IM-2 后复审：IM-1 已改好，IM-2 改了但空值分支仍会抛错，另外看到 diff 外一个旧文件命名不规范",
+      "expected_output": "复审逐条给出 IM-1 ADDRESSED（附位置）、IM-2 NOT ADDRESSED（尝试过修复不改变结论）；diff 外的命名问题单列为观察并记入剩余风险，不因此继续循环或扩大修改。",
+      "tags": [
+        "recheck_verdicts",
+        "scope_convergence"
+      ]
+    },
+    {
+      "id": 41,
+      "prompt": "review-loop 修复后 mvn test 输出 BUILD SUCCESS，但 Tests run: 0",
+      "expected_output": "关闭前对照声明与证据表：执行数为 0 不算测试通过，不标 fixed/关闭；定位过滤器或测试发现问题后重跑，或如实保留未验证。",
+      "tags": [
+        "claim_evidence",
+        "verification"
+      ]
     }
   ]
 }

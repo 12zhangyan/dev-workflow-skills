@@ -102,7 +102,7 @@
     {
       "id": 14,
       "prompt": "请用同一个 AI 审查当前改动，发现问题就修复、跑测试，再复审确认 Critical/Important 关闭",
-      "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并遵守其修复轮次上限。",
+      "expected_output": "不应使用面向多 AI 分发的 review-fix；同一 AI 的审查、修复、验证和复审闭环应路由到 review-loop，并按证据与实际进展决定何时停止，不设固定修复轮次。",
       "tags": [
         "routing_review_loop"
       ]
@@ -252,6 +252,15 @@
       "tags": [
         "coordinator_prompt",
         "no_prejudge"
+      ]
+    },
+    {
+      "id": 30,
+      "prompt": "package 汇总后由另一 Agent 修复 IM-1，现在派复核",
+      "expected_output": "只给复核 reviewer 原 finding、修复 diff 与验证结果；复核按 check mode 复审格式逐条返回 ADDRESSED/NOT ADDRESSED 及位置，diff 外观察单列不阻塞。",
+      "tags": [
+        "recheck_verdicts",
+        "independent_recheck"
       ]
     }
   ]
