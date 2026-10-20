@@ -73,6 +73,24 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
   '须标为自验证关闭，不称独立复核通过',
 ]);
 
+requireText('skills/yan-code-review/SKILL.md', [
+  '`决定 — 依据 — 错了的代价`',
+  '仍按 `BK` 阻塞，不写成代决',
+]);
+
+requireText('skills/yan-code-review/modes/check/mode.md', [
+  '不再委派子 Agent',
+  '实现方已运行的测试不整套重跑',
+]);
+
+requireText('skills/yan-code-review/modes/package/mode.md', [
+  '这类对 finding 的预判时删除',
+]);
+
+requireText('skills/yan-code-review/modes/loop/mode.md', [
+  '也不写“不要报”“最多算 Minor”这类对 finding 的预判',
+]);
+
 requireText('skills/yan-code-review/modes/loop/mode.md', [
   'SingleAgentReview',
   '读取并执行 [check mode](../check/mode.md)',

@@ -244,6 +244,15 @@
         "negative_control",
         "aggregation"
       ]
+    },
+    {
+      "id": 29,
+      "prompt": "package 模式派两个 reviewer；你准备在派发说明里写“IM-2 是方案已决定的，不要报”",
+      "expected_output": "派发前删除“不要报”这类预判，reviewer 照常独立取证；若 reviewer 报出该问题，在聚合时按方案和代码证据裁决（可归 RJ 并写依据），而不是事先压制。",
+      "tags": [
+        "coordinator_prompt",
+        "no_prejudge"
+      ]
     }
   ]
 }

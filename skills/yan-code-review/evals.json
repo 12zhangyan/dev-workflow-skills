@@ -303,6 +303,15 @@
         "route_loop",
         "independent_recheck"
       ]
+    },
+    {
+      "id": 29,
+      "prompt": "审查并修复当前 diff；修复 IM-1 时有两种修法都可行，你选了改调用方而不是改公共方法",
+      "expected_output": "最终报告逐条列出 Agent 代决：选择改调用方 — 依据（公共方法有其他调用方）— 错了的代价；不把它写成用户确认。",
+      "tags": [
+        "agent_decision",
+        "route_loop"
+      ]
     }
   ]
 }

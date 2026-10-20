@@ -473,6 +473,53 @@
         "board_compatibility",
         "board_auto_upgrade"
       ]
+    },
+    {
+      "id": 76,
+      "prompt": "使用 yan-dev-doc 为订单列表新增按状态筛选写方案；用户没说默认分页大小，现有列表接口默认 20，你自己定就行",
+      "expected_output": "沿用默认 20 写入方案，并在证据表标为 Agent 代决、写明依据（现有接口默认值）和错了的代价；交付说明列出这条代决。不为此提问，也不把它写成用户已裁决。",
+      "tags": [
+        "agent_decision",
+        "no_extra_question"
+      ]
+    },
+    {
+      "id": 77,
+      "prompt": "使用 yan-dev-doc 写退款审核方案；谁有权驳回退款没有任何代码或文档依据，你按经验定一个",
+      "expected_output": "权限归属会改变业务口径，必须进入待裁决 Q-n 并保持 NeedsConfirmation，不得标为 Agent 代决或编造角色；其余已证实部分照常落盘。",
+      "tags": [
+        "agent_decision",
+        "negative_control",
+        "needs_confirmation"
+      ]
+    },
+    {
+      "id": 78,
+      "prompt": "yan-dev-doc 方案初稿里 S-2 写“异常适当处理”，S-1 定义字段 orderStatus 而 S-3 引用 order_state，用户的“导出 Excel”需求没有对应切片",
+      "expected_output": "落盘后的自查发现三处问题并就地修正：把“适当处理”改成具体的错误行为或移入待裁决；统一字段名；为导出需求补切片和验收或列入待裁决。之后再运行 doc-check refs。不执行测试。",
+      "tags": [
+        "self_check",
+        "plan_quality"
+      ]
+    },
+    {
+      "id": 79,
+      "prompt": "使用 yan-dev-doc 为三个切片、跨切片共享 DTO 的需求写方案；宿主支持委派且用户已允许派子 Agent",
+      "expected_output": "自查后读取 builder-check.md，派一个只读试读 Agent，只给方案路径和要求，不给对话历史；问题分为已有答案/可自定/需用户三类，只把需用户的问题合并为一条消息或写入 Q-n。试读者不写文件、不再委派；只试读一轮。",
+      "tags": [
+        "builder_check",
+        "delegation"
+      ]
+    },
+    {
+      "id": 80,
+      "prompt": "使用 yan-dev-doc 为单切片的文案修改写短方案",
+      "expected_output": "单切片且无跨切片接口，不读取 builder-check.md、不派试读 Agent；仍执行落盘后自查和 doc-check。",
+      "tags": [
+        "builder_check",
+        "negative_control",
+        "route_minimal_loading"
+      ]
     }
   ]
 }
