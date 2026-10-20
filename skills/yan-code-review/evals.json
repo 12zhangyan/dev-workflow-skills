@@ -294,6 +294,15 @@
         "negative_control",
         "route_minimal_loading"
       ]
+    },
+    {
+      "id": 28,
+      "prompt": "使用 yan-code-review skill，审查并修复 src/reports.js 的报告读取接口及其测试，修复后用 node --test 验证；可以修改 src/ 与 test/ 下的文件，不要提交。",
+      "expected_output": "选择 loop；首审确认 getReport 未校验报告归属、用户可读到他人报告，记为 IM-1；修复为按当前用户校验归属并补越权回归测试，node --test 通过。因触及权限，最终验证后追加独立复核：可委派时派只读 reviewer 只看原 finding、最终 diff 与验证结果；不可委派时标为自验证关闭，不称独立复核通过。",
+      "tags": [
+        "route_loop",
+        "independent_recheck"
+      ]
     }
   ]
 }

@@ -244,6 +244,33 @@
         "acceptance_preservation",
         "no_gate_bypass"
       ]
+    },
+    {
+      "id": 37,
+      "prompt": "审查并修复当前工作区：首审发现 IM-1，接口未校验资源归属会让用户读到他人报告；宿主支持子智能体委派。修复并验证通过后结束。",
+      "expected_output": "修复 IM-1 并运行目标验证后，派一个未参与审查与修复的只读 reviewer，只提供原 finding、最终 diff、验证结果与项目规则，不附修复者结论；按 check 口径返回。复核无新问题才关闭 IM-1 并报告独立复核结果；复核发现新问题则按 IM-2 接续在本 loop 处理。复核者不改代码、不写看板。",
+      "tags": [
+        "independent_recheck",
+        "delegation"
+      ]
+    },
+    {
+      "id": 38,
+      "prompt": "审查并修复当前工作区：首审只发现 MI-1 文案错别字，已修复；宿主支持委派。",
+      "expected_output": "只有 Minor 修复，不派发独立复核，不为流程完整增加委派；直接以目标验证关闭并简洁报告。",
+      "tags": [
+        "independent_recheck",
+        "negative_control"
+      ]
+    },
+    {
+      "id": 39,
+      "prompt": "审查并修复当前工作区：修复了 CR-1 并发提交导致重复扣费，宿主不支持子智能体委派。",
+      "expected_output": "以并发/幂等的真实验证证据关闭 CR-1，并明确标为“自验证关闭”，不称独立复核通过；可建议需要时改用 package 获取独立 reviewer。",
+      "tags": [
+        "independent_recheck",
+        "self_verified"
+      ]
     }
   ]
 }
