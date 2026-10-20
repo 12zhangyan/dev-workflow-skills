@@ -257,6 +257,12 @@ for (const mode of ['incident', 'business', 'understanding']) {
 
 requireText('skills/_shared/board-publish-flow.md', [
   '默认发布路径未发布时，由调用方报告 `BoardPublishSkipped`/`BoardPublishBlocked` 及原因',
+  '其余正文字段一律放在 `detail`',
+  '留在 `entry` 的叙述会被静默丢弃',
+]);
+
+requireText('skills/_shared/browser-verification.md', [
+  '从触发控件所在位置确认成功/失败反馈落在当前视口内且未被粘性元素遮挡',
 ]);
 
 requireText('skills/yan-dev-doc/plan-template.md', [

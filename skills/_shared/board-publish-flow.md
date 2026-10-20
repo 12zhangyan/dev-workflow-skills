@@ -17,11 +17,11 @@
 { "changelog": "<一句话>", "entry": { "title": "", "date": "YYYY-MM-DD", "docPath": "", "service": "", "module": "", "status": "", "kind": "bug|reading|biz（研发档案省略）" }, "detail": { } }
 ```
 
-目录与接口元数据放在 `entry`；正文字段放在 `entry` 或 `detail` 均可，脚本自动合并拆分，同时提供时以 `detail` 的同名字段为准。看板只显示下列字段，其他字段名会保留但不显示，不要自造：
+目录与接口元数据以及一句话 `summary` 放在 `entry`；其余正文字段一律放在 `detail`。较新的写入脚本会合并两处，但旧外壳在提供 `detail` 时只读取 `detail` 的正文，留在 `entry` 的叙述会被静默丢弃；按此分工在新旧外壳上都完整。看板只显示下列字段，其他字段名会保留但不显示，不要自造：
 
 - 共用：`date` 是记录日期（与文档日期目录一致，事件发生时间写进正文）；`summary` 是一句话结论，显示在标题下方和搜索中；`status` 只用看板状态：`bug` 取 `未修复` / `修复中` / `已修复` / `已验证`，其他取 `待确认` / `草稿` / `进行中` / `已完成`。`background` 为字符串或段落数组；`openQuestions`、`assumptions`、`blockers`、`conflicts` 为字符串数组；`apis` 为 `[{method, url, desc, request?, response?}]`。
 - `bug`：`severity`（短标签如 `P1`，显示为类型标签；无依据就省略，看板显示“缺陷”）、`symptom`、`reproSteps[]`、`trigger`、`expected`、`actual`、`impact`、`rootCause`、`fixPlan`、`verifySteps[]`。
-- `reading`：`entry`（入口描述，位于外层 `entry` 对象内）、`goals[]`、`scopeIn[]`、`scopeOut[]`、`solution`、`dataFlowSummary`、`coreDesign`、`flowchart`（Mermaid）、`keyImpl[{title, desc}]`、`acceptance[]`。
+- `reading`：`entry`（入口描述，写在 `detail.entry`）、`goals[]`、`scopeIn[]`、`scopeOut[]`、`solution`、`dataFlowSummary`、`coreDesign`、`flowchart`（Mermaid）、`keyImpl[{title, desc}]`、`acceptance[]`。
 - `biz`：`roles[{name, channel, scope, desc, entry}]`、`context[{field, source, usage, note}]`、`bizFlow` / `dataFlow` / `sequence` / `stateMachine`（Mermaid）、`dataChanges[{stage, operations[{target, action, fields, check}]}]`、`bizRules[{title, desc}]`、`validations[{stage, rule, failure, check}]`、`testPoints[]`、`dataObjects[{name, phase, action, note}]`。
 - 研发档案的 `delivery.plan` 字段见 yan-dev-doc 的发布协议。
 

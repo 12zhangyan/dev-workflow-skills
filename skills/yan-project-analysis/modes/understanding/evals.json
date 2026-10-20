@@ -105,6 +105,15 @@
         "async_boundary",
         "negative_control"
       ]
+    },
+    {
+      "prompt": "把刚生成的代码地图发布到项目已有的 v33 看板；该外壳的 board-add.js 在同时提供 entry 与 detail 时只读取 detail 的正文。",
+      "expected_output": "目录元数据与 summary 写在 entry，入口描述 entry、goals、solution、keyImpl 等正文全部写在 detail；不依赖新版脚本的合并行为，不把叙述留在外层 entry 导致被静默丢弃；兼容时不为发布同步外壳。",
+      "tags": [
+        "board_compatibility",
+        "board_detail_placement"
+      ],
+      "id": 18
     }
   ]
 }
