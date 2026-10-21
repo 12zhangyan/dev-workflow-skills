@@ -4,6 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// Trusted repository graders and the exact number of checks each must report.
+const OUTCOME_VERIFIERS = { 'query-contract': 8, 'report-ownership': 4 };
+
 function within(parent, child) {
   const relative = path.relative(parent, child);
   return !relative || (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative));
@@ -120,8 +123,8 @@ function inspect(args, tools) {
       globToRegex(rule.glob);
     }
     if (contract.outcome_verifier) {
-      if (contract.outcome_verifier !== 'query-contract') throw new Error('unknown outcome verifier');
-      if (!fs.statSync(path.join(root, 'scripts/eval-verifiers/query-contract.js')).isFile()) throw new Error('outcome verifier missing');
+      if (!OUTCOME_VERIFIERS[contract.outcome_verifier]) throw new Error('unknown outcome verifier');
+      if (!fs.statSync(path.join(root, 'scripts/eval-verifiers', contract.outcome_verifier + '.js')).isFile()) throw new Error('outcome verifier missing');
     }
     if (contract.required_fixture_paths !== undefined) {
       if (!Array.isArray(contract.required_fixture_paths)) throw new Error('required_fixture_paths must be an array');
@@ -172,4 +175,4 @@ function inspect(args, tools) {
   };
 }
 
-module.exports = { inspect, fixturePath };
+module.exports = { inspect, fixturePath, OUTCOME_VERIFIERS };

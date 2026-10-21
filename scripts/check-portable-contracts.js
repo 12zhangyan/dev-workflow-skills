@@ -125,7 +125,7 @@ for (const contract of contracts.cases || []) {
   if (contract.selection && !['none', ...publicSkills].includes(contract.selection.expected_skill)) {
     fail(contract.id + ' has an invalid expected selection');
   }
-  if (contract.outcome_verifier !== undefined && contract.outcome_verifier !== 'query-contract') {
+  if (contract.outcome_verifier !== undefined && !require('./host-eval-preflight').OUTCOME_VERIFIERS[contract.outcome_verifier]) {
     fail(`${contract.id} has unsupported outcome_verifier; only trusted repository graders may run`);
   }
   if (contract.assertions !== undefined) {

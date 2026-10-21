@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { inspect: inspectPreflight } = require('./host-eval-preflight');
+const { inspect: inspectPreflight, OUTCOME_VERIFIERS } = require('./host-eval-preflight');
 
 const root = path.resolve(__dirname, '..');
 const contracts = JSON.parse(fs.readFileSync(path.join(root, 'skills', '_shared', 'host-contracts.json'), 'utf8'));
@@ -477,7 +477,9 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', writable ? '40' : '12'];
     // acceptEdits 不放行 shell；可写用例需运行 board-add.js、build.js 等 Node 辅助脚本。
     // Windows 上 Claude Code 走 PowerShell 工具，Bash 规则对其不生效
-    if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)');
+    // 只读 git 命令让复核子 Agent 能看到 diff；工作区写入仍由运行后的 HEAD/索引/哈希比对拦截。
+    const readOnlyGit = ['git diff', 'git status', 'git show', 'git log'].flatMap(cmd => [`Bash(${cmd}:*)`, `PowerShell(${cmd}:*)`]);
+    if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)', ...readOnlyGit);
     // Skill 工具会加载用户主目录中已安装的同名 Skill，绕过本次快照；禁用后模型只能从快照读取。
     args.push('--disallowedTools', 'Skill');
     if (model) args.push('--model', model);
@@ -631,8 +633,9 @@ function assessRouteLoading(contract, output) {
 
 function assessOutcome(contract, workspace) {
   if (!contract.outcome_verifier) return { required: false, passed: true, checks: [] };
-  if (contract.outcome_verifier !== 'query-contract') throw new Error('unknown outcome verifier');
-  const grader = path.join(root, 'scripts', 'eval-verifiers', 'query-contract.js');
+  const expectedChecks = OUTCOME_VERIFIERS[contract.outcome_verifier];
+  if (!expectedChecks) throw new Error('unknown outcome verifier');
+  const grader = path.join(root, 'scripts', 'eval-verifiers', contract.outcome_verifier + '.js');
   const run = spawnSync(process.execPath, [grader, workspace], {
     cwd: workspace, encoding: 'utf8', windowsHide: true, timeout: 10000, maxBuffer: 65536,
   });
@@ -642,7 +645,7 @@ function assessOutcome(contract, workspace) {
   return {
     required: true, verifier: contract.outcome_verifier,
     verifierSha256: crypto.createHash('sha256').update(fs.readFileSync(grader)).digest('hex'),
-    passed: run.status === 0 && report?.passed === true && checks.length === 8 && checks.every(item => item.passed === true),
+    passed: run.status === 0 && report?.passed === true && checks.length === expectedChecks && checks.every(item => item.passed === true),
     exitCode: run.status, timedOut: run.error?.code === 'ETIMEDOUT', checks,
     diagnostics: (run.stderr || run.error?.message || '').slice(0, 2000),
   };
@@ -1024,6 +1027,16 @@ function runSelfTest() {
     if (!assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader rejected a valid loop-based implementation');
     fs.writeFileSync(subject, correct.replace('row.name.includes(keyword)', 'row.name.toLowerCase().includes(keyword.toLowerCase())'));
     if (assessOutcome(outcomeContract, outcomeTemp).passed) throw new Error('outcome grader missed regression in preserved case sensitivity');
+    const ownership = { outcome_verifier: 'report-ownership' };
+    const reports = path.join(outcomeTemp, 'src', 'reports.js');
+    const original = fs.readFileSync(path.join(root, 'scripts', 'fixtures', 'report-ownership', 'src', 'reports.js'), 'utf8');
+    fs.writeFileSync(reports, original);
+    if (assessOutcome(ownership, outcomeTemp).passed) throw new Error('ownership grader accepted original defect');
+    const guarded = original.replace("  return { ...report };", "  if (!currentUser || currentUser.id !== report.ownerId) throw new Error('REPORT_FORBIDDEN');\n  return { ...report };");
+    fs.writeFileSync(reports, guarded);
+    if (!assessOutcome(ownership, outcomeTemp).passed) throw new Error('ownership grader rejected correct repair');
+    fs.writeFileSync(reports, guarded.replace("new Error('REPORT_FORBIDDEN')", "new Error('FORBIDDEN')"));
+    if (assessOutcome(ownership, outcomeTemp).passed) throw new Error('ownership grader accepted an error code outside the contract');
   } finally {
     const resolved = path.resolve(outcomeTemp);
     if (path.dirname(resolved) !== path.resolve(require('os').tmpdir()) || !path.basename(resolved).startsWith('yan-host-eval-outcome-')) throw new Error('unsafe outcome cleanup');
@@ -1053,6 +1066,10 @@ function runSelfTest() {
     const claudeArgs = liveArgs('claude', 'claude', root, 'p', 'm', scope).args;
     const disallowed = claudeArgs.indexOf('--disallowedTools');
     if (disallowed < 0 || claudeArgs[disallowed + 1] !== 'Skill') throw new Error('claude live runs must disable the host Skill tool so installed skills cannot replace the snapshot');
+  }
+  const writableClaude = liveArgs('claude', 'claude', root, 'p', 'm', 'code-and-tests').args;
+  if (!writableClaude.includes('Bash(git diff:*)') || !writableClaude.includes('PowerShell(git diff:*)') || writableClaude.some(arg => /^(?:Bash|PowerShell)\(git(?::\*)?\)$/.test(arg))) {
+    throw new Error('writable claude runs must allow only read-only git subcommands');
   }
   console.log('ok host eval routing, artifact, outcome, isolated skill-source and grading separation self-tests passed');
   console.log('ok repeated live runs keep every run and summarize pass rate and spread');
