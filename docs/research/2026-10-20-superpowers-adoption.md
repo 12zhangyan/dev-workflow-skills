@@ -31,6 +31,7 @@ S-6（同一 finding 修复升级触发）未实施：与历史上移除固定�
 - **所有失败都源于同一条断言：** 输出中没有 `CR-n/IM-n` 编号，改用 `F1` 等自造编号；15 次中 15 次都完成了越权修复、`node --test` 验证，并按规则声明独立复核或自验证关闭。这是 check mode 编号规则的真实基线失败，按准入标准属于“输出形状/遗漏元素”类，适合用正向配方或模板栏位处理，列为 S-9 的第一项。
 - **S-4/S-5 规则未被这个 case 真正触发：** Claude 非交互运行未获派发授权，所有运行都走自验证关闭，没有派出 reviewer；P1 的 5 次输出均未出现 ADDRESSED 逐条格式。说明 loop 自身的聚焦复审没有采用 check mode 的复审格式，“按 check mode 的复审格式”这类跨文件引用可能不足以约束形状。需要能触发委派的宿主条件或专门的复审 case 才能评价。
 - A-1：`review-check-minimal-loading` 在 main 上 `--reps 3` 为 3/3，用于确认运行器与比较器的真实文件路径。
+- **更正（同日稍晚）：以上 Claude 样本都没有测到快照里的根入口。** 用 stream-json 诊断发现，模型先调用宿主 `Skill` 工具，加载了 `~/.claude/skills/yan-code-review/SKILL.md` 中已安装的旧版入口，然后只从快照读取 loop/repair mode，没有读取快照里的 `SKILL.md` 或 check mode。因此，S-2 中写在根入口的 Agent 代决，以及 check mode 的编号与复审格式，在这些样本里都没有生效；“未见回归”只对快照中实际读到的 mode 文件成立。runner 已改为对 Claude 传入 `--disallowedTools Skill`，后续结果见 [finding 编号配方](2026-10-20-finding-id-recipe.md)。
 
 ## 未覆盖
 

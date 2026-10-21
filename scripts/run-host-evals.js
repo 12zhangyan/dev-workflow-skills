@@ -478,6 +478,8 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     // acceptEdits 不放行 shell；可写用例需运行 board-add.js、build.js 等 Node 辅助脚本。
     // Windows 上 Claude Code 走 PowerShell 工具，Bash 规则对其不生效
     if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)');
+    // Skill 工具会加载用户主目录中已安装的同名 Skill，绕过本次快照；禁用后模型只能从快照读取。
+    args.push('--disallowedTools', 'Skill');
     if (model) args.push('--model', model);
     const direct = unwrapNodeShim(command);
     return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace };
@@ -1047,6 +1049,11 @@ function runSelfTest() {
     if (rejected.status !== 2 || !rejected.stderr.includes(message)) throw new Error('invalid --reps was not rejected: ' + argv.join(' '));
   }
   if (parseArgs(['--live']).reps !== 1) throw new Error('--reps must default to one run');
+  for (const scope of ['none', 'code-and-tests']) {
+    const claudeArgs = liveArgs('claude', 'claude', root, 'p', 'm', scope).args;
+    const disallowed = claudeArgs.indexOf('--disallowedTools');
+    if (disallowed < 0 || claudeArgs[disallowed + 1] !== 'Skill') throw new Error('claude live runs must disable the host Skill tool so installed skills cannot replace the snapshot');
+  }
   console.log('ok host eval routing, artifact, outcome, isolated skill-source and grading separation self-tests passed');
   console.log('ok repeated live runs keep every run and summarize pass rate and spread');
 }
