@@ -73,7 +73,11 @@ function compareSeries(before, after) {
     const passed = runs.filter(run => run.assessment?.passed === true).length;
     return { skillSha256: runs[0]?.isolation?.skillSnapshot?.sha256, runs: runs.length, passed, passRate: runs.length ? passed / runs.length : null };
   };
-  const delta = field => comparable ? median(sides.after.map(run => run.metrics?.[field])) - median(sides.before.map(run => run.metrics?.[field])) : null;
+  const delta = field => {
+    const beforeMedian = median(sides.before.map(run => run.metrics?.[field]));
+    const afterMedian = median(sides.after.map(run => run.metrics?.[field]));
+    return comparable && beforeMedian !== null && afterMedian !== null ? afterMedian - beforeMedian : null;
+  };
   const beforeSummary = describe(sides.before);
   const afterSummary = describe(sides.after);
   return {
@@ -129,6 +133,9 @@ function selfTest() {
   const drifted = structuredClone(changed);
   drifted.isolation.skillSnapshot.sha256 = 'other';
   assert.equal(compare(series([result, result]), series([changed, drifted])).comparable, false);
+  const unmeasured = structuredClone(changed);
+  delete unmeasured.metrics.durationMs;
+  assert.equal(compare(series([result]), series([unmeasured])).medianDeltas.durationMs, null);
   console.log('ok paired eval comparison rejects incompatible or unpinned results');
   console.log('ok series comparison reports pass rates and rejects incomplete or mixed series');
 }
