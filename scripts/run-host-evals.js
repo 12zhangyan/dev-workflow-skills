@@ -488,7 +488,8 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     args.push('--disallowedTools', 'Skill');
     if (model) args.push('--model', model);
     const direct = unwrapNodeShim(command);
-    return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace };
+    // 评测进程触发的自动更新会在系列运行中途重装宿主，使后续运行找不到命令且版本漂移。
+    return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace, env: { ...process.env, DISABLE_AUTOUPDATER: '1' } };
   }
   const args = ['-p', prompt, '--output-format', 'text'];
   if (model) args.push('--model', model);
@@ -1071,6 +1072,7 @@ function runSelfTest() {
     const disallowed = claudeArgs.indexOf('--disallowedTools');
     if (disallowed < 0 || claudeArgs[disallowed + 1] !== 'Skill') throw new Error('claude live runs must disable the host Skill tool so installed skills cannot replace the snapshot');
   }
+  if (liveArgs('claude', 'claude', root, 'p', 'm', 'none').env?.DISABLE_AUTOUPDATER !== '1') throw new Error('claude live runs must disable auto-update so the host cannot reinstall mid-series');
   const writableClaude = liveArgs('claude', 'claude', root, 'p', 'm', 'code-and-tests').args;
   if (!writableClaude.includes('Bash(git diff:*)') || !writableClaude.includes('PowerShell(git diff:*)') || writableClaude.some(arg => /^(?:Bash|PowerShell)\(git(?::\*)?\)$/.test(arg))) {
     throw new Error('writable claude runs must allow only read-only git subcommands');
@@ -1088,6 +1090,7 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
   const started = Date.now();
   const run = spawnPortable(invocation.command, invocation.args, {
     cwd: invocation.cwd,
+    env: invocation.env,
     input: invocation.input,
     timeout: args.timeoutMs,
     maxBuffer: 16 * 1024 * 1024,

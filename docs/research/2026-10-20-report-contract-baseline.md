@@ -24,8 +24,23 @@
 
 repair mode 已经写了“实施前从代码、契约和用户目标补齐期望行为”。这 3 次属于规则存在、但执行时被跳过的情况。按准入标准，这类失败应该用具体的识别线索来处理，而不是再加一条同义的原则。
 
-## 未解决：复核子 Agent 的 shell 权限
+## 复核子 Agent 的 shell 权限
 
 放行只读 git 之后，单次手工诊断中子 Agent 能运行 `git diff`。但在 runner 的 10 次运行中，仍有 4 次输出写着子 Agent“没能运行 `git diff` 和 `node --test`”。`node` 本来就在放行列表里也被拒，说明原因不在 git 规则的写法上。可能是子 Agent 在命令前加了 `cd`/`Set-Location`，或者权限继承方式不同。后续诊断时本机 Claude Code 自动升级到 2.1.306，但原生二进制没有装上（`claude native binary not installed`），按同版本重装后恢复。
 
 **定位结果：** 带工具事件的诊断 2 次都显示，子 Agent 会把命令写成 `cd <绝对路径>; git status; git diff; Get-Content ...` 这样一整串。宿主对每一段分别核对权限，`cd` 和 `Get-Content` 不在放行列表里，于是整串被拒。runner 已额外放行只读的切换目录和读文件命令（Bash：`cd/ls/cat`；PowerShell：`cd/Set-Location/Get-Content/Get-ChildItem/Select-Object`），同条件诊断中子 Agent 的整串命令执行成功。
+
+## 契约识别线索：A/B 后不采纳
+
+候选规则（只放在 scratchpad，没有进仓库）加在 repair mode：修复要新增或改变错误码、异常、返回值时，先在 README、接口文档、常量或既有调用方中查找已有约定并照用；有意偏离时写成 Agent 代决或 `BK`。
+
+条件：Claude Code 2.1.306，`claude-sonnet-5-5`，case `review-loop-independent-recheck`，两侧只有 repair/mode.md 不同，每组 20 次。
+
+| 组 | 行为核对通过 | 输出提到 README |
+|---|---:|---:|
+| main | 19/20（1 次抛 `FORBIDDEN`） | 1/20 |
+| 加规则 | 18/18（另有 2 次宿主未运行完） | 7/20 |
+
+- 规则确实让模型更常去查 README（1→7），但这一轮基线只有 1/20 违反契约；连同上一轮，基线合计是 4/40。0/18 和 1/20 的差距在噪声内。按准入标准，无规则对照组基本已经正确时不加规则，因此不采纳。
+- 加规则组最后 2 次没有运行完：运行期间 `claude` 在 23:52 被整体重装，`claude.cmd` 短暂消失，导致 1 次找不到命令、1 次启动失败。比较器按设计拒绝了这组 series。没有补跑，因为补跑也不会改变“差距在噪声内”的结论。
+- 被重装的原因很可能是 runner 启动的 `claude -p` 进程自己触发了后台自动更新，此前本机 CLI 损坏也与此吻合。runner 现在给 Claude 子进程设置 `DISABLE_AUTOUPDATER=1`，自测断言这个变量存在；一个系列内宿主版本也因此保持不变。
