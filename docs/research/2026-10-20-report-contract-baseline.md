@@ -26,4 +26,6 @@ repair mode 已经写了“实施前从代码、契约和用户目标补齐期�
 
 ## 未解决：复核子 Agent 的 shell 权限
 
-放行只读 git 之后，单次手工诊断中子 Agent 能运行 `git diff`。但在 runner 的 10 次运行中，仍有 4 次输出写着子 Agent“没能运行 `git diff` 和 `node --test`”。`node` 本来就在放行列表里也被拒，说明原因不在 git 规则的写法上。可能是子 Agent 在命令前加了 `cd`/`Set-Location`，或者权限继承方式不同。要定位需要带工具事件的诊断运行。后续诊断时本机 Claude Code 自动升级到 2.1.306，原生二进制没有装上（`claude native binary not installed`），诊断尚未完成。
+放行只读 git 之后，单次手工诊断中子 Agent 能运行 `git diff`。但在 runner 的 10 次运行中，仍有 4 次输出写着子 Agent“没能运行 `git diff` 和 `node --test`”。`node` 本来就在放行列表里也被拒，说明原因不在 git 规则的写法上。可能是子 Agent 在命令前加了 `cd`/`Set-Location`，或者权限继承方式不同。后续诊断时本机 Claude Code 自动升级到 2.1.306，但原生二进制没有装上（`claude native binary not installed`），按同版本重装后恢复。
+
+**定位结果：** 带工具事件的诊断 2 次都显示，子 Agent 会把命令写成 `cd <绝对路径>; git status; git diff; Get-Content ...` 这样一整串。宿主对每一段分别核对权限，`cd` 和 `Get-Content` 不在放行列表里，于是整串被拒。runner 已额外放行只读的切换目录和读文件命令（Bash：`cd/ls/cat`；PowerShell：`cd/Set-Location/Get-Content/Get-ChildItem/Select-Object`），同条件诊断中子 Agent 的整串命令执行成功。

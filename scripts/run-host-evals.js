@@ -477,9 +477,13 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     const args = ['-p', prompt, '--output-format', 'text', '--permission-mode', writable ? 'acceptEdits' : 'plan', '--max-turns', writable ? '40' : '12'];
     // acceptEdits 不放行 shell；可写用例需运行 board-add.js、build.js 等 Node 辅助脚本。
     // Windows 上 Claude Code 走 PowerShell 工具，Bash 规则对其不生效
-    // 只读 git 命令让复核子 Agent 能看到 diff；工作区写入仍由运行后的 HEAD/索引/哈希比对拦截。
-    const readOnlyGit = ['git diff', 'git status', 'git show', 'git log'].flatMap(cmd => [`Bash(${cmd}:*)`, `PowerShell(${cmd}:*)`]);
-    if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)', ...readOnlyGit);
+    // 复核子 Agent 常把命令写成 `cd <dir>; git diff; Get-Content ...`，宿主逐段核对，所以切目录和读文件也需放行；
+    // 都是只读命令，工作区写入仍由运行后的 HEAD/索引/哈希比对拦截。
+    const readOnlyShell = [
+      ...['git diff', 'git status', 'git show', 'git log', 'cd', 'ls', 'cat'].map(cmd => `Bash(${cmd}:*)`),
+      ...['git diff', 'git status', 'git show', 'git log', 'cd', 'Set-Location', 'Get-Content', 'Get-ChildItem', 'Select-Object'].map(cmd => `PowerShell(${cmd}:*)`),
+    ];
+    if (writable) args.push('--allowedTools', 'Bash(node:*)', 'PowerShell(node:*)', ...readOnlyShell);
     // Skill 工具会加载用户主目录中已安装的同名 Skill，绕过本次快照；禁用后模型只能从快照读取。
     args.push('--disallowedTools', 'Skill');
     if (model) args.push('--model', model);
