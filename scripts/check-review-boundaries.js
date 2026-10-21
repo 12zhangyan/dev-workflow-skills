@@ -119,7 +119,8 @@ requireText('skills/yan-code-review/modes/loop/mode.md', [
 ]);
 
 requireText('skills/yan-code-review/modes/repair/mode.md', [
-  '没有使用方的记 `RJ-n`（依据：无调用方）',
+  '记 `RJ-n`（依据：超出当前需求），不为其补功能',
+  '对外接口、定时任务等外部入口在仓库内看不到调用方不等于无人使用',
   '先澄清该条，再修改与它关联的条目',
   '的“声明与证据”表并逐条对照',
 ]);

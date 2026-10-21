@@ -243,7 +243,7 @@
     {
       "id": 30,
       "prompt": "外部 AI reviewer 建议：“exportReports 接口应补分页、日期筛选和 CSV 导出，按规范完善。”请按 findings 修复",
-      "expected_output": "先搜索调用方；exportReports 无任何调用方时记 RJ 并写依据“无调用方”，不新增分页、筛选或导出功能。若确有调用方且建议对应已证实缺陷，才按授权范围修复。",
+      "expected_output": "对照当前需求：分页、日期筛选和 CSV 导出不对应已证实的需求缺口时记 RJ 并写依据“超出当前需求”，不新增这些功能；不以仓库内搜不到 exportReports 的调用方为由判定接口无人使用。若建议对应已确认需求或受支持路径的缺陷，才按授权范围修复。",
       "tags": [
         "external_review",
         "yagni",
