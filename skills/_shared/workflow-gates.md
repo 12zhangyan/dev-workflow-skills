@@ -39,7 +39,9 @@ JDK、Node、构建工具或依赖下载使命令无法启动，可记 `Environm
 
 ## VCS 归属与纳管
 
-按每个候选变更文件向上查找最近的 `.svn` 或 `.git`，该工作副本才是 `VCS_OWNER`；外层 Git 的未跟踪目录不能替代内层 SVN 证据。按 owner 分组读取 status 和实际 diff。命令失败时保留错误并标记 `VCSStatusUnknown`，不能把空输出当 clean。
+按每个候选变更文件向上查找最近的 `.svn` 或 `.git`，该工作副本才是 `VCS_OWNER`；只用 `detect-vcs` 这类目录存在性检查判断，外层 Git 的 status 不能代表内层 SVN 文件。Git owner 按组读取 status 和实际 diff；命令失败时保留错误并标记 `VCSStatusUnknown`，不能把空输出当 clean。
+
+SVN owner 不执行任何 `svn` 命令或 SVN 客户端操作（包括 status、diff、info、log、blame、add、commit、update、revert）。改动范围以用户提供的文件清单或 patch，以及本轮实际修改的文件为准；缺少可审范围时列为材料缺口。纳管、未提交和基线修订一律报告为“SVN 未检查”，不写 clean，也不标 `VCSGateBlocked`；不宣称可提交，由用户在提交前自行核对。
 
 按项目规则应纳管的范围内新增源码、测试、配置、OpenAPI、SQL/XML 或正式文档尚未纳管时，仍可读取、修复和验证，但标记 `VCSGateBlocked`，不得宣称可提交。明确排除或仅本地保留的产物不因此阻塞。任何 add 操作都遵循当前项目规则和用户授权，只使用逐文件清单；禁止 `git add .`、目录级兜底、顺带纳管、自动 commit 或 push。
 

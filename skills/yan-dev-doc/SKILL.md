@@ -72,7 +72,7 @@ description: 生成可评审、可执行的开发方案。用于明确要求先�
 ## 不可越过的边界
 
 - 数据库保持只读。DDL/DML 只能作为供用户或 DBA 审批的建议，附回滚和只读核验；数据更新必须有主键或唯一约束证据，证据不足保持 `NeedsConfirmation`。
-- 按实际文件定位 Git/SVN owner；只有归属、基线或变更来源影响方案时读取历史。Maven 验证必须基于真实 reactor/POM 关系，不能假设 `-pl/-am` 可跨 reactor。
+- 按实际文件定位 Git/SVN owner；Git 仓库只有归属、基线或变更来源影响方案时读取历史。SVN 工作副本不执行任何 `svn` 命令，基线写用户提供的修订或“SVN 未检查”。Maven 验证必须基于真实 reactor/POM 关系，不能假设 `-pl/-am` 可跨 reactor。
 - 未经明确授权不 add、commit、push、覆盖文件、发送外部内容或执行其他不可逆动作。敏感信息只记录位置、类型和风险，不回显值。
 
 ## 交付

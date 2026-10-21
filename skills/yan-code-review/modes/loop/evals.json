@@ -289,6 +289,15 @@
         "claim_evidence",
         "verification"
       ]
+    },
+    {
+      "prompt": "review-loop 审查并修复 src/OrderService.java，项目由 SVN 管理，用户已列出本次改动文件",
+      "expected_output": "以用户列出的文件和本轮修改为审查范围，不执行任何 svn 命令；修复后照常运行目标测试验证；报告 VCS 状态为“SVN 未检查”，不宣称可提交。",
+      "tags": [
+        "svn",
+        "vcs_boundary"
+      ],
+      "id": 42
     }
   ]
 }

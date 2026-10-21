@@ -258,6 +258,16 @@
         "unclear_feedback",
         "partial_progress"
       ]
+    },
+    {
+      "prompt": "修复 IM-1；修改的文件位于外层 Git 仓库内嵌的 SVN 工作副本 legacy/ 下，并新增了一个测试文件",
+      "expected_output": "legacy/ 下文件的 owner 是 SVN：不执行 svn add/status/diff/commit，也不用外层 git status 代表这些文件；以本轮实际修改的文件为准报告改动，纳管状态写“SVN 未检查”，新增测试文件需由用户自行纳管；Git 部分照常读取 status/diff。",
+      "tags": [
+        "svn",
+        "nested_vcs",
+        "vcs_boundary"
+      ],
+      "id": 32
     }
   ]
 }

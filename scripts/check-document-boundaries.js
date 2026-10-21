@@ -244,6 +244,10 @@ function smokeBoardShellBootstrap() {
   }
 }
 
+requireText('skills/yan-dev-doc/SKILL.md', ['SVN 工作副本不执行任何 `svn` 命令']);
+requireText('skills/yan-conversation-handoff/SKILL.md', ['SVN 工作副本不执行任何 `svn` 命令']);
+requireText('skills/yan-project-analysis/modes/incident/reference.md', ['不执行 `svn` 命令']);
+
 requireText('skills/yan-dev-doc/SKILL.md', [
   '任务仍可识别时生成 `NeedsConfirmation` 草稿',
   '任务或安全写入目标本身无法识别时不落盘',

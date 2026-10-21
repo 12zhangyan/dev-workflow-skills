@@ -125,6 +125,17 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
   '的“声明与证据”表并逐条对照',
 ]);
 
+// SVN 工作副本按用户规则零命令：只靠目录存在性判断 owner，状态报告为“SVN 未检查”。
+requireText('skills/_shared/workflow-gates.md', [
+  'SVN owner 不执行任何 `svn` 命令或 SVN 客户端操作',
+  '一律报告为“SVN 未检查”，不写 clean，也不标 `VCSGateBlocked`',
+]);
+requireText('skills/yan-code-review/modes/check/mode.md', ['不执行任何 `svn` 命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
+requireText('skills/yan-code-review/modes/repair/mode.md', ['不执行任何 `svn` 命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
+requireText('skills/yan-code-review/modes/loop/mode.md', ['不执行任何 `svn` 命令']);
+requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时不执行任何 `svn` 命令']);
+requireText('skills/_shared/board-shell-bootstrap.md', ['SVN 工作副本不执行任何 `svn` 命令']);
+
 requireText('skills/_shared/workflow-gates.md', [
   '## 声明与证据',
   '| 子 Agent 已完成 | 核对 VCS diff 与其验证输出 | 子 Agent 自报成功 |',
