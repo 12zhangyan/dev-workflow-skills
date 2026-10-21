@@ -1,0 +1,180 @@
+{
+  "recordedAt": "2026-10-20",
+  "fixtureHead": "76805e26e8b6138aa2fd8c0bd150129ca0625fff",
+  "series": [
+    {
+      "label": "A1-main-check-minimal-loading",
+      "skill": "b49c7214252294ae5b4a400972f5c0355efe166b94964ca4864325df6d1afab2",
+      "host": "claude",
+      "version": "2.1.304 (Claude Code)",
+      "model": "claude-haiku-5-5",
+      "case": "review-check-minimal-loading",
+      "passed": 3,
+      "reps": 3,
+      "durationMs": {
+        "min": 30736,
+        "median": 34634,
+        "max": 36308
+      },
+      "ids": [
+        "IM-1",
+        "CR-1",
+        "CR-1"
+      ],
+      "recheckFormat": [
+        false,
+        false,
+        false
+      ],
+      "agentDecision": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "label": "main-baseline-a",
+      "skill": "b49c7214252294ae5b4a400972f5c0355efe166b94964ca4864325df6d1afab2",
+      "host": "claude",
+      "version": "2.1.304 (Claude Code)",
+      "model": "claude-sonnet-5-5",
+      "case": "review-loop-independent-recheck",
+      "passed": 0,
+      "reps": 5,
+      "durationMs": {
+        "min": 26062,
+        "median": 29031,
+        "max": 36093
+      },
+      "ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "recheckFormat": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "agentDecision": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "label": "main-baseline-b-mislabeled-new",
+      "skill": "b49c7214252294ae5b4a400972f5c0355efe166b94964ca4864325df6d1afab2",
+      "host": "claude",
+      "version": "2.1.304 (Claude Code)",
+      "model": "claude-sonnet-5-5",
+      "case": "review-loop-independent-recheck",
+      "passed": 2,
+      "reps": 5,
+      "durationMs": {
+        "min": 26269,
+        "median": 37622,
+        "max": 40645
+      },
+      "ids": [
+        "CR-1",
+        null,
+        null,
+        "CR-1",
+        null
+      ],
+      "recheckFormat": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "agentDecision": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "label": "p0",
+      "skill": "606203e478313b92e7e1a0d7745b3cd3472adb2955c42f606792056b3e72ec95",
+      "host": "claude",
+      "version": "2.1.304 (Claude Code)",
+      "model": "claude-sonnet-5-5",
+      "case": "review-loop-independent-recheck",
+      "passed": 2,
+      "reps": 5,
+      "durationMs": {
+        "min": 29420,
+        "median": 32992,
+        "max": 50166
+      },
+      "ids": [
+        "CR-1",
+        "CR-1",
+        null,
+        null,
+        null
+      ],
+      "recheckFormat": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "agentDecision": [
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "label": "p1",
+      "skill": "6e4224c437120b924ba27abd8c1da015fa312a56f830d4de6c90a10f861228af",
+      "host": "claude",
+      "version": "2.1.304 (Claude Code)",
+      "model": "claude-sonnet-5-5",
+      "case": "review-loop-independent-recheck",
+      "passed": 2,
+      "reps": 5,
+      "durationMs": {
+        "min": 27344,
+        "median": 36583,
+        "max": 43529
+      },
+      "ids": [
+        "CR-1",
+        null,
+        null,
+        "CR-1",
+        null
+      ],
+      "recheckFormat": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "agentDecision": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  ]
+}

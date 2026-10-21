@@ -107,6 +107,30 @@ requireText('skills/yan-code-review/modes/loop/mode.md', [
   '宿主规则要求用户明确授权才能派发子智能体而本次未获授权',
 ]);
 
+requireText('skills/yan-code-review/modes/check/mode.md', [
+  '`ADDRESSED` 或 `NOT ADDRESSED`',
+  '尝试过修复不改变结论',
+  '修复 diff 之外的观察，单列且不阻塞本轮',
+]);
+
+requireText('skills/yan-code-review/modes/loop/mode.md', [
+  '修复 diff 之外的观察记入剩余风险，不作为继续循环的理由',
+  '的“声明与证据”表并逐条对照',
+]);
+
+requireText('skills/yan-code-review/modes/repair/mode.md', [
+  '记 `RJ-n`（依据：超出当前需求），不为其补功能',
+  '对外接口、定时任务等外部入口在仓库内看不到调用方不等于无人使用',
+  '先澄清该条，再修改与它关联的条目',
+  '的“声明与证据”表并逐条对照',
+]);
+
+requireText('skills/_shared/workflow-gates.md', [
+  '## 声明与证据',
+  '| 子 Agent 已完成 | 核对 VCS diff 与其验证输出 | 子 Agent 自报成功 |',
+  '| finding 已关闭 | 最新实现与以上对应证据都支持 | 尝试过修复 |',
+]);
+
 requireText('skills/_shared/workflow-chain.md', [
   '同一问题从发现到关闭复用稳定 ID',
   '`CR-n / IM-n / MI-n`',
