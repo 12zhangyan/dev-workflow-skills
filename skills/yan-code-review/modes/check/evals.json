@@ -335,6 +335,16 @@
         "behavioral_testing",
         "evidence_boundary"
       ]
+    },
+    {
+      "id": 39,
+      "prompt": "你是 package 派出的 reviewer，diff 很大，实现方报告里已附全量 mvn test 通过的输出",
+      "expected_output": "自己分批完成审查，不再委派子 Agent；不整套重跑 mvn test，只在对某段逻辑有具体疑点时运行定向测试并写明疑点；只返回证据给协调者，不发布看板。",
+      "tags": [
+        "internal_reviewer",
+        "no_nested_delegation",
+        "no_full_rerun"
+      ]
     }
   ]
 }
