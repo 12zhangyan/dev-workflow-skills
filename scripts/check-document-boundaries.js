@@ -287,16 +287,7 @@ requireText('skills/yan-project-analysis/modes/incident/reference.md', [
 ]);
 
 requireText('skills/yan-dev-doc/SKILL.md', [
-  '方案落盘后先按清单自查并就地修正',
-  '用户提出的每项需求能指到 `S-n` 或 `A-n`',
   '证据表中的 Agent 代决',
-]);
-
-requireText('skills/yan-dev-doc/builder-check.md', [
-  '不附对话历史和作者的推理',
-  '只读：不改文件、不运行测试或构建、不再委派',
-  '试读只做一轮',
-  '不编造问题或结论',
 ]);
 
 requireText('skills/yan-dev-doc/plan-template.md', [

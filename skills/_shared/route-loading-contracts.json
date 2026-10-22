@@ -65,10 +65,6 @@
           {
             "target": "skills/_shared/diagram-evidence.md",
             "guard": "需要用图解释组件、调用、数据或状态关系时"
-          },
-          {
-            "target": "skills/yan-dev-doc/builder-check.md",
-            "guard": "方案有两个及以上切片或跨切片接口时，读取"
           }
         ],
         "index_only": []

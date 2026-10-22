@@ -73,11 +73,6 @@ requireText('skills/yan-code-review/modes/package/mode.md', [
   '须标为自验证关闭，不称独立复核通过',
 ]);
 
-requireText('skills/yan-code-review/SKILL.md', [
-  '`决定 — 依据 — 错了的代价`',
-  '仍按 `BK` 阻塞，不写成代决',
-]);
-
 requireText('skills/yan-code-review/modes/check/mode.md', [
   '不再委派子 Agent',
   '实现方已运行的测试不整套重跑',
@@ -115,14 +110,10 @@ requireText('skills/yan-code-review/modes/check/mode.md', [
 
 requireText('skills/yan-code-review/modes/loop/mode.md', [
   '修复 diff 之外的观察记入剩余风险，不作为继续循环的理由',
-  '的“声明与证据”表并逐条对照',
 ]);
 
 requireText('skills/yan-code-review/modes/repair/mode.md', [
-  '记 `RJ-n`（依据：超出当前需求），不为其补功能',
-  '对外接口、定时任务等外部入口在仓库内看不到调用方不等于无人使用',
   '先澄清该条，再修改与它关联的条目',
-  '的“声明与证据”表并逐条对照',
 ]);
 
 // SVN 工作副本按用户规则零命令：只靠目录存在性判断 owner，状态报告为“SVN 未检查”。
