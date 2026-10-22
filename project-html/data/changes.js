@@ -86,6 +86,14 @@ const htmlChangelog = [
     "date": "2026-10-20",
     "desc": "新增方案：参考 superpowers 优化 Skill 集"
   },
+  {
+    "date": "2026-10-20",
+    "desc": "完成：参考 superpowers 优化 Skill 集（评测后保留有效规则、删除无差异规则，并已安装）"
+  },
+  {
+    "date": "2026-10-20",
+    "desc": "更新范围为最终实际内容：参考 superpowers 优化 Skill 集"
+  },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -147,19 +155,19 @@ const changes = [
     "searchText": "看板人类方案与 Agent 文档职责分离 dev-workflow-skills HTML 看板 重构 看板与 md 面向不同读者：看板要让没有参与开发的人理解为什么改、方案如何运转和关键取舍，md 则要让 Agent 精确执行文件修改、Todo 和验证。 保持看板人类方案与 md Agent 指令独立撰写 将轻量目录与人类方案详情拆开，详情按点击加载 删除看板中的精确代码清单、Agent Todo、堆栈和代码定位等执行型重复字段 changes.js 只保留标题、归属、状态、生命周期、摘要、搜索文本和 detailPath；每条人类方案写入独立 details/<detailId>.js。浏览索引只加载目录，点击详情时再通过本地 script 标签加载对应方案。 b"
   },
   {
-    "updatedAt": "2026-10-20",
+    "updatedAt": "2026-10-22",
     "service": "dev-workflow-skills",
     "module": "Skill 行为与评测",
     "title": "参考 superpowers 优化 Skill 集",
     "date": "2026-10-20",
-    "status": "待确认",
+    "status": "已完成",
     "docPath": "docs/2026-10-20/参考superpowers优化Skill集.md",
-    "currentGate": "plan",
+    "currentGate": "submit",
     "deliveryId": "DLV-4A58EFE50B",
     "detailId": "d-4a58efe50b054c69",
     "detailPath": "data/details/d-4a58efe50b054c69.js",
-    "summary": "方案已生成，未实施：吸收 superpowers 中尚未引入、且与“Agent 自主 + 证据边界”兼容的机制，并建立“先有基线失败再写规则”的维护方法。",
-    "searchText": "参考 superpowers 优化 Skill 集 dev-workflow-skills Skill 行为与评测 方案已生成，未实施：吸收 superpowers 中尚未引入、且与“Agent 自主 + 证据边界”兼容的机制，并建立“先有基线失败再写规则”的维护方法。 NeedsConfirmation 按 P0→P1→P2 补齐四类缺口：Agent 自主做出的决定不透明、开发方案写完后没有语义自检、reviewer 委派没有成本约束、复审输出没有统一形状。同时让评测能重复采样，规则改动要有实测依据。 仓库在 10-10 已借用过 superpowers 的系统化调试思路，10-13 又明确不设默认 TDD 和默认双 reviewer。这次不再照搬它的流程，只补还没借、又不与现有理念冲突的部分。 superpowers 的实测结论是：压力下的违规用识别表或具体字眼自查更有效；输出形状问题用正向配方更有效；给规则追加例外从句会削弱效果。当前 Skill 大多用带例外的长句写成，评测也基本只跑一次。 评测运行器支持同一条件重复采样，比较通过率 最终报告逐条列出 Agent 自主做出的决定、依据和错了的代价 开发方案写完后检查需求覆盖、命名一致和空话；可选由独立 Agent 以实现者身份试读 reviewer 不再委派、不重跑全量测试，协调者不预判 finding 复审逐条给出是否已解"
+    "summary": "参考 superpowers 优化 Skill 集",
+    "searchText": "参考 superpowers 优化 Skill 集 dev-workflow-skills Skill 行为与评测 参考 superpowers 优化 Skill 集 Completed 参考 superpowers 补强 Skill 集，但每条规则都要先测出真实问题才保留。最终留下 3 条有证据的规则，删掉 4 条没有效果的，并修好了评测本身的几个漏洞。 仓库在 10-10 已借用过 superpowers 的系统化调试思路，10-13 又明确不设默认 TDD 和默认双 reviewer。这次不再照搬它的流程，只补还没借、又不与现有理念冲突的部分。 superpowers 的实测结论是：压力下的违规用识别表或具体字眼自查更有效；输出形状问题用正向配方更有效；给规则追加例外从句会削弱效果。当前 Skill 大多用带例外的长句写成，评测也基本只跑一次。 评测运行器支持重复采样和通过率对比，并修好隔离：不再误读本机已安装的旧版 Skill 审查报告的问题编号统一为 IM-1 这类格式 复审对每个原问题给出“已解决 / 未解决”，范围外的观察不让循环继续 SVN 管理的目录不执行任何 svn 命令，只对 Git 检查版本状态 上线后逐条复验，删掉去掉后行为没有差别的规则 不新增第 5 个公开入口，也不新增方案执行类 Skill 不引入强制调用、强制 TDD、自动提交、worktree 或"
   },
   // ─── 在此行上方追加新记录 ───
 ];
