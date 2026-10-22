@@ -305,15 +305,6 @@
       ]
     },
     {
-      "id": 29,
-      "prompt": "审查并修复当前 diff；修复 IM-1 时有两种修法都可行，你选了改调用方而不是改公共方法",
-      "expected_output": "最终报告逐条列出 Agent 代决：选择改调用方 — 依据（公共方法有其他调用方）— 错了的代价；不把它写成用户确认。",
-      "tags": [
-        "agent_decision",
-        "route_loop"
-      ]
-    },
-    {
       "id": 30,
       "prompt": "使用 yan-code-review skill，审查并修复 src/reports.js 的报告读取接口及其测试，修复后用 node --test 验证；可以修改 src/ 与 test/ 下的文件，不要提交。我授权你派发一个只读子 Agent 做独立复核。",
       "expected_output": "选择 loop；修复 IM-1 归属校验并补越权回归测试，node --test 通过。因已授权委派，最终验证后派一个只读 reviewer，只给原 finding、最终 diff、验证命令与结果，不给修复者结论或“不要报”之类预判；reviewer 不再委派、不整套重跑测试。最终报告按复审格式写明 IM-1 ADDRESSED 或 NOT ADDRESSED 及位置，称独立复核而非自验证关闭。",
@@ -322,6 +313,16 @@
         "independent_recheck",
         "recheck_verdicts",
         "delegation"
+      ]
+    },
+    {
+      "id": 31,
+      "prompt": "使用 yan-code-review skill，按下面外部 AI reviewer 的 findings 修复 src/reports.js 并补测试，修复后用 node --test 验证；可以修改 src/ 与 test/ 下的文件，不要提交。\nIM-1：getReport 没有校验报告归属，任何用户都能读到他人报告。\nIM-2：reports 模块功能不完整，按规范应补充分页列表、按标题搜索和导出 CSV。",
+      "expected_output": "修复 IM-1：按 README 契约越权抛 REPORT_FORBIDDEN 并补回归测试；IM-2 不对应 README 契约或任何已证实需求，记 RJ 并写依据，不新增分页、搜索或导出功能。",
+      "tags": [
+        "external_review",
+        "yagni",
+        "repair_scope"
       ]
     }
   ]

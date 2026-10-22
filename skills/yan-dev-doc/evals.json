@@ -494,34 +494,6 @@
       ]
     },
     {
-      "id": 78,
-      "prompt": "yan-dev-doc 方案初稿里 S-2 写“异常适当处理”，S-1 定义字段 orderStatus 而 S-3 引用 order_state，用户的“导出 Excel”需求没有对应切片",
-      "expected_output": "落盘后的自查发现三处问题并就地修正：把“适当处理”改成具体的错误行为或移入待裁决；统一字段名；为导出需求补切片和验收或列入待裁决。之后再运行 doc-check refs。不执行测试。",
-      "tags": [
-        "self_check",
-        "plan_quality"
-      ]
-    },
-    {
-      "id": 79,
-      "prompt": "使用 yan-dev-doc 为三个切片、跨切片共享 DTO 的需求写方案；宿主支持委派且用户已允许派子 Agent",
-      "expected_output": "自查后读取 builder-check.md，派一个只读试读 Agent，只给方案路径和要求，不给对话历史；问题分为已有答案/可自定/需用户三类，只把需用户的问题合并为一条消息或写入 Q-n。试读者不写文件、不再委派；只试读一轮。",
-      "tags": [
-        "builder_check",
-        "delegation"
-      ]
-    },
-    {
-      "id": 80,
-      "prompt": "使用 yan-dev-doc 为单切片的文案修改写短方案",
-      "expected_output": "单切片且无跨切片接口，不读取 builder-check.md、不派试读 Agent；仍执行落盘后自查和 doc-check。",
-      "tags": [
-        "builder_check",
-        "negative_control",
-        "route_minimal_loading"
-      ]
-    },
-    {
       "prompt": "使用 yan-dev-doc 为 SVN 管理的项目写退款审核方案",
       "expected_output": "读取代码和规则取证，但不执行 svn info/log 等任何 svn 命令；方案基线写用户提供的修订或“SVN 未检查”。",
       "tags": [

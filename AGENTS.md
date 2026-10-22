@@ -12,7 +12,7 @@ The boundary checks guard high-risk behavior invariants, not prose style; if a s
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | conditional `plan-template.md`, `builder-check.md`, `publishing-openapi.md`, `publishing-board.md`, `scripts/validate-openapi.js`, `assets/board/` |
+| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | conditional `plan-template.md`, `publishing-openapi.md`, `publishing-board.md`, `scripts/validate-openapi.js`, `assets/board/` |
 | `yan-project-analysis` | `skills/yan-project-analysis/SKILL.md` | `evals.json`, and `modes/` containing understanding, incident, business |
 | `yan-code-review` | `skills/yan-code-review/SKILL.md` | `evals.json`, and `modes/` containing package, check, repair, loop |
 | `yan-conversation-handoff` | `skills/yan-conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template) |
