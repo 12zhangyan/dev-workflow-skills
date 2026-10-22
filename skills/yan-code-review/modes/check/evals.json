@@ -345,6 +345,16 @@
         "no_nested_delegation",
         "no_full_rerun"
       ]
+    },
+    {
+      "prompt": "审查当前改动；项目根目录有 .svn，没有 .git，用户没有给文件清单",
+      "expected_output": "用目录存在性判断 owner 为 SVN 后，不执行 svn status/diff/info/log 等任何 svn 命令；把缺少可审范围列为材料缺口，请用户提供文件清单或 patch；VCS 状态写“SVN 未检查”，不写 clean，也不宣称通过。",
+      "tags": [
+        "svn",
+        "vcs_boundary",
+        "negative_control"
+      ],
+      "id": 40
     }
   ]
 }

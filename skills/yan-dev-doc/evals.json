@@ -520,6 +520,15 @@
         "negative_control",
         "route_minimal_loading"
       ]
+    },
+    {
+      "prompt": "使用 yan-dev-doc 为 SVN 管理的项目写退款审核方案",
+      "expected_output": "读取代码和规则取证，但不执行 svn info/log 等任何 svn 命令；方案基线写用户提供的修订或“SVN 未检查”。",
+      "tags": [
+        "svn",
+        "vcs_boundary"
+      ],
+      "id": 81
     }
   ]
 }

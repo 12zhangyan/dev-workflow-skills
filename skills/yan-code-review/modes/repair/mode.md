@@ -27,7 +27,7 @@ description: 根据已有 code review findings、fix-handoff 或明确问题清�
 
 ## 自主实施与验证
 
-Agent 按依赖、风险、VCS owner、共享根因和可独立验证性合并、拆分、排序或并行处理，不按 finding 数、文件数或固定轮次执行。开始前识别各文件最近的 Git/SVN owner、status/diff 和已有改动；取证失败不能假定 clean。
+Agent 按依赖、风险、VCS owner、共享根因和可独立验证性合并、拆分、排序或并行处理，不按 finding 数、文件数或固定轮次执行。开始前对各文件所在目录运行 [workflow-fs.js](../../../_shared/scripts/workflow-fs.js) `detect-vcs <目录>` 识别最近的 Git/SVN owner，仓库根有 `.git` 不代表内层目录归 Git。Git owner 读取 status/diff 和已有改动，取证失败不能假定 clean；SVN owner 不执行任何 `svn` 命令，以本轮实际修改的文件为准，纳管状态报告为“SVN 未检查”。
 
 只修改已接受问题所需范围。每个可独立裁决的切片在合适时机检查最新 diff，并运行能证明目标行为的验证；失败相关时继续定位，出现授权缺口、语义 blocker 或范围失控时停止受影响切片，其他独立项可继续。结束前复查实际 diff、未跟踪关键文件和敏感信息。
 
