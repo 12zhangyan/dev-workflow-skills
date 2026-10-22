@@ -1,7 +1,32 @@
 ﻿# 参考 superpowers 优化 Skill 集 开发方案
 
-> 状态：待确认（NeedsConfirmation，见 Q-1；其余切片可先行）·未实施
+> 状态：已完成（2026-10-21）·已合入 main@673f11e 并安装到本机；Q-1 已关闭（S-6 不实施）
 > 日期：2026-10-20 ｜ 基线：git main@84bbd65 ｜ 来源：对话需求“参考 obra/superpowers 优化当前 skill 集，按建议先出方案”
+> 以下“实施结果”是最终状态；其后的方案、切片和验收保留为 10-20 的原始计划，不再更新。
+
+## 实施结果
+| 切片 | 结果 | 证据 | PR |
+|---|---|---|---|
+| S-1 | 已完成：`--reps`、series 比较、A/A 噪声警告和规则准入标准 | 自测；同版本 A/A 噪声约 40 个百分点 | #23 |
+| S-2 | 审查入口的代决列表已删除；dev-doc 方案模板的“Agent 代决”栏位保留，没有行为证据 | 去掉后交代程度相同（6/10 对 6/10、10/10 对 10/10） | #26、#30 |
+| S-3 | 已删除：写后自查清单和 `builder-check.md` | 去掉后同样 8/8 通过，长度和耗时相近 | #26、#30 |
+| S-4 | 保留，没有单独评测；loop 派出的复核子 Agent 不读取 check mode，所以对 loop 委派不起作用 | — | #26 |
+| S-5 | 保留：复审逐条 ADDRESSED / NOT ADDRESSED | 去掉 0/6，保留 5/12；另一种 loop 报告配方 4/6，在噪声内，未采纳 | #25、#27 |
+| S-6 | 不实施（Q-1 关闭）：与历史上移除固定修复轮次的决定冲突，也没有观察到基线失败 | — | — |
+| S-7 | “外部建议先对照需求”已删除；“含义不清的关联条目先澄清”保留，没有行为证据 | 去掉后同样 0/10 写超范围代码 | #25、#30 |
+| S-8 | 取消 repair/loop 关闭前的强制读取；“声明与证据”表留在 `workflow-gates.md` | 引入前的 15 次运行都没有虚报验证 | #25、#30 |
+| S-9 | 只做了第一项：finding 编号正向配方 | 3/10 → 10/10 | #27 |
+| S-10 | 未开始（原计划只立项） | — | — |
+
+过程中额外完成：
+
+- **评测隔离修复：** Claude 运行禁用宿主 `Skill` 工具，因为它会加载已安装的旧入口，导致此前的 Claude A/B 没有测到根入口；子进程关闭自动更新；复核子 Agent 放行只读 shell 命令。见 #27、#28。
+- **新增回归测试：** `report-ownership` 行为核对，以及 `review-loop-delegated-recheck`、`review-repair-external-advice` 两个 case。契约识别线索规则经 A/B 不采纳。见 #28、#30。
+- **用户新增的规则：** 只对 Git owner 收集 VCS 证据，SVN 工作副本不执行任何 `svn` 命令；用 `detect-vcs` 识别内嵌 SVN 从 0/2 到 3/3。见 #29。
+
+证据记录：[superpowers 借鉴](../research/2026-10-20-superpowers-adoption.md)、[finding 编号配方](../research/2026-10-20-finding-id-recipe.md)、[契约基线](../research/2026-10-20-report-contract-baseline.md)、[SVN 零命令](../research/2026-10-21-svn-no-commands.md)、[规则复验](../research/2026-10-21-rule-retro-eval.md)。
+
+没有关闭的已知问题：loop 派出复核子 Agent 后，协调者有时不等它返回就先结束；这是宿主后台运行子 Agent 的方式造成的，未处理。
 > 实施范围：`skills/**`、`scripts/run-host-evals.js`、`scripts/compare-host-evals.js`、`scripts/check-*.js`、`skills/_shared/*.json`、`CLAUDE.md`/`AGENTS.md`；不新增公开入口，不改看板外壳。
 
 ## 执行卡片
@@ -91,4 +116,4 @@
 ## 待裁决
 | ID | 问题 | 证据冲突或缺口 | 影响 | 裁决前可继续的部分 |
 |---|---|---|---|---|
-| Q-1 | 是否接受“同一 finding 驳回 2 次换人、失败 3 次记 BK”这一单 finding 上限？这需要改写 `skills/_shared/workflow-chain.md:3`“不规定…修复轮次”的表述，并在检查脚本中区分“全局轮次上限（继续禁止）”与“单 finding 升级触发（允许）” | E-7 历史上刻意移除固定轮次；superpowers 实测的循环会停不下来（E-11）只是外部证据，本仓库尚无基线失败 | S-6 / A-8 | S-1…S-5、S-7、S-8；建议先用 S-1 跑一次“同一 finding 反复失败”的无规则基线，再裁决 |
+| Q-1（已关闭：不实施 S-6，见“实施结果”） | 是否接受“同一 finding 驳回 2 次换人、失败 3 次记 BK”这一单 finding 上限？这需要改写 `skills/_shared/workflow-chain.md:3`“不规定…修复轮次”的表述，并在检查脚本中区分“全局轮次上限（继续禁止）”与“单 finding 升级触发（允许）” | E-7 历史上刻意移除固定轮次；superpowers 实测的循环会停不下来（E-11）只是外部证据，本仓库尚无基线失败 | S-6 / A-8 | S-1…S-5、S-7、S-8；建议先用 S-1 跑一次“同一 finding 反复失败”的无规则基线，再裁决 |
