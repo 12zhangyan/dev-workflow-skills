@@ -316,6 +316,22 @@ requireText('skills/yan-dev-doc/publishing-board.md', [
   '精确文件清单、类/方法级步骤、执行命令、Todo、堆栈和 `codeLocation` 留在 md',
   '省略空字段',
   '视觉复核只有真实打开页面后才能声称通过',
+  'entry 不写 `currentGate`',
+  '续写已有档案时省略即保留其真实阶段',
+]);
+// The plan example is copied by agents; a fixed gate in it would roll continued dossiers back to the plan stage.
+if (/"currentGate"\s*:/.test(read('skills/yan-dev-doc/publishing-board.md'))) {
+  fail('skills/yan-dev-doc/publishing-board.md example must not set currentGate; continued dossiers keep their real gate');
+}
+
+// Review publishers only see the shared flow, so it must carry the fields board.js renders.
+requireText('skills/_shared/board-publish-flow.md', [
+  '看板只显示下列 Review 字段',
+  '`detail.delivery.review.events[]`',
+  '必填稳定 `eventId`',
+  '`findings[{id, status, problem}]`',
+  '`plan` / `implementation` / `verification` / `review` / `submit`',
+  '省略则保留原阶段',
 ]);
 
 
@@ -338,7 +354,7 @@ requireText('skills/yan-project-analysis/modes/business/mode.md', [
   '即使缺少部分入口或终态证据，也保存 `NeedsConfirmation` 草稿',
   '只有任务本身或安全写入目标无法识别时才保持零写入',
   '用户明确要求只读时始终不落盘',
-  '缺失入口会影响状态/数据闭环时停止生成正式方案',
+  '缺失入口会影响状态/数据闭环时不生成已证实的业务地图，仍按上条保存 `NeedsConfirmation` 草稿',
   '../../../_shared/board-publish-flow.md',
   'kind:"biz"',
   'Mermaid 字段也是普通 JSON 字符串，不使用反引号',

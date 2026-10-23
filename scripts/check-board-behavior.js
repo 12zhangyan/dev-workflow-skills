@@ -688,6 +688,41 @@ try {
     assert(roundTrip[0].symptom === hostileSymptom, `${dir} inline data must preserve the original narrative`);
   }
 
+  // The JSON examples agents copy from the publishing docs must actually render and must not roll a dossier's gate back.
+  const docExample = (rel, anchor) => {
+    const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const block = text.slice(text.indexOf(anchor)).match(/```json\r?\n([\s\S]*?)```/);
+    assert(text.includes(anchor) && block, `${rel} must keep a JSON example after "${anchor}"`);
+    return JSON.parse(block[1]);
+  };
+  const planExample = docExample('skills/yan-dev-doc/publishing-board.md', '示意结构');
+  const reviewExample = docExample('skills/_shared/board-publish-flow.md', '看板只显示下列 Review 字段');
+  Object.assign(planExample.entry, { date: today, docPath: 'docs/contract.md' });
+  reviewExample.entry.sourceDocPath = 'docs/contract.md';
+  const contractBoard = createBoard('doc-contract');
+  const contractInput = path.join(contractBoard, 'entry.json');
+  const publishExample = payload => {
+    fs.writeFileSync(contractInput, JSON.stringify(payload));
+    const result = invokeBoard(contractBoard, contractInput);
+    assert(result.status === 0, 'documented example should publish: ' + result.stderr);
+    const catalog = new Function(fs.readFileSync(path.join(contractBoard, 'data/changes.js'), 'utf8') + ';return changes[0]')();
+    const window = {};
+    new Function('window', fs.readFileSync(path.join(contractBoard, catalog.detailPath), 'utf8'))(window);
+    return { catalog, detail: window.BOARD_DETAILS[catalog.detailId] };
+  };
+  let documented = publishExample(planExample);
+  assert(documented.catalog.currentGate === 'plan', 'a new dossier from the plan example should start at the plan gate');
+  documented = publishExample(reviewExample);
+  assert(documented.catalog.currentGate === 'review' && documented.catalog.reviewState === reviewExample.entry.reviewState, 'the review example should advance the documented gate and state');
+  devContext.renderDelivery(Object.assign({}, documented.catalog, documented.detail));
+  const documentedHtml = devElement('main').innerHTML;
+  const exampleEvent = reviewExample.detail.delivery.review.events[0];
+  for (const [label, value] of [['event summary', exampleEvent.summary], ['finding id', exampleEvent.findings[0].id], ['finding problem', exampleEvent.findings[0].problem], ['next step', exampleEvent.next], ['review state', reviewExample.entry.reviewState]]) {
+    assert(documentedHtml.includes(devContext.esc(value)), `the documented review ${label} must be rendered by the board`);
+  }
+  documented = publishExample(planExample);
+  assert(documented.catalog.currentGate === 'review', 'revising the plan with the documented example must keep the dossier at its real gate');
+
   // Record dates follow the local calendar day used for docs/<date>/, not the UTC day.
   for (const [zone, offsetHours] of [['Etc/GMT-14', 14], ['Etc/GMT+12', -12]]) {
     const zoneBoard = createBoard('zone-' + offsetHours);
