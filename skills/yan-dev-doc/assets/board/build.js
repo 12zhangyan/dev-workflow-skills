@@ -112,7 +112,7 @@ function buildPages(data) {
 <title>${escHtml(d.title || '')}</title>
 <script src="../js/vendor/mermaid.min.js"></script>
 <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
-<link rel="stylesheet" href="../css/board.css?v=35">
+<link rel="stylesheet" href="../css/board.css?v=36">
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
 </head>
 <body>
@@ -120,7 +120,7 @@ function buildPages(data) {
 <main class="main" id="main"></main>
 <script>window.DETAIL_PAGE = true;</script>
 <script>${entryJs}</script>
-<script src="../js/board.js?v=35"></script>
+<script src="../js/board.js?v=36"></script>
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;
@@ -177,7 +177,8 @@ function buildIndex(data, archiveSummary) {
   const indexFile = path.join(DOCS, 'INDEX.md');
   if (exists(indexFile) && !read(indexFile).includes(INDEX_MARKER)) return false;
   fs.mkdirSync(DOCS, { recursive: true });
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-');
   const kindLabel = { doc: '开发文档', bug: 'Bug', reading: '代码阅读', biz: '业务流' };
   const slugMap = buildSlugMap(data.changes);
 

@@ -36,7 +36,7 @@
    node project-html/board-add.js "<本次返回的绝对路径>"
    ```
 
-   每次发布单独分配输入，不复用固定文件或仅按 deliveryId 命名；同一档案也可能同时更新。遇到 `BOARD_WRITE_LOCKED` 保留本次输入，待持锁者结束后用原文件重试，不删除他人的锁。
+   每次发布单独分配输入，不复用固定文件或仅按 deliveryId 命名；同一档案也可能同时更新。遇到 `BOARD_WRITE_LOCKED` 保留本次输入，待持锁者结束后用原文件重试，不删除他人的锁。遇到 `BOARD_WRITE_LOCK_STALE`（持有进程已退出或锁超过 10 分钟）时运行 `node project-html/board-add.js --unlock-stale`，它只移除复核后仍失效的锁，再用原文件重试；不手工删除锁文件。
 
    脚本失败时保留临时 JSON 和错误证据，报告 `BoardPublishBlocked`。成功时 `board-add.js` 自行删除本次分配的 `data/.entry-*/entry.json` 及其空目录；其他位置的输入文件不动，调用方也不另行删除。`data/changes.js.bak` 只保留上一次写入前的单份备份，每次成功写入都会替换。
 3. 写入成功后运行 `node project-html/build.js`。只有明确需要单文件外发时才加 `--standalone "<docPath 或 slug>"`。构建失败报告 `BoardBuildBlocked`，不抹掉已成功写入的数据，也不宣称派生产物已生成。
@@ -46,6 +46,8 @@
 ## Review 生命周期
 
 Review 在稳定 `deliveryId` 或 `sourceDocPath` 匹配到已有档案、且当前协调者拥有发布职责时更新同一档案：repair/loop/package 默认同步，check 需用户明确要求记录生命周期，用户明确不要看板时跳过。内部 reviewer/repair 零发布，协调者至多汇总写入一次；身份缺失或档案不存在时不得创建孤立 Review 条目。
+
+Review 写入在包装对象顶层加 `"requireExisting": true`：脚本只更新已有交付档案（不匹配 `bug`/`reading`/`biz` 条目），找不到时以 `BOARD_TARGET_NOT_FOUND` 拒绝且不写入，调用方报告 `BoardPublishSkipped`（无匹配交付档案），不去掉该字段重试。
 
 Review entry 只需提供稳定身份、当前结论、有人类意义的摘要，以及有信息增益的 findings/验证/下一动作。保留 finding ID 和稳定 `eventId`；重跑更新同一事件。字段与状态按实际结果裁剪，不为填完整模板制造空数组或状态标签。
 

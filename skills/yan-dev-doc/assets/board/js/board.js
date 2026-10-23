@@ -4,7 +4,7 @@
 
 // 外壳版本号只提示维护更新；发布按实际兼容性决定是否同步外壳，不动 data/。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 35;
+const BOARD_VERSION = 36;
 
 const UI_ICONS = {
   "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
