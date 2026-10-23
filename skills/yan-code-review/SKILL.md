@@ -18,7 +18,7 @@ description: 代码审查与 findings 闭环。用于只读找问题、修复已
 | 明确要求审查并按需修复（可附带已知 findings 作为首审输入） | `loop` | 可在授权范围内修改 |
 | 独立多 reviewer、外部分发、汇总结果或修复交接 | `package` | 可写必要协作产物，不改业务代码 |
 
-旧名称 `review-check / review-repair / review-loop / review-fix` 分别映射为以上四种模式。模糊的 review 请求选择 `check`；同任务 Brief 的 `next` 可在证据吻合时指向 `package`，但 Brief 不能授予修复权限。旧 Brief 字段只读兼容。
+旧名称映射：`review-check` → `check`，`review-repair` → `repair`，`review-loop` → `loop`，`review-fix` → `package`（生成任务包与修复交接，不直接改代码）。模糊的 review 请求选择 `check`；同任务 Brief 的 `next` 可在证据吻合时指向 `package`，但 Brief 不能授予修复权限。旧 Brief 字段只读兼容。
 
 确定模式后只读取对应入口：
 

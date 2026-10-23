@@ -6,6 +6,7 @@
  * 用法：
  *   node project-html/board-add.js <entry.json>
  *   node project-html/board-add.js --migrate   # 将现有富 entry 确定性拆分
+ *   node project-html/board-add.js --unlock-stale   # 只移除持有进程已退出或超时的写入锁
  *
  * md 是 Agent 执行文档，entry 是人类方案；本脚本不读取或摘录 md，只共享 docPath 等结构元数据。
  * 与 skills/yan-dev-doc/assets/board/board-add.js 保持一致，修改时两处同步。 */
@@ -25,7 +26,10 @@ const CATALOG_KEYS = [
   'apiSpecPath', 'apiIndexPath', 'apis', 'lifecycle', 'pinned',
   'deliveryId', 'currentGate', 'gateStatus', 'reviewState', 'reviewCounts'
 ];
+const NON_DELIVERY_KINDS = ['bug', 'reading', 'biz'];
 const EXECUTION_ONLY = new Set(['changeList', 'todos', 'stackTrace', 'codeLocation']);
+// 正常写入只持锁毫秒级；超过该时长的锁即使 pid 被复用也视为失效。
+const STALE_LOCK_MS = 10 * 60 * 1000;
 const GENERATED = new Set(['detailId', 'detailPath', 'summary', 'searchText']);
 const INPUT_ONLY = new Set(['sourceDocPath']);
 const CATALOG_HEADER = `
@@ -38,7 +42,11 @@ const CATALOG_HEADER = `
 `;
 
 function die(msg) { throw new Error(msg); }
-function today() { return new Date().toISOString().slice(0, 10); }
+// 与 workflow-fs.js prepare-date-dir 一致使用本地日期，避免 UTC 偏移让记录日期与文档目录相差一天。
+function today() {
+  const now = new Date();
+  return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-');
+}
 function exists(file) { try { fs.accessSync(file); return true; } catch (e) { return false; } }
 function emit(obj) { return JSON.stringify(obj, null, 2).split('\n').map(l => '  ' + l).join('\n'); }
 function stableHash(value) {
@@ -83,14 +91,42 @@ function atomicWrite(file, content) {
     if (exists(temporary)) fs.unlinkSync(temporary);
   }
 }
+function processAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code === 'EPERM'; }
+}
+// 持有进程已退出，或锁存在超过 STALE_LOCK_MS 时返回原因；无法确认失效时返回 null。
+function staleLockReason() {
+  let raw;
+  let stat;
+  try { raw = fs.readFileSync(LOCK, 'utf8'); stat = fs.statSync(LOCK); }
+  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  let holder = {};
+  try { holder = JSON.parse(raw) || {}; } catch (e) { /* 写入中断的锁没有可解析内容，按文件时间判断 */ }
+  const pid = Number.isInteger(holder.pid) && holder.pid > 0 ? holder.pid : null;
+  if (pid && !processAlive(pid)) return `pid ${pid} 已退出`;
+  const created = Date.parse(holder.createdAt);
+  const age = Date.now() - (Number.isNaN(created) ? stat.mtimeMs : created);
+  return age > STALE_LOCK_MS ? `锁已存在 ${Math.round(age / 60000)} 分钟` : null;
+}
+function unlockStale() {
+  localFile(LOCK);
+  if (!exists(LOCK)) return console.log('BOARD_WRITE_UNLOCKED: 没有写入锁');
+  const reason = staleLockReason();
+  if (!reason) die('BOARD_WRITE_LOCKED: ' + LOCK + ' 的持有者仍可能在写入；等待其结束，不移除');
+  fs.unlinkSync(LOCK);
+  console.log('BOARD_WRITE_UNLOCKED: 已移除失效写入锁（' + reason + '）');
+}
 function withWriteLock(operation) {
   localFile(DATA);
   localFile(BAK);
   let fd;
   try { fd = fs.openSync(LOCK, 'wx'); }
   catch (error) {
-    if (error.code === 'EEXIST') die('BOARD_WRITE_LOCKED: another publisher holds ' + LOCK + '; retry after it finishes');
-    throw error;
+    if (error.code !== 'EEXIST') throw error;
+    const reason = staleLockReason();
+    if (reason) die('BOARD_WRITE_LOCK_STALE: ' + LOCK + '（' + reason + '）；确认没有其他写入后运行 node project-html/board-add.js --unlock-stale，再用原输入重试');
+    die('BOARD_WRITE_LOCKED: another publisher holds ' + LOCK + '; retry after it finishes');
   }
   try {
     fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }) + '\n');
@@ -128,13 +164,13 @@ function humanDetailOf(entry, explicitDetail) {
   }
   return detail;
 }
-function splitEntry(entry, explicitDetail) {
+function splitEntry(entry, explicitDetail, fallbackSummary) {
   const detail = humanDetailOf(entry, explicitDetail);
   const catalog = {};
   for (const key of CATALOG_KEYS) {
     if (Object.prototype.hasOwnProperty.call(entry, key)) catalog[key] = entry[key];
   }
-  const isDelivery = !['bug', 'reading', 'biz'].includes(entry.kind);
+  const isDelivery = !NON_DELIVERY_KINDS.includes(entry.kind);
   if (isDelivery && !catalog.deliveryId) catalog.deliveryId = deliveryIdOf(entry);
   if (isDelivery && !catalog.currentGate) catalog.currentGate = 'plan';
   const detailId = entry.detailId || detailIdOf(entry);
@@ -143,7 +179,7 @@ function splitEntry(entry, explicitDetail) {
     detail.delivery.review && Array.isArray(detail.delivery.review.events) &&
       detail.delivery.review.events.slice(-1)[0] && detail.delivery.review.events.slice(-1)[0].summary
   );
-  const lead = entry.summary || detail.summary || deliveryLead || detail.background || detail.symptom || detail.entry || detail.solution || entry.title;
+  const lead = entry.summary || detail.summary || deliveryLead || detail.background || detail.symptom || detail.entry || detail.solution || fallbackSummary || entry.title;
   const words = [entry.title, entry.service, entry.module, entry.type, firstSentence(lead)].filter(Boolean);
   for (const key of ['goals', 'symptom', 'rootCause', 'solution', 'dataFlowSummary', 'coreDesign', 'keyImpl', 'acceptance', 'roles', 'validations', 'delivery']) {
     collectStrings(detail[key], words, 120);
@@ -225,16 +261,18 @@ function mergeHumanDetail(base, patch) {
   }
   return out;
 }
-function findExistingIndex(changes, entry, catalog) {
+// deliveryOnly 只在交付档案中匹配，避免 Review 写入落到 bug / reading / biz 条目。
+function findExistingIndex(changes, entry, catalog, deliveryOnly) {
+  const eligible = c => !deliveryOnly || !NON_DELIVERY_KINDS.includes(c.kind);
   if (catalog.deliveryId) {
-    const byDelivery = changes.findIndex(c => c.deliveryId && c.deliveryId === catalog.deliveryId);
+    const byDelivery = changes.findIndex(c => eligible(c) && c.deliveryId && c.deliveryId === catalog.deliveryId);
     if (byDelivery >= 0) return byDelivery;
   }
   if (entry.sourceDocPath) {
-    const bySource = changes.findIndex(c => c.docPath && c.docPath === entry.sourceDocPath);
+    const bySource = changes.findIndex(c => eligible(c) && c.docPath && c.docPath === entry.sourceDocPath);
     if (bySource >= 0) return bySource;
   }
-  if (catalog.docPath) return changes.findIndex(c => c.docPath && c.docPath === catalog.docPath);
+  if (catalog.docPath) return changes.findIndex(c => eligible(c) && c.docPath && c.docPath === catalog.docPath);
   return -1;
 }
 function compose(raw, changes, changelog) {
@@ -296,11 +334,15 @@ function add(arg) {
   catch (e) { die('无法解析输入 JSON：' + e.message); }
   const entry = input.entry || input.catalog;
   if (!entry || typeof entry !== 'object') die('输入缺少 entry/catalog 对象');
+  if (input.requireExisting !== undefined && typeof input.requireExisting !== 'boolean') die('BOARD_USAGE_ERROR: requireExisting 必须是布尔值');
+  const requireExisting = input.requireExisting === true;
+  if (requireExisting && NON_DELIVERY_KINDS.includes(entry.kind)) die('BOARD_TARGET_NOT_FOUND: requireExisting 只更新交付档案，不接受 kind=' + entry.kind);
   const { raw, changes, changelog } = loadCurrent();
   const oldLen = changes.length;
   let { catalog, detail } = splitEntry(entry, input.detail);
   let action = 'append';
-  const idx = findExistingIndex(changes, entry, catalog);
+  const idx = findExistingIndex(changes, entry, catalog, requireExisting);
+  if (requireExisting && idx < 0) die('BOARD_TARGET_NOT_FOUND: 没有与 deliveryId / sourceDocPath / docPath 匹配的交付档案；requireExisting 不新建记录');
   if (idx >= 0) {
     const old = changes[idx];
     const oldDetail = loadDetail(old) || {};
@@ -311,7 +353,9 @@ function add(arg) {
       docPath: old.docPath || catalog.docPath,
       currentGate: entry.currentGate || old.currentGate || catalog.currentGate
     });
-    const split = splitEntry(mergedEntry, mergedDetail);
+    // 本次未显式给 summary 时，从合并后的详情重新推导，不让只含 Review 事件的写入把摘要退化成标题。
+    if (!Object.prototype.hasOwnProperty.call(entry, 'summary')) delete mergedEntry.summary;
+    const split = splitEntry(mergedEntry, mergedDetail, old.summary);
     catalog = split.catalog;
     detail = split.detail;
     catalog.detailId = old.detailId || catalog.detailId;
@@ -350,10 +394,11 @@ function removeAllocatedInput(arg) {
 }
 const USAGE = [
   '用法：node project-html/board-add.js <entry.json>',
-  '      node project-html/board-add.js --check-migration | --migrate',
+  '      node project-html/board-add.js --check-migration | --migrate | --unlock-stale',
   '      node project-html/board-add.js --help | -h | help',
   'entry.json 使用 {"entry": {...}, "detail": {...}} 包装；填写已创建的临时 JSON。',
-  '--check-migration 只读检查；--migrate 迁移并备份现有目录；帮助不读写看板数据。',
+  '包装顶层 "requireExisting": true 时只更新已有交付档案，找不到则 BOARD_TARGET_NOT_FOUND 且不写入。',
+  '--check-migration 只读检查；--migrate 迁移并备份现有目录；--unlock-stale 只移除持有进程已退出或超时的锁；帮助不读写看板数据。',
 ].join('\n');
 function main() {
   const args = process.argv.slice(2);
@@ -364,6 +409,7 @@ function main() {
     return;
   }
   if (arg === '--check-migration') return checkMigration();
+  if (arg === '--unlock-stale') return unlockStale();
   if (arg.startsWith('-') && arg !== '--migrate') die('BOARD_USAGE_ERROR: 未知参数 ' + arg + '\n' + USAGE);
   return withWriteLock(() => arg === '--migrate' ? migrate() : add(arg));
 }

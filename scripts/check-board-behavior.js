@@ -26,7 +26,8 @@ function element(id) {
   return elements.get(id);
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const localDate = (date = new Date()) => [date.getFullYear(), date.getMonth() + 1, date.getDate()].map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-');
+const today = localDate();
 const recent = Array.from({ length: 40 }, (_, i) => ({
   service: 'svc', module: 'mod', title: `recent-${i}`, date: today,
   type: '新功能', status: '进行中', background: `recent item ${i}`
@@ -362,6 +363,7 @@ try {
   assert(entry.deliveryId && entry.currentGate === 'review' && entry.gateStatus === 'passed', 'catalog should expose stable delivery and current gate state');
   assert(entry.reviewCounts.open === 0 && entry.reviewState === 'fixed', 'catalog should expose compact review health');
   assert(entry.detailId && entry.detailPath && entry.summary && entry.searchText, 'catalog should contain detail pointers and a compact search summary');
+  assert(entry.summary === 'plan summary', 'updates without an explicit summary must keep the plan summary, not the newest partial narrative: ' + entry.summary);
   assert(entry.searchText.includes('unique state boundary') && entry.searchText.includes('idempotent guard'), 'catalog search text should include developer design decisions');
   for (const key of ['background', 'solution', 'changeList', 'todos', 'stackTrace', 'codeLocation']) {
     assert(!Object.prototype.hasOwnProperty.call(entry, key), `catalog should not contain ${key}`);
@@ -579,6 +581,97 @@ try {
   assert(invokeBoard(concurrent, '--check-migration').status === 0, 'migration detection must remain read-only');
   assert(fs.readFileSync(path.join(concurrent, 'data/changes.js'), 'utf8') === concurrentBefore, 'blocked migration must not mutate data');
   assert(fs.readFileSync(path.join(concurrent, 'data/changes.js.lock'), 'utf8') === 'another writer', 'failed contender must not release another writer lock');
+  assert(invokeBoard(concurrent, '--unlock-stale').stderr.includes('BOARD_WRITE_LOCKED'), 'unlock-stale must refuse a fresh lock without a verifiable dead holder');
+  assert(fs.readFileSync(path.join(concurrent, 'data/changes.js.lock'), 'utf8') === 'another writer', 'refused unlock must keep the lock');
+
+  // A crashed writer leaves a lock behind: report it as stale, and remove it only through --unlock-stale.
+  const staleBoard = createBoard('stale-lock');
+  const staleLock = path.join(staleBoard, 'data/changes.js.lock');
+  const staleInput = path.join(staleBoard, 'entry.json');
+  fs.writeFileSync(staleInput, JSON.stringify({ entry: { title: 'after crash', docPath: 'docs/crash.md' } }));
+  const exited = spawnSync(process.execPath, ['-e', ''], { windowsHide: true });
+  const lockCases = [
+    { holder: { pid: exited.pid, createdAt: new Date().toISOString() }, stale: true, why: 'exited holder process' },
+    { holder: { pid: process.pid, createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() }, stale: true, why: 'lock older than the stale window' },
+    { holder: { pid: process.pid, createdAt: new Date().toISOString() }, stale: false, why: 'live holder with a fresh lock' }
+  ];
+  for (const { holder, stale, why } of lockCases) {
+    fs.writeFileSync(staleLock, JSON.stringify(holder));
+    const blocked = invokeBoard(staleBoard, staleInput);
+    assert(blocked.status !== 0 && blocked.stderr.includes(stale ? 'BOARD_WRITE_LOCK_STALE' : 'BOARD_WRITE_LOCKED'), `publish must report ${stale ? 'a stale' : 'an active'} lock for ${why}: ${blocked.stderr}`);
+    assert(fs.existsSync(staleLock) && fs.existsSync(staleInput), `a blocked publish must keep the lock and its input (${why})`);
+    const unlock = invokeBoard(staleBoard, '--unlock-stale');
+    assert(stale ? unlock.status === 0 && !fs.existsSync(staleLock) : unlock.status !== 0 && fs.existsSync(staleLock), `--unlock-stale must ${stale ? 'remove' : 'keep'} the lock for ${why}: ${unlock.stderr}`);
+  }
+  fs.unlinkSync(staleLock);
+  assert(invokeBoard(staleBoard, staleInput).status === 0, 'publishing must succeed after a stale lock is removed');
+
+  // Review writes update an existing delivery dossier or fail; they never append an orphan or touch other entry kinds.
+  const reviewBoard = createBoard('require-existing');
+  const reviewData = path.join(reviewBoard, 'data/changes.js');
+  const reviewInput = path.join(reviewBoard, 'entry.json');
+  const reviewPublish = payload => {
+    fs.writeFileSync(reviewInput, JSON.stringify(payload));
+    return invokeBoard(reviewBoard, reviewInput);
+  };
+  const reviewRecords = () => new Function(fs.readFileSync(reviewData, 'utf8') + ';return changes')();
+  assert(reviewPublish({ entry: { title: 'plan only', date: today, docPath: 'docs/plan.md', status: '草稿' },
+    detail: { delivery: { plan: { summary: 'exports stay tenant scoped.' } } } }).status === 0, 'plan fixture should publish');
+  assert(reviewPublish({ entry: { title: 'incident', date: today, docPath: 'docs/bugs/incident.md', kind: 'bug', status: '未修复' },
+    detail: { symptom: 'incident symptom' } }).status === 0, 'bug fixture should publish');
+  const beforeOrphan = fs.readFileSync(reviewData, 'utf8');
+  const bugDetailPath = path.join(reviewBoard, reviewRecords()[1].detailPath);
+  const bugDetailBefore = fs.readFileSync(bugDetailPath, 'utf8');
+  const reviewEvent = { delivery: { review: { events: [{ eventId: 'loop:1', findings: [{ id: 'IM-1' }] }] } } };
+  for (const [target, why] of [
+    [{ title: 'typo', sourceDocPath: 'docs/plna.md', currentGate: 'review' }, 'unmatched source plan'],
+    [{ title: 'bug target', sourceDocPath: 'docs/bugs/incident.md', currentGate: 'review' }, 'bug entry is not a delivery dossier'],
+    [{ title: 'bug kind', docPath: 'docs/bugs/incident.md', kind: 'bug' }, 'explicit non-delivery kind']
+  ]) {
+    const rejected = reviewPublish({ requireExisting: true, entry: target, detail: reviewEvent });
+    assert(rejected.status !== 0 && rejected.stderr.includes('BOARD_TARGET_NOT_FOUND'), `requireExisting must reject ${why}: ${rejected.stderr}`);
+    assert(fs.readFileSync(reviewData, 'utf8') === beforeOrphan && fs.readFileSync(bugDetailPath, 'utf8') === bugDetailBefore, `rejected review write must not change the board (${why})`);
+    assert(!fs.existsSync(reviewData + '.lock'), 'rejected review write must release its lock');
+  }
+  const badFlag = reviewPublish({ requireExisting: 'yes', entry: { sourceDocPath: 'docs/plan.md' }, detail: reviewEvent });
+  assert(badFlag.status !== 0 && badFlag.stderr.includes('BOARD_USAGE_ERROR'), 'requireExisting must be a boolean');
+  assert(reviewPublish({ requireExisting: true, entry: { title: 'plan only', sourceDocPath: 'docs/plan.md', currentGate: 'review' }, detail: reviewEvent }).status === 0,
+    'requireExisting must update a matching delivery dossier');
+  let records = reviewRecords();
+  assert(records.length === 2 && records[0].currentGate === 'review', 'matched review write must update in place');
+  assert(records[0].summary === 'exports stay tenant scoped.', 'a review event without summary must not replace the plan summary with the title: ' + records[0].summary);
+  assert(reviewPublish({ requireExisting: true, entry: { sourceDocPath: 'docs/plan.md', summary: 'review closed the export finding.' } }).status === 0, 'explicit summary update should publish');
+  records = reviewRecords();
+  assert(records[0].summary === 'review closed the export finding.', 'an explicit summary must still take effect');
+
+  // Outside an installed skill tree, the maintained shared root must win over stale legacy host copies.
+  const bootstrapHome = path.join(temp, 'bootstrap-home');
+  for (const [root, version] of [['.claude', 1], ['.cursor', 2], ['.codex', 3], ['.agents', 99]]) {
+    const js = path.join(bootstrapHome, root, 'skills/yan-dev-doc/assets/board/js');
+    fs.mkdirSync(js, { recursive: true });
+    fs.writeFileSync(path.join(js, 'board.js'), `const BOARD_VERSION = ${version};\n`);
+  }
+  const looseBootstrap = path.join(temp, 'loose/scripts/board-bootstrap.js');
+  fs.mkdirSync(path.dirname(looseBootstrap), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'skills/_shared/scripts/board-bootstrap.js'), looseBootstrap);
+  const bootstrapEnv = Object.assign({}, process.env, { HOME: bootstrapHome, USERPROFILE: bootstrapHome });
+  delete bootstrapEnv.DEV_WORKFLOW_SKILLS_BOARD_TEMPLATE;
+  const lookup = spawnSync(process.execPath, [looseBootstrap, 'status', path.join(temp, 'bootstrap-project')], { encoding: 'utf8', windowsHide: true, env: bootstrapEnv });
+  assert(lookup.status === 0 && lookup.stdout.includes('TEMPLATE_BOARD_VERSION=99'), 'board template lookup must prefer ~/.agents over legacy host roots: ' + (lookup.stdout + lookup.stderr));
+
+  // Record dates follow the local calendar day used for docs/<date>/, not the UTC day.
+  for (const [zone, offsetHours] of [['Etc/GMT-14', 14], ['Etc/GMT+12', -12]]) {
+    const zoneBoard = createBoard('zone-' + offsetHours);
+    const zoneInput = path.join(zoneBoard, 'entry.json');
+    fs.writeFileSync(zoneInput, JSON.stringify({ changelog: 'zone check', entry: { title: 'zone', docPath: 'docs/zone.md' } }));
+    const expected = new Date(Date.now() + offsetHours * 3600 * 1000).toISOString().slice(0, 10);
+    const zoned = spawnSync(process.execPath, [path.join(zoneBoard, 'board-add.js'), zoneInput],
+      { encoding: 'utf8', windowsHide: true, timeout: 15000, env: Object.assign({}, process.env, { TZ: zone }) });
+    assert(zoned.status === 0, 'zone fixture should publish: ' + zoned.stderr);
+    const zoneData = new Function(fs.readFileSync(path.join(zoneBoard, 'data/changes.js'), 'utf8') + ';return { changes, htmlChangelog }')();
+    assert(zoneData.changes[0].updatedAt === expected && zoneData.htmlChangelog[0].date === expected,
+      `board dates must use the local day in ${zone}: expected ${expected}, got ${zoneData.changes[0].updatedAt}/${zoneData.htmlChangelog[0].date}`);
+  }
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }

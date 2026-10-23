@@ -14,10 +14,11 @@ function candidateTemplates() {
   return [
     path.resolve(__dirname, '..', '..', 'yan-dev-doc', 'assets', 'board'),
     process.env.DEV_WORKFLOW_SKILLS_BOARD_TEMPLATE,
+    // 共享根是唯一维护的安装位置；旧宿主目录只作兜底，避免过期副本优先于当前模板。
+    home && path.join(home, '.agents', 'skills', 'yan-dev-doc', 'assets', 'board'),
     home && path.join(home, '.claude', 'skills', 'yan-dev-doc', 'assets', 'board'),
     home && path.join(home, '.cursor', 'skills', 'yan-dev-doc', 'assets', 'board'),
     home && path.join(home, '.codex', 'skills', 'yan-dev-doc', 'assets', 'board'),
-    home && path.join(home, '.agents', 'skills', 'yan-dev-doc', 'assets', 'board'),
   ].filter(Boolean);
 }
 

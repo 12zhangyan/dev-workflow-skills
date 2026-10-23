@@ -66,7 +66,9 @@ function checkRefs(docPath, root) {
       continue;
     }
     if (ref.start) {
-      const lineCount = fs.readFileSync(found, 'utf8').split(/\r?\n/).length;
+      // A trailing newline terminates the last line; it does not start another one.
+      const content = fs.readFileSync(found, 'utf8');
+      const lineCount = content ? content.replace(/\r?\n$/, '').split(/\r?\n/).length : 0;
       const last = ref.end || ref.start;
       if (ref.start < 1 || last > lineCount || last < ref.start) {
         problems.push(`LINE_OUT_OF_RANGE ${ref.raw} (file has ${lineCount} lines; doc line ${ref.docLine})`);
@@ -79,6 +81,8 @@ function checkRefs(docPath, root) {
 }
 
 const HEADERS = /^(flowchart|graph|sequenceDiagram|stateDiagram(?:-v2)?|erDiagram|classDiagram|gantt|journey|pie|mindmap|timeline|gitGraph|quadrantChart|C4Context|C4Container|C4Component|block-beta|sankey-beta|xychart-beta|requirementDiagram)\b/;
+// Hyphenated ids are allowed, but an id never ends in '-', so compact edges like A-->B keep "A" as the id.
+const NODE_ID = '[A-Za-z_]\\w*(?:-\\w+)*';
 const BUDGET = {
   flowchart: { nodes: 12, edges: 18 },
   state: { nodes: 12, edges: 18 },
@@ -126,14 +130,14 @@ function lintMermaid(source) {
       if (/^subgraph\b/.test(line)) depth += 1;
       else if (/^end\b/.test(line)) depth -= 1;
       if (/^(subgraph|end|classDef|class|style|linkStyle|click|direction)\b/.test(line)) continue;
-      for (const match of line.matchAll(/([A-Za-z_][\w-]*)\s*(\[\[|\[\(|\(\(|\[\/|\[\\|\[|\(\[|\(|\{\{|\{|>)([^\]\)\}]*)/g)) {
+      for (const match of line.matchAll(new RegExp(`(${NODE_ID})\\s*(\\[\\[|\\[\\(|\\(\\(|\\[\\/|\\[\\\\|\\[|\\(\\[|\\(|\\{\\{|\\{|>)([^\\]\\)\\}]*)`, 'g'))) {
         nodes.add(match[1]);
         const label = match[3].trim();
         if (label && !/^"/.test(label) && /[()[\]{}]/.test(label)) {
           errors.push(`unquoted label with reserved characters for node ${match[1]}; wrap the label in double quotes`);
         }
       }
-      for (const match of line.matchAll(/(?:^|[\s\])}>])([A-Za-z_][\w-]*)(?=\s*(?:-->|---|-\.->|==>|--[xo]|<-->|$|&))/g)) nodes.add(match[1]);
+      for (const match of line.matchAll(new RegExp(`(?:^|[\\s\\])}>|])(${NODE_ID})(?=\\s*(?:-->|---|-\\.->|==>|--[xo]|<-->|$|&))`, 'g'))) nodes.add(match[1]);
       edges += (line.match(/-->|---|-\.->|==>|--[xo]\b|<-->/g) || []).length;
     } else if (kind === 'sequence') {
       if (/^(alt|opt|loop|par|critical|break|rect|box)\b/.test(line)) depth += 1;
@@ -197,6 +201,9 @@ function selfTest() {
   assert(lintMermaid('graphs TD\n A --> B').errors.length === 1, 'unknown header not reported');
   const seq = lintMermaid('sequenceDiagram\n  participant C as Client\n  C->>S: 请求\n  alt 成功\n  S-->>C: 200\n  end');
   assert(seq.errors.length === 0 && seq.edges === 2, `sequence misread: ${JSON.stringify(seq)}`);
+  const compact = lintMermaid('flowchart TD\nA-->B["提交(草稿)"]\nB-->C\nnode-1 --> C');
+  assert(compact.errors.length === 0 && compact.nodes === 4 && compact.edges === 3, `compact edges misread as node ids: ${JSON.stringify(compact)}`);
+  assert(lintMermaid('flowchart TD\nA-->B[调用(x)]').errors.length === 1, 'unquoted reserved label after a compact edge not reported');
   const big = ['flowchart LR'];
   for (let i = 0; i < 14; i += 1) big.push(`  N${i} --> N${i + 1}`);
   assert(lintMermaid(big.join('\n')).warnings.some((item) => item.includes('over budget')), 'budget warning missing');
@@ -207,10 +214,11 @@ function selfTest() {
     fs.mkdirSync(path.join(dir, 'src'));
     fs.writeFileSync(path.join(dir, 'src', 'App.java'), 'a\nb\nc\n');
     const doc = path.join(dir, 'plan.md');
-    fs.writeFileSync(doc, '见 `src/App.java:2`、`src/App.java:9`、`src/Missing.java` 与 [链接](src/App.java)。\n```\n`src/Ignored.java`\n```\n`https://x.io/a.java` `src/*.java`\n');
+    fs.writeFileSync(doc, '见 `src/App.java:2`、`src/App.java:3`、`src/App.java:4`、`src/App.java:9`、`src/Missing.java` 与 [链接](src/App.java)。\n```\n`src/Ignored.java`\n```\n`https://x.io/a.java` `src/*.java`\n');
     const result = checkRefs(doc, findRoot(dir));
-    assert(result.ok === 2, `expected 2 ok refs, got ${result.ok}`);
-    assert(result.problems.length === 2 && result.problems.some((item) => item.startsWith('LINE_OUT_OF_RANGE')) && result.problems.some((item) => item.startsWith('MISSING src/Missing.java')), `unexpected problems: ${result.problems.join('; ')}`);
+    assert(result.ok === 3, `expected 3 ok refs, got ${result.ok}`);
+    assert(result.problems.length === 3 && result.problems.some((item) => item.startsWith('LINE_OUT_OF_RANGE src/App.java:4 (file has 3 lines'))
+      && result.problems.some((item) => item.startsWith('LINE_OUT_OF_RANGE src/App.java:9')) && result.problems.some((item) => item.startsWith('MISSING src/Missing.java')), `unexpected problems: ${result.problems.join('; ')}`);
     const json = path.join(dir, 'entry.json');
     fs.writeFileSync(json, JSON.stringify({ bizFlow: 'flowchart TD\n A[x(y)] --> B', title: 'not a diagram' }));
     assert(runMermaid(json).errorCount === 1, 'json mermaid field not linted');
