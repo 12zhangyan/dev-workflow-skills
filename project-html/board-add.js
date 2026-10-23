@@ -14,6 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 
 const BOARD_DIR = __dirname;
 const DATA = path.join(BOARD_DIR, 'data', 'changes.js');
@@ -96,6 +97,7 @@ function processAlive(pid) {
   catch (error) { return error.code === 'EPERM'; }
 }
 // 持有进程已退出，或锁存在超过 STALE_LOCK_MS 时返回原因；无法确认失效时返回 null。
+// pid 只在同一主机内有意义：共享目录上其他主机或未记录主机的锁只按存在时长判断。
 function staleLockReason() {
   let raw;
   let stat;
@@ -104,7 +106,7 @@ function staleLockReason() {
   let holder = {};
   try { holder = JSON.parse(raw) || {}; } catch (e) { /* 写入中断的锁没有可解析内容，按文件时间判断 */ }
   const pid = Number.isInteger(holder.pid) && holder.pid > 0 ? holder.pid : null;
-  if (pid && !processAlive(pid)) return `pid ${pid} 已退出`;
+  if (pid && holder.host === os.hostname() && !processAlive(pid)) return `pid ${pid} 已退出`;
   const created = Date.parse(holder.createdAt);
   const age = Date.now() - (Number.isNaN(created) ? stat.mtimeMs : created);
   return age > STALE_LOCK_MS ? `锁已存在 ${Math.round(age / 60000)} 分钟` : null;
@@ -129,7 +131,7 @@ function withWriteLock(operation) {
     die('BOARD_WRITE_LOCKED: another publisher holds ' + LOCK + '; retry after it finishes');
   }
   try {
-    fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }) + '\n');
+    fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, host: os.hostname(), createdAt: new Date().toISOString() }) + '\n');
     return operation();
   } finally {
     fs.closeSync(fd);

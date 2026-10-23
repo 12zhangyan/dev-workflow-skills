@@ -19,13 +19,13 @@
 
 目录与接口元数据以及一句话 `summary` 放在 `entry`；其余正文字段一律放在 `detail`。较新的写入脚本会合并两处，但旧外壳在提供 `detail` 时只读取 `detail` 的正文，留在 `entry` 的叙述会被静默丢弃；按此分工在新旧外壳上都完整。看板只显示下列字段，其他字段名会保留但不显示，不要自造：
 
-- 共用：`date` 是记录日期（与文档日期目录一致，事件发生时间写进正文）；`summary` 是一句话结论，显示在标题下方和搜索中；`status` 只用看板状态：`bug` 取 `未修复` / `修复中` / `已修复` / `已验证`，其他取 `待确认` / `草稿` / `进行中` / `已完成`。`background` 为字符串或段落数组；`openQuestions`、`assumptions`、`blockers`、`conflicts` 为字符串数组；`apis` 为 `[{method, url, desc, request?, response?}]`。
+- 共用：`date` 是记录日期（与文档日期目录一致，事件发生时间写进正文）；`summary` 是一句话结论，显示在标题下方和搜索中；`status` 只用看板状态：`bug` 取 `未修复` / `修复中` / `已修复` / `已验证`，其他取 `草稿` / `进行中` / `已完成`；任何类型整体未证实时都写 `待确认`。`background` 为字符串或段落数组；`openQuestions`、`assumptions`、`blockers`、`conflicts` 为字符串数组；`apis` 为 `[{method, url, desc, request?, response?}]`。
 - `bug`：`severity`（短标签如 `P1`，显示为类型标签；无依据就省略，看板显示“缺陷”）、`symptom`、`reproSteps[]`、`trigger`、`expected`、`actual`、`impact`、`rootCause`、`fixPlan`、`verifySteps[]`。
 - `reading`：`entry`（入口描述，写在 `detail.entry`）、`goals[]`、`scopeIn[]`、`scopeOut[]`、`solution`、`dataFlowSummary`、`coreDesign`、`flowchart`（Mermaid）、`keyImpl[{title, desc}]`、`acceptance[]`。
 - `biz`：`roles[{name, channel, scope, desc, entry}]`、`context[{field, source, usage, note}]`、`bizFlow` / `dataFlow` / `sequence` / `stateMachine`（Mermaid）、`dataChanges[{stage, operations[{target, action, fields, check}]}]`、`bizRules[{title, desc}]`、`validations[{stage, rule, failure, check}]`、`testPoints[]`、`dataObjects[{name, phase, action, note}]`。
 - 研发档案的 `delivery.plan` 字段见 yan-dev-doc 的发布协议。
 
-主体已证实、个别期望待确认时正常发布，待确认项写入 `openQuestions`；整体未证实时 `status` 写 `待确认`。续写时省略 `status` 保留原状态，显式提供则更新；普通列表用 `[]` 清空，审查 `events` 按 `eventId` 合并，空事件列表保留历史。
+主体已证实、个别期望待确认时正常发布，用对应类型的常规状态，待确认项写入 `openQuestions`；整体未证实时按上条写 `待确认`。续写时省略 `status` 保留原状态，显式提供则更新；普通列表用 `[]` 清空，审查 `events` 按 `eventId` 合并，空事件列表保留历史。
 
 ## 发布
 
@@ -36,7 +36,7 @@
    node project-html/board-add.js "<本次返回的绝对路径>"
    ```
 
-   每次发布单独分配输入，不复用固定文件或仅按 deliveryId 命名；同一档案也可能同时更新。遇到 `BOARD_WRITE_LOCKED` 保留本次输入，待持锁者结束后用原文件重试，不删除他人的锁。遇到 `BOARD_WRITE_LOCK_STALE`（持有进程已退出或锁超过 10 分钟）时运行 `node project-html/board-add.js --unlock-stale`，它只移除复核后仍失效的锁，再用原文件重试；不手工删除锁文件。
+   每次发布单独分配输入，不复用固定文件或仅按 deliveryId 命名；同一档案也可能同时更新。遇到 `BOARD_WRITE_LOCKED` 保留本次输入，待持锁者结束后用原文件重试，不删除他人的锁。遇到 `BOARD_WRITE_LOCK_STALE`（同一主机上的持有进程已退出，或锁超过 10 分钟）时运行 `node project-html/board-add.js --unlock-stale`，它只移除复核后仍失效的锁，再用原文件重试；不手工删除锁文件。
 
    脚本失败时保留临时 JSON 和错误证据，报告 `BoardPublishBlocked`。成功时 `board-add.js` 自行删除本次分配的 `data/.entry-*/entry.json` 及其空目录；其他位置的输入文件不动，调用方也不另行删除。`data/changes.js.bak` 只保留上一次写入前的单份备份，每次成功写入都会替换。
 3. 写入成功后运行 `node project-html/build.js`。只有明确需要单文件外发时才加 `--standalone "<docPath 或 slug>"`。构建失败报告 `BoardBuildBlocked`，不抹掉已成功写入的数据，也不宣称派生产物已生成。

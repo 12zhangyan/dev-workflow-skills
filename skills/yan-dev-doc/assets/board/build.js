@@ -19,6 +19,11 @@ function exists(p) { try { fs.accessSync(p); return true; } catch (e) { return f
 function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 // <script> 文本内联进 <script> 标签时，转义闭合序列，避免提前结束标签
 function safeScript(s) { return s.replace(/<\/script/gi, '<\\/script'); }
+// 数据内联进 <script> 前转义 <、U+2028、U+2029：值不变，但正文里的 </script> 或 <!-- 不会被 HTML 解析器截断。
+const INLINE_UNSAFE = new RegExp('[<' + String.fromCharCode(0x2028, 0x2029) + ']', 'g');
+function inlineJson(value) {
+  return JSON.stringify(value).replace(INLINE_UNSAFE, ch => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'));
+}
 function writeIfChanged(file, content) {
   if (exists(file) && read(file) === content) return false;
   fs.writeFileSync(file, content);
@@ -103,7 +108,7 @@ function buildPages(data) {
   for (const catalog of data.changes) {
     const d = hydratedEntry(catalog);
     const slug = slugMap.get(catalog);
-    const entryJs = 'const changes = [' + JSON.stringify(d) + '];\nconst htmlChangelog = [];';
+    const entryJs = 'const changes = [' + inlineJson(d) + '];\nconst htmlChangelog = [];';
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -112,7 +117,7 @@ function buildPages(data) {
 <title>${escHtml(d.title || '')}</title>
 <script src="../js/vendor/mermaid.min.js"></script>
 <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
-<link rel="stylesheet" href="../css/board.css?v=36">
+<link rel="stylesheet" href="../css/board.css?v=37">
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
 </head>
 <body>
@@ -120,7 +125,7 @@ function buildPages(data) {
 <main class="main" id="main"></main>
 <script>window.DETAIL_PAGE = true;</script>
 <script>${entryJs}</script>
-<script src="../js/board.js?v=36"></script>
+<script src="../js/board.js?v=37"></script>
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;
@@ -142,7 +147,7 @@ function exportStandalone(data, selector) {
   const mermaidTag = exists(vendor)
     ? `<script>${safeScript(read(vendor))}</script>`
     : `<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>`;
-  const entryJs = 'const changes = [' + JSON.stringify(d) + '];\nconst htmlChangelog = [];';
+  const entryJs = 'const changes = [' + inlineJson(d) + '];\nconst htmlChangelog = [];';
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
