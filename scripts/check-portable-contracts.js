@@ -195,8 +195,19 @@ for (const contract of contracts.cases || []) {
     continue;
   }
   const evalFile = JSON.parse(fs.readFileSync(evalPath, 'utf8').replace(/^\uFEFF/, ''));
-  if (!evalFile.evals.some((item) => Number(item.id) === Number(ref[2]))) {
+  const promptCase = evalFile.evals.find((item) => Number(item.id) === Number(ref[2]));
+  if (!promptCase) {
     fail(`${contract.id} references missing eval id: ${contract.prompt_ref}`);
+    continue;
+  }
+  // Skills emit machine labels only when routing is ambiguous, a handoff needs them, or the user asks for an audit format.
+  // A live assertion on a literal label is therefore only fair when the prompt itself asks for that label.
+  for (const textAssertion of (contract.assertions && contract.assertions.text) || []) {
+    for (const label of String(textAssertion.pattern).match(/\b(?:TestEvidenceStatus|TestDependencyClass|ReviewScopeType|CodeReviewMode|ReviewAgentMode|BoardPublishStatus)\b/g) || []) {
+      if (!String(promptCase.prompt || '').includes(label)) {
+        fail(`${contract.id} asserts the literal label ${label}, but prompt ${contract.prompt_ref} does not ask for it`);
+      }
+    }
   }
 }
 

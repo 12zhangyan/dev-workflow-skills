@@ -101,7 +101,7 @@
     {
       "id": 13,
       "prompt": "review-loop 第一次审查无 findings，但测试未运行",
-      "expected_output": "分别报告 ReviewConclusion=NoEvidenceIssue 与 TestEvidenceStatus=NotRun，不制造 finding；只有用户目标要求完成验证/验收时才将整体结果标为未完成，并给出最小验证动作。",
+      "expected_output": "分别说明审查结论（在已检查范围内未发现有证据的问题）与测试未运行，不制造 finding；只有用户目标要求完成验证/验收时才将整体结果标为未完成，并给出最小验证动作。",
       "tags": [
         "no_findings_unverified",
         "test_evidence"
@@ -181,7 +181,7 @@
     {
       "id": 30,
       "prompt": "用 review-loop 闭环 DLV-ORDER；我只希望看板出现一条本轮汇总，不要 package/check/repair 各写一条",
-      "expected_output": "设置 BoardPublishOwner=loop，内部 package/check/repair 子阶段不重复写看板；loop 最终用稳定 eventId 向 DLV-ORDER 写一条汇总事件，包含循环次数、原 finding ID 状态、验证和 VCS Gate，并输出 BoardPublishStatus。",
+      "expected_output": "loop 是本轮唯一的看板发布者：内部 check/repair 阶段和独立复核 reviewer 都不写看板；结束时以 requireExisting 和稳定 eventId 向 DLV-ORDER 写一条汇总事件，包含结论、原 finding ID 及状态、验证结果和下一步，并报告 BoardPublishStatus。",
       "tags": [
         "board_lifecycle",
         "single_publish_owner",
@@ -292,7 +292,7 @@
     },
     {
       "prompt": "review-loop 审查并修复 src/OrderService.java，项目由 SVN 管理，用户已列出本次改动文件",
-      "expected_output": "以用户列出的文件和本轮修改为审查范围，不执行任何 svn 命令；修复后照常运行目标测试验证；报告 VCS 状态为“SVN 未检查”，不宣称可提交。",
+      "expected_output": "以用户列出的文件和本轮修改为审查范围，并可用本地只读的 svn status、svn diff（加 --non-interactive）核对；不运行联网或写入 svn 命令；修复后照常运行目标测试验证；新增文件显示 ? 时标 VCSGateBlocked，不执行 svn add；命令不可用时报告“SVN 未检查”，不宣称可提交。",
       "tags": [
         "svn",
         "vcs_boundary"

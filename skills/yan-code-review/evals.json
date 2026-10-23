@@ -12,7 +12,7 @@
     },
     {
       "id": 2,
-      "prompt": "IM-2 已确认：backend/src/main/java/example/OrderQueryController.java 的 query(String keyword) 忽略 keyword。期望空白关键字返回全部订单，非空关键字大小写不敏感地筛选订单。请直接修复，不改接口，并用 backend/src/test/java/example/OrderQueryControllerTest.java 的 main 断言实际编译运行后回填 IM-2。",
+      "prompt": "IM-2 已确认：backend/src/main/java/example/OrderQueryController.java 的 query(String keyword) 忽略 keyword。期望空白关键字返回全部订单，非空关键字大小写不敏感地筛选订单。请直接修复，不改接口，并用 backend/src/test/java/example/OrderQueryControllerTest.java 的 main 断言实际编译运行后回填 IM-2，并按 TestEvidenceStatus 写明验证状态。",
       "expected_output": "选择 repair；保留 IM-2，只修改目标实现及确有必要的测试，实际编译并运行契约断言；只有验证覆盖目标逻辑时才标 fixed/Passed。",
       "tags": [
         "route_repair",

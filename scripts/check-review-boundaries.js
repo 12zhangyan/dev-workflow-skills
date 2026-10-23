@@ -116,16 +116,64 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
   '先澄清该条，再修改与它关联的条目',
 ]);
 
-// SVN 工作副本按用户规则零命令：只靠目录存在性判断 owner，状态报告为“SVN 未检查”。
+// SVN 工作副本按用户规则只运行本地只读命令；owner 仍只靠目录存在性判断，命令不可用时降级为“SVN 未检查”。
 requireText('skills/_shared/workflow-gates.md', [
-  'SVN owner 不执行任何 `svn` 命令或 SVN 客户端操作',
-  '一律报告为“SVN 未检查”，不写 clean，也不标 `VCSGateBlocked`',
+  'SVN owner 只运行本地只读命令',
+  '均加 `--non-interactive`',
+  '禁止联网命令（`log`、`blame`、`update`、`status -u`',
+  '写入命令（`add`、`commit`、`revert`',
+  '基线写 `svnversion` 原样结果',
+  '命令不存在、报错（如工作副本格式与客户端版本不匹配）或要求认证时保留错误',
+  '纳管与基线报告为“SVN 未检查”，不写 clean，不宣称可提交',
 ]);
-requireText('skills/yan-code-review/modes/check/mode.md', ['不执行任何 `svn` 命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
-requireText('skills/yan-code-review/modes/repair/mode.md', ['不执行任何 `svn` 命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
-requireText('skills/yan-code-review/modes/loop/mode.md', ['不执行任何 `svn` 命令']);
-requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时不执行任何 `svn` 命令']);
-requireText('skills/_shared/board-shell-bootstrap.md', ['SVN 工作副本不执行任何 `svn` 命令']);
+const SVN_POINT_OF_USE = '只运行本地只读的 `svn status`、`svn diff` 与 `svnversion`';
+requireText('skills/yan-code-review/modes/check/mode.md', [SVN_POINT_OF_USE, '不运行联网或写入命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git', '“SVN 未检查”']);
+requireText('skills/yan-code-review/modes/repair/mode.md', [SVN_POINT_OF_USE, '包括 `svn add`', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
+requireText('skills/yan-code-review/modes/loop/mode.md', [SVN_POINT_OF_USE, '不运行联网或写入命令']);
+requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时只允许本地只读的', '不联网、不写入']);
+requireText('skills/_shared/board-shell-bootstrap.md', ['`svn status --non-interactive project-html`', '命令不可用或报错时按状态未知照常升级']);
+
+// Networked or writing svn commands may only appear inside a prohibition, in skill text and eval expectations alike.
+{
+  const forbiddenSvn = /svn (?:log|update|commit|add|revert|blame|cleanup|upgrade|resolve|delete|move|propset|lock)\b|status -u|`(?:log|update|commit|add|revert|blame|cleanup|upgrade)`/;
+  const negation = /不|禁止|禁用|勿/;
+  const svnContext = /svn|SVN/;
+  const offending = [];
+  const scan = (where, text) => {
+    for (const sentence of text.split(/[。；;\n]/)) {
+      if (svnContext.test(sentence) && forbiddenSvn.test(sentence) && !negation.test(sentence)) offending.push(`${where}: ${sentence.trim().slice(0, 120)}`);
+    }
+  };
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : [full];
+  });
+  for (const file of walk(path.join(root, 'skills'))) {
+    const rel = path.relative(root, file).replace(/\\/g, '/');
+    if (rel.includes('/assets/')) continue;
+    if (rel.endsWith('.md')) scan(rel, fs.readFileSync(file, 'utf8'));
+    if (rel.endsWith('evals.json')) {
+      const suite = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+      for (const ev of suite.evals || []) scan(`${rel}#${ev.id}`, ev.expected_output || '');
+    }
+  }
+  if (offending.length) fail('networked or writing svn commands must only appear as prohibitions:\n  ' + offending.join('\n  '));
+
+  // Removed concepts must not come back through eval expectations, where no prose check would see them.
+  const retired = [
+    [/BoardPublishOwner/, 'BoardPublishOwner is not a skill concept; the coordinator is the only board publisher'],
+    [/审查清单/, 'check mode has no fixed review checklist'],
+    [/写入 ReviewScopeType/, 'the board review event field is scopeType'],
+  ];
+  const stale = [];
+  for (const file of walk(path.join(root, 'skills'))) {
+    const rel = path.relative(root, file).replace(/\\/g, '/');
+    if (rel.includes('/assets/') || !(rel.endsWith('.md') || rel.endsWith('evals.json'))) continue;
+    const text = fs.readFileSync(file, 'utf8');
+    for (const [pattern, why] of retired) if (pattern.test(text)) stale.push(`${rel}: ${why}`);
+  }
+  if (stale.length) fail('retired review concepts reappeared:\n  ' + stale.join('\n  '));
+}
 
 requireText('skills/_shared/workflow-gates.md', [
   '## 声明与证据',
