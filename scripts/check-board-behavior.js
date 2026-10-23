@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const vm = require('vm');
 const { spawnSync } = require('child_process');
 
@@ -64,6 +65,9 @@ function assert(ok, message) {
   }
 }
 
+assert(context.methodClass('GET" onclick="alert(1)') === 'm-GETONCLICKALERT', 'API method class must keep only letters');
+assert(!context.apiTable([{ method: 'POST" onmouseover="x', url: '/orders' }]).includes('onmouseover="'), 'API method must not inject attributes into the table markup');
+assert(context.apiTable([{ method: 'post', url: '/orders' }]).includes('class="method m-POST"'), 'ordinary API methods must keep their style class');
 assert(context.scopeOf(oldOpen) === 'backlog', 'old unfinished entry should enter backlog');
 assert(context.scopeOf(oldDone) === 'archive', 'old completed entry should enter archive');
 assert(context.scopeOf(forced) === 'workspace', 'lifecycle=active should override automatic archive');
@@ -591,9 +595,11 @@ try {
   fs.writeFileSync(staleInput, JSON.stringify({ entry: { title: 'after crash', docPath: 'docs/crash.md' } }));
   const exited = spawnSync(process.execPath, ['-e', ''], { windowsHide: true });
   const lockCases = [
-    { holder: { pid: exited.pid, createdAt: new Date().toISOString() }, stale: true, why: 'exited holder process' },
-    { holder: { pid: process.pid, createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() }, stale: true, why: 'lock older than the stale window' },
-    { holder: { pid: process.pid, createdAt: new Date().toISOString() }, stale: false, why: 'live holder with a fresh lock' }
+    { holder: { pid: exited.pid, host: os.hostname(), createdAt: new Date().toISOString() }, stale: true, why: 'exited holder process on this host' },
+    { holder: { pid: exited.pid, host: 'another-host-sharing-the-board', createdAt: new Date().toISOString() }, stale: false, why: 'fresh lock from another host (its pid is not checkable here)' },
+    { holder: { pid: exited.pid, createdAt: new Date().toISOString() }, stale: false, why: 'fresh lock without a recorded host' },
+    { holder: { pid: process.pid, host: 'another-host-sharing-the-board', createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() }, stale: true, why: 'lock older than the stale window' },
+    { holder: { pid: process.pid, host: os.hostname(), createdAt: new Date().toISOString() }, stale: false, why: 'live holder with a fresh lock' }
   ];
   for (const { holder, stale, why } of lockCases) {
     fs.writeFileSync(staleLock, JSON.stringify(holder));
@@ -658,6 +664,29 @@ try {
   delete bootstrapEnv.DEV_WORKFLOW_SKILLS_BOARD_TEMPLATE;
   const lookup = spawnSync(process.execPath, [looseBootstrap, 'status', path.join(temp, 'bootstrap-project')], { encoding: 'utf8', windowsHide: true, env: bootstrapEnv });
   assert(lookup.status === 0 && lookup.stdout.includes('TEMPLATE_BOARD_VERSION=99'), 'board template lookup must prefer ~/.agents over legacy host roots: ' + (lookup.stdout + lookup.stderr));
+
+  // Narrative text is data: "</script>" and line/paragraph separators must not end or break inlined page scripts.
+  const escapeProject = path.join(temp, 'escape-project');
+  for (const dir of ['data', 'css', 'js']) fs.mkdirSync(path.join(escapeProject, 'project-html', dir), { recursive: true });
+  for (const file of ['build.js', 'board-add.js', 'css/board.css', 'js/board.js']) fs.copyFileSync(path.join(ROOT, 'project-html', file), path.join(escapeProject, 'project-html', file));
+  fs.copyFileSync(path.join(ROOT, 'skills/yan-dev-doc/assets/board/data/changes.js'), path.join(escapeProject, 'project-html/data/changes.js'));
+  const hostileSymptom = '评论输入 </script><script>window.PWNED=1</script><!-- 后页面执行脚本' + String.fromCharCode(0x2028) + '第二行' + String.fromCharCode(0x2029);
+  const escapeInput = path.join(escapeProject, 'entry.json');
+  fs.writeFileSync(escapeInput, JSON.stringify({ entry: { title: 'XSS 事故', date: today, docPath: 'docs/bugs/xss.md', kind: 'bug', status: '未修复' }, detail: { symptom: hostileSymptom } }));
+  const escapeRun = (...args) => spawnSync(process.execPath, [path.join(escapeProject, 'project-html', args[0]), ...args.slice(1)], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  assert(escapeRun('board-add.js', escapeInput).status === 0, 'hostile narrative fixture should publish');
+  assert(escapeRun('build.js').status === 0 && escapeRun('build.js', '--standalone', 'docs/bugs/xss.md').status === 0, 'build and standalone export should succeed');
+  const unsafeInline = new RegExp('[' + String.fromCharCode(0x2028, 0x2029) + ']');
+  for (const dir of ['pages', 'exports']) {
+    const generated = fs.readdirSync(path.join(escapeProject, 'project-html', dir)).filter(name => name.endsWith('.html'));
+    assert(generated.length === 1, `expected one generated ${dir} page`);
+    const html = fs.readFileSync(path.join(escapeProject, 'project-html', dir, generated[0]), 'utf8');
+    assert(!html.includes('window.PWNED=1</script>'), `${dir} page must not let narrative text close the data script`);
+    const dataScript = html.match(/<script>(const changes = \[[\s\S]*?)<\/script>/);
+    assert(dataScript && !unsafeInline.test(dataScript[1]) && !dataScript[1].includes('<'), `${dir} inline data must escape < and line separators`);
+    const roundTrip = new Function(dataScript[1] + ';return changes')();
+    assert(roundTrip[0].symptom === hostileSymptom, `${dir} inline data must preserve the original narrative`);
+  }
 
   // Record dates follow the local calendar day used for docs/<date>/, not the UTC day.
   for (const [zone, offsetHours] of [['Etc/GMT-14', 14], ['Etc/GMT+12', -12]]) {

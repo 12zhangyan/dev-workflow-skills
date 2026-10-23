@@ -4,7 +4,7 @@
 
 // 外壳版本号只提示维护更新；发布按实际兼容性决定是否同步外壳，不动 data/。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 36;
+const BOARD_VERSION = 37;
 
 const UI_ICONS = {
   "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
@@ -516,9 +516,13 @@ function showHome(preserveScroll = false) {
 }
 
 // ─── 接口表格（pick / renderBiz 共用）─────────────────────────────────────────
+// method 只用于选样式类；限制为字母，避免引号进入 class 属性破坏标签。
+function methodClass(method) {
+  return 'm-' + String(method || 'GET').toUpperCase().replace(/[^A-Z]/g, '');
+}
 function apiTable(apis) {
   const rows = apis.map(a => {
-    const mClass = `m-${(a.method || 'GET').toUpperCase()}`;
+    const mClass = methodClass(a.method);
     let detail = '';
     if (a.request) detail += `<details><summary>Request</summary><pre class="json-block">${esc(a.request)}</pre></details>`;
     if (a.response) detail += `<details><summary>Response</summary><pre class="json-block">${esc(a.response)}</pre></details>`;
@@ -1085,7 +1089,7 @@ function showApis() {
         const c = changes[i];
         (c.apis || []).forEach(a => {
           total++;
-          const mClass = `m-${(a.method || 'GET').toUpperCase()}`;
+          const mClass = methodClass(a.method);
           let detail = '';
           if (a.request) detail += `<details><summary>Request</summary><pre class="json-block">${esc(a.request)}</pre></details>`;
           if (a.response) detail += `<details><summary>Response</summary><pre class="json-block">${esc(a.response)}</pre></details>`;
