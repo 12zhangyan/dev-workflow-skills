@@ -94,6 +94,10 @@ const htmlChangelog = [
     "date": "2026-10-20",
     "desc": "更新范围为最终实际内容：参考 superpowers 优化 Skill 集"
   },
+  {
+    "date": "2026-10-22",
+    "desc": "标注 SVN 零命令已被 #35 的本地只读规则取代"
+  },
   // ─── 在此行上方追加变更日志 ───
 ];
 
@@ -166,8 +170,8 @@ const changes = [
     "deliveryId": "DLV-4A58EFE50B",
     "detailId": "d-4a58efe50b054c69",
     "detailPath": "data/details/d-4a58efe50b054c69.js",
-    "summary": "参考 superpowers 优化 Skill 集",
-    "searchText": "参考 superpowers 优化 Skill 集 dev-workflow-skills Skill 行为与评测 参考 superpowers 优化 Skill 集 Completed 参考 superpowers 补强 Skill 集，但每条规则都要先测出真实问题才保留。最终留下 3 条有证据的规则，删掉 4 条没有效果的，并修好了评测本身的几个漏洞。 仓库在 10-10 已借用过 superpowers 的系统化调试思路，10-13 又明确不设默认 TDD 和默认双 reviewer。这次不再照搬它的流程，只补还没借、又不与现有理念冲突的部分。 superpowers 的实测结论是：压力下的违规用识别表或具体字眼自查更有效；输出形状问题用正向配方更有效；给规则追加例外从句会削弱效果。当前 Skill 大多用带例外的长句写成，评测也基本只跑一次。 评测运行器支持重复采样和通过率对比，并修好隔离：不再误读本机已安装的旧版 Skill 审查报告的问题编号统一为 IM-1 这类格式 复审对每个原问题给出“已解决 / 未解决”，范围外的观察不让循环继续 SVN 管理的目录不执行任何 svn 命令，只对 Git 检查版本状态 上线后逐条复验，删掉去掉后行为没有差别的规则 不新增第 5 个公开入口，也不新增方案执行类 Skill 不引入强制调用、强制 TDD、自动提交、worktree 或"
+    "summary": "参考 superpowers 补强 Skill 集，但每条规则都要先测出真实问题才保留。",
+    "searchText": "参考 superpowers 优化 Skill 集 dev-workflow-skills Skill 行为与评测 参考 superpowers 补强 Skill 集，但每条规则都要先测出真实问题才保留。 Completed 参考 superpowers 补强 Skill 集，但每条规则都要先测出真实问题才保留。最终留下 3 条有证据的规则，删掉 4 条没有效果的，并修好了评测本身的几个漏洞。 仓库在 10-10 已借用过 superpowers 的系统化调试思路，10-13 又明确不设默认 TDD 和默认双 reviewer。这次不再照搬它的流程，只补还没借、又不与现有理念冲突的部分。 superpowers 的实测结论是：压力下的违规用识别表或具体字眼自查更有效；输出形状问题用正向配方更有效；给规则追加例外从句会削弱效果。当前 Skill 大多用带例外的长句写成，评测也基本只跑一次。 评测运行器支持重复采样和通过率对比，并修好隔离：不再误读本机已安装的旧版 Skill 审查报告的问题编号统一为 IM-1 这类格式 复审对每个原问题给出“已解决 / 未解决”，范围外的观察不让循环继续 SVN 管理的目录不执行任何 svn 命令，只对 Git 检查版本状态（2026-10-22 起改为允许本地只读的 svn 命令，见 #35） 上线后逐条复验，删掉去掉后行为没有差别的规则 不新增第"
   },
   // ─── 在此行上方追加新记录 ───
 ];

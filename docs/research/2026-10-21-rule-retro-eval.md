@@ -22,7 +22,7 @@
 
 - finding 编号正向配方：3/10 → 10/10。
 - 复审逐条 ADDRESSED / NOT ADDRESSED：去掉时 0/6，保留时 5/12。
-- SVN 工作副本零命令与 `detect-vcs` 具体步骤：用户裁决的边界；识别内嵌 SVN 从 0/2 到 3/3。
+- SVN 工作副本零命令与 `detect-vcs` 具体步骤：用户裁决的边界；识别内嵌 SVN 从 0/2 到 3/3。（零命令部分已由 #35 改为允许本地只读命令，见 [SVN 本地只读](2026-10-22-svn-local-readonly.md)；`detect-vcs` 步骤仍有效。）
 
 ## 加载变化
 

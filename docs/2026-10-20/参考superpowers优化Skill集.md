@@ -22,7 +22,7 @@
 
 - **评测隔离修复：** Claude 运行禁用宿主 `Skill` 工具，因为它会加载已安装的旧入口，导致此前的 Claude A/B 没有测到根入口；子进程关闭自动更新；复核子 Agent 放行只读 shell 命令。见 #27、#28。
 - **新增回归测试：** `report-ownership` 行为核对，以及 `review-loop-delegated-recheck`、`review-repair-external-advice` 两个 case。契约识别线索规则经 A/B 不采纳。见 #28、#30。
-- **用户新增的规则：** 只对 Git owner 收集 VCS 证据，SVN 工作副本不执行任何 `svn` 命令；用 `detect-vcs` 识别内嵌 SVN 从 0/2 到 3/3。见 #29。
+- **用户新增的规则：** 只对 Git owner 收集 VCS 证据，SVN 工作副本不执行任何 `svn` 命令；用 `detect-vcs` 识别内嵌 SVN 从 0/2 到 3/3。见 #29。（2026-10-22 已由 #35 改为允许本地只读的 svn 命令，见 [SVN 本地只读](../research/2026-10-22-svn-local-readonly.md)。）
 
 证据记录：[superpowers 借鉴](../research/2026-10-20-superpowers-adoption.md)、[finding 编号配方](../research/2026-10-20-finding-id-recipe.md)、[契约基线](../research/2026-10-20-report-contract-baseline.md)、[SVN 零命令](../research/2026-10-21-svn-no-commands.md)、[规则复验](../research/2026-10-21-rule-retro-eval.md)。
 

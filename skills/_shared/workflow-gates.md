@@ -41,7 +41,7 @@ JDK、Node、构建工具或依赖下载使命令无法启动，可记 `Environm
 
 按每个候选变更文件向上查找最近的 `.svn` 或 `.git`，该工作副本才是 `VCS_OWNER`；只用 `detect-vcs` 这类目录存在性检查判断，外层 Git 的 status 不能代表内层 SVN 文件。Git owner 按组读取 status 和实际 diff；命令失败时保留错误并标记 `VCSStatusUnknown`，不能把空输出当 clean。
 
-SVN owner 只运行本地只读命令：`svn status`、`svn diff`（可加 `--summarize`）、`svn info`，均加 `--non-interactive`，以及 `svnversion`。它们只读工作副本内的原始副本，不连服务器。禁止联网命令（`log`、`blame`、`update`、`status -u`、带 `-r`/`-c` 的 `diff`、远端 URL）和写入命令（`add`、`commit`、`revert`、`cleanup`、`upgrade`、`resolve`、`delete`、`move`、`propset`、`lock`）。
+SVN owner 只运行本地只读命令：`svn status`、`svn diff`（可加 `--summarize`）、`svn info`，均加 `--non-interactive`，以及 `svnversion`。它们只读工作副本内的原始副本，不连服务器。命令在 `detect-vcs` 返回的 SVN 工作副本根目录运行，或直接传入该工作副本内的改动文件路径；不在外层 Git 根目录等非工作副本位置运行。退出码为 0 也不等于成功：标准错误出现 `svn: warning`（如 `W155007` not a working copy），或 `svnversion` 输出 `Unversioned directory` 等非修订号结果时，按命令失败处理。禁止联网命令（`log`、`blame`、`update`、`status -u`、带 `-r`/`-c` 的 `diff`、远端 URL）和写入命令（`add`、`commit`、`revert`、`cleanup`、`upgrade`、`resolve`、`delete`、`move`、`propset`、`lock`）。
 
 本地命令成功时与 Git 同口径：按 status/diff 确定改动与纳管，`?` 的应纳管文件同样标 `VCSGateBlocked`；基线写 `svnversion` 原样结果，混合修订（如 `0:1M`）不改写成单一修订。命令不存在、报错（如工作副本格式与客户端版本不匹配）或要求认证时保留错误、不重试变体：改动范围改以用户提供的文件清单或 patch 和本轮实际修改的文件为准，缺少时列为材料缺口；纳管与基线报告为“SVN 未检查”，不写 clean，不宣称可提交。
 

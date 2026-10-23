@@ -244,8 +244,8 @@ function smokeBoardShellBootstrap() {
   }
 }
 
-requireText('skills/yan-dev-doc/SKILL.md', ['SVN 工作副本只运行本地只读的 `svnversion`、`svn info`、`svn status`', '不运行 `svn log` 等联网命令或写入命令', '命令不可用或报错时基线写用户提供的修订或“SVN 未检查”']);
-requireText('skills/yan-conversation-handoff/SKILL.md', ['SVN 工作副本只做本地只读复核', '不运行联网或写入命令']);
+requireText('skills/yan-dev-doc/SKILL.md', ['SVN 工作副本只运行本地只读的 `svnversion`、`svn info`、`svn status`', '不运行 `svn log` 等联网命令或写入命令', '命令不可用或报错时基线写用户提供的修订或“SVN 未检查”', '在 `detect-vcs` 返回的 SVN 根目录运行', '`svnversion` 输出 `Unversioned directory` 或出现 `svn: warning` 也按失败处理']);
+requireText('skills/yan-conversation-handoff/SKILL.md', ['SVN 工作副本只做本地只读复核', '在 `detect-vcs` 返回的 SVN 根目录运行', '不运行联网或写入命令', '出现 `svn: warning`、`Unversioned directory` 时 VCS 状态写“SVN 未检查”']);
 requireText('skills/yan-project-analysis/modes/incident/reference.md', ['本地只读的 `svn status --non-interactive`', '不运行 `svn log` 等联网命令']);
 
 requireText('skills/yan-dev-doc/SKILL.md', [
@@ -455,6 +455,37 @@ requireText('skills/_shared/board-publish-flow.md', [
 ]);
 
 smokeBoardShellBootstrap();
+
+// Historical records may keep the retired SVN zero-command rule, but must not present it as current.
+{
+  const retiredSvnRule = /不执行任何 `?svn`? 命令|SVN 工作副本零命令|SVN 项目一律不执行命令/;
+  const supersededMarker = /#35|已被取代/;
+  const unmarked = [];
+  const collect = (dir, ext) => !fs.existsSync(dir) ? [] : fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? collect(full, ext) : full.endsWith(ext) ? [full] : [];
+  });
+  for (const file of collect(path.join(root, 'docs'), '.md')) {
+    const rel = path.relative(root, file).replace(/\\/g, '/');
+    if (rel === 'docs/INDEX.md') continue;
+    const text = fs.readFileSync(file, 'utf8');
+    const fileMarked = /已被取代/.test(text.split('\n').slice(0, 6).join('\n'));
+    text.split('\n').forEach((line, index) => {
+      if (retiredSvnRule.test(line) && !fileMarked && !supersededMarker.test(line)) unmarked.push(`${rel}:${index + 1}`);
+    });
+  }
+  for (const file of collect(path.join(root, 'project-html/data/details'), '.js')) {
+    const holder = {};
+    new Function('window', fs.readFileSync(file, 'utf8'))(holder);
+    const visit = (value, where) => {
+      if (typeof value === 'string') { if (retiredSvnRule.test(value) && !supersededMarker.test(value)) unmarked.push(`${where}: ${value.slice(0, 60)}`); }
+      else if (Array.isArray(value)) value.forEach((item, index) => visit(item, `${where}[${index}]`));
+      else if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) visit(item, `${where}.${key}`);
+    };
+    visit(holder.BOARD_DETAILS, path.relative(root, file).replace(/\\/g, '/'));
+  }
+  if (unmarked.length) fail('retired SVN zero-command rule appears without a superseded marker (#35 / 已被取代):\n  ' + unmarked.join('\n  '));
+}
 
 if (failed) process.exit(1);
 console.log('ok document skill boundary checks passed; cross-platform board adapter smoke executed');

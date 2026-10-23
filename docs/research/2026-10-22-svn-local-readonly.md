@@ -37,3 +37,18 @@ check、repair、loop、dev-doc、handoff、incident 记录、看板外壳升级
 
 - 改写 check 40、repair 32、loop 42、yan-dev-doc 40 与 81 的期望输出，与新规则一致。上一轮审核发现的 9 条"要求跑 svn status/diff 或标 `VCSGateBlocked`"的旧评测，在新规则下已经一致，不需要改写。
 - `check-review-boundaries.js` 新增扫描：skill 正文和评测期望中，联网或写入类 svn 命令只能出现在禁止语境里。它对旧内容能检出 yan-dev-doc 40 的"按需查询 svn log"。
+
+## 追补：在错误目录运行时退出码为 0
+
+第五轮审核在本机实测，在非工作副本目录（例如外层 Git 仓库根）运行时：
+
+| 命令 | 退出码 | 输出 |
+|---|---|---|
+| `svn status --non-interactive` | 0 | 标准输出为空，标准错误只有 `svn: warning: W155007 ... is not a working copy` |
+| `svn status --non-interactive project-html` | 0 | 同上 |
+| `svnversion` | 0 | `Unversioned directory` |
+| `svn diff` / `svn info` | 1 | 报错 |
+
+只按"报错"判断失败时，前两种会被当成"没有改动"。规则因此补充：命令在 `detect-vcs` 返回的 SVN 工作副本根目录运行，或直接传入改动文件路径（实测从工作副本外传入文件路径也能得到正确的 `M` 和 `?`）；退出码为 0 但出现 `svn: warning` 或 `Unversioned directory` 时按失败处理。只验证了命令本身的表现，没有观察到模型真的这样误读。
+
+`check-review-boundaries.js` 在本机装有 `svn` 时会实际运行这些命令，核对规则里写的失败信号与真实输出一致；装有 `svnadmin` 时还会建临时仓库，确认删掉仓库后 `svn status` 与 `svnversion` 仍能正确工作、`svn log` 失败。没有 svn 客户端的环境跳过这一项并打印说明。
