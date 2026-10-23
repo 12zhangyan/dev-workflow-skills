@@ -10,3 +10,8 @@ project-html/pages/
 project-html/exports/
 /docs/INDEX.md
 /docs/archive/
+# board-add.js / board-bootstrap.js 的临时与备份文件，与 sync 为新看板生成的 project-html/.gitignore 一致
+project-html/data/changes.js.bak
+project-html/data/changes.js.lock
+project-html/data/.entry-*/
+project-html/.shell-backup/

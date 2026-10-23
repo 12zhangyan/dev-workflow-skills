@@ -2,7 +2,9 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 
@@ -127,11 +129,91 @@ requireText('skills/_shared/workflow-gates.md', [
   '纳管与基线报告为“SVN 未检查”，不写 clean，不宣称可提交',
 ]);
 const SVN_POINT_OF_USE = '只运行本地只读的 `svn status`、`svn diff` 与 `svnversion`';
-requireText('skills/yan-code-review/modes/check/mode.md', [SVN_POINT_OF_USE, '不运行联网或写入命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git', '“SVN 未检查”']);
-requireText('skills/yan-code-review/modes/repair/mode.md', [SVN_POINT_OF_USE, '包括 `svn add`', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
-requireText('skills/yan-code-review/modes/loop/mode.md', [SVN_POINT_OF_USE, '不运行联网或写入命令']);
-requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时只允许本地只读的', '不联网、不写入']);
-requireText('skills/_shared/board-shell-bootstrap.md', ['`svn status --non-interactive project-html`', '命令不可用或报错时按状态未知照常升级']);
+// Outside a working copy `svn status` exits 0 with empty stdout and only a stderr warning, and `svnversion`
+// exits 0 printing "Unversioned directory": the rule must say where to run and treat those as failures.
+requireText('skills/_shared/workflow-gates.md', [
+  '命令在 `detect-vcs` 返回的 SVN 工作副本根目录运行，或直接传入该工作副本内的改动文件路径',
+  '退出码为 0 也不等于成功',
+  '`W155007`',
+  '`Unversioned directory`',
+]);
+const SVN_WHERE = '在 `detect-vcs` 返回的 SVN 根目录';
+const SVN_ZERO_EXIT = '退出码为 0 但出现 `svn: warning`、`Unversioned directory`';
+requireText('skills/yan-code-review/modes/check/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '不运行联网或写入命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git', '“SVN 未检查”']);
+requireText('skills/yan-code-review/modes/repair/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '包括 `svn add`', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
+requireText('skills/yan-code-review/modes/loop/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '不运行联网或写入命令']);
+requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时只允许在返回的 `root` 下运行本地只读的', '不联网、不写入', '退出码为 0 但有 `svn: warning` 也按失败处理']);
+requireText('skills/_shared/board-shell-bootstrap.md', ['`svn status --non-interactive project-html`', '出现 `svn: warning`', '时按状态未知照常升级']);
+
+// When a real svn client is installed, confirm the failure signals named above match its actual output,
+// and that the allowed commands work inside a working copy without the server.
+{
+  const run = (command, args, cwd) => spawnSync(command, args, { cwd, encoding: 'utf8', windowsHide: true, timeout: 30000 });
+  const svnAvailable = run('svn', ['--version', '--quiet']).status === 0 && run('svnversion', ['--version', '--quiet']).status === 0;
+  if (!svnAvailable) {
+    console.log('note: svn client not installed; skipped the live svn signal probe');
+  } else {
+    const probeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'svn-signal-probe-'));
+    try {
+      const outside = path.join(probeRoot, 'not-a-working-copy');
+      fs.mkdirSync(path.join(outside, 'project-html'), { recursive: true });
+      for (const args of [['status', '--non-interactive'], ['status', '--non-interactive', 'project-html']]) {
+        const result = run('svn', args, outside);
+        if (result.status !== 0 || result.stdout.trim() || !/svn: warning: W155007/.test(result.stderr)) {
+          fail(`svn ${args.join(' ')} outside a working copy no longer looks like "exit 0, empty stdout, W155007 warning" (exit ${result.status}); update the SVN failure signals in workflow-gates.md`);
+        }
+      }
+      const unversioned = run('svnversion', [], outside);
+      if (unversioned.status !== 0 || /^\d+(?::\d+)?[MSP]*$/.test(unversioned.stdout.trim())) {
+        fail(`svnversion outside a working copy should exit 0 with a non-revision result; got exit ${unversioned.status}: ${unversioned.stdout.trim()}`);
+      } else if (unversioned.stdout.trim() !== 'Unversioned directory') {
+        console.log(`note: svnversion printed "${unversioned.stdout.trim()}" (localized?); the rule also covers other non-revision results`);
+      }
+
+      if (run('svnadmin', ['--version', '--quiet']).status === 0) {
+        const repo = path.join(probeRoot, 'repo');
+        const wc = path.join(probeRoot, 'wc');
+        const url = 'file:///' + repo.replace(/\\/g, '/').replace(/^\//, '');
+        const steps = [
+          ['svnadmin', ['create', repo], probeRoot],
+          ['svn', ['checkout', '--quiet', '--non-interactive', url, wc], probeRoot],
+        ];
+        for (const [command, args, cwd] of steps) {
+          const result = run(command, args, cwd);
+          if (result.status !== 0) throw new Error(`${command} ${args[0]} failed: ${result.stderr}`);
+        }
+        fs.writeFileSync(path.join(wc, 'A.java'), 'a\n');
+        for (const args of [['add', '--quiet', 'A.java'], ['commit', '--quiet', '--non-interactive', '-m', 'probe']]) {
+          const result = run('svn', args, wc);
+          if (result.status !== 0) throw new Error(`fixture svn ${args[0]} failed: ${result.stderr}`);
+        }
+        fs.writeFileSync(path.join(wc, 'A.java'), 'a\nb\n');
+        fs.writeFileSync(path.join(wc, 'NewTest.java'), 'new\n');
+        fs.renameSync(repo, repo + '-unreachable');
+        const atRoot = run('svn', ['status', '--non-interactive'], wc);
+        const byPath = run('svn', ['status', '--non-interactive', path.join(wc, 'A.java'), path.join(wc, 'NewTest.java')], outside);
+        for (const [label, result] of [['at the working-copy root', atRoot], ['with file paths from outside', byPath]]) {
+          if (result.status !== 0 || !/^M\s+.*A\.java$/m.test(result.stdout) || !/^\?\s+.*NewTest\.java$/m.test(result.stdout) || /svn: warning/.test(result.stderr)) {
+            fail(`svn status ${label} should list M A.java and ? NewTest.java without the server: ${result.stdout}${result.stderr}`);
+          }
+        }
+        const version = run('svnversion', [], wc);
+        if (version.status !== 0 || !/^\d+(?::\d+)?M$/.test(version.stdout.trim())) {
+          fail(`svnversion inside the working copy should report a modified revision without the server: ${version.stdout}${version.stderr}`);
+        }
+        const networked = run('svn', ['log', '--non-interactive', '-l', '1'], wc);
+        if (networked.status === 0) fail('svn log unexpectedly worked without the repository; recheck the networked-command list');
+        console.log('ok live svn probe: failure signals outside a working copy and offline status/svnversion inside one match the rule');
+      } else {
+        console.log('ok live svn probe: failure signals outside a working copy match the rule (svnadmin not installed; offline working-copy probe skipped)');
+      }
+    } catch (error) {
+      fail('svn signal probe could not run: ' + error.message);
+    } finally {
+      fs.rmSync(probeRoot, { recursive: true, force: true });
+    }
+  }
+}
 
 // Networked or writing svn commands may only appear inside a prohibition, in skill text and eval expectations alike.
 {
