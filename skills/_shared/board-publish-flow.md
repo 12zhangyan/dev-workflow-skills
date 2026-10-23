@@ -51,6 +51,19 @@ Review 写入在包装对象顶层加 `"requireExisting": true`：脚本只更�
 
 Review entry 只需提供稳定身份、当前结论、有人类意义的摘要，以及有信息增益的 findings/验证/下一动作。保留 finding ID 和稳定 `eventId`；重跑更新同一事件。字段与状态按实际结果裁剪，不为填完整模板制造空数组或状态标签。
 
+看板只显示下列 Review 字段，不要自造字段名或改放其他位置：
+
+- `entry`：身份 `deliveryId` 或 `sourceDocPath`；阶段确有推进时才写 `currentGate`（`plan` / `implementation` / `verification` / `review` / `submit`），省略则保留原阶段；可选 `gateStatus`（`blocked` 时阶段条标红）与 `reviewState`（短标签）。
+- `detail.delivery.review.events[]`：每轮一个事件，必填稳定 `eventId`；可选 `mode`、`conclusion` 或 `title`、`date`、`summary`、`findings[{id, status, problem}]`、`scopeType`、`verification.status`、`gateStatus`、`next`（读者下一步）。最后一个事件作为“最近审查”展示。
+
+```json
+{ "requireExisting": true,
+  "entry": { "sourceDocPath": "docs/<日期>/<任务>.md", "currentGate": "review", "reviewState": "findings" },
+  "detail": { "delivery": { "review": { "events": [ { "eventId": "loop:<任务>:1", "mode": "loop", "conclusion": "Findings",
+    "summary": "<一句话结论>", "findings": [ { "id": "IM-1", "status": "open", "problem": "<问题与影响>" } ],
+    "verification": { "status": "NotRun" }, "next": "<读者下一步>" } ] } } } }
+```
+
 ## 完成证据
 
 报告 `board-add.js` 结果、实际 catalog/detail 路径、`build.js` 结果（含它重写的 `docs/INDEX.md`）、未生成内容和 VCS 边界。只有脚本真实成功才声称 Published；本来不发布看板的路径（ImpactAnalysis、未要求记录生命周期的 check、无匹配档案的 review）不输出看板状态占位；默认发布路径未发布时，由调用方报告 `BoardPublishSkipped`/`BoardPublishBlocked` 及原因。

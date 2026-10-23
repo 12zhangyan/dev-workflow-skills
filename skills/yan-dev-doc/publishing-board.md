@@ -26,8 +26,7 @@
   "entry": {
     "title": "<title>",
     "date": "<date>",
-    "docPath": "<repo-relative md path>",
-    "currentGate": "plan"
+    "docPath": "<repo-relative md path>"
   },
   "detail": {
     "delivery": {
@@ -45,5 +44,7 @@
   }
 }
 ```
+
+entry 不写 `currentGate`：新建档案由 `board-add.js` 置为方案阶段；续写已有档案时省略即保留其真实阶段，修订方案不把已进入实现、验证或审查的档案退回方案阶段。
 
 写好 entry 后读取并执行 [共享看板发布流程](../_shared/board-publish-flow.md)。所有写入必须经过 `node project-html/board-add.js`，随后运行 `node project-html/build.js`；脚本失败时保留证据，不手改数据绕过。视觉复核只有真实打开页面后才能声称通过，否则明确未运行。
