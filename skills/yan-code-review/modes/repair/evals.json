@@ -132,7 +132,7 @@
     {
       "id": 18,
       "prompt": "修复 IM-3 后运行本地聚焦单测，测试不访问网络或外部服务；不需要看板。",
-      "expected_output": "修复和验证后记录 TestEvidenceStatus、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。不输出看板状态字段，不加载看板发布流程。",
+      "expected_output": "修复和验证后记录验证状态、命令、实际结果及目标断言；普通本地验证不强制输出 TestDependencyClass。不输出看板状态字段，不加载看板发布流程。",
       "tags": [
         "adaptive_test_evidence",
         "no_forced_dependency_class",
@@ -261,7 +261,7 @@
     },
     {
       "prompt": "修复 IM-1；修改的文件位于外层 Git 仓库内嵌的 SVN 工作副本 legacy/ 下，并新增了一个测试文件",
-      "expected_output": "legacy/ 下文件的 owner 是 SVN：不执行 svn add/status/diff/commit，也不用外层 git status 代表这些文件；以本轮实际修改的文件为准报告改动，纳管状态写“SVN 未检查”，新增测试文件需由用户自行纳管；Git 部分照常读取 status/diff。",
+      "expected_output": "legacy/ 下文件的 owner 是 SVN：只用本地只读的 svn status、svn diff（加 --non-interactive）读取改动与纳管状态，不执行 svn add/commit/update，也不用外层 git status 代表这些文件；新增测试文件显示 ? 时标 VCSGateBlocked，由用户自行纳管；svn 命令不可用或报错时以本轮实际修改的文件为准并写“SVN 未检查”；Git 部分照常读取 status/diff。",
       "tags": [
         "svn",
         "nested_vcs",

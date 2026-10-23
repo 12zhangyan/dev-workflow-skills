@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "使用 review-check skill 审查 docs/review-fix/2026-07-09/order-review-task.md",
-      "expected_output": "应进入 check；按实际风险只读审查，输出 ReviewScopeType、实际验证证据、TestEvidenceStatus 和带 CR-/IM-/MI- source ID 的 findings；未明确要求发布时保持工作区零写入。"
+      "expected_output": "应进入 check；按实际风险只读审查，先给结论和带 CR-/IM-/MI- source ID 的 findings，说明审查对象（实现或方案）与实际验证证据，未运行的如实说明；用户未要求审计格式时不强制输出 ReviewScopeType、TestEvidenceStatus 等机器字段；未明确要求发布时保持工作区零写入。"
     },
     {
       "id": 2,
@@ -17,27 +17,27 @@
     {
       "id": 3,
       "prompt": "review 一下 docs/2026-07-09/quote-tag.md 这个开发方案有没有问题",
-      "expected_output": "应触发 review-check；识别为文档模式；因只有 yan-dev-doc、没有 diff/patch/status，只能审方案，ReviewScopeType=PlanReview，并明确说明未审实现代码，不得输出'实现无问题'。"
+      "expected_output": "应触发 review-check；识别为文档模式；因只有 yan-dev-doc、没有 diff/patch/status，只能审方案，明确这是方案审查（PlanReview）并说明未审实现代码，不得输出'实现无问题'。"
     },
     {
       "id": 4,
       "prompt": "审查当前改动，但我只给你一段 patch，里面引用的新增文件内容没贴",
-      "expected_output": "应触发 review-check；关键新增文件内容缺失时结论状态给 InsufficientMaterial，列出缺失材料和受影响结论范围，TestEvidenceStatus 写 NotProvided/NotApplicable，不得写'未发现问题'。"
+      "expected_output": "应触发 review-check；关键新增文件内容缺失时结论为材料不足（InsufficientMaterial），列出缺失材料和受影响结论范围，说明没有可用的测试证据，不得写'未发现问题'。"
     },
     {
       "id": 5,
       "prompt": "使用 review-check skill 审查。【Workflow Brief】stage: ReviewGate source: docs/review-fix/2026-07-09/tce-review-task.md changed: src/main/java/com/acme/QuoteService.java tokenHint: 先读 Brief -> changed 文件 -> review-task 证据包",
-      "expected_output": "应触发轻量交接模式；先按 Brief 的 source/changed/tokenHint 控制读取范围，不要求粘贴全文；仍按审查清单核对原始 diff/源码后输出 ReviewScopeType、TestEvidenceStatus 和带 ID 的 findings。"
+      "expected_output": "应把 Brief 当作证据索引：旧字段 source/changed/tokenHint 只作输入兼容，用来定位读取范围，不要求粘贴全文；仍核对原始 diff/源码，不凭 Brief 下结论；输出带 ID 的 findings，并说明审查对象与验证边界，机器字段只在交接或审计需要时附加。"
     },
     {
       "id": 6,
       "prompt": "使用 review-check skill 审查当前实现，但材料里只有 yan-dev-doc，没有 git diff、patch、status 或变更文件",
-      "expected_output": "应触发 review-check；只能审方案并输出材料边界，ReviewScopeType=PlanReview，不能声称审过实现代码；若需要实现审查，应要求补充 diff/status/changed 文件，结论状态不得写'未发现代码问题'。"
+      "expected_output": "应触发 review-check；只能审方案并输出材料边界，明确这是方案审查（PlanReview），不能声称审过实现代码；若需要实现审查，应要求补充 diff/status/changed 文件，结论状态不得写'未发现代码问题'。"
     },
     {
       "id": 7,
       "prompt": "使用 review-check skill 审查一个新增单测：方法名叫 hasExistingOutputFalseWhenNoRegularFile，但测试体只创建临时目录并断言 walk.noneMatch(Files::isRegularFile)，没有调用被测的 hasExistingOutput 方法",
-      "expected_output": "应触发 review-check；输出 Important 或 Minor finding，TestEvidenceStatus 标为 Failed，材料结论标为 InsufficientMaterial，指出测试名与断言对象不一致，测试没有调用目标逻辑，无法证明 hasExistingOutput 行为；给出修复建议：构造目标输出根或抽出可注入路径后断言被测方法返回值。"
+      "expected_output": "应触发 review-check；输出 Important 或 Minor finding，指出测试名与断言对象不一致、测试没有调用目标逻辑，因此不能作为 hasExistingOutput 行为的通过证据（需要审计格式时测试证据记为 Failed、材料结论记为 InsufficientMaterial）；给出修复建议：构造目标输出根或抽出可注入路径后断言被测方法返回值。"
     },
     {
       "id": 8,
@@ -96,7 +96,7 @@
     {
       "id": 14,
       "prompt": "同会话刚按 yan-dev-doc 完成实现；用户只发 /yan-code-review 或“使用 yan-code-review”，未给 entry；会话内已有明确 docs/.../*.md 与 changed 文件",
-      "expected_output": "应进入 check；不追问“审查什么”；默认针对最近实现做 ImplementationReview，按 yan-dev-doc + changed/diff 只读审查并输出 ReviewScopeType=ImplementationReview 与 findings；未要求记录时不写看板。",
+      "expected_output": "应进入 check；不追问“审查什么”；默认针对最近实现，按 yan-dev-doc + changed/diff 只读审查，明确这是实现审查（ImplementationReview）并给出 findings；未要求记录时不写看板。",
       "tags": [
         "same_session_default",
         "implementation_review"
@@ -105,7 +105,7 @@
     {
       "id": 15,
       "prompt": "review-check 已从 yan-dev-doc 找到 deliveryId；业务代码必须保持只读，但我要在看板看到本轮结论",
-      "expected_output": "业务代码与正式文档保持只读；使用稳定 check eventId 更新同一 deliveryId，写入 ReviewScopeType、结论、finding ID/状态和验证摘要，不把精确 File/Line 或完整 diff 写入看板；输出 BoardPublishStatus。",
+      "expected_output": "业务代码与正式文档保持只读；以 requireExisting 和稳定 check eventId 更新同一 deliveryId，事件写 scopeType、结论、finding ID/状态和验证摘要，不把精确 File/Line 或完整 diff 写入看板；输出 BoardPublishStatus。",
       "tags": [
         "board_lifecycle",
         "same_delivery",
@@ -348,7 +348,7 @@
     },
     {
       "prompt": "审查当前改动；项目根目录有 .svn，没有 .git，用户没有给文件清单",
-      "expected_output": "用目录存在性判断 owner 为 SVN 后，不执行 svn status/diff/info/log 等任何 svn 命令；把缺少可审范围列为材料缺口，请用户提供文件清单或 patch；VCS 状态写“SVN 未检查”，不写 clean，也不宣称通过。",
+      "expected_output": "用目录存在性判断 owner 为 SVN 后，只运行本地只读的 svn status、svn diff（加 --non-interactive）确定审查范围和 ? 未纳管文件；不运行 svn log、update、status -u 等联网命令，也不执行 add/commit/revert。命令不可用或报错时保留错误，把缺少可审范围列为材料缺口并请用户提供文件清单或 patch，VCS 状态写“SVN 未检查”，不写 clean，也不宣称通过。",
       "tags": [
         "svn",
         "vcs_boundary",

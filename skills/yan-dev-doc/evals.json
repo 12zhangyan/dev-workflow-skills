@@ -155,7 +155,7 @@
     {
       "id": 40,
       "prompt": "使用 yan-dev-doc 规划跨 hlcloud-eam 与 hlcloud-plm 的改造：项目根目录不是 SVN 工作副本，hlcloud-eam 和 hlcloud-plm 各自是独立 SVN working copy。",
-      "expected_output": "根目录未识别到 VCS 不能结束探测。应从候选变更范围识别两个实际模块，再分别解析各自的 SVN working-copy root，并用 svn info、svn status 获取当前事实；只有历史会影响责任、兼容性或方案判断时才按需查询 svn log。一个模块失败只标该 owner 的状态未知，不能跳过另一个。",
+      "expected_output": "根目录未识别到 VCS 不能结束探测。应从候选变更范围识别两个实际模块，再分别对各自 SVN working copy 运行本地只读的 svnversion、svn info、svn status（svn 加 --non-interactive）获取基线与改动事实；不运行 svn log 等联网命令，历史会影响方案时请用户提供修订记录。一个模块命令失败只标该 owner 为“SVN 未检查”，不能跳过另一个。",
       "tags": [
         "multi_svn_owner",
         "nested_vcs",
@@ -495,7 +495,7 @@
     },
     {
       "prompt": "使用 yan-dev-doc 为 SVN 管理的项目写退款审核方案",
-      "expected_output": "读取代码和规则取证，但不执行 svn info/log 等任何 svn 命令；方案基线写用户提供的修订或“SVN 未检查”。",
+      "expected_output": "读取代码和规则取证；基线用本地只读的 svnversion / svn info（svn 加 --non-interactive），不运行 svn log 等联网命令，也不执行写入命令；命令不可用或报错时基线写用户提供的修订或“SVN 未检查”。",
       "tags": [
         "svn",
         "vcs_boundary"
