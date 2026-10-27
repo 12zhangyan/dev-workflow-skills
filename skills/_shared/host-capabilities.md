@@ -22,6 +22,6 @@ node <helper> resolve-skill-file <skill 名> <相对路径>
 node <helper> contains <文件> <文本>
 ```
 
-`file-state` 区分 `MISSING / EXISTS_READABLE / EXISTS_UNREADABLE_OR_UNKNOWN`；`detect-vcs` 返回实际 `git / svn / none` owner，只检查目录是否存在；返回 `svn` 时只允许在返回的 `root` 下运行本地只读的 `svn status/diff/info`（加 `--non-interactive`）与 `svnversion`，不联网、不写入，退出码为 0 但有 `svn: warning` 也按失败处理；完整边界在共享工作流门禁的“VCS 归属与纳管”。助手不可定位时用当前宿主的等价能力并报告降级，不写死用户目录，也不复制未经适配的 shell 命令。
+`file-state` 区分 `MISSING / EXISTS_READABLE / EXISTS_UNREADABLE_OR_UNKNOWN`；`detect-vcs` 返回实际 `git / svn / none` owner，只检查目录是否存在；返回 `svn` 时只允许在返回的 `root` 下运行本地只读的 `svn status/diff/info`（加 `--non-interactive`）与不带参数的 `svnversion`，不联网、不写入，退出码为 0 但有 `svn: warning` 也按失败处理；完整边界在共享工作流门禁的“VCS 归属与纳管”。助手不可定位时用当前宿主的等价能力并报告降级，不写死用户目录，也不复制未经适配的 shell 命令。
 
 按实际能力适配：只读分析需要读取/搜索；持久产物需要范围内写入；真实验证需要执行命令或等价运行能力；委派是可选项。缺少某项只限制依赖它的路径，不要求安装特定宿主。工具名、UI、shell 和模型可变，任务授权、产物语义与证据标准不变。

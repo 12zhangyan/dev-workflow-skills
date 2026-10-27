@@ -122,13 +122,16 @@ requireText('skills/yan-code-review/modes/repair/mode.md', [
 requireText('skills/_shared/workflow-gates.md', [
   'SVN owner 只运行本地只读命令',
   '均加 `--non-interactive`',
+  '以及不带参数的 `svnversion`（它不支持 `--non-interactive`',
+  '也不改用 `svn info` 的修订号代替',
   '禁止联网命令（`log`、`blame`、`update`、`status -u`',
   '写入命令（`add`、`commit`、`revert`',
   '基线写 `svnversion` 原样结果',
   '命令不存在、报错（如工作副本格式与客户端版本不匹配）或要求认证时保留错误',
   '纳管与基线报告为“SVN 未检查”，不写 clean，不宣称可提交',
 ]);
-const SVN_POINT_OF_USE = '只运行本地只读的 `svn status`、`svn diff` 与 `svnversion`';
+// svnversion rejects --non-interactive; listing it beside svn commands under one "add --non-interactive" note was misread in a real session.
+const SVN_POINT_OF_USE = '只运行本地只读的 `svn status`、`svn diff`（加 `--non-interactive`）与不带参数的 `svnversion`';
 // Outside a working copy `svn status` exits 0 with empty stdout and only a stderr warning, and `svnversion`
 // exits 0 printing "Unversioned directory": the rule must say where to run and treat those as failures.
 requireText('skills/_shared/workflow-gates.md', [
@@ -142,7 +145,7 @@ const SVN_ZERO_EXIT = '退出码为 0 但出现 `svn: warning`、`Unversioned di
 requireText('skills/yan-code-review/modes/check/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '不运行联网或写入命令', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git', '“SVN 未检查”']);
 requireText('skills/yan-code-review/modes/repair/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '包括 `svn add`', '`detect-vcs <目录>`', '仓库根有 `.git` 不代表内层目录归 Git']);
 requireText('skills/yan-code-review/modes/loop/mode.md', [SVN_POINT_OF_USE, SVN_WHERE, SVN_ZERO_EXIT, '不运行联网或写入命令']);
-requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时只允许在返回的 `root` 下运行本地只读的', '不联网、不写入', '退出码为 0 但有 `svn: warning` 也按失败处理']);
+requireText('skills/_shared/host-capabilities.md', ['返回 `svn` 时只允许在返回的 `root` 下运行本地只读的', '与不带参数的 `svnversion`', '不联网、不写入', '退出码为 0 但有 `svn: warning` 也按失败处理']);
 requireText('skills/_shared/board-shell-bootstrap.md', ['`svn status --non-interactive project-html`', '出现 `svn: warning`', '时按状态未知照常升级']);
 
 // When a real svn client is installed, confirm the failure signals named above match its actual output,
@@ -168,6 +171,9 @@ requireText('skills/_shared/board-shell-bootstrap.md', ['`svn status --non-inter
         fail(`svnversion outside a working copy should exit 0 with a non-revision result; got exit ${unversioned.status}: ${unversioned.stdout.trim()}`);
       } else if (unversioned.stdout.trim() !== 'Unversioned directory') {
         console.log(`note: svnversion printed "${unversioned.stdout.trim()}" (localized?); the rule also covers other non-revision results`);
+      }
+      if (run('svnversion', ['--non-interactive'], outside).status === 0) {
+        fail('svnversion now accepts --non-interactive; the "不带参数的 svnversion" rule can be relaxed');
       }
 
       if (run('svnadmin', ['--version', '--quiet']).status === 0) {
