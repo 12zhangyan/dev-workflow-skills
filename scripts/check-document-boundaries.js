@@ -244,7 +244,7 @@ function smokeBoardShellBootstrap() {
   }
 }
 
-requireText('skills/yan-dev-doc/SKILL.md', ['SVN 工作副本只运行本地只读的 `svnversion`、`svn info`、`svn status`', '不运行 `svn log` 等联网命令或写入命令', '命令不可用或报错时基线写用户提供的修订或“SVN 未检查”', '在 `detect-vcs` 返回的 SVN 根目录运行', '`svnversion` 输出 `Unversioned directory` 或出现 `svn: warning` 也按失败处理']);
+requireText('skills/yan-dev-doc/SKILL.md', ['SVN 工作副本只运行本地只读的 `svn info`、`svn status`（加 `--non-interactive`）与不带参数的 `svnversion`', '不改用 `svn info` 的单一修订号', '不运行 `svn log` 等联网命令或写入命令', '命令不可用或报错时基线写用户提供的修订或“SVN 未检查”', '在 `detect-vcs` 返回的 SVN 根目录运行', '`svnversion` 输出 `Unversioned directory` 或出现 `svn: warning` 也按失败处理']);
 requireText('skills/yan-conversation-handoff/SKILL.md', ['SVN 工作副本只做本地只读复核', '在 `detect-vcs` 返回的 SVN 根目录运行', '不运行联网或写入命令', '出现 `svn: warning`、`Unversioned directory` 时 VCS 状态写“SVN 未检查”']);
 requireText('skills/yan-project-analysis/modes/incident/reference.md', ['本地只读的 `svn status --non-interactive`', '不运行 `svn log` 等联网命令']);
 

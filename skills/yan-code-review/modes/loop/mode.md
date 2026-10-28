@@ -13,7 +13,7 @@ description: 同一 Agent 在明确修改授权下，基于当前实现证据自
 
 ## 自主闭环
 
-先用当前规则、代码、Git status、实际 diff、范围内未跟踪文件和测试证据判断是否有可审实现；SVN 工作副本在 `detect-vcs` 返回的 SVN 根目录只运行本地只读的 `svn status`、`svn diff` 与 `svnversion`（`svn` 加 `--non-interactive`），不运行联网或写入命令；命令不可用、报错，或退出码为 0 但出现 `svn: warning`、`Unversioned directory` 时以用户给出的范围和本轮修改为准，状态报告为“SVN 未检查”。没有实现证据时返回材料缺口；未跟踪文件仍可审查和修复，但必须保留纳管风险，不能擅自 add。
+先用当前规则、代码、Git status、实际 diff、范围内未跟踪文件和测试证据判断是否有可审实现；SVN 工作副本在 `detect-vcs` 返回的 SVN 根目录只运行本地只读的 `svn status`、`svn diff`（加 `--non-interactive`）与不带参数的 `svnversion`，不运行联网或写入命令；命令不可用、报错，或退出码为 0 但出现 `svn: warning`、`Unversioned directory` 时以用户给出的范围和本轮修改为准，状态报告为“SVN 未检查”。没有实现证据时返回材料缺口；未跟踪文件仍可审查和修复，但必须保留纳管风险，不能擅自 add。
 
 有实现证据时读取并执行 [check mode](../check/mode.md)，保持首审零写入。没有 accepted finding 就停止修复；若仍有审查失败或待审范围，继续可行的补证据或报告未完成，不能宣称通过；存在 accepted finding 且在授权范围内时，先读取 [repair mode](../repair/mode.md) 再改任何代码或测试，并按其执行。内部模式按需加载自己的参考，本模式不预加载。
 

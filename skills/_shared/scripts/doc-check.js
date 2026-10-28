@@ -14,7 +14,11 @@ const USAGE = [
 ].join('\n');
 
 const SOURCE_EXT = 'java|kt|groovy|xml|yml|yaml|properties|sql|js|cjs|mjs|ts|tsx|jsx|vue|json|md|py|go|rs|cs|sh|ps1|cmd|gradle|kts|html|css|scss|proto|conf|toml|ini|txt';
-const PATH_RE = new RegExp(`^(?:\\.{1,2}/)?[\\w@.\\-\\u4e00-\\u9fa5]+(?:/[\\w@.\\-\\u4e00-\\u9fa5]+)*\\.(?:${SOURCE_EXT})(?::(\\d+)(?:-(\\d+))?)?$`, 'i');
+// One path may carry several lines or ranges: `A.java:12`, `A.java:12-20`, `A.java:12,40-45`, `A.java:12、40`.
+const LINE_SPEC = '\\d+(?:-\\d+)?(?:\\s*[,，、]\\s*\\d+(?:-\\d+)?)*';
+const PATH_RE = new RegExp(`^((?:\\.{1,2}/)?[\\w@.\\-\\u4e00-\\u9fa5]+(?:/[\\w@.\\-\\u4e00-\\u9fa5]+)*\\.(?:${SOURCE_EXT}))(?::(${LINE_SPEC}))?$`, 'i');
+// A file followed by a line marker that PATH_RE rejects (`A.java#L12`, `A.java:L12`) is a claim this tool did not check.
+const LINE_CLAIM_RE = new RegExp(`\\.(?:${SOURCE_EXT})(?::L?|#L?)\\d`, 'i');
 
 function findRoot(start) {
   let current = path.resolve(start);
@@ -33,6 +37,7 @@ function stripFences(text) {
 
 function collectRefs(text) {
   const refs = [];
+  const unparsed = [];
   const body = stripFences(text);
   const lines = body.split(/\r?\n/);
   lines.forEach((line, index) => {
@@ -41,13 +46,19 @@ function collectRefs(text) {
     for (const match of line.matchAll(/\]\(([^)\s]+)\)/g)) candidates.push(match[1].split('#')[0].trim());
     for (const raw of candidates) {
       if (!raw || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || /[*?<>{}|$]/.test(raw)) continue;
-      const match = raw.match(PATH_RE);
+      // Windows-style separators name the same repository path.
+      const match = raw.replace(/\\/g, '/').match(PATH_RE);
+      if (!match) {
+        if (LINE_CLAIM_RE.test(raw)) unparsed.push({ raw, docLine: index + 1 });
+        continue;
+      }
       // A bare file name without a directory or line is a generic mention, not a locatable claim.
-      if (!match || (!raw.includes('/') && !match[1])) continue;
-      refs.push({ raw, docLine: index + 1, file: raw.replace(/:\d+(?:-\d+)?$/, ''), start: match[1] && Number(match[1]), end: match[2] && Number(match[2]) });
+      if (!match[1].includes('/') && !match[2]) continue;
+      const ranges = match[2] ? match[2].split(/\s*[,，、]\s*/).map((part) => part.split('-').map(Number)) : [];
+      refs.push({ raw, docLine: index + 1, file: match[1], ranges });
     }
   });
-  return refs;
+  return { refs, unparsed };
 }
 
 function checkRefs(docPath, root) {
@@ -56,7 +67,8 @@ function checkRefs(docPath, root) {
   const problems = [];
   let ok = 0;
   const seen = new Set();
-  for (const ref of collectRefs(text)) {
+  const { refs, unparsed } = collectRefs(text);
+  for (const ref of refs) {
     if (seen.has(ref.raw)) continue;
     seen.add(ref.raw);
     const candidates = [path.resolve(root, ref.file), path.resolve(docDir, ref.file)];
@@ -65,19 +77,19 @@ function checkRefs(docPath, root) {
       problems.push(`MISSING ${ref.raw} (doc line ${ref.docLine})`);
       continue;
     }
-    if (ref.start) {
+    if (ref.ranges.length) {
       // A trailing newline terminates the last line; it does not start another one.
       const content = fs.readFileSync(found, 'utf8');
       const lineCount = content ? content.replace(/\r?\n$/, '').split(/\r?\n/).length : 0;
-      const last = ref.end || ref.start;
-      if (ref.start < 1 || last > lineCount || last < ref.start) {
+      const bad = ref.ranges.some(([start, end = start]) => start < 1 || end > lineCount || end < start);
+      if (bad) {
         problems.push(`LINE_OUT_OF_RANGE ${ref.raw} (file has ${lineCount} lines; doc line ${ref.docLine})`);
         continue;
       }
     }
     ok += 1;
   }
-  return { ok, problems };
+  return { ok, problems, unparsed };
 }
 
 const HEADERS = /^(flowchart|graph|sequenceDiagram|stateDiagram(?:-v2)?|erDiagram|classDiagram|gantt|journey|pie|mindmap|timeline|gitGraph|quadrantChart|C4Context|C4Container|C4Component|block-beta|sankey-beta|xychart-beta|requirementDiagram)\b/;
@@ -219,6 +231,12 @@ function selfTest() {
     assert(result.ok === 3, `expected 3 ok refs, got ${result.ok}`);
     assert(result.problems.length === 3 && result.problems.some((item) => item.startsWith('LINE_OUT_OF_RANGE src/App.java:4 (file has 3 lines'))
       && result.problems.some((item) => item.startsWith('LINE_OUT_OF_RANGE src/App.java:9')) && result.problems.some((item) => item.startsWith('MISSING src/Missing.java')), `unexpected problems: ${result.problems.join('; ')}`);
+    const multi = path.join(dir, 'multi.md');
+    fs.writeFileSync(multi, '`src/App.java:1,3` `src/App.java:1-2, 3` `src/App.java:1、2` `src\\App.java:2` `src/App.java:2,4` `src/App.java#L2` `application.yml:spring.x` `App.java`\n');
+    const multiResult = checkRefs(multi, findRoot(dir));
+    assert(multiResult.ok === 4, `expected 4 ok multi-line refs, got ${multiResult.ok}: ${multiResult.problems.join('; ')}`);
+    assert(multiResult.problems.length === 1 && multiResult.problems[0].startsWith('LINE_OUT_OF_RANGE src/App.java:2,4'), `unexpected multi-line problems: ${multiResult.problems.join('; ')}`);
+    assert(multiResult.unparsed.length === 1 && multiResult.unparsed[0].raw === 'src/App.java#L2', `unexpected unparsed: ${JSON.stringify(multiResult.unparsed)}`);
     const json = path.join(dir, 'entry.json');
     fs.writeFileSync(json, JSON.stringify({ bizFlow: 'flowchart TD\n A[x(y)] --> B', title: 'not a diagram' }));
     assert(runMermaid(json).errorCount === 1, 'json mermaid field not linted');
@@ -239,7 +257,13 @@ try {
     if (!file || (rootIndex >= 0 && !root)) throw new Error('usage: refs <markdown-file> [--root <dir>]');
     const result = checkRefs(file, path.resolve(root || findRoot(path.dirname(path.resolve(file)))));
     for (const problem of result.problems) process.stdout.write(problem + '\n');
-    process.stdout.write(`refs ok=${result.ok} problems=${result.problems.length}\n`);
+    for (const item of result.unparsed) {
+      process.stdout.write(`UNPARSED ${item.raw} (doc line ${item.docLine}): not checked; write path:N, path:N-M or path:N,M-K\n`);
+    }
+    process.stdout.write(`refs ok=${result.ok} problems=${result.problems.length} unparsed=${result.unparsed.length}\n`);
+    if (!result.ok && !result.problems.length) {
+      process.stdout.write('WARN no repository path or path:line reference was recognized; nothing was verified, this is not a pass\n');
+    }
     process.exit(result.problems.length ? 2 : 0);
   } else if (command === 'mermaid') {
     if (args.length !== 1) throw new Error('usage: mermaid <markdown-or-json-file>');
