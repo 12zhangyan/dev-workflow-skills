@@ -8,6 +8,7 @@ These directories contain intentionally incomplete or faulty implementations use
 - business-async-state: Synthetic business contract, implementation and event evidence disagree about when completion is allowed.
 - report-ownership: Node.js loop input for the independent-recheck case; getReport skips the documented ownership check and its passing tests miss cross-user reads.
 - verification-evidence: Passing price tests share a wrong implementation constant; Java stub/SQL and synthetic browser records test evidence boundaries, including a valid local-only draft.
+- requirement-ticket-sla: Requirement-analysis input; the PRD mixes calendar and working-time SLA wording, omits handler-filter visibility while the query isolates by department, leaves "fast" unquantified and reassignment timing open, and the query already returns deleted tickets.
 
 For a live evaluation, copy one directory to an empty temporary directory outside this repository, initialize Git there with a local test identity, and commit only that fixture as the baseline. Pass the temporary directory to scripts/run-host-evals.js through --workspace; the standard runner uses a separate clone and never modifies the supplied source workspace. Do not stage or commit the user's working tree to prepare a fixture.
 

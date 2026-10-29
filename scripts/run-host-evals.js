@@ -396,9 +396,9 @@ function assertSourceWorkspace(workspace) {
 
 function skillSourceDirectory(input) {
   const source = path.resolve(input || path.join(root, 'skills'));
-  for (const name of ['yan-dev-doc', 'yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff']) {
+  for (const name of ['yan-dev-doc', 'yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-requirement-analysis']) {
     if (!fs.existsSync(path.join(source, name, 'SKILL.md'))) {
-      throw new Error('skill source must contain all four public skill directories: ' + source);
+      throw new Error('skill source must contain all five public skill directories: ' + source);
     }
   }
   if (!fs.existsSync(path.join(source, '_shared', 'host-capabilities.md'))) {
@@ -966,7 +966,7 @@ function runSelfTest() {
     const nativePrompt = promptFor(natural, native.skillSnapshotRoot, 'native');
     if (/yan-code-review|mode=check|\.agents\/skills/.test(nativePrompt)) throw new Error('native task leaked expected skill or route');
     const catalogPrompt = promptFor(natural, snapshot.skillSnapshotRoot, 'catalog');
-    for (const skill of ['yan-code-review', 'yan-dev-doc', 'yan-project-analysis', 'yan-conversation-handoff']) {
+    for (const skill of ['yan-code-review', 'yan-dev-doc', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-requirement-analysis']) {
       if (!catalogPrompt.includes(snapshot.skillSnapshotRoot + '/' + skill + '/SKILL.md')) throw new Error('incomplete discovery catalog');
     }
     const answer = 'SKILL: yan-code-review\nSKILL_FILES: .agents/skills/yan-code-review/SKILL.md';

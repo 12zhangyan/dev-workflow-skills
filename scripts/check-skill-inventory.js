@@ -422,6 +422,7 @@ const skillDescriptionRequirements = {
   'yan-project-analysis': ['代码结构', '事故', '业务流', '直接实现或修复不触发', 'code-reading', 'bug-fix', 'biz-flow'],
   'yan-code-review': ['未授权修改时只读', 'review-check', 'review-repair', 'review-loop', 'review-fix'],
   'yan-conversation-handoff': ['当前对话', '移交', '不替代开发方案'],
+  'yan-requirement-analysis': ['需求', '澄清', '不产出技术方案', '直接实现请求不触发'],
 };
 
 for (const skill of skillNames) {
@@ -467,7 +468,7 @@ for (const skill of skillNames) {
   });
 }
 
-for (const required of ['yan-dev-doc', 'yan-project-analysis', 'yan-code-review', 'yan-conversation-handoff']) {
+for (const required of ['yan-dev-doc', 'yan-project-analysis', 'yan-code-review', 'yan-conversation-handoff', 'yan-requirement-analysis']) {
   if (!skillNames.includes(required)) fail(`required workflow skill missing: ${required}`);
 }
 

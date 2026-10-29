@@ -355,6 +355,15 @@
         "negative_control"
       ],
       "id": 40
+    },
+    {
+      "id": 41,
+      "prompt": "审查当前工单筛选改动是否满足 docs/requirements/2026-10-27/ticket-sla.md：AC-2 要求主管能看到所有部门的超时工单，Q-4（转派后是否重新计时）还没确认。",
+      "expected_output": "把已确认的 AC-2 作为独立需求来源检查实现，违反时 finding 注明 AC-2；Q-4 未决，转派计时相关行为不判定为缺陷，只作为待确认项报告。",
+      "tags": [
+        "requirement_traceability",
+        "accuracy_boundary"
+      ]
     }
   ]
 }

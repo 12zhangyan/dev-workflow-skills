@@ -1,0 +1,7 @@
+interface:
+  display_name: "Yan 需求分析"
+  short_description: "对话式澄清需求，拆解功能点、现状差异、待确认问题和验收标准"
+  default_prompt: "Use yan-requirement-analysis to analyze and clarify the requirement from the conversation and any provided documents, images, or code snippets. Tie each conclusion to its evidence and keep confirmed facts, inferences, and pending questions apart; compare against the current code; do not design the technical solution; follow its artifact rules."
+
+policy:
+  allow_implicit_invocation: true
