@@ -14,7 +14,7 @@
 
 ## 你会得到什么
 
-- 一套只有 4 个公开入口的开发工作流：`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
+- 一套只有 5 个公开入口的开发工作流：`yan-requirement-analysis`、`yan-dev-doc`、`yan-project-analysis`、`yan-code-review`、`yan-conversation-handoff`。低频相邻场景收进显式 mode，避免把 9 个名称同时暴露给 agent。
 - 一套不绑定厂商或模型的共享行为内核：具备所需能力的 Agent 复用相同路由、授权、产物与证据标准，工具名、终端和调用方式由宿主适配。
 - 一组面向 AI 执行的 Markdown 文档：明确目标、边界、可验收工作切片、证据和下一目标，同时把实现组织、并行方式与非关键判断留给执行 Agent。
 - 一个项目内 HTML 看板：自动汇总开发文档、Bug、代码地图、业务流和接口变更。
@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 
 安装后按当前宿主方式刷新 Skill 目录或开启新会话。自动发现路径由宿主决定；本仓库仅维护 `~/.agents/skills`，需要时可直接引用其中的 `SKILL.md`。
 
-本仓库四个公开 Skill 自包含运行，不依赖外部方法论 Skill。需求澄清、测试策略、问题定位、完成前验证和 reviewer 选择由当前 Agent 根据证据与风险自主完成。
+本仓库五个公开 Skill 自包含运行，不依赖外部方法论 Skill。需要系统化澄清需求时使用 `yan-requirement-analysis`；其余场景的需求澄清、测试策略、问题定位、完成前验证和 reviewer 选择由当前 Agent 根据证据与风险自主完成。
 
 ### 2. 触发方式
 
@@ -60,6 +60,7 @@ curl -fsSL https://raw.githubusercontent.com/12zhangyan/dev-workflow-skills/main
 Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐入口是自然语言点名 skill，例如：
 
 ```text
+使用 yan-requirement-analysis skill 分析“工单超时筛选”需求，材料见 docs/prd/ticket-sla.md 和我贴的原型截图
 使用 yan-dev-doc skill 给“询价详情新报价标识”生成开发文档
 使用 yan-code-review skill，mode=check，审查 docs/review-fix/2026-07-06/xxx-review-task.md
 使用 yan-code-review skill，mode=repair，根据这些 findings 直接修复并运行验证
@@ -70,6 +71,7 @@ Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`。本仓库的 Codex 推荐
 
 | 你要做什么 | 用哪个 skill | 主要产物 |
 |------------|--------------|----------|
+| 开发前通过对话、文档、图片或代码片段详细分析和澄清需求 | `yan-requirement-analysis` | `docs/requirements/YYYY-MM-DD/<需求>.md`：功能点、现状差异、验收标准和待确认问题；不出技术方案，不写看板 |
 | 明确要求先出开发方案，或高风险决策必须先评审 | `yan-dev-doc` | 核心产物为 md，落盘后默认同步看板档案；契约变化时按需生成 OpenAPI |
 | 分析项目：incident 记录 Bug；business 梳理测试业务流；understanding 理解调用链或做零写入影响分析 | `yan-project-analysis` | 沿用 `docs/bugs`、`docs/biz-flow`、`docs/code-reading` 路径；按目标只加载一个 mode |
 | 审查代码：package 组织多 AI；check 只读审查；repair 按 findings 修复；loop 单 AI 闭环 | `yan-code-review` | 任务包、结构化 findings、修复与验证结果；按授权边界只加载一个 mode |
@@ -130,7 +132,7 @@ Brief 只在接口产物影响接手时写 `api`，只在 VCS owner、未跟踪�
 
 ## HTML 看板
 
-看板默认自动发布：`yan-dev-doc` 方案、`yan-project-analysis` 的 CodeMap / incident / business 文档实际落盘后，都会创建或更新对应的“一事一档”记录；项目尚无 `project-html/` 时自动初始化。`yan-code-review` 的 package/repair/loop 在 `deliveryId` 或来源方案 `docPath` 能匹配已有档案时自动同步审查/修复事件，匹配不到时不新建孤立记录；check 默认零写入。ImpactAnalysis 与会话交接从不写看板。任何一次请求里说“不要看板”即可跳过。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
+看板默认自动发布：`yan-dev-doc` 方案、`yan-project-analysis` 的 CodeMap / incident / business 文档实际落盘后，都会创建或更新对应的“一事一档”记录；项目尚无 `project-html/` 时自动初始化。`yan-code-review` 的 package/repair/loop 在 `deliveryId` 或来源方案 `docPath` 能匹配已有档案时自动同步审查/修复事件，匹配不到时不新建孤立记录；check 默认零写入。ImpactAnalysis 与会话交接从不写看板；需求分析同样不写看板。任何一次请求里说“不要看板”即可跳过。MD 是 Agent 执行文档；看板是独立的人类方案与 Gate 证据说明，不截取 MD。`board-add.js` 将输入拆为 `data/changes.js` 轻量目录和 `data/details/` 详情，再运行：
 
 ```bash
 node project-html/build.js
@@ -167,7 +169,7 @@ project-html/
 
 ## 安装细节
 
-共用 Skill 只维护在 `~/.agents/skills/<name>/`；仓库专用 Skill 放项目 `.agents/skills/`。当前安装器的默认与唯一可写目标为 `agents`，完整复制四个公开入口及 `_shared`，不创建宿主副本或链接，也不复制 Cursor/Codex 内置技能。
+共用 Skill 只维护在 `~/.agents/skills/<name>/`；仓库专用 Skill 放项目 `.agents/skills/`。当前安装器的默认与唯一可写目标为 `agents`，完整复制五个公开入口及 `_shared`，不创建宿主副本或链接，也不复制 Cursor/Codex 内置技能。
 
 包管理命令约定为 `npx skills add <pkg> -g -a agents`，不能省略 `-a agents` 或替换为宿主目录。2026-09-23 检查的 `skills 1.7.0` 尚不支持 `agents` 目标，且会跳过本仓库保留 BOM 的入口。直接使用该 CLI 安装本仓库目前未验证可用；本仓库维护脚本是安装到同一共用目录的明确替代方式，测试在隔离用户目录运行。
 

@@ -679,6 +679,108 @@
       }
     },
     {
+      "id": "requirement-minimal-loading",
+      "prompt_ref": "yan-requirement-analysis:11",
+      "route": "requirement-analysis",
+      "accepted_routes": [
+        "requirement-analysis",
+        "requirement",
+        "chat-only",
+        "chat-clarification",
+        "chat"
+      ],
+      "write_scope": "none",
+      "route_loading": {
+        "max_resources": 2,
+        "required": [
+          "skills/yan-requirement-analysis/SKILL.md",
+          "skills/yan-requirement-analysis/analysis-template.md"
+        ],
+        "forbidden_patterns": [
+          "^skills/(yan-code-review|yan-dev-doc|yan-project-analysis|yan-conversation-handoff)/",
+          "^skills/_shared/(host-capabilities|interaction-policy|workflow-brief).md$"
+        ]
+      }
+    },
+    {
+      "id": "requirement-conversation-cadence",
+      "prompt_ref": "yan-requirement-analysis:14",
+      "route": "requirement-analysis",
+      "accepted_routes": [
+        "requirement-analysis",
+        "requirement",
+        "chat-only",
+        "chat-clarification",
+        "chat"
+      ],
+      "write_scope": "none",
+      "required_fixture_paths": [
+        "docs/prd/ticket-sla.md",
+        "src/main/java/com/acme/ticket/TicketQueryService.java"
+      ],
+      "assertions": {
+        "text": [
+          {
+            "pattern": "TicketQueryService",
+            "min_matches": 1
+          },
+          {
+            "pattern": "部门|deptId",
+            "min_matches": 1
+          },
+          {
+            "pattern": "推荐",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "requirement-coverage-quality",
+      "prompt_ref": "yan-requirement-analysis:15",
+      "route": "requirement-analysis",
+      "accepted_routes": [
+        "requirement-analysis",
+        "requirement",
+        "chat-only",
+        "chat-clarification",
+        "chat"
+      ],
+      "write_scope": "none",
+      "required_fixture_paths": [
+        "docs/prd/ticket-sla.md",
+        "src/main/java/com/acme/ticket/TicketQueryService.java"
+      ],
+      "assertions": {
+        "text": [
+          {
+            "pattern": "REQ-d",
+            "min_matches": 2
+          },
+          {
+            "pattern": "部门|deptId",
+            "min_matches": 1
+          },
+          {
+            "pattern": "工作时间|工作日",
+            "min_matches": 1
+          },
+          {
+            "pattern": "转派",
+            "min_matches": 1
+          },
+          {
+            "pattern": "deleted|已删除|逻辑删除",
+            "min_matches": 1
+          },
+          {
+            "pattern": "NeedsConfirmation",
+            "min_matches": 1
+          }
+        ]
+      }
+    },
+    {
       "id": "dev-doc-compact-minimal-loading",
       "prompt_ref": "yan-dev-doc:37",
       "route": "compact",

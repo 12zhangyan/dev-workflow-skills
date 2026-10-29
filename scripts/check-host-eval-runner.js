@@ -108,10 +108,10 @@ if (!contracts.cases.some(item => item.selection?.expected_skill === 'none')
 }
 const loadingCases = contracts.cases.filter((item) => item.route_loading);
 if (loadingCases.length < 4
-    || !['yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-dev-doc'].every(
+    || !['yan-code-review', 'yan-project-analysis', 'yan-conversation-handoff', 'yan-dev-doc', 'yan-requirement-analysis'].every(
       (skill) => loadingCases.some((item) => item.prompt_ref.startsWith(`${skill}:`)),
     )) {
-  console.error('FAIL: host contracts need minimal-loading samples for all four public skills');
+  console.error('FAIL: host contracts need minimal-loading samples for all five public skills');
   process.exit(1);
 }
 const writable = contracts.cases.filter((item) => item.write_scope !== 'none');

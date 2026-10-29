@@ -14,6 +14,7 @@ const publicSkills = [
   'yan-conversation-handoff',
   'yan-dev-doc',
   'yan-project-analysis',
+  'yan-requirement-analysis',
 ];
 const runtimeFiles = [
   ...publicSkills.map((name) => `skills/${name}/SKILL.md`),
@@ -237,6 +238,7 @@ const persistentDocumentRoutes = [
   'skills/yan-project-analysis/modes/business/mode.md',
   'skills/yan-project-analysis/modes/incident/mode.md',
   'skills/yan-project-analysis/modes/understanding/mode.md',
+  'skills/yan-requirement-analysis/SKILL.md',
 ];
 for (const rel of persistentDocumentRoutes) {
   if (!read(rel).includes('workflow-fs.js')) {

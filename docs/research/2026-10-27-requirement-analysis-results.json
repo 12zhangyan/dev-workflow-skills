@@ -1,0 +1,288 @@
+{
+  "date": "2026-10-27",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "invocation": "explicit",
+  "fixture": "scripts/fixtures/requirement-ticket-sla",
+  "env": "CLAUDE_CODE_GIT_BASH_PATH set for the child host only",
+  "groups": [
+    {
+      "side": "draft (skill-source baseline)",
+      "case": "requirement-conversation-cadence",
+      "summary": {
+        "executionComplete": 3,
+        "passed": 0,
+        "passRate": 0,
+        "durationMs": {
+          "min": 50967,
+          "median": 55511,
+          "max": 55960
+        },
+        "outputChars": {
+          "min": 2183,
+          "median": 2347,
+          "max": 3414
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "runs": [
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 7,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 3414
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 8,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 2347
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 7,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 2183
+        }
+      ]
+    },
+    {
+      "side": "draft (skill-source baseline)",
+      "case": "requirement-coverage-quality",
+      "summary": {
+        "executionComplete": 3,
+        "passed": 0,
+        "passRate": 0,
+        "durationMs": {
+          "min": 73626,
+          "median": 79709,
+          "max": 86264
+        },
+        "outputChars": {
+          "min": 5788,
+          "median": 6032,
+          "max": 6541
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "runs": [
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 8,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 6032
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 9,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 6541
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 9,
+          "hasPriority": false,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 5788
+        }
+      ]
+    },
+    {
+      "side": "revised",
+      "case": "requirement-conversation-cadence",
+      "summary": {
+        "executionComplete": 3,
+        "passed": 0,
+        "passRate": 0,
+        "durationMs": {
+          "min": 42522,
+          "median": 46376,
+          "max": 59639
+        },
+        "outputChars": {
+          "min": 1598,
+          "median": 1795,
+          "max": 1907
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "runs": [
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 1,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 1598
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 1,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 1907
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 1,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 1795
+        }
+      ]
+    },
+    {
+      "side": "revised",
+      "case": "requirement-coverage-quality",
+      "summary": {
+        "executionComplete": 3,
+        "passed": 0,
+        "passRate": 0,
+        "durationMs": {
+          "min": 71889,
+          "median": 79421,
+          "max": 90144
+        },
+        "outputChars": {
+          "min": 5046,
+          "median": 5653,
+          "max": 7524
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "runs": [
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 8,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 7524
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 8,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 5653
+        },
+        {
+          "exitOk": true,
+          "changedPaths": 0,
+          "questionIds": 9,
+          "hasPriority": true,
+          "covers": {
+            "dept": true,
+            "workTime": true,
+            "reassign": true,
+            "fast": true,
+            "deleted": true
+          },
+          "chars": 5046
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "fixtureHead": "cc14bf40",
+    "promptSha256": "e9dad2f6 (same both sides)",
+    "graderSha256": "2a7c877b (same both sides)",
+    "contractNote": "contract hash differs only because accepted_routes changed between the draft and revised runs; route labels were graded manually"
+  }
+}

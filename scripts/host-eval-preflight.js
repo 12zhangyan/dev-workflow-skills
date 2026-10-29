@@ -85,7 +85,7 @@ function inspect(args, tools) {
       }
     }
     walk(source);
-    return 'four public skills and shared resources exist; source tree has no links';
+    return 'five public skills and shared resources exist; source tree has no links';
   });
   if (contract && source) check('prompt', () => {
     if (!/^yan-[a-z-]+:\d+$/.test(contract.prompt_ref || '')) throw new Error('invalid prompt_ref');

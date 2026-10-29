@@ -98,6 +98,33 @@
       }
     },
     {
+      "id": "yan-requirement-analysis",
+      "source": "skills/yan-requirement-analysis/SKILL.md",
+      "eval": {
+        "suite": "skills/yan-requirement-analysis/evals.json",
+        "required_tag": "route_minimal_loading"
+      },
+      "direct_resources": {
+        "always": [],
+        "routed": [],
+        "conditional": [
+          {
+            "target": "skills/_shared/interaction-policy.md",
+            "guard": "证据冲突需要用户裁决、或目标文件存在冲突时，才读取"
+          },
+          {
+            "target": "skills/yan-requirement-analysis/analysis-template.md",
+            "guard": "准备输出完整分析时才读取"
+          },
+          {
+            "target": "skills/_shared/workflow-brief.md",
+            "guard": "只有真实跨 Agent、跨任务或稍后恢复时，才读取"
+          }
+        ],
+        "index_only": []
+      }
+    },
+    {
       "id": "yan-code-review",
       "source": "skills/yan-code-review/SKILL.md",
       "eval": {

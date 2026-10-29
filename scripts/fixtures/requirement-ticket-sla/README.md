@@ -1,0 +1,3 @@
+# Ticket SLA requirement input
+
+Requirement-analysis evaluation input. The PRD below is intentionally incomplete: it mixes calendar and working-time SLA wording, leaves handler-filter visibility unstated while the current query isolates tickets by department, uses an unquantified "fast" response requirement, leaves reassignment timing open, and bundles export with filtering. The current query also returns logically deleted tickets, which the PRD does not mention. This is a plain Java 8 source tree with no build file, database, or network dependency; do not fix it during ordinary repository cleanup.

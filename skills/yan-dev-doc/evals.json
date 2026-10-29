@@ -501,6 +501,25 @@
         "vcs_boundary"
       ],
       "id": 81
+    },
+    {
+      "id": 82,
+      "prompt": "基于 docs/requirements/2026-10-27/ticket-sla.md 的需求分析出开发方案。文档里 REQ-1、REQ-2 和 AC-1~AC-4 已确认，Q-3（导出范围）仍待确认。",
+      "expected_output": "以已确认的 REQ/AC 为需求依据，切片和验收引用对应编号，不重新推导需求；Q-3 原样列入未决项，只阻塞导出相关切片，不重复向用户提问已确认内容。",
+      "tags": [
+        "requirement_handoff",
+        "traceability"
+      ]
+    },
+    {
+      "id": 83,
+      "prompt": "给“工单列表增加按处理人筛选”出一份开发方案，项目里没有任何需求分析文档。",
+      "expected_output": "直接按 yan-dev-doc 自身流程收敛需求并生成方案；不要求或建议先运行需求分析，不因缺少 REQ/AC 编号而阻塞。",
+      "tags": [
+        "standalone",
+        "requirement_handoff",
+        "negative_control"
+      ]
     }
   ]
 }
