@@ -130,13 +130,19 @@ function withWriteLock(operation) {
     if (reason) die('BOARD_WRITE_LOCK_STALE: ' + LOCK + '（' + reason + '）；确认没有其他写入后运行 node project-html/board-add.js --unlock-stale，再用原输入重试');
     die('BOARD_WRITE_LOCKED: another publisher holds ' + LOCK + '; retry after it finishes');
   }
+  const token = JSON.stringify({ pid: process.pid, host: os.hostname(), createdAt: new Date().toISOString() }) + '\n';
   try {
-    fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, host: os.hostname(), createdAt: new Date().toISOString() }) + '\n');
+    fs.writeFileSync(fd, token);
     return operation();
   } finally {
     fs.closeSync(fd);
-    fs.unlinkSync(LOCK);
+    releaseWriteLock(token);
   }
+}
+// 只删除自己持有的锁：超时被 --unlock-stale 移除并由其他写入者重新获取的锁不能被原持有者顺手删掉。
+function releaseWriteLock(token) {
+  try { if (fs.readFileSync(LOCK, 'utf8') === token) fs.unlinkSync(LOCK); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 function detailIdOf(entry) {
   const stable = entry.deliveryId || entry.docPath || entry.sourceDocPath ||
