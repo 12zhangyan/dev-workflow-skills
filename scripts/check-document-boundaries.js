@@ -183,6 +183,17 @@ function smokeBoardShellBootstrap() {
     const current = runBoardAdapter('status', project, 'board-shell current-version smoke');
     requireMarker(current, 'BOARD_SHELL_CURRENT', 'board-shell current-version smoke');
 
+    // Same version but stale content (mixed shell) must not pass as current; CRLF-only differences must.
+    const buildJsPath = path.join(project, 'project-html', 'build.js');
+    const buildJsBytes = fs.readFileSync(buildJsPath);
+    fs.writeFileSync(buildJsPath, Buffer.concat([buildJsBytes, Buffer.from('// stale shell\n')]));
+    const modified = runBoardAdapter('status', project, 'board-shell modified smoke');
+    requireMarker(modified, 'BOARD_SHELL_MODIFIED', 'board-shell modified smoke');
+    requireMarker(modified, 'BOARD_SHELL_DIFFERENT_FILES=build.js', 'board-shell modified smoke');
+    fs.writeFileSync(buildJsPath, buildJsBytes.toString('utf8').replace(/\r?\n/g, '\r\n'), 'utf8');
+    requireMarker(runBoardAdapter('status', project, 'board-shell CRLF smoke'), 'BOARD_SHELL_CURRENT', 'board-shell CRLF smoke');
+    fs.writeFileSync(buildJsPath, buildJsBytes);
+
     const boardJsPath = path.join(project, 'project-html', 'js', 'board.js');
     const boardJs = fs.readFileSync(boardJsPath, 'utf8');
     const versionPattern = /(BOARD_VERSION[ \t]*=[ \t]*)\d+/;
@@ -239,6 +250,75 @@ function smokeBoardShellBootstrap() {
     const incomplete = runBoardAdapter('status', project, 'incomplete shell smoke');
     requireMarker(incomplete, 'BOARD_SHELL_INCOMPLETE', 'incomplete shell smoke');
     requireMarker(incomplete, 'BOARD_SHELL_MISSING_FILES=board-add.js', 'incomplete shell smoke');
+  } finally {
+    removeTempRoot(tempRoot);
+  }
+}
+
+// sync must never leave a half-initialized or mixed-version shell behind.
+function smokeBoardShellSyncFailures() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-workflow-skills-board-shell-'));
+  try {
+    const template = path.join(root, 'skills', 'yan-dev-doc', 'assets', 'board');
+    const home = path.join(tempRoot, 'home');
+    // A loose adapter resolves its "current skill tree" template to tempRoot/yan-dev-doc/assets/board.
+    const adapter = path.join(tempRoot, 'loose', 'scripts', 'board-bootstrap.js');
+    const localTemplate = path.join(tempRoot, 'yan-dev-doc', 'assets', 'board');
+    fs.mkdirSync(path.dirname(adapter), { recursive: true });
+    fs.copyFileSync(path.join(root, 'skills', '_shared', 'scripts', 'board-bootstrap.js'), adapter);
+    fs.cpSync(template, localTemplate, { recursive: true });
+    fs.rmSync(path.join(localTemplate, 'js', 'vendor', 'mermaid.min.js'));
+    const env = Object.assign({}, process.env, { HOME: home, USERPROFILE: home });
+    delete env.DEV_WORKFLOW_SKILLS_BOARD_TEMPLATE;
+    const run = (command, project) => spawnSync(process.execPath, [adapter, command, project], { encoding: 'utf8', timeout: 30000, windowsHide: true, env });
+
+    const project = path.join(tempRoot, 'project');
+    fs.mkdirSync(project, { recursive: true });
+    const refused = run('sync', project);
+    if (refused.status === 0 || !refused.stderr.includes('BOARD_TEMPLATE_INCOMPLETE') || fs.existsSync(path.join(project, 'project-html'))) {
+      fail('sync with only an incomplete template must fail before creating project-html');
+    }
+
+    fs.cpSync(template, path.join(home, '.agents', 'skills', 'yan-dev-doc', 'assets', 'board'), { recursive: true });
+    const initialized = run('sync', project);
+    if (initialized.status !== 0 || !fs.existsSync(path.join(project, 'project-html', 'js', 'vendor', 'mermaid.min.js'))) {
+      fail('sync must prefer a complete installed template over an incomplete local one: ' + initialized.stderr);
+      return;
+    }
+    if (fs.readdirSync(path.join(project, 'project-html')).includes('.shell-backup')) fail('a clean initial sync must not leave staging directories');
+    if (fs.existsSync(path.join(project, 'project-html', 'data', 'changes.js.lock'))) fail('a successful sync must release its board write lock');
+
+    // Older shell, one created file pending, and a vendor path that cannot be replaced mid-sync.
+    const boardJsPath = path.join(project, 'project-html', 'js', 'board.js');
+    const oldBoardJs = Buffer.from(fs.readFileSync(boardJsPath, 'utf8').replace(/(BOARD_VERSION[ \t]*=[ \t]*)\d+/, '$10'), 'utf8');
+    fs.writeFileSync(boardJsPath, oldBoardJs);
+
+    // A held board write lock blocks sync before any shell file or the holder's lock changes.
+    const lockPath = path.join(project, 'project-html', 'data', 'changes.js.lock');
+    const holder = JSON.stringify({ pid: process.pid, host: os.hostname(), createdAt: new Date().toISOString() }) + '\n';
+    fs.writeFileSync(lockPath, holder);
+    const locked = run('sync', project);
+    if (locked.status === 0 || !locked.stderr.includes('BOARD_WRITE_LOCKED')) fail('sync must refuse while the board write lock is held: ' + locked.stderr);
+    if (!fs.readFileSync(boardJsPath).equals(oldBoardJs)) fail('a lock-blocked sync must not replace shell files');
+    if (!fs.existsSync(lockPath) || fs.readFileSync(lockPath, 'utf8') !== holder) fail('a lock-blocked sync must leave the holder lock intact');
+    fs.rmSync(lockPath);
+
+    fs.rmSync(path.join(project, 'project-html', 'index.html'));
+    const vendor = path.join(project, 'project-html', 'js', 'vendor');
+    fs.rmSync(vendor, { recursive: true });
+    fs.writeFileSync(vendor, 'not a directory');
+    const broken = run('sync', project);
+    if (broken.status === 0 || !broken.stderr.includes('BOARD_SHELL_SYNC_FAILED') || !broken.stderr.includes('rolled back')) {
+      fail('a mid-sync failure must report BOARD_SHELL_SYNC_FAILED with a completed rollback: ' + broken.stderr);
+    }
+    if (!fs.readFileSync(boardJsPath).equals(oldBoardJs)) fail('a failed sync must restore the replaced board.js');
+    if (fs.existsSync(path.join(project, 'project-html', 'index.html'))) fail('a failed sync must remove files it created');
+    if ((broken.stdout || '').includes('BOARD_SHELL_REPLACED=') || (broken.stdout || '').includes('BOARD_SHELL_SYNCED=')) fail('a failed sync must not report replaced or synced files');
+    const backupDir = path.join(project, 'project-html', '.shell-backup');
+    if (fs.existsSync(backupDir) && fs.readdirSync(backupDir).some((name) => name.startsWith('.staging-'))) fail('a failed sync must remove its staging directory');
+    if (fs.existsSync(lockPath)) fail('a failed sync must release its board write lock');
+    const status = run('status', project);
+    if (status.status !== 0 || !status.stdout.includes('BOARD_SHELL_INCOMPLETE')) fail('status after a failed sync must still report the incomplete old shell');
   } finally {
     removeTempRoot(tempRoot);
   }
@@ -455,6 +535,7 @@ requireText('skills/_shared/board-publish-flow.md', [
 ]);
 
 smokeBoardShellBootstrap();
+smokeBoardShellSyncFailures();
 
 // Historical records may keep the retired SVN zero-command rule, but must not present it as current.
 {

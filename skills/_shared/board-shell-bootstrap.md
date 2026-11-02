@@ -16,6 +16,7 @@
 - `BOARD_SHELL_INCOMPLETE`：列出缺失文件；先判断是否影响本次写入、构建或展示，再决定修复。
 - `BOARD_SHELL_UPGRADE_AVAILABLE`：模板版本较新；在本次发布授权内按下方 `sync` 升级外壳，再进入数据格式检查。
 - `BOARD_SHELL_CURRENT`：外壳不低于当前模板版本，已具备模板的写入、迁移检查与构建能力；跳过下方逐项核对，直接进入数据格式检查。
+- `BOARD_SHELL_MODIFIED`：版本与模板相同，但 `BOARD_SHELL_DIFFERENT_FILES` 列出的外壳文件内容不同（新旧混杂或本地定制）；按下段 VCS 检查，无本地修改时用 `sync` 修复，有本地修改时沿用并逐项核对。
 - `BOARD_SHELL_VERSION_UNKNOWN`：版本无法识别，按下方逐项核对本次所需能力，不据版本号声称已验证兼容。
 - `BOARD_TEMPLATE_ERROR`：保留错误，不手改数据绕过。
 
@@ -29,7 +30,7 @@
 
 `node <board-bootstrap.js 绝对路径> sync <项目根目录>`
 
-用于初始化、外壳落后时的默认升级、已证实的发布不兼容修复或明确授权的维护。只替换外壳文件，从不覆盖 `data/`；更高版本不向旧模板降级（`BOARD_SHELL_DOWNGRADE_REFUSED`）。同步复制 index、CSS、board.js、Mermaid vendor、build.js、board-add.js；仅目标缺失时创建空目录数据与 .gitignore，保留详情与已有忽略规则。成功输出 `BOARD_SHELL_SYNCED=<版本>`。升级后报告升级前后版本与替换的外壳文件；升级可能改变派生页，报告实际构建影响，不把批量重建混作单条业务更新。
+用于初始化、外壳落后时的默认升级、已证实的发布不兼容修复或明确授权的维护。只替换外壳文件，从不覆盖 `data/`；更高版本不向旧模板降级（`BOARD_SHELL_DOWNGRADE_REFUSED`）。同步复制 index、CSS、board.js、Mermaid vendor、build.js、board-add.js；仅目标缺失时创建空目录数据与 .gitignore，保留详情与已有忽略规则。同步期间持有看板写入锁，遇 `BOARD_WRITE_LOCKED` 等当前发布结束再重试。成功输出 `BOARD_SHELL_SYNCED=<版本>`；中途失败输出 `BOARD_SHELL_SYNC_FAILED` 并回滚到同步前状态，按 `BoardPublishBlocked` 报告，不重复重试；仅有缺文件的模板时输出 `BOARD_TEMPLATE_INCOMPLETE` 且不创建外壳。升级后报告升级前后版本与替换的外壳文件；升级可能改变派生页，报告实际构建影响，不把批量重建混作单条业务更新。
 
 ## 数据格式
 
