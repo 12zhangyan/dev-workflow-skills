@@ -489,7 +489,10 @@ function liveArgs(host, command, workspace, prompt, model, writeScope, effort) {
     if (model) args.push('--model', model);
     const direct = unwrapNodeShim(command);
     // 评测进程触发的自动更新会在系列运行中途重装宿主，使后续运行找不到命令且版本漂移。
-    return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace, env: { ...process.env, DISABLE_AUTOUPDATER: '1' } };
+    // CLAUDE_CODE_SUBAGENT_EFFORT 会改变子 Agent 的 effort，但结果不记录它；剔除后子 Agent 一律用宿主默认，对比条件才一致。
+    const env = { ...process.env, DISABLE_AUTOUPDATER: '1' };
+    delete env.CLAUDE_CODE_SUBAGENT_EFFORT;
+    return { command: direct.command, args: [...direct.prefixArgs, ...args], cwd: workspace, env };
   }
   const args = ['-p', prompt, '--output-format', 'text'];
   if (model) args.push('--model', model);
@@ -1073,6 +1076,15 @@ function runSelfTest() {
     if (disallowed < 0 || claudeArgs[disallowed + 1] !== 'Skill') throw new Error('claude live runs must disable the host Skill tool so installed skills cannot replace the snapshot');
   }
   if (liveArgs('claude', 'claude', root, 'p', 'm', 'none').env?.DISABLE_AUTOUPDATER !== '1') throw new Error('claude live runs must disable auto-update so the host cannot reinstall mid-series');
+  {
+    const saved = process.env.CLAUDE_CODE_SUBAGENT_EFFORT;
+    process.env.CLAUDE_CODE_SUBAGENT_EFFORT = 'low';
+    try {
+      if ('CLAUDE_CODE_SUBAGENT_EFFORT' in liveArgs('claude', 'claude', root, 'p', 'm', 'none').env) throw new Error('claude live runs must not pass an unrecorded subagent effort override');
+    } finally {
+      if (saved === undefined) delete process.env.CLAUDE_CODE_SUBAGENT_EFFORT; else process.env.CLAUDE_CODE_SUBAGENT_EFFORT = saved;
+    }
+  }
   const writableClaude = liveArgs('claude', 'claude', root, 'p', 'm', 'code-and-tests').args;
   if (!writableClaude.includes('Bash(git diff:*)') || !writableClaude.includes('PowerShell(git diff:*)') || writableClaude.some(arg => /^(?:Bash|PowerShell)\(git(?::\*)?\)$/.test(arg))) {
     throw new Error('writable claude runs must allow only read-only git subcommands');
