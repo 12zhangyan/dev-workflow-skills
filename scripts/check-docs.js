@@ -279,25 +279,15 @@ function runSelfTest() {
 if (process.argv.includes('--self-test')) runSelfTest();
 
 const readme = read('README.md');
-for (const boardPolicy of [
-  '看板默认自动发布',
-  '匹配不到时不新建孤立记录；check 默认零写入',
-  'ImpactAnalysis 与会话交接从不写看板',
-]) {
-  if (!readme.includes(boardPolicy)) fail(`README.md missing board publishing policy: ${boardPolicy}`);
-}
 for (const needle of [
   'install.ps1',
   'install.sh',
   'install-local.cmd',
   'node scripts/check-all.js',
-  '覆盖全部正式 Skill',
-  '高风险行为护栏，不是普通文案 lint',
   'Windows PowerShell 5.1',
   'Get-Content -Encoding UTF8',
   'Workflow Brief',
-  '不依赖外部方法论 Skill',
-  'Codex 不要输入 `/yan-dev-doc` 或 `$yan-dev-doc`'
+  '`$yan-dev-doc`'
 ]) {
   if (!readme.includes(needle)) fail(`README.md missing required text: ${needle}`);
 }
@@ -324,24 +314,12 @@ const workflowGuide = read('docs/workflow-guide.md');
 for (const skill of skillNames) {
   if (!workflowGuide.includes(skill)) fail(`docs/workflow-guide.md does not mention skill: ${skill}`);
 }
-for (const needle of ['Workflow Brief', 'Plan Gate', 'Review Gate', 'Submit Gate', '准确性硬规则', 'environment-blocked', '测试必须证明目标逻辑', '自包含执行方式', '不依赖外部方法论 Skill', 'CR/IM/MI']) {
+for (const needle of ['Workflow Brief', 'Plan Gate', 'Review Gate', 'Submit Gate', 'environment-blocked', 'CR/IM/MI']) {
   if (!workflowGuide.includes(needle)) fail(`docs/workflow-guide.md missing required text: ${needle}`);
 }
 
 const whyDevDoc = read('docs/why-yan-dev-doc.md');
-for (const needle of ['不设固定问题数量', 'HTML 看板只在', 'Workflow Brief 只在', '不依赖外部方法论 Skill']) {
-  if (!whyDevDoc.includes(needle)) fail(`docs/why-yan-dev-doc.md missing autonomous design text: ${needle}`);
-}
 const whyUnderstanding = read('docs/why-code-reading.md');
-for (const needle of ['不是 Review 或开发的必经阶段', '不要求先生成持久任务包', 'Workflow Brief 只在']) {
-  if (!whyUnderstanding.includes(needle)) fail(`docs/why-code-reading.md missing adaptive understanding text: ${needle}`);
-}
-for (const needle of ['同工作区实时协作不要求先落盘任务包', '只有真实跨 Agent、跨任务或延期恢复时', '不要求先生成代码地图']) {
-  if (!workflowGuide.includes(needle)) fail(`docs/workflow-guide.md missing adaptive workflow text: ${needle}`);
-}
-for (const needle of ['不设置鼓励重复案例的总数量门槛', '不规定下一步矩阵']) {
-  if (!readme.includes(needle)) fail(`README.md missing lightweight maintenance text: ${needle}`);
-}
 
 const staleFixedWorkflowText = [
   '最多两个生产代码切点',
@@ -366,7 +344,7 @@ for (const [rel, text] of [
 }
 
 const workflowChain = read('skills/_shared/workflow-chain.md');
-for (const needle of ['不要求探测或调用外部方法论 Skill', 'Agent 自主判断', 'CR-n', 'IM-n', 'MI-n']) {
+for (const needle of ['CR-n', 'IM-n', 'MI-n']) {
   if (!workflowChain.includes(needle)) fail(`skills/_shared/workflow-chain.md missing self-contained workflow text: ${needle}`);
 }
 

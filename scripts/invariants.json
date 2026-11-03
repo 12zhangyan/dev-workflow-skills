@@ -1,0 +1,218 @@
+{
+  "$comment": "Hard behavior invariants and contract tokens for skill text. An invariant names a safety or truthfulness boundary whose loss causes irreversible side effects or false claims; it passes when one sentence of each listed file matches every regex, so equivalent rewording keeps passing. Contract tokens are identifiers, paths, links and enum values that scripts, the board or downstream skills consume; they must not contain CJK prose. Wording, tone and non-safety guidance are guarded by evals, not by this file.",
+  "invariants": [
+    {
+      "id": "db-readonly",
+      "why": "Skills never execute database writes.",
+      "files": [
+        "skills/yan-dev-doc/SKILL.md",
+        "skills/yan-code-review/SKILL.md",
+        "skills/yan-requirement-analysis/SKILL.md",
+        "skills/yan-conversation-handoff/SKILL.md"
+      ],
+      "sentence": ["数据库", "只读|不执行数据库写入"]
+    },
+    {
+      "id": "ddl-proposal-only",
+      "why": "DDL/DML in a plan is a proposal for human approval, never an executed step.",
+      "files": ["skills/yan-dev-doc/SKILL.md"],
+      "sentence": ["DDL", "建议|审批"]
+    },
+    {
+      "id": "no-auto-vcs-write",
+      "why": "Skills never add, commit or push without explicit authorization.",
+      "files": [
+        "skills/yan-dev-doc/SKILL.md",
+        "skills/yan-code-review/SKILL.md",
+        "skills/yan-requirement-analysis/SKILL.md",
+        "skills/yan-code-review/modes/loop/mode.md"
+      ],
+      "sentence": ["commit", "不自动|未经|不执行|不提交"]
+    },
+    {
+      "id": "untracked-not-auto-added",
+      "why": "Untracked files stay a VCS risk; the agent does not add them.",
+      "files": ["skills/yan-code-review/modes/loop/mode.md"],
+      "sentence": ["未跟踪", "add", "擅自|不得|不能"]
+    },
+    {
+      "id": "svn-readonly-authority",
+      "why": "The full SVN command boundary lives in workflow-gates: local read-only commands only.",
+      "files": ["skills/_shared/workflow-gates.md"],
+      "sentence": ["SVN|svn", "只读"]
+    },
+    {
+      "id": "svn-no-network-or-write-commands",
+      "why": "Networked and writing SVN commands are forbidden.",
+      "files": ["skills/_shared/workflow-gates.md"],
+      "sentence": ["联网", "写入", "禁止|不"]
+    },
+    {
+      "id": "svn-zero-exit-failure",
+      "why": "svn exits 0 outside a working copy; the warning must still count as failure (backed by the live probe in check-review-boundaries).",
+      "files": ["skills/_shared/workflow-gates.md"],
+      "sentence": ["svn: warning|W155007", "失败"]
+    },
+    {
+      "id": "svn-readonly-at-point-of-use",
+      "why": "Every route that may touch an SVN working copy keeps the read-only guard visible.",
+      "files": [
+        "skills/yan-code-review/modes/check/mode.md",
+        "skills/yan-code-review/modes/repair/mode.md",
+        "skills/yan-code-review/modes/loop/mode.md",
+        "skills/yan-dev-doc/SKILL.md",
+        "skills/yan-conversation-handoff/SKILL.md",
+        "skills/yan-requirement-analysis/SKILL.md",
+        "skills/yan-project-analysis/modes/incident/reference.md",
+        "skills/_shared/host-capabilities.md"
+      ],
+      "sentence": ["SVN|svn", "只读"]
+    },
+    {
+      "id": "check-mode-readonly",
+      "why": "check mode reports findings and never edits code.",
+      "files": ["skills/yan-code-review/modes/check/mode.md"],
+      "sentence": ["不得修改|不修改|不改", "代码"]
+    },
+    {
+      "id": "zero-findings-not-complete",
+      "why": "An empty result must not be reported as a completed clean review.",
+      "files": ["skills/yan-code-review/modes/check/mode.md"],
+      "sentence": ["findings?", "不证明"]
+    },
+    {
+      "id": "repair-needs-finding",
+      "why": "repair fixes located findings only, never a plan or an unreviewed diff.",
+      "files": ["skills/yan-code-review/modes/repair/mode.md"],
+      "sentence": ["finding", "不修复"]
+    },
+    {
+      "id": "loop-no-weakening",
+      "why": "A loop must not pass by deleting checks or loosening assertions.",
+      "files": ["skills/yan-code-review/modes/loop/mode.md"],
+      "sentence": ["放宽断言|删除必要检查", "不得"]
+    },
+    {
+      "id": "self-verified-label",
+      "why": "A closure without an independent reviewer is labeled self-verified, not independently rechecked.",
+      "files": [
+        "skills/yan-code-review/modes/loop/mode.md",
+        "skills/yan-code-review/modes/package/mode.md"
+      ],
+      "sentence": ["自验证", "不称|不能称"]
+    },
+    {
+      "id": "delegation-keeps-permissions",
+      "why": "Delegated reviewers never receive more permission than the user granted.",
+      "files": ["skills/yan-code-review/modes/package/mode.md"],
+      "sentence": ["委派", "不扩大"]
+    },
+    {
+      "id": "subagent-claims-need-evidence",
+      "why": "A sub-agent's self-reported success is not completion evidence.",
+      "files": ["skills/_shared/workflow-gates.md"],
+      "sentence": ["自报"]
+    },
+    {
+      "id": "impact-analysis-zero-write",
+      "why": "ImpactAnalysis writes nothing to the workspace, docs, board or VCS.",
+      "files": [
+        "skills/yan-project-analysis/SKILL.md",
+        "skills/yan-project-analysis/modes/understanding/mode.md"
+      ],
+      "sentence": ["ImpactAnalysis", "零写入"]
+    },
+    {
+      "id": "board-write-via-script",
+      "why": "Board data is written only through board-add.js.",
+      "files": ["skills/_shared/board-publish-flow.md"],
+      "sentence": ["board-add\\.js", "只通过|只能通过"]
+    },
+    {
+      "id": "board-no-manual-catalog-edit",
+      "why": "data/changes.js is never rewritten or hand-edited.",
+      "files": ["skills/_shared/board-publish-flow.md"],
+      "sentence": ["changes\\.js", "禁止|不得"]
+    },
+    {
+      "id": "board-no-lock-bypass",
+      "why": "Board script failures, including the write lock, are reported, not bypassed.",
+      "files": ["skills/_shared/board-publish-flow.md"],
+      "sentence": ["绕过", "不得"]
+    },
+    {
+      "id": "board-no-orphan-review",
+      "why": "Review publishing never creates an entry without a matching delivery dossier.",
+      "files": ["skills/_shared/board-publish-flow.md"],
+      "sentence": ["孤立", "不得|不新建|不创建"]
+    },
+    {
+      "id": "board-agent-fields-excluded",
+      "why": "Agent-only fields stay in the md and out of board payloads.",
+      "files": ["skills/yan-project-analysis/modes/incident/mode.md"],
+      "sentence": ["Agent 专属字段|Agent-only", "看板"]
+    },
+    {
+      "id": "board-opt-out",
+      "why": "An explicit no-board request leaves project-html untouched.",
+      "files": ["skills/yan-dev-doc/SKILL.md"],
+      "sentence": ["不要看板", "project-html"]
+    },
+    {
+      "id": "no-board-for-non-publishing-skills",
+      "why": "Handoff, requirement analysis and ImpactAnalysis never publish to the board.",
+      "files": [
+        "skills/yan-conversation-handoff/SKILL.md",
+        "skills/yan-requirement-analysis/SKILL.md",
+        "skills/yan-project-analysis/modes/understanding/mode.md"
+      ],
+      "sentence": ["看板", "不要登记|不登记|永不发布|不发布"]
+    },
+    {
+      "id": "secrets-not-echoed",
+      "why": "Secrets are recorded by location and type only.",
+      "files": [
+        "skills/yan-dev-doc/SKILL.md",
+        "skills/yan-requirement-analysis/SKILL.md",
+        "skills/yan-conversation-handoff/SKILL.md",
+        "skills/_shared/interaction-policy.md"
+      ],
+      "sentence": ["敏感|API key|密码|token", "不回显|不得.*转录|脱敏"]
+    },
+    {
+      "id": "unknowns-not-fabricated",
+      "why": "Unknown business, API or data semantics are left open, not invented.",
+      "files": ["skills/_shared/interaction-policy.md"],
+      "sentence": ["未知", "不得.*(生成|编造)|不编造"]
+    }
+  ],
+  "contracts": [
+    { "file": "skills/yan-dev-doc/SKILL.md", "tokens": ["NeedsConfirmation", "BoardPublishBlocked", "BoardPublishSkipped", "publishing-board.md", "../_shared/scripts/doc-check.js", "LINE_OUT_OF_RANGE", "../_shared/interaction-policy.md", "Workflow Brief"] },
+    { "file": "skills/yan-dev-doc/plan-template.md", "tokens": ["`E-n`", "`S-n`", "`A-n`", "`Q-n`"] },
+    { "file": "skills/yan-dev-doc/publishing-board.md", "tokens": ["node project-html/board-add.js", "../_shared/board-publish-flow.md", "detail.delivery.plan", "codeLocation"] },
+    { "file": "skills/yan-project-analysis/SKILL.md", "tokens": ["../_shared/scripts/doc-check.js", "LINE_OUT_OF_RANGE", "../_shared/interaction-policy.md", "Workflow Brief"] },
+    { "file": "skills/yan-project-analysis/modes/incident/mode.md", "tokens": ["BoardPublishSkipped", "BoardPublishBlocked", "../../../_shared/board-publish-flow.md", "board-add.js", "kind:\"bug\""] },
+    { "file": "skills/yan-project-analysis/modes/business/mode.md", "tokens": ["BoardPublishSkipped", "BoardPublishBlocked", "../../../_shared/board-publish-flow.md", "board-add.js", "kind:\"biz\""] },
+    { "file": "skills/yan-project-analysis/modes/understanding/mode.md", "tokens": ["BoardPublishSkipped", "BoardPublishBlocked", "../../../_shared/board-publish-flow.md", "board-add.js"] },
+    { "file": "skills/yan-conversation-handoff/SKILL.md", "tokens": ["../_shared/scripts/doc-check.js", "LINE_OUT_OF_RANGE", "../_shared/interaction-policy.md", "Workflow Brief"] },
+    { "file": "skills/yan-requirement-analysis/SKILL.md", "tokens": ["../_shared/interaction-policy.md", "Workflow Brief"] },
+    { "file": "skills/yan-code-review/SKILL.md", "tokens": ["../_shared/interaction-policy.md", "Workflow Brief"] },
+    { "file": "skills/yan-code-review/modes/check/mode.md", "tokens": ["`ADDRESSED`", "`NOT ADDRESSED`", "detect-vcs"] },
+    { "file": "skills/yan-code-review/modes/check/reference.md", "tokens": ["Passed / Failed / NotProvided / NotRun / EnvironmentBlocked / NotApplicable", "ReviewScopeType", "TestDependencyClass", "TestEvidenceStatus"] },
+    { "file": "skills/yan-code-review/modes/repair/mode.md", "tokens": ["detect-vcs"] },
+    { "file": "skills/yan-code-review/modes/repair/reference.md", "tokens": ["TestEvidenceStatus", "EnvironmentBlocked", "NotRun"] },
+    { "file": "skills/yan-code-review/modes/loop/mode.md", "tokens": ["SingleAgentReview", "../check/mode.md"] },
+    { "file": "skills/yan-code-review/modes/loop/reference.md", "tokens": ["TestEvidenceStatus: <Passed|Failed|NotProvided|NotRun|EnvironmentBlocked|NotApplicable>"] },
+    { "file": "skills/yan-code-review/modes/package/mode.md", "tokens": ["`BK`"] },
+    { "file": "skills/yan-code-review/modes/package/aggregation.md", "tokens": ["`RJ`"] },
+    { "file": "skills/_shared/workflow-chain.md", "tokens": ["`CR-n / IM-n / MI-n`", "ReviewScopeType", "TestEvidenceStatus", "PlanReview", "ImplementationReview", "FixHandoffReview", "EnvironmentBlocked"] },
+    { "file": "skills/_shared/workflow-gates.md", "tokens": ["workflow-brief.md", "workflow-chain.md", "EnvironmentBlocked", "VCS_OWNER", "VCSStatusUnknown", "VCSGateBlocked", "W155007", "Unversioned directory"] },
+    { "file": "skills/_shared/workflow-brief.md", "tokens": ["inFlight"] },
+    { "file": "skills/_shared/interaction-policy.md", "tokens": ["InsufficientMaterial", "NeedsConfirmation"] },
+    { "file": "skills/_shared/board-publish-flow.md", "tokens": ["project-html/board-add.js", "board-shell-bootstrap.md", "workflow-fs.js prepare-board-entry", "BOARD_WRITE_LOCKED", "BoardPublishSkipped", "BoardPublishBlocked", "BoardBuildBlocked", "`detail.delivery.review.events[]`", "eventId", "`findings[{id, status, problem}]`", "`plan` / `implementation` / `verification` / `review` / `submit`"] },
+    { "file": "skills/_shared/board-shell-bootstrap.md", "tokens": ["board-bootstrap.js", "BOARD_SHELL_UPGRADE_AVAILABLE", "BOARD_SHELL_CURRENT", "`svn status --non-interactive project-html`"] }
+  ],
+  "forbidden": [
+    { "file": "skills/_shared/interaction-policy.md", "pattern": "## 四步流程|每次只问一个", "why": "the shared policy must not impose a fixed interaction flow" }
+  ]
+}
