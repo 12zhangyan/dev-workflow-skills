@@ -252,7 +252,7 @@ node scripts/check-git-diff.js
 
 检查只守行为和契约，不守措辞。硬边界登记在 [scripts/invariants.json](scripts/invariants.json)，由 `check-invariants.js` 按句子关键词匹配，等价改写不会失败；被脚本、看板或下游 Skill 消费的标识符、路径和枚举值作为契约 token 登记在同一文件。`check-review-boundaries.js` 实测 SVN 客户端信号并扫描禁用命令，`check-document-boundaries.js` 冒烟测试看板外壳适配器。措辞和非安全指导由 evals 守护；如果只换了说法、行为没变，某项检查却失败，说明它在守措辞，应删除或改写这项检查，而不是迁就它改正文。
 
-维护规则：
+维护规则（宿主评测 runner 与看板内部实现的开发者细节见 [docs/maintaining.md](docs/maintaining.md)）：
 
 - 改 `scripts/*.js` 时，运行 `node scripts/check-scripts.js`，确认脚本语法、shebang 和 strict mode。
 - `node scripts/check-git-diff.js` 同时检查工作区、暂存区、HEAD，以及可解析到的 PR/push/`origin/main` 提交范围；GitHub Actions 必须使用完整历史，不能用干净 checkout 上的空 `git diff --check` 冒充提交范围检查。
