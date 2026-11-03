@@ -66,8 +66,11 @@ function inspect(args, tools) {
     const matches = contracts.cases.filter(item => item.id === args.case);
     if (matches.length !== 1) throw new Error('unknown or duplicate contract case: ' + args.case);
     contract = matches[0];
-    if (args.invocation !== 'explicit' && !contract.selection) throw new Error('natural invocation requires a selection contract');
+    if (['catalog', 'native'].includes(args.invocation) && !contract.selection) throw new Error('natural invocation requires a selection contract');
     if (args.invocation === 'explicit' && contract.selection) throw new Error('selection contracts require --invocation catalog or native');
+    // 选择类用例考的是“挑没挑对技能”，没有可对照的任务结果。
+    if (args.invocation === 'none' && contract.selection) throw new Error('--invocation none is a task baseline; selection contracts have no task outcome to compare');
+    if (args.lift && !contract.lift?.task) throw new Error(contract.id + ' declares no skill-neutral lift task');
     if (args.invocation === 'native' && args.host !== 'codex') throw new Error('native discovery evidence currently requires Codex');
     if (args.effort && args.host !== 'codex') throw new Error('--effort currently supports codex only');
     if (!['none', 'docs', 'docs-and-board', 'code-and-tests'].includes(contract.write_scope)) throw new Error('unsupported write scope');
@@ -89,7 +92,7 @@ function inspect(args, tools) {
   });
   if (contract && source) check('prompt', () => {
     if (!/^yan-[a-z-]+:\d+$/.test(contract.prompt_ref || '')) throw new Error('invalid prompt_ref');
-    promptFor(contract, args.invocation === 'native' ? '.agents/skills' : '.yan-host-eval-runtime/skills', args.invocation, source);
+    promptFor(contract, args.invocation === 'native' ? '.agents/skills' : '.yan-host-eval-runtime/skills', args.invocation, source, args.lift);
     return 'current task resolves against the selected skill source';
   });
   if (contract && source && contract.route_loading) check('route-resources', () => {

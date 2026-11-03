@@ -68,12 +68,13 @@
     },
     {
       "id": "repair-query-contract",
+      "lift": { "task": "修复 src/query.js 的 queryOrders：分页与 total 不符合 README.md 已确认的契约，见 test/query.test.js 的失败用例。已授权修改 src/query.js 和必要的测试，完成针对性验证并报告结果，不提交。" },
       "prompt_ref": "yan-code-review:15",
       "route": "repair",
       "write_scope": "code-and-tests",
       "allowed_path_patterns": [
         "^src/query\\.js$",
-        "^test/(?!query\\.test\\.js$)[^/]+\\.test\\.js$"
+        "^test/[^/]+\\.test\\.js$"
       ],
       "assertions": {
         "artifacts": [
@@ -1151,6 +1152,7 @@
     },
     {
       "id": "review-loop-independent-recheck",
+      "lift": { "task": "审查并修复 src/reports.js 的报告读取接口及其测试，修复后用 node --test 验证；可以修改 src/ 与 test/ 下的文件，不要提交。" },
       "prompt_ref": "yan-code-review:28",
       "route": "loop",
       "write_scope": "code-and-tests",

@@ -41,8 +41,10 @@ function usage(message) {
     '    --case <contract-id> --workspace <clean-git-worktree>',
     '    [--allow-write] [--model <model>] [--output <result.json>] [--timeout-ms <ms>]',
     '    [--skill-source <skills-directory>]  Compare a saved version using the same case/grader.',
-    '    [--invocation explicit|catalog|native] [--effort low|medium|high|xhigh|ultra]',
+    '    [--invocation explicit|catalog|native|none] [--effort low|medium|high|xhigh|ultra]',
     '    Native discovery currently requires Codex JSON command evidence; catalog works across hosts.',
+    '    [--lift]  Use the contract\'s skill-neutral lift task and outcome-only grading on either arm.',
+    '    --invocation none --lift runs that task with no skill staged: the baseline arm for skill lift.',
     '    [--reps <1-20>]  Repeat sequentially, each in a fresh isolated clone; N>1 writes one series result.',
     '',
     'Live mode is opt-in. Writable contracts also require --allow-write and always',
@@ -74,6 +76,8 @@ function parseArgs(argv) {
       args.probe = false;
     } else if (arg === '--allow-write') {
       args.allowWrite = true;
+    } else if (arg === '--lift') {
+      args.lift = true;
     } else if (['--host', '--case', '--workspace', '--model', '--output', '--timeout-ms', '--skill-source', '--invocation', '--effort', '--reps'].includes(arg)) {
       const value = argv[++index];
       if (!value) usage(`${arg} requires a value`);
@@ -88,7 +92,11 @@ function parseArgs(argv) {
   args.reps = explicitReps ? Number(args.reps) : 1;
   if (!Number.isInteger(args.reps) || args.reps < 1 || args.reps > MAX_REPS) usage(`--reps must be an integer from 1 to ${MAX_REPS}`);
   if (explicitReps && !args.live) usage('--reps requires --live');
-  if (!['explicit', 'catalog', 'native'].includes(args.invocation)) usage('unknown --invocation');
+  if (!['explicit', 'catalog', 'native', 'none'].includes(args.invocation)) usage('unknown --invocation');
+  // none 是无技能对照臂：不暂存任何 Skill，所以选定版本无从生效。
+  if (args.invocation === 'none' && args.skillSource) usage('--invocation none stages no skill; drop --skill-source');
+  // 多数评测提示词直接点名技能；对照臂只能跑契约里的技能中立任务，否则会诱导它去找技能。
+  if (args.invocation === 'none' && !args.lift) usage('--invocation none requires --lift (the contract\'s skill-neutral task)');
   if (args.effort && !['low', 'medium', 'high', 'xhigh', 'ultra'].includes(args.effort)) usage('unknown --effort');
   return args;
 }
@@ -199,6 +207,16 @@ function decodeHostOutput(host, stdout) {
 
 function assessSelection(contract, output, invocation, trace, snapshotRoot, workspace = '') {
   if (invocation === 'explicit') return { required: false, passed: true };
+  if (invocation === 'none') {
+    // 对照臂读过任何 SKILL.md 就不再是无技能基线；只有 Codex 命令事件能证实没读，其余宿主记为未验证。
+    const skillReads = trace.commands.filter(item => item.exitCode === 0 && /SKILL\.md/i.test(item.command));
+    const verified = trace.traceAvailable ? skillReads.length === 0 : null;
+    return {
+      required: true, passed: verified !== false, expected: 'none',
+      evidenceKind: trace.traceAvailable ? 'codex-completed-commands' : 'host-trace-unavailable',
+      noSkillReadVerified: verified, skillReadCommands: skillReads.map(item => item.command),
+    };
+  }
   const expected = contract.selection.expected_skill;
   const selected = output.match(/^\s*SKILL:\s*([^\r\n]+)$/im)?.[1].trim();
   const files = output.match(/^\s*SKILL_FILES:\s*([^\r\n]+)$/im)?.[1].trim().replace(/\\/g, '/');
@@ -223,15 +241,40 @@ function assessSelection(contract, output, invocation, trace, snapshotRoot, work
   };
 }
 
-function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSource = path.join(root, 'skills')) {
+// \u6709\u6280\u80FD\u81C2\u4E0E\u65E0\u6280\u80FD\u81C2\u5171\u4EAB\u7684\u4EFB\u52A1\u90E8\u5206\uFF1B\u8BB0\u5F55\u5B83\u7684\u54C8\u5E0C\uFF0C\u63D0\u5347\u5BF9\u6BD4\u624D\u80FD\u786E\u8BA4\u4E24\u81C2\u505A\u7684\u662F\u540C\u4E00\u4E2A\u4EFB\u52A1\u3002
+function taskPromptFor(contract, lift = false) {
+  const scopeRule = contract.write_scope === 'none'
+    ? 'Keep the workspace read-only; do not create, modify, or delete files.'
+    : `You may write only within ${contract.write_scope}, and nowhere else.`;
+  if (lift) {
+    if (typeof contract.lift?.task !== 'string' || !contract.lift.task) throw new Error(contract.id + ' has no skill-neutral lift task');
+    return [`\u5199\u5165\u8FB9\u754C\uFF1A${scopeRule}`, contract.lift.task].join('\n');
+  }
   const [skill, idText] = contract.prompt_ref.split(':');
   const evalPath = path.join(root, 'skills', skill, 'evals.json');
   const evalFile = JSON.parse(fs.readFileSync(evalPath, 'utf8').replace(/^\uFEFF/, ''));
   const scenario = evalFile.evals.find((item) => Number(item.id) === Number(idText));
   if (!scenario) throw new Error(`missing scenario ${contract.prompt_ref}`);
-  const scopeRule = contract.write_scope === 'none'
-    ? 'Keep the workspace read-only; do not create, modify, or delete files.'
-    : `You may write only within ${contract.write_scope}, and nowhere else.`;
+  return [`\u5199\u5165\u8FB9\u754C\uFF1A${scopeRule}`, scenario.prompt].join('\n');
+}
+
+// \u63D0\u5347\u5BF9\u6BD4\u4E24\u81C2\u6309\u540C\u4E00\u628A\u5C3A\u5B50\u5224\uFF1A\u53EA\u7559\u4EA7\u7269\u65AD\u8A00\u548C\u884C\u4E3A\u9A8C\u8BC1\u5668\uFF1B\u6587\u672C\u65AD\u8A00\u591A\u662F Skill \u62A5\u544A\u683C\u5F0F\uFF08finding \u7F16\u53F7\u7B49\uFF09\uFF0C\u4F1A\u504F\u8892\u6709\u6280\u80FD\u81C2\u3002
+function liftGrading(contract) {
+  return { ...contract, assertions: { artifacts: contract.assertions?.artifacts || [] } };
+}
+
+function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSource = path.join(root, 'skills'), lift = false) {
+  const [skill] = contract.prompt_ref.split(':');
+  const task = taskPromptFor(contract, lift);
+  // \u65E0\u6280\u80FD\u81C2\u53EA\u7ED9\u4EFB\u52A1\u672C\u8EAB\uFF1AROUTE\u3001\u52A0\u8F7D\u56DE\u6267\u90FD\u662F Skill \u673A\u5236\uFF0C\u4E0D\u5C5E\u4E8E\u4EFB\u52A1\u7ED3\u679C\u3002
+  if (invocation === 'none') {
+    return [
+      '\u672C\u6B21\u662F\u4E0D\u4F7F\u7528\u4EFB\u4F55\u6280\u80FD\u7684\u5BF9\u7167\u8FD0\u884C\uFF1A\u76F4\u63A5\u5904\u7406\u4E0B\u9762\u7684\u4EFB\u52A1\uFF0C\u4E0D\u8BFB\u53D6\u6216\u8C03\u7528\u4EFB\u4F55 Skill \u6216 SKILL.md\u3002',
+      '\u9075\u5FAA\u9879\u76EE\u89C4\u5219\u548C\u4E0B\u8FF0\u5199\u5165\u8FB9\u754C\u3002',
+      '',
+      task,
+    ].join('\n');
+  }
   const loadingReceipt = contract.route_loading ? [
     '第三行输出：',
     'LOADED_RESOURCES: <本次实际打开的 skills/... Markdown 路径，英文逗号分隔>',
@@ -256,8 +299,7 @@ function promptFor(contract, skillSnapshotRoot, invocation = 'explicit', skillSo
       '回执只记录实际操作，不需要技能时 ROUTE 填 none，不为填写回执额外读取技能。',
     ] : []),
     '',
-    `写入边界：${scopeRule}`,
-    scenario.prompt,
+    task,
   ].join('\n');
 }
 
@@ -449,6 +491,7 @@ function createIsolation(sourceWorkspace, skillSource, invocation) {
     fs.rmSync(tempRoot, { recursive: true, force: true });
     throw new Error(`failed to create isolated Git clone: ${(clone.stderr || clone.stdout || '').trim()}`);
   }
+  if (invocation === 'none') return { tempRoot, workspace: isolated, skillSnapshotRoot: null, skillHash: 'none' };
   try {
     const { skillSnapshotRoot, skillHash } = stageSkillSnapshot(isolated, skillSource, invocation);
     return { tempRoot, workspace: isolated, skillSnapshotRoot, skillHash };
@@ -669,21 +712,24 @@ function assessExecution(run) {
   };
 }
 
-function assess(contract, output, drift, assertions, routeLoading, outcome = { required: false, passed: true, checks: [] }, run) {
+function assess(contract, output, drift, assertions, routeLoading, outcome = { required: false, passed: true, checks: [] }, run, invocation = 'explicit') {
   const execution = assessExecution(run);
+  // taskPassed 只看任务结果，有无技能两臂都能算；ROUTE/WRITE_SCOPE 回执和加载回执属于 Skill 机制，对照臂不适用。
+  const taskPassed = execution.passed && drift.allowed && assertions.passed && outcome.passed;
+  const receiptsApplicable = invocation !== 'none';
   // 允许路由名后附带括号说明，如 `ROUTE: yan-dev-doc（开发方案）`
   const routeMatch = output.match(/^\s*ROUTE:\s*([a-z0-9+_ -]+?)\s*(?:[（(][^\n]*[)）])?\s*$/im);
   const scopeMatch = output.match(/^\s*WRITE_SCOPE:\s*([a-z-]+)/im);
   const observedRoute = routeMatch ? routeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
   const observedScope = scopeMatch ? scopeMatch[1].toLowerCase() : null;
   const acceptedRoutes = contract.accepted_routes || [contract.route];
+  const skillMechanicsPassed = acceptedRoutes.includes(observedRoute)
+    && observedScope === contract.write_scope
+    && routeLoading.passed;
   return {
-    passed: execution.passed && acceptedRoutes.includes(observedRoute)
-      && observedScope === contract.write_scope
-      && drift.allowed
-      && assertions.passed
-      && outcome.passed
-      && routeLoading.passed,
+    passed: taskPassed && (!receiptsApplicable || skillMechanicsPassed),
+    taskPassed,
+    skillMechanicsPassed: receiptsApplicable ? skillMechanicsPassed : null,
     execution,
     observedRoute,
     observedScope,
@@ -1065,9 +1111,38 @@ function runSelfTest() {
     [['--live', '--reps', '0'], '--reps must be an integer'],
     [['--live', '--reps', '21'], '--reps must be an integer'],
     [['--preflight', '--reps', '2'], '--reps requires --live'],
+    [['--live', '--invocation', 'none', '--lift', '--skill-source', 'skills'], '--invocation none stages no skill'],
+    [['--live', '--invocation', 'none'], '--invocation none requires --lift'],
   ]) {
     const rejected = spawnSync(process.execPath, [__filename, ...argv], { encoding: 'utf8', windowsHide: true });
-    if (rejected.status !== 2 || !rejected.stderr.includes(message)) throw new Error('invalid --reps was not rejected: ' + argv.join(' '));
+    if (rejected.status !== 2 || !rejected.stderr.includes(message)) throw new Error('invalid arguments were not rejected: ' + argv.join(' '));
+  }
+  {
+    // 无技能对照臂：同一任务、不暂存技能、只按任务结果判定。
+    if (parseArgs(['--live', '--invocation', 'none', '--lift']).invocation !== 'none') throw new Error('--invocation none was not accepted');
+    const task = contracts.cases.find(item => item.id === 'repair-query-contract');
+    const baselinePrompt = promptFor(task, null, 'none', undefined, true);
+    const skilledPrompt = promptFor(task, '.yan-host-eval-runtime/skills', 'explicit', undefined, true);
+    const shared = taskPromptFor(task, true);
+    if (!baselinePrompt.endsWith(shared) || !skilledPrompt.endsWith(shared) || !skilledPrompt.includes('使用 yan-code-review skill')) throw new Error('both lift arms must end with the same shared task; only the skill arm names the skill');
+    if (/ROUTE:|LOADED_RESOURCES|\.yan-host-eval-runtime|yan-code-review/.test(baselinePrompt)) throw new Error('baseline prompt leaked skill receipts, snapshot or skill name');
+    if (shared === taskPromptFor(task)) throw new Error('lift task must replace the skill-naming scenario prompt');
+    const graded = liftGrading(task);
+    if (graded.assertions.text || !graded.assertions.artifacts.length || graded.outcome_verifier !== task.outcome_verifier) throw new Error('lift grading must keep artifacts and the verifier but drop skill-format text assertions');
+    let missingLift = false;
+    try { taskPromptFor(contracts.cases.find(item => !item.lift), true); } catch { missingLift = true; }
+    if (!missingLift) throw new Error('a case without a lift task must not run in lift mode');
+    const read = { commands: [{ command: 'cat ~/.agents/skills/yan-code-review/SKILL.md', exitCode: 0 }], traceAvailable: true };
+    if (assessSelection(task, '', 'none', { commands: [], traceAvailable: true }).noSkillReadVerified !== true) throw new Error('clean codex baseline not verified');
+    if (assessSelection(task, '', 'none', read).passed) throw new Error('baseline that read a SKILL.md was accepted');
+    const unverified = assessSelection(task, '', 'none', { commands: [], traceAvailable: false });
+    if (!unverified.passed || unverified.noSkillReadVerified !== null) throw new Error('trace-less host must be recorded as unverified, not failed');
+    const ok = { passed: true };
+    const clean = { status: 0 };
+    const baselineAssessment = assess(task, 'plain answer', { allowed: true }, ok, { required: false, passed: true }, ok, clean, 'none');
+    if (!baselineAssessment.passed || !baselineAssessment.taskPassed || baselineAssessment.skillMechanicsPassed !== null) throw new Error('baseline must be judged on task outcome only');
+    const skilledAssessment = assess(task, 'plain answer', { allowed: true }, ok, { required: false, passed: true }, ok, clean, 'explicit');
+    if (skilledAssessment.passed || !skilledAssessment.taskPassed || skilledAssessment.skillMechanicsPassed !== false) throw new Error('skill arm must keep receipts while reporting task outcome separately');
   }
   if (parseArgs(['--live']).reps !== 1) throw new Error('--reps must default to one run');
   for (const scope of ['none', 'code-and-tests']) {
@@ -1096,7 +1171,8 @@ function runSelfTest() {
 function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, probe }) {
   const isolation = createIsolation(sourceWorkspace, skillSource, args.invocation);
   const before = workspaceSnapshot(isolation.workspace);
-  const prompt = promptFor(contract, isolation.skillSnapshotRoot, args.invocation, skillSource);
+  const prompt = promptFor(contract, isolation.skillSnapshotRoot, args.invocation, skillSource, args.lift);
+  const grading = args.lift ? liftGrading(contract) : contract;
   const invocation = liveArgs(args.host, probe.command, isolation.workspace, prompt, args.model, contract.write_scope, args.effort);
   const startedAt = new Date().toISOString();
   const started = Date.now();
@@ -1123,7 +1199,9 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
   const selection = assessSelection(contract, modelOutput, args.invocation, trace, isolation.skillSnapshotRoot, isolation.workspace);
   const diagnostics = (run.stderr || '').trim();
   const diagnosticSummary = compactDiagnostics(diagnostics);
-  const routeLoading = assessRouteLoading(contract, modelOutput);
+  const routeLoading = args.invocation === 'none'
+    ? { required: false, passed: true, resources: [], count: 0 }
+    : assessRouteLoading(contract, modelOutput);
   const durationMs = Date.now() - started;
   const result = {
     schemaVersion: 3,
@@ -1133,6 +1211,7 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
       graderSha256: crypto.createHash('sha256').update(fs.readFileSync(__filename)).update(contract.outcome_verifier ? fs.readFileSync(path.join(root, 'scripts/eval-verifiers', contract.outcome_verifier + '.js')) : '').digest('hex'),
       contractSha256: crypto.createHash('sha256').update(JSON.stringify(contract)).digest('hex'),
       promptSha256: crypto.createHash('sha256').update(prompt).digest('hex'),
+      taskPromptSha256: crypto.createHash('sha256').update(taskPromptFor(contract, args.lift)).digest('hex'),
       modelSelection: args.model ? 'explicit' : 'host-default-not-resolved',
     },
     host: args.host,
@@ -1142,6 +1221,7 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
     model: args.model || null,
     effort: args.effort || null,
     invocation: args.invocation,
+    lift: Boolean(args.lift),
     startedAt,
     durationMs,
     exitCode: run.status,
@@ -1150,7 +1230,9 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
       kind: 'temporary-git-clone',
       sourceWorkspace,
       workspaceWasWritten: false,
-      skillSnapshot: { kind: args.skillSource ? 'selected-source-copy' : 'current-checkout-copy', root: isolation.skillSnapshotRoot, sha256: isolation.skillHash },
+      skillSnapshot: args.invocation === 'none'
+        ? { kind: 'none', root: null, sha256: 'none' }
+        : { kind: args.skillSource ? 'selected-source-copy' : 'current-checkout-copy', root: isolation.skillSnapshotRoot, sha256: isolation.skillHash },
     },
     metrics: {
       durationMs,
@@ -1162,18 +1244,21 @@ function runLiveOnce(args, { preflight, contract, sourceWorkspace, skillSource, 
       contract,
       modelOutput,
       drift,
-      assessAssertions(contract, modelOutput, isolation.workspace, changedPaths),
+      assessAssertions(grading, modelOutput, isolation.workspace, changedPaths),
       routeLoading,
       outcome,
       run,
+      args.invocation,
     ),
-    artifacts: captureArtifacts(contract, isolation.workspace, changedPaths),
+    artifacts: captureArtifacts(grading, isolation.workspace, changedPaths),
     output: modelOutput,
     diagnostics: diagnosticSummary.text,
     diagnosticsTruncated: diagnosticSummary.truncated,
   };
   result.assessment.selection = selection;
   result.assessment.passed = result.assessment.passed && selection.passed;
+  // 对照臂被证实读过 SKILL.md 时，它的任务结果也不能当作无技能基线。
+  if (args.invocation === 'none') result.assessment.taskPassed = result.assessment.taskPassed && selection.passed;
   fs.rmSync(isolation.tempRoot, { recursive: true, force: true });
   return result;
 }
@@ -1190,6 +1275,7 @@ function summarizeSeries(runs) {
   const first = runs[0];
   const executed = runs.filter(run => run.assessment?.execution?.passed === true);
   const passed = runs.filter(run => run.assessment?.passed === true);
+  const taskPassed = runs.filter(run => run.assessment?.taskPassed === true);
   const metric = field => seriesStats(runs.map(run => run.metrics?.[field]));
   return {
     schemaVersion: 3,
@@ -1201,12 +1287,15 @@ function summarizeSeries(runs) {
     model: first.model,
     effort: first.effort,
     invocation: first.invocation,
+    lift: first.lift,
     provenance: first.provenance,
     isolation: { kind: 'temporary-git-clone-per-run', skillSnapshot: { sha256: first.isolation.skillSnapshot.sha256 } },
     summary: {
       executionComplete: executed.length,
       passed: passed.length,
       passRate: passed.length / runs.length,
+      taskPassed: taskPassed.length,
+      taskPassRate: taskPassed.length / runs.length,
       durationMs: metric('durationMs'),
       outputChars: metric('outputChars'),
       loadedResourceCount: metric('loadedResourceCount'),

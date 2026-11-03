@@ -129,6 +129,13 @@ for (const contract of contracts.cases || []) {
   if (contract.outcome_verifier !== undefined && !require('./host-eval-preflight').OUTCOME_VERIFIERS[contract.outcome_verifier]) {
     fail(`${contract.id} has unsupported outcome_verifier; only trusted repository graders may run`);
   }
+  // 提升对比只按产物和行为验证器判定；没有验证器时两臂几乎无可比结果。任务点名技能会把对照臂引去找技能。
+  if (contract.lift !== undefined) {
+    if (typeof contract.lift?.task !== 'string' || !contract.lift.task.trim()) fail(`${contract.id} lift.task must be a non-empty string`);
+    else if (/yan-[a-z]|skill|技能|mode\s*=/i.test(contract.lift.task)) fail(`${contract.id} lift.task must not name a skill, mode or skill mechanism`);
+    if (!contract.outcome_verifier) fail(`${contract.id} lift requires an outcome_verifier; outcome-only grading needs a behavioral check`);
+    if (contract.selection) fail(`${contract.id} selection contracts cannot declare a lift task`);
+  }
   if (contract.assertions !== undefined) {
     if (!contract.assertions || typeof contract.assertions !== 'object') {
       fail(`${contract.id} assertions must be an object`);
