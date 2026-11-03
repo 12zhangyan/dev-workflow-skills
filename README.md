@@ -6,7 +6,7 @@
 目标/约束/验收明确 → 可验收切片实施 → 真实验证 → 按风险独立 Review/修复 → 人工验收
 ```
 
-持续优化目标：Skill 越来越轻，只保留必要目标、边界与验收；Agent 越来越强，自主决定取证、拆分、实现、测试、Review 和验收。优化本 Skill 集时，只要切片独立且不会产生写冲突，可以按收益使用全部可用子 Agent 容量并行分析、实现和复核；并行数量不是流程要求，最终结论仍由主 Agent 依据证据整合。
+定位：这套 Skill 让 Agent 的产出**可信**，而不是让 Agent 更聪明。强模型本来就会读代码、写方案；Skill 的价值在于守住不可逆边界（数据库只读、不自动提交、SVN 只读等），固定可审计、可交接的产物格式，并把计划、审查和验证证据持久化。取证深度、拆分、实现、测试和 Review 方式仍由 Agent 自主决定，Skill 只保留必要目标、边界与验收。这里不宣称提升准确率或速度：已有的新旧版本对照只支持“未见回归”，见 [docs/research](docs/research/)。优化本 Skill 集时，只要切片独立且不会产生写冲突，可以按收益使用全部可用子 Agent 容量并行分析、实现和复核；并行数量不是流程要求，最终结论仍由主 Agent 依据证据整合。
 
 范围收敛参考 [Stop That Shit](https://github.com/lennney/stop-that-shit/blob/8bc1ac558167121e7f28d9fb0bec05c039952206/skills/stop-that-shit/SKILL.md)：按具体缺口扩展工作，复用仍有效的验证证据，完成验收后停止。相关约束融入现有 Skill，不新增公开入口或 Hook 依赖。
 
@@ -243,14 +243,14 @@ node scripts/run-host-evals.js --probe
 node scripts/check-workflow-briefs.js
 node scripts/check-review-boundaries.js
 node scripts/check-document-boundaries.js
+node scripts/check-invariants.js
 node scripts/check-installers.js
-node scripts/check-interaction-policy-sync.js
 node scripts/check-evals.js
 node project-html/build.js
 node scripts/check-git-diff.js
 ```
 
-`check-review-boundaries.js` 和 `check-document-boundaries.js` 校验的是高风险行为护栏，不是普通文案 lint；如果 Skill 正文等价改写了相关规则，要在同一轮同步更新脚本里的关键短语。
+检查只守行为和契约，不守措辞。硬边界登记在 [scripts/invariants.json](scripts/invariants.json)，由 `check-invariants.js` 按句子关键词匹配，等价改写不会失败；被脚本、看板或下游 Skill 消费的标识符、路径和枚举值作为契约 token 登记在同一文件。`check-review-boundaries.js` 实测 SVN 客户端信号并扫描禁用命令，`check-document-boundaries.js` 冒烟测试看板外壳适配器。措辞和非安全指导由 evals 守护；如果只换了说法、行为没变，某项检查却失败，说明它在守措辞，应删除或改写这项检查，而不是迁就它改正文。
 
 维护规则：
 

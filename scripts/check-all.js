@@ -17,8 +17,8 @@ const checks = [
   ['node', ['scripts/check-workflow-briefs.js']],
   ['node', ['scripts/check-review-boundaries.js']],
   ['node', ['scripts/check-document-boundaries.js']],
+  ['node', ['scripts/check-invariants.js']],
   ['node', ['scripts/check-installers.js']],
-  ['node', ['scripts/check-interaction-policy-sync.js']],
   ['node', ['scripts/check-evals.js']],
   ['node', ['project-html/build.js']],
   ['node', ['scripts/check-git-diff.js']]
