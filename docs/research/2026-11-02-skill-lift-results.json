@@ -1,0 +1,697 @@
+{
+  "date": "2026-11-02",
+  "host": "claude",
+  "version": "2.1.317 (Claude Code)",
+  "model": "claude-sonnet-5-5",
+  "mode": "skill-lift (--lift, explicit vs none, --reps 10)",
+  "fixtures": {
+    "repair-query-contract": "scripts/fixtures/repair-query-contract",
+    "review-loop-independent-recheck": "scripts/fixtures/report-ownership"
+  },
+  "comparisons": [
+    {
+      "case": "repair-query-contract",
+      "comparable": true,
+      "warnings": [
+        "baseline skill isolation is self-reported on this host; only Codex command events verify that no SKILL.md was read"
+      ],
+      "baseline": {
+        "runs": 10,
+        "taskPassed": 8,
+        "taskPassRate": 0.8
+      },
+      "skill": {
+        "runs": 10,
+        "taskPassed": 2,
+        "taskPassRate": 0.2,
+        "invocation": "explicit",
+        "skillSha256": "637376cf020341b8cef0cd2b346ff929741cdd7e7150c4e131f4fe148ab14ede",
+        "skillMechanicsPassed": 10
+      },
+      "taskPassRateLift": -0.6000000000000001,
+      "medianDeltas": {
+        "durationMs": 12058,
+        "outputChars": 337.5
+      }
+    },
+    {
+      "case": "review-loop-independent-recheck",
+      "comparable": true,
+      "warnings": [
+        "baseline skill isolation is self-reported on this host; only Codex command events verify that no SKILL.md was read"
+      ],
+      "baseline": {
+        "runs": 10,
+        "taskPassed": 10,
+        "taskPassRate": 1
+      },
+      "skill": {
+        "runs": 10,
+        "taskPassed": 9,
+        "taskPassRate": 0.9,
+        "invocation": "explicit",
+        "skillSha256": "637376cf020341b8cef0cd2b346ff929741cdd7e7150c4e131f4fe148ab14ede",
+        "skillMechanicsPassed": 10
+      },
+      "taskPassRateLift": -0.09999999999999998,
+      "medianDeltas": {
+        "durationMs": 13337,
+        "outputChars": 508.5
+      }
+    }
+  ],
+  "groups": [
+    {
+      "case": "repair-query-contract",
+      "arm": "no-skill baseline",
+      "invocation": "none",
+      "summary": {
+        "executionComplete": 10,
+        "passed": 8,
+        "passRate": 0.8,
+        "taskPassed": 8,
+        "taskPassRate": 0.8,
+        "durationMs": {
+          "min": 15626,
+          "median": 16559,
+          "max": 20329
+        },
+        "outputChars": {
+          "min": 318,
+          "median": 469,
+          "max": 664
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "skillSha256": "none",
+      "runs": [
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 16422,
+          "outputChars": 380
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 15626,
+          "outputChars": 401
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 16346,
+          "outputChars": 555
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 18229,
+          "outputChars": 555
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 18853,
+          "outputChars": 441
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 18003,
+          "outputChars": 664
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 15734,
+          "outputChars": 395
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20329,
+          "outputChars": 497
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 16036,
+          "outputChars": 318
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 16696,
+          "outputChars": 502
+        }
+      ]
+    },
+    {
+      "case": "repair-query-contract",
+      "arm": "skill (explicit)",
+      "invocation": "explicit",
+      "summary": {
+        "executionComplete": 10,
+        "passed": 2,
+        "passRate": 0.2,
+        "taskPassed": 2,
+        "taskPassRate": 0.2,
+        "durationMs": {
+          "min": 23366,
+          "median": 28617,
+          "max": 32289
+        },
+        "outputChars": {
+          "min": 651,
+          "median": 806.5,
+          "max": 1036
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "skillSha256": "637376cf020341b8cef0cd2b346ff929741cdd7e7150c4e131f4fe148ab14ede",
+      "runs": [
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 32126,
+          "outputChars": 984
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 28567,
+          "outputChars": 1036
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 28584,
+          "outputChars": 795
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 27749,
+          "outputChars": 861
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 28650,
+          "outputChars": 818
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/query.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 23366,
+          "outputChars": 651
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 29050,
+          "outputChars": 715
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 28101,
+          "outputChars": 700
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 32289,
+          "outputChars": 943
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": false,
+          "changedPaths": [
+            "src/query.js",
+            "test/query.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 30022,
+          "outputChars": 786
+        }
+      ]
+    },
+    {
+      "case": "review-loop-independent-recheck",
+      "arm": "no-skill baseline",
+      "invocation": "none",
+      "summary": {
+        "executionComplete": 10,
+        "passed": 10,
+        "passRate": 1,
+        "taskPassed": 10,
+        "taskPassRate": 1,
+        "durationMs": {
+          "min": 19702,
+          "median": 20678,
+          "max": 23000
+        },
+        "outputChars": {
+          "min": 480,
+          "median": 611,
+          "max": 669
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "skillSha256": "none",
+      "runs": [
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20674,
+          "outputChars": 519
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 19702,
+          "outputChars": 491
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20682,
+          "outputChars": 610
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20383,
+          "outputChars": 669
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 21572,
+          "outputChars": 625
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20449,
+          "outputChars": 480
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 20173,
+          "outputChars": 593
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 22506,
+          "outputChars": 622
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 21875,
+          "outputChars": 612
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": null,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 23000,
+          "outputChars": 639
+        }
+      ]
+    },
+    {
+      "case": "review-loop-independent-recheck",
+      "arm": "skill (explicit)",
+      "invocation": "explicit",
+      "summary": {
+        "executionComplete": 10,
+        "passed": 9,
+        "passRate": 0.9,
+        "taskPassed": 9,
+        "taskPassRate": 0.9,
+        "durationMs": {
+          "min": 32261,
+          "median": 34015,
+          "max": 44813
+        },
+        "outputChars": {
+          "min": 952,
+          "median": 1119.5,
+          "max": 1216
+        },
+        "loadedResourceCount": {
+          "min": 0,
+          "median": 0,
+          "max": 0
+        }
+      },
+      "skillSha256": "637376cf020341b8cef0cd2b346ff929741cdd7e7150c4e131f4fe148ab14ede",
+      "runs": [
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 32738,
+          "outputChars": 1216
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 44813,
+          "outputChars": 1204
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 33878,
+          "outputChars": 1129
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 34152,
+          "outputChars": 1173
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 33682,
+          "outputChars": 1072
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 36000,
+          "outputChars": 1178
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 33693,
+          "outputChars": 1110
+        },
+        {
+          "taskPassed": false,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": false,
+          "verifierFailedChecks": [
+            "cross-user-read-forbidden"
+          ],
+          "durationMs": 32261,
+          "outputChars": 952
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 34937,
+          "outputChars": 1108
+        },
+        {
+          "taskPassed": true,
+          "skillMechanicsPassed": true,
+          "writeBoundaryAllowed": true,
+          "changedPaths": [
+            "src/reports.js",
+            "test/reports.test.js"
+          ],
+          "verifierPassed": true,
+          "verifierFailedChecks": [],
+          "durationMs": 36403,
+          "outputChars": 1068
+        }
+      ]
+    }
+  ]
+}
