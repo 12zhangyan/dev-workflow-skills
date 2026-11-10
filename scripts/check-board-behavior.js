@@ -723,6 +723,65 @@ try {
   documented = publishExample(planExample);
   assert(documented.catalog.currentGate === 'review', 'revising the plan with the documented example must keep the dossier at its real gate');
 
+  // Detail-page file names: case-insensitive collisions, URL-special characters, over-long titles,
+  // and the board.js/build.js slug rules must agree; entry validation rejects inputs that skew the board.
+  {
+    const slugRoot = path.join(temp, 'slug-project');
+    const slugBoard = path.join(slugRoot, 'project-html');
+    fs.mkdirSync(path.join(slugBoard, 'data'), { recursive: true });
+    for (const file of ['board-add.js', 'build.js']) fs.copyFileSync(path.join(ROOT, 'project-html', file), path.join(slugBoard, file));
+    fs.writeFileSync(path.join(slugBoard, 'data/changes.js'), 'const htmlChangelog=[];\nconst changes=[];\n');
+    const publishSlug = (entry, detail = {}) => {
+      const input = path.join(slugRoot, 'entry.json');
+      fs.writeFileSync(input, JSON.stringify({ entry, detail }));
+      return spawnSync(process.execPath, [path.join(slugBoard, 'board-add.js'), input], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+    };
+    const titles = ['Abc', 'abc', '修复 #123 导出 100% 失败', '长'.repeat(260)];
+    titles.forEach((title, index) => {
+      const result = publishSlug({ service: 's', module: 'm', title, date: '2026-11-01', docPath: `docs/slug-${index}.md` });
+      assert(result.status === 0, 'slug fixture should publish: ' + result.stderr);
+    });
+    const built = spawnSync(process.execPath, [path.join(slugBoard, 'build.js')], { encoding: 'utf8', windowsHide: true, timeout: 30000 });
+    assert(built.status === 0, 'build must survive case-colliding, special-character and over-long titles: ' + built.stderr);
+    const pageFiles = fs.readdirSync(path.join(slugBoard, 'pages'));
+    assert(pageFiles.length === titles.length && new Set(pageFiles.map(name => name.toLowerCase())).size === titles.length,
+      'case-only title differences must not share a detail page file: ' + pageFiles.join(','));
+    assert(pageFiles.every(name => name.length <= 100), 'detail page file names must stay bounded');
+    const slugData = new Function(fs.readFileSync(path.join(slugBoard, 'data/changes.js'), 'utf8') + ';return changes')();
+    const boardSlugs = slugData.map(entry => context.slugOf(entry));
+    assert(boardSlugs.every(slug => pageFiles.includes(slug + '.html') || pageFiles.includes(slug + '-1.html')),
+      'board.js slug rules must match the file names build.js generates: ' + boardSlugs.join(','));
+    const indexText = fs.readFileSync(path.join(slugRoot, 'docs/INDEX.md'), 'utf8');
+    assert(indexText.includes('%23123'), 'INDEX.md page links must be URL-encoded');
+    assert(/href="pages\/' \+ |encodeURIComponent\(pageSlug\(d\)\)/.test(source), 'board.js page links must be URL-encoded');
+    const indexBefore = fs.readFileSync(path.join(slugRoot, 'docs/INDEX.md'));
+    spawnSync(process.execPath, [path.join(slugBoard, 'build.js')], { encoding: 'utf8', windowsHide: true, timeout: 30000 });
+    assert(indexBefore.equals(fs.readFileSync(path.join(slugRoot, 'docs/INDEX.md'))), 'INDEX.md must not change when the data did not');
+    const unknownArg = spawnSync(process.execPath, [path.join(slugBoard, 'build.js'), '--standalon'], { encoding: 'utf8', windowsHide: true });
+    assert(unknownArg.status === 1 && unknownArg.stderr.includes('未知参数'), 'build.js must reject unknown arguments instead of running a full build');
+
+    for (const [label, entry] of [['empty entry', {}], ['wrong-case kind', { title: 'k', kind: 'Bug' }], ['bad date', { title: 'k', date: 'not-a-date' }]]) {
+      const rejected = publishSlug(entry);
+      assert(rejected.status === 1 && rejected.stderr.includes('BOARD_ENTRY_INVALID'), `${label} must be rejected: ${rejected.stderr}`);
+    }
+    assert(slugData.length === titles.length, 'rejected entries must not change the catalog');
+
+    // A renamed plan document replaces docPath on the same dossier instead of reporting a silent no-op.
+    const deliveryId = slugData[2].deliveryId;
+    const moved = publishSlug({ deliveryId, title: titles[2], service: 's', module: 'm', docPath: 'docs/renamed.md' });
+    assert(moved.status === 0, 'renaming docPath on an existing dossier should publish: ' + moved.stderr);
+    const movedData = new Function(fs.readFileSync(path.join(slugBoard, 'data/changes.js'), 'utf8') + ';return changes')();
+    assert(movedData[2].docPath === 'docs/renamed.md', 'docPath supplied for an existing dossier must replace the old path');
+
+    // A legacy rich record must stop the write before any detail file is created.
+    const detailsBefore = fs.readdirSync(path.join(slugBoard, 'data/details')).length;
+    const catalogFile = path.join(slugBoard, 'data/changes.js');
+    fs.writeFileSync(catalogFile, fs.readFileSync(catalogFile, 'utf8').replace('const changes = [', 'const changes = [\n  {"title":"legacy","date":"2026-01-01","background":"rich legacy body"},'));
+    const blocked = publishSlug({ service: 's', module: 'm', title: 'after legacy', date: '2026-11-02', docPath: 'docs/after.md' });
+    assert(blocked.status === 1 && blocked.stderr.includes('--migrate'), 'legacy records must point at --migrate: ' + blocked.stderr);
+    assert(fs.readdirSync(path.join(slugBoard, 'data/details')).length === detailsBefore, 'a refused write must not leave an orphan detail file');
+  }
+
   // Record dates follow the local calendar day used for docs/<date>/, not the UTC day.
   for (const [zone, offsetHours] of [['Etc/GMT-14', 14], ['Etc/GMT+12', -12]]) {
     const zoneBoard = createBoard('zone-' + offsetHours);

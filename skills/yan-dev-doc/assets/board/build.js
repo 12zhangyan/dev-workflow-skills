@@ -9,6 +9,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const BOARD_DIR = __dirname;                 // .../project-html
 const ROOT = path.dirname(BOARD_DIR);        // 项目根
@@ -30,11 +31,16 @@ function writeIfChanged(file, content) {
   return true;
 }
 
+// 数据文件只应含对象字面量：放进空上下文并限时执行，被改动过的数据文件不再直接以 Node 权限运行。
+// vm 不是安全边界，这里只缩小暴露面。
+function runData(source, expression, sandbox) {
+  return vm.runInNewContext(source + '\n;(' + expression + ')', sandbox || {}, { timeout: 5000 });
+}
+
 // ── 解析 data/changes.js 中的 changes / htmlChangelog 数组 ──
 function loadData() {
   const src = read(path.join(BOARD_DIR, 'data', 'changes.js'));
-  const fn = new Function(src + '\n;return { changes: typeof changes !== "undefined" ? changes : [], htmlChangelog: typeof htmlChangelog !== "undefined" ? htmlChangelog : [] };');
-  return fn();
+  return runData(src, '{ changes: typeof changes !== "undefined" ? changes : [], htmlChangelog: typeof htmlChangelog !== "undefined" ? htmlChangelog : [] }');
 }
 
 function loadHumanDetail(catalog) {
@@ -46,9 +52,7 @@ function loadHumanDetail(catalog) {
     throw new Error(`详情路径越界：${catalog.detailPath}`);
   }
   if (!exists(detailFile)) throw new Error(`找不到看板详情：${catalog.detailPath}`);
-  const holder = {};
-  const fn = new Function('window', read(detailFile) + '\n;return window.BOARD_DETAILS || {};');
-  const details = fn(holder);
+  const details = runData(read(detailFile), 'window.BOARD_DETAILS || {}', { window: {} });
   if (!details[catalog.detailId]) throw new Error(`详情文件未声明 ${catalog.detailId}：${catalog.detailPath}`);
   return details[catalog.detailId];
 }
@@ -66,18 +70,26 @@ function hydratedEntry(catalog) {
 function svcOf(d) { return d.service || '通用'; }
 function modOf(d) { return d.module || '通用'; }
 // 与 board.js 的 slugOf 保持一致
+// 超长标题截断并追加内容哈希（FNV-1a 32 位，与 board.js 逐字一致），避免文件系统拒绝文件名。
+function slugHash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
 function slugOf(d) {
-  return [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
+  const slug = [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
     .replace(/[\/\\:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return slug.length > 80 ? slug.slice(0, 60).replace(/-$/, '') + '-' + slugHash(slug) : slug;
 }
 // 去重后的 slug 映射：同名 slug 追加 -1（与 board.js 的 _slugMap 算法逐字一致）。
+// 文件系统可能不区分大小写（Windows、macOS），按小写判重。
 // buildPages 与 buildIndex 都用它，保证单页文件名与索引/链接指向一致。
 function buildSlugMap(changes) {
   const used = new Set(), map = new Map();
   for (const d of changes) {
     let slug = slugOf(d);
-    while (used.has(slug)) slug += '-1';
-    used.add(slug); map.set(d, slug);
+    while (used.has(slug.toLowerCase())) slug += '-1';
+    used.add(slug.toLowerCase()); map.set(d, slug);
   }
   return map;
 }
@@ -101,13 +113,15 @@ function buildPages(data) {
   const slugMap = buildSlugMap(data.changes);
   const expected = new Set([...slugMap.values()].map(slug => slug + '.html'));
   let written = 0, removed = 0;
+  const failures = [];
   // 只清理已无对应记录的孤儿页面；保留有效页面后再按内容增量更新。
   for (const f of oldPages) {
     if (!expected.has(f)) { fs.unlinkSync(path.join(pagesDir, f)); removed++; }
   }
   for (const catalog of data.changes) {
-    const d = hydratedEntry(catalog);
     const slug = slugMap.get(catalog);
+    let d;
+    try { d = hydratedEntry(catalog); } catch (e) { failures.push(`${catalog.title || slug}: ${e.message}`); continue; }
     const entryJs = 'const changes = [' + inlineJson(d) + '];\nconst htmlChangelog = [];';
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -117,7 +131,7 @@ function buildPages(data) {
 <title>${escHtml(d.title || '')}</title>
 <script src="../js/vendor/mermaid.min.js"></script>
 <script>if (typeof mermaid === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\\/script>');</script>
-<link rel="stylesheet" href="../css/board.css?v=38">
+<link rel="stylesheet" href="../css/board.css?v=39">
 <style>.sidebar{display:none!important}.main{margin:0}.doc-view{max-width:900px}</style>
 </head>
 <body>
@@ -125,13 +139,15 @@ function buildPages(data) {
 <main class="main" id="main"></main>
 <script>window.DETAIL_PAGE = true;</script>
 <script>${entryJs}</script>
-<script src="../js/board.js?v=38"></script>
+<script src="../js/board.js?v=39"></script>
 <script>try { pick(0); } catch (e) { document.getElementById('main').textContent = '渲染失败: ' + e.message; }</script>
 </body>
 </html>`;
-    if (writeIfChanged(path.join(pagesDir, slug + '.html'), html)) written++;
+    // 单页写入失败只记录该条，其余页面照常生成；最后统一报告并以非零码退出。
+    try { if (writeIfChanged(path.join(pagesDir, slug + '.html'), html)) written++; }
+    catch (e) { failures.push(`${catalog.title || slug}: ${e.message}`); }
   }
-  return { total: data.changes.length, written, removed };
+  return { total: data.changes.length, written, removed, failures };
 }
 
 // 显式按需导出真正自包含的单文件；不参与日常全量构建，避免重复内嵌 3MB+ Mermaid。
@@ -182,8 +198,8 @@ function buildIndex(data, archiveSummary) {
   const indexFile = path.join(DOCS, 'INDEX.md');
   if (exists(indexFile) && !read(indexFile).includes(INDEX_MARKER)) return false;
   fs.mkdirSync(DOCS, { recursive: true });
-  const now = new Date();
-  const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-');
+  // 用记录中最新的日期而非构建当天，数据不变时索引内容也不变，已纳管的 INDEX.md 不会每天产生 diff。
+  const today = data.changes.map(d => String(d.updatedAt || d.date || '').slice(0, 10)).filter(Boolean).sort().pop() || '-';
   const kindLabel = { doc: '开发文档', bug: 'Bug', reading: '代码阅读', biz: '业务流' };
   const slugMap = buildSlugMap(data.changes);
 
@@ -215,7 +231,7 @@ function buildIndex(data, archiveSummary) {
         const ico = icoOf(d);
         const type = d.kind === 'bug' ? (d.severity || '缺陷') : (d.type || kindLabel[kindOf(d)]);
         const docCell = d.docPath ? `[md](../${d.docPath})` : '-';
-        const pageCell = `[页](../project-html/pages/${slugMap.get(d)}.html)`;
+        const pageCell = `[页](../project-html/pages/${encodeURIComponent(slugMap.get(d))}.html)`;
         const apiCell = d.apiSpecPath ? `[yaml](../${d.apiSpecPath})` : '-';
         L.push(`| ${ico} | ${mdEsc(d.title)} | ${mdEsc(type)} | ${mdEsc(d.status || '')} | ${d.date || ''} | ${docCell} | ${pageCell} | ${apiCell} |`);
       });
@@ -230,7 +246,7 @@ function buildIndex(data, archiveSummary) {
     L.push('');
   }
 
-  fs.writeFileSync(indexFile, L.join('\n'));
+  writeIfChanged(indexFile, L.join('\n'));
   return true;
 }
 function mdEsc(s) { return String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\n/g, ' '); }
@@ -335,6 +351,11 @@ function main() {
     }
     return;
   }
+  const unknown = process.argv.slice(2).filter(arg => arg !== '--archive-legacy');
+  if (unknown.length) {
+    console.error('✗ 未知参数：' + unknown.join(' ') + '\n  用法：node project-html/build.js [--archive-legacy] | --standalone <docPath|slug>');
+    process.exit(1);
+  }
   const archiveSummary = process.argv.includes('--archive-legacy') ? archiveLegacy() : null;
   const pages = buildPages(data);
   const indexWritten = buildIndex(data, archiveSummary);
@@ -343,5 +364,11 @@ function main() {
   if (archiveSummary && archiveSummary.total) msg += `；归档 ${archiveSummary.total} 个历史文件到 docs/archive/`;
   console.log(msg);
   if (!indexWritten) console.warn('⚠ docs/INDEX.md 已存在且不是 build.js 生成的文件，未覆盖；如需看板索引请改名后重跑。');
+  if (pages.failures.length) {
+    console.error(`✗ ${pages.failures.length} 个详情页生成失败，其余页面已生成：`);
+    for (const failure of pages.failures) console.error('  - ' + failure);
+    console.error('  请检查对应记录的标题与详情文件（data/details/）；不要手改 data/changes.js。');
+    process.exitCode = 1;
+  }
 }
 main();

@@ -210,7 +210,7 @@ $installer = irm "https://raw.githubusercontent.com/12zhangyan/dev-workflow-skil
 
 说明：
 
-- 安装器依赖 Node.js，复制整个 `skills/` 子树，不维护硬编码 skill 列表。
+- 安装器依赖 Node.js 18 或更新（低于 18 时启动即报错；CI 在 20 与 24 上验证），复制整个 `skills/` 子树，不维护硬编码 skill 列表。
 - 共用目录写入 schema v2 的 `.yan-dev-workflow-skills.json`，用于记录来源版本、安装模式、受管 Skill 和安装哈希；schema v1 会在下一次安装时校验并迁移，未知或损坏的清单会显式阻止破坏性替换。`status` 会报告 `CURRENT / DRIFT / OUTDATED / UNMANAGED`。
 - 每次安装先在发现目录之外 staging 并校验全部新版 Skill，再通过共用目录锁执行切换；激活或清单写入失败会回滚本轮安装；若恢复失败，保留尚未恢复的原文件并报告恢复目录。清单采用临时文件 + rename 原子替换。
 - 切换时彻底清理本发行版的现行 Skill、清单中已下线的 Skill 和已知旧名称；确认未修改的受管副本在成功后删除，首次纳管、无法确认归属或含本地修改的目录保留在 `~/.yan-dev-workflow-skills-backups/agents/<snapshot-id>/`。无关 Skill 和旧 `.yan-backups/` 不动。
@@ -227,7 +227,7 @@ $installer = irm "https://raw.githubusercontent.com/12zhangyan/dev-workflow-skil
 这个仓库没有传统 build。主要检查命令：
 
 ```bash
-node scripts/check-all.js
+node scripts/check-all.js              # 并行执行，约 1 分钟；--serial 逐项执行，--only <脚本名片段> 只跑匹配项
 node scripts/check-scripts.js
 node scripts/check-board-sync.js
 node scripts/check-board-behavior.js

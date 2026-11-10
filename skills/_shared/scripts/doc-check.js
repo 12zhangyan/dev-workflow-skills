@@ -13,7 +13,9 @@ const USAGE = [
   'exit code: 0 = no errors (warnings may be printed), 2 = findings that must be fixed or labeled, 1 = usage/IO error',
 ].join('\n');
 
-const SOURCE_EXT = 'java|kt|groovy|xml|yml|yaml|properties|sql|js|cjs|mjs|ts|tsx|jsx|vue|json|md|py|go|rs|cs|sh|ps1|cmd|gradle|kts|html|css|scss|proto|conf|toml|ini|txt';
+const SOURCE_EXT = 'java|kt|groovy|xml|yml|yaml|properties|sql|js|cjs|mjs|ts|tsx|jsx|vue|json|md|py|go|rs|cs|sh|ps1|cmd|gradle|kts|html|css|scss|proto|conf|toml|ini|txt|jsp|jspx|ftl|ftlh|vm|c|cc|cpp|h|hpp|php|rb|swift|dart|scala|lua';
+// A path with a directory part and a `:N` line marker whose extension is not in SOURCE_EXT is still a claim; report it as unchecked instead of dropping it.
+const UNKNOWN_EXT_LINE_RE = /^(?:\.{1,2}\/)?[\w@.\-一-龥]+(?:\/[\w@.\-一-龥]+)+\.[A-Za-z0-9]{1,8}(?::L?|#L?)\d/;
 // One path may carry several lines or ranges: `A.java:12`, `A.java:12-20`, `A.java:12,40-45`, `A.java:12、40`.
 const LINE_SPEC = '\\d+(?:-\\d+)?(?:\\s*[,，、]\\s*\\d+(?:-\\d+)?)*';
 const PATH_RE = new RegExp(`^((?:\\.{1,2}/)?[\\w@.\\-\\u4e00-\\u9fa5]+(?:/[\\w@.\\-\\u4e00-\\u9fa5]+)*\\.(?:${SOURCE_EXT}))(?::(${LINE_SPEC}))?$`, 'i');
@@ -32,7 +34,8 @@ function findRoot(start) {
 
 function stripFences(text) {
   // Fenced code is example content, not a claim about the repository.
-  return text.replace(/^(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1[ \t]*$/gm, (block) => block.replace(/[^\n]/g, ' '));
+  // Fences nested under list items are indented; they are still example content.
+  return text.replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, (block) => block.replace(/[^\n]/g, ' '));
 }
 
 function collectRefs(text) {
@@ -49,7 +52,7 @@ function collectRefs(text) {
       // Windows-style separators name the same repository path.
       const match = raw.replace(/\\/g, '/').match(PATH_RE);
       if (!match) {
-        if (LINE_CLAIM_RE.test(raw)) unparsed.push({ raw, docLine: index + 1 });
+        if (LINE_CLAIM_RE.test(raw) || UNKNOWN_EXT_LINE_RE.test(raw.replace(/\\/g, '/'))) unparsed.push({ raw, docLine: index + 1 });
         continue;
       }
       // A bare file name without a directory or line is a generic mention, not a locatable claim.
@@ -117,7 +120,8 @@ function collectMermaid(filePath) {
     visit(JSON.parse(text.replace(/^﻿/, '')), '');
     return blocks;
   }
-  const re = /^(`{3,}|~{3,})[ \t]*mermaid[^\n]*\n([\s\S]*?)^\1[ \t]*$/gm;
+  // Fences nested under list items are indented.
+  const re = /^[ \t]*(`{3,}|~{3,})[ \t]*mermaid[^\n]*\n([\s\S]*?)^[ \t]*\1[ \t]*$/gm;
   for (const match of text.matchAll(re)) {
     blocks.push({ where: `line ${text.slice(0, match.index).split('\n').length}`, source: match[2] });
   }
@@ -196,6 +200,7 @@ function runMermaid(filePath) {
     for (const item of result.warnings) output.push(`  warn: ${item}`);
   }
   output.push(`mermaid blocks=${blocks.length} errors=${errorCount}`);
+  if (!blocks.length) output.push('WARN no Mermaid block was recognized; nothing was verified, this is not a pass');
   return { errorCount, output };
 }
 
@@ -237,6 +242,18 @@ function selfTest() {
     assert(multiResult.ok === 4, `expected 4 ok multi-line refs, got ${multiResult.ok}: ${multiResult.problems.join('; ')}`);
     assert(multiResult.problems.length === 1 && multiResult.problems[0].startsWith('LINE_OUT_OF_RANGE src/App.java:2,4'), `unexpected multi-line problems: ${multiResult.problems.join('; ')}`);
     assert(multiResult.unparsed.length === 1 && multiResult.unparsed[0].raw === 'src/App.java#L2', `unexpected unparsed: ${JSON.stringify(multiResult.unparsed)}`);
+    // Extensions outside the allow-list used to vanish silently; a Java web project mixes .jsp/.ftl with .java.
+    const exts = path.join(dir, 'exts.md');
+    fs.mkdirSync(path.join(dir, 'web'));
+    fs.writeFileSync(path.join(dir, 'web', 'page.jsp'), 'x\n');
+    fs.writeFileSync(exts, '`web/page.jsp:1` `web/gone.jsp:5` `web/legacy.zzz:7` `web/other.zzz`\n');
+    const extResult = checkRefs(exts, findRoot(dir));
+    assert(extResult.ok === 1 && extResult.problems.length === 1 && extResult.problems[0].startsWith('MISSING web/gone.jsp:5'), `jsp refs misread: ${JSON.stringify(extResult)}`);
+    assert(extResult.unparsed.length === 1 && extResult.unparsed[0].raw === 'web/legacy.zzz:7', `unknown extension with a line marker must be reported as unchecked: ${JSON.stringify(extResult.unparsed)}`);
+    const nested = path.join(dir, 'nested.md');
+    fs.writeFileSync(nested, '1. step\n\n   ```mermaid\n   flowchart TD\n     A[call(x)] --> B\n   ```\n\n   ```\n   `web/ignored.jsp:9`\n   ```\n');
+    assert(runMermaid(nested).errorCount === 1, 'a Mermaid fence indented under a list item was not linted');
+    assert(checkRefs(nested, findRoot(dir)).problems.length === 0, 'an indented fence was treated as a repository claim');
     const json = path.join(dir, 'entry.json');
     fs.writeFileSync(json, JSON.stringify({ bizFlow: 'flowchart TD\n A[x(y)] --> B', title: 'not a diagram' }));
     assert(runMermaid(json).errorCount === 1, 'json mermaid field not linted');
