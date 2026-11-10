@@ -6,7 +6,16 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+// fs.cpSync and fs.rmSync (Node 16.7+) are required; below the floor the installer used to die with a bare TypeError.
+const MIN_NODE_MAJOR = 18;
+const nodeVersion = process.versions && process.versions.node;
+if (nodeVersion && Number(nodeVersion.split('.')[0]) < MIN_NODE_MAJOR) {
+  process.stderr.write(`[ERROR] Node.js ${MIN_NODE_MAJOR} or newer is required (found ${nodeVersion}).\n`);
+  process.exit(1);
+}
+
 const DISTRIBUTION = 'dev-workflow-skills';
+const LOCK_STALE_MS = 6 * 60 * 60 * 1000;
 const MANIFEST = '.yan-dev-workflow-skills.json';
 const MANIFEST_SCHEMA = 2;
 const BACKUP_DIR = '.yan-dev-workflow-skills-backups';
@@ -206,9 +215,12 @@ function acquireLock(home, targetName) {
             stale = processError.code === 'ESRCH';
           }
         }
+        // An install takes seconds; a live-looking pid on a lock older than the limit is a reused pid.
+        const startedAt = Date.parse(lock.startedAt);
+        if (!stale && Number.isFinite(startedAt) && Date.now() - startedAt > LOCK_STALE_MS) stale = true;
       } catch (_error) {
         const ageMs = Date.now() - fs.statSync(paths.lockPath).mtimeMs;
-        stale = ageMs > 6 * 60 * 60 * 1000;
+        stale = ageMs > LOCK_STALE_MS;
       }
       if (!stale || attempt > 0) {
         throw new Error(`another installer is active for ${targetName}: ${paths.lockPath}`);
@@ -733,7 +745,9 @@ function inspectManifest(sourceRoot, skillsRoot, targetName) {
       notes.push('source-tree-changed');
     }
   }
-  return { state, version: manifest.sourceVersion || '-', notes };
+  // A branch name such as "main" says nothing about which commit was installed; the tree hash prefix does.
+  const treeTag = manifest.sourceTreeHash ? `#${String(manifest.sourceTreeHash).slice(0, 8)}` : '';
+  return { state, version: manifest.sourceVersion ? manifest.sourceVersion + treeTag : '-', notes };
 }
 
 function statusTarget(sourceRoot, home, targetName) {

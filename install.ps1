@@ -14,8 +14,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$effectiveRef = if ($env:DEV_WORKFLOW_SKILLS_REF) { $env:DEV_WORKFLOW_SKILLS_REF } else { $Ref }
-$effectiveSha256 = if ($env:DEV_WORKFLOW_SKILLS_SHA256) { $env:DEV_WORKFLOW_SKILLS_SHA256 } else { $Sha256 }
+# Explicit parameters win over environment defaults, matching install.sh (--ref/--sha256 override the variables).
+$effectiveRef = if ($PSBoundParameters.ContainsKey('Ref')) { $Ref } elseif ($env:DEV_WORKFLOW_SKILLS_REF) { $env:DEV_WORKFLOW_SKILLS_REF } else { $Ref }
+$effectiveSha256 = if ($PSBoundParameters.ContainsKey('Sha256')) { $Sha256 } elseif ($env:DEV_WORKFLOW_SKILLS_SHA256) { $env:DEV_WORKFLOW_SKILLS_SHA256 } else { $Sha256 }
 $zipUrl = if ($env:DEV_WORKFLOW_SKILLS_ZIP) {
     $env:DEV_WORKFLOW_SKILLS_ZIP
 } else {

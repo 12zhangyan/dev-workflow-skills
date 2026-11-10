@@ -16,10 +16,10 @@ Further reference: installation and board usage in [README.md](README.md); host 
 
 | Skill | Entry point | Supporting files |
 |-------|-------------|-----------------|
-| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | conditional `plan-template.md`, `publishing-openapi.md`, `publishing-board.md`, `scripts/validate-openapi.js`, `assets/board/` |
+| `yan-dev-doc` | `skills/yan-dev-doc/SKILL.md` | `evals.json`, conditional `plan-template.md`, `publishing-openapi.md`, `publishing-board.md`, `scripts/validate-openapi.js`, `assets/board/` |
 | `yan-project-analysis` | `skills/yan-project-analysis/SKILL.md` | `evals.json`, and `modes/` containing understanding, incident, business |
 | `yan-code-review` | `skills/yan-code-review/SKILL.md` | `evals.json`, and `modes/` containing package, check, repair, loop |
-| `yan-conversation-handoff` | `skills/yan-conversation-handoff/SKILL.md` | `reference.md` (cross-conversation handoff template) |
+| `yan-conversation-handoff` | `skills/yan-conversation-handoff/SKILL.md` | `evals.json`, `reference.md` (cross-conversation handoff template) |
 | `yan-requirement-analysis` | `skills/yan-requirement-analysis/SKILL.md` | `evals.json`, conditional `analysis-template.md` (requirement analysis template) |
 
 Each `SKILL.md` (and each mode's `mode.md`) is the authoritative source of that skill's behavior and artifacts. Shared policy lives once in `skills/_shared/`: `workflow-gates.md` (evidence states, VCS ownership and the full SVN command boundary), `interaction-policy.md`, `workflow-brief.md`, `workflow-chain.md`, `host-capabilities.md`, and `board-publish-flow.md`. Shared scripts handle cross-platform work: `workflow-fs.js prepare-date-dir` / `detect-vcs` / `file-state`, `doc-check.js`, `board-bootstrap.js`. Runtime behavior does not depend on Bash, PowerShell or Python.
@@ -36,7 +36,6 @@ The maintained installer (`install.sh`, `install.ps1`, `install-local.cmd`) requ
 skills/<name>/
   SKILL.md       ← skill definition (frontmatter + execution instructions)
   reference.md   ← optional compatibility index; runtime paths link directly to focused resources
-  examples.md    ← filled-in examples the skill references during generation
   scripts/       ← deterministic helpers executed by the skill when needed
   assets/        ← files copied into the user's project (yan-dev-doc only: the HTML board template)
 ```

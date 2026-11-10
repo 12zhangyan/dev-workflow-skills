@@ -96,16 +96,26 @@ function validateText(raw) {
     const indent = indentOf(line);
     if (indent <= pathsIndent) break;
     if (pathsChildIndent === null) pathsChildIndent = indent;
-    const pathMatch = line.match(/^\s*(\/[^:]*):\s*$/);
+    // Path keys may be quoted ("/items/{id}") or contain colons (/users:batchGet); a trailing comment is allowed.
+    const pathMatch = line.match(/^\s*"(\/[^"]*)"\s*:\s*(?:#.*)?$/) || line.match(/^\s*'(\/[^']*)'\s*:\s*(?:#.*)?$/)
+      || line.match(/^\s*(\/.*?):\s*(?:#.*)?$/);
     if (indent === pathsChildIndent) {
-      currentPath = pathMatch ? pathMatch[1] : null;
+      // A key this light parser cannot read must not make its operations vanish from the result.
+      if (!pathMatch) fail(`OPENAPI_VALIDATION_UNAVAILABLE: unrecognized entry under paths (${line.trim().slice(0, 60)}); use a JSON-form document or install yaml/js-yaml`);
+      currentPath = pathMatch[1];
       currentPathIndent = indent;
       pathFieldIndent = null;
       continue;
     }
     if (!currentPath || indent <= currentPathIndent) continue;
     if (pathFieldIndent === null) pathFieldIndent = indent;
-    const keyMatch = line.match(/^\s*([A-Za-z]+):\s*$/);
+    const keyMatch = line.match(/^\s*([A-Za-z]+):\s*(?:#.*)?$/);
+    if (indent === pathFieldIndent && !keyMatch) {
+      const inline = line.match(/^\s*([A-Za-z]+)\s*:/);
+      if (inline && HTTP_METHODS.has(inline[1].toLowerCase())) {
+        fail(`OPENAPI_VALIDATION_UNAVAILABLE: inline value for ${inline[1].toUpperCase()} ${currentPath}; use block style, a JSON-form document or install yaml/js-yaml`);
+      }
+    }
     if (indent !== pathFieldIndent || !keyMatch || !HTTP_METHODS.has(keyMatch[1].toLowerCase())) continue;
     const method = keyMatch[1].toLowerCase();
     let operationId = '';
@@ -117,7 +127,7 @@ function validateText(raw) {
       if (childIndent <= indent) break;
       if (operationFieldIndent === null) operationFieldIndent = childIndent;
       if (childIndent !== operationFieldIndent) continue;
-      const idMatch = child.match(/^\s*operationId:\s*["']?([^\s"'#]+)["']?\s*$/);
+      const idMatch = child.match(/^\s*operationId:\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$/);
       if (idMatch) operationId = idMatch[1];
     }
     if (!operationId) fail(`${method.toUpperCase()} ${currentPath} missing operationId`);
@@ -204,6 +214,17 @@ function selfTest() {
   if (validateText(nestedMethod).join(',') !== 'ping') fail('nested example was counted as an HTTP operation');
   const nestedPath = valid + '          example:\n            /not-a-path:\n              get:\n                operationId: nestedPath\n';
   if (validateText(nestedPath).join(',') !== 'ping') fail('nested example was counted as an API path');
+  // Quoted keys, colon paths and commented method lines used to drop whole operations and still "pass".
+  const awkward = 'openapi: 3.0.3\npaths:\n  "/quoted/{id}":\n    get: # list\n      operationId: quoted # trailing\n  /users:batchGet:\n    post:\n      operationId: batchGet\n';
+  if (validateText(awkward).join(',') !== 'quoted,batchGet') fail('quoted/colon paths or commented method lines were skipped');
+  let quotedMissing = false;
+  try { validateText(awkward.replace('      operationId: quoted # trailing\n', '      summary: no id\n')); }
+  catch (error) { quotedMissing = error.message.includes('GET /quoted/{id} missing operationId'); }
+  if (!quotedMissing) fail('a quoted path without operationId was accepted');
+  let inlineRejected = false;
+  try { validateText('openapi: 3.0.3\npaths:\n  /ping:\n    get: {operationId: ping}\n'); }
+  catch (error) { inlineRejected = error.message.includes('OPENAPI_VALIDATION_UNAVAILABLE'); }
+  if (!inlineRejected) fail('an inline method value was silently skipped');
   const pointerDoc = { components: { schemas: { 'A/B ~': { type: 'string' } } } };
   if (!resolvePointer(pointerDoc, '#/components/schemas/A~1B%20~0')) fail('escaped local pointer was rejected');
   if (resolvePointer(pointerDoc, '#/components/schemas/toString')) fail('inherited property was accepted as a ref');

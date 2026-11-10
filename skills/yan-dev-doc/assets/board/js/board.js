@@ -4,7 +4,7 @@
 
 // 外壳版本号只提示维护更新；发布按实际兼容性决定是否同步外壳，不动 data/。
 // 改动外壳行为时 +1。
-const BOARD_VERSION = 38;
+const BOARD_VERSION = 39;
 
 const UI_ICONS = {
   "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/>",
@@ -74,9 +74,17 @@ function scopeOf(d) {
 // 类型/严重度 → CSS 类后缀：去掉空格，使「Bug 修复」「API 联调」能匹配 .t-Bug修复 / .t-API联调
 function tcls(v) { return String(v == null ? '' : v).replace(/\s+/g, ''); }
 // 单页文件名：与 build.js 的 slugOf 保持一致（生成 pages/<slug>.html）
+// 超长标题截断并追加内容哈希，避免文件系统拒绝文件名（NTFS 255 字符，Linux 255 字节）。
+// 哈希为 FNV-1a 32 位，build.js 与 board.js 必须逐字一致。
+function slugHash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
 function slugOf(d) {
-  return [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
+  const slug = [svcOf(d), modOf(d), d.title || 'untitled'].join('-')
     .replace(/[\/\\:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return slug.length > 80 ? slug.slice(0, 60).replace(/-$/, '') + '-' + slugHash(slug) : slug;
 }
 // 去重后的单页文件名映射：与 build.js buildSlugMap 算法逐字一致（同名 slug 追加 -1）。
 // pageLink 必须用它而非裸 slugOf，否则同名条目的详情页链接会指向第一个条目的页面。
@@ -84,8 +92,9 @@ const _slugMap = (() => {
   const used = new Set(), map = new Map();
   (typeof changes !== 'undefined' ? changes : []).forEach(d => {
     let slug = slugOf(d);
-    while (used.has(slug)) slug += '-1';
-    used.add(slug); map.set(d, slug);
+    // 文件系统可能不区分大小写（Windows、macOS），按小写判重。
+    while (used.has(slug.toLowerCase())) slug += '-1';
+    used.add(slug.toLowerCase()); map.set(d, slug);
   });
   return map;
 })();
@@ -430,7 +439,7 @@ function apiIndexLink(d, label) {
 // 详情页链接（pages/<slug>.html，由 build.js 生成）；详情页/自包含导出内部不重复显示。
 function pageLink(d) {
   if ((typeof STANDALONE !== 'undefined' && STANDALONE) || (typeof DETAIL_PAGE !== 'undefined' && DETAIL_PAGE)) return '';
-  return `<a class="md-link" href="pages/${esc(pageSlug(d))}.html" target="_blank" onclick="event.stopPropagation()">↗ 详情页面</a>`;
+  return `<a class="md-link" href="pages/${esc(encodeURIComponent(pageSlug(d)))}.html" target="_blank" onclick="event.stopPropagation()">↗ 详情页面</a>`;
 }
 
 function shortDate(d) { return String(d.updatedAt || d.date || '').slice(0, 10); }

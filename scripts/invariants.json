@@ -8,7 +8,11 @@
         "skills/yan-dev-doc/SKILL.md",
         "skills/yan-code-review/SKILL.md",
         "skills/yan-requirement-analysis/SKILL.md",
-        "skills/yan-conversation-handoff/SKILL.md"
+        "skills/yan-conversation-handoff/SKILL.md",
+        "skills/yan-project-analysis/SKILL.md",
+        "skills/yan-project-analysis/modes/understanding/mode.md",
+        "skills/yan-project-analysis/modes/incident/mode.md",
+        "skills/yan-project-analysis/modes/business/mode.md"
       ],
       "sentence": ["数据库", "只读|不执行数据库写入"]
     },
@@ -25,9 +29,13 @@
         "skills/yan-dev-doc/SKILL.md",
         "skills/yan-code-review/SKILL.md",
         "skills/yan-requirement-analysis/SKILL.md",
-        "skills/yan-code-review/modes/loop/mode.md"
+        "skills/yan-code-review/modes/loop/mode.md",
+        "skills/yan-project-analysis/SKILL.md",
+        "skills/yan-project-analysis/modes/understanding/mode.md",
+        "skills/yan-project-analysis/modes/incident/mode.md",
+        "skills/yan-project-analysis/modes/business/mode.md"
       ],
-      "sentence": ["commit", "不自动|未经|不执行|不提交"]
+      "sentence": ["commit", "不自动|不得自动|未经|不执行|不提交"]
     },
     {
       "id": "untracked-not-auto-added",
@@ -175,6 +183,7 @@
         "skills/yan-dev-doc/SKILL.md",
         "skills/yan-requirement-analysis/SKILL.md",
         "skills/yan-conversation-handoff/SKILL.md",
+        "skills/yan-project-analysis/modes/incident/mode.md",
         "skills/_shared/interaction-policy.md"
       ],
       "sentence": ["敏感|API key|密码|token", "不回显|不得.*转录|脱敏"]

@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+const vm = require('vm');
 
 const BOARD_DIR = __dirname;
 const DATA = path.join(BOARD_DIR, 'data', 'changes.js');
@@ -43,6 +44,26 @@ const CATALOG_HEADER = `
 `;
 
 function die(msg) { throw new Error(msg); }
+// 数据文件只应含对象字面量：放进空上下文并限时执行，被改动过的数据文件不再直接以 Node 权限运行。
+// vm 不是安全边界，这里只缩小暴露面。
+function runData(source, expression, sandbox) {
+  return vm.runInNewContext(source + '\n;(' + expression + ')', sandbox || {}, { timeout: 5000 });
+}
+const KINDS = ['bug', 'reading', 'biz'];
+const KNOWN_STATUS = ['未修复', '修复中', '已修复', '已验证', '草稿', '进行中', '已完成', '待确认'];
+// 入库前拒绝会让看板分类、排序或链接失真的输入；新建记录才要求 title，Review 更新只靠身份匹配。
+function validateEntry(entry, creating) {
+  if (creating && (typeof entry.title !== 'string' || !entry.title.trim())) die('BOARD_ENTRY_INVALID: 新建记录必须有非空 title');
+  if (entry.kind !== undefined && !KINDS.includes(entry.kind)) die('BOARD_ENTRY_INVALID: kind 只能是 ' + KINDS.join(' / ') + '（研发档案省略 kind），收到 ' + JSON.stringify(entry.kind));
+  for (const key of ['date', 'updatedAt', 'createdAt']) {
+    if (entry[key] === undefined) continue;
+    const text = String(entry[key]).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}/.test(String(entry[key])) || Number.isNaN(Date.parse(text))) die('BOARD_ENTRY_INVALID: ' + key + ' 必须是 YYYY-MM-DD，收到 ' + JSON.stringify(entry[key]));
+  }
+  if (entry.status !== undefined && !KNOWN_STATUS.includes(entry.status)) {
+    console.warn('⚠ status ' + JSON.stringify(entry.status) + ' 不在看板状态枚举内（' + KNOWN_STATUS.join(' / ') + '），将以默认颜色显示');
+  }
+}
 // 与 workflow-fs.js prepare-date-dir 一致使用本地日期，避免 UTC 偏移让记录日期与文档目录相差一天。
 function today() {
   const now = new Date();
@@ -204,7 +225,7 @@ function detailSource(detailId, detail) {
 }
 function validateDetail(source, detailId) {
   const holder = {};
-  new Function('window', source)(holder);
+  runData(source, 'null', { window: holder });
   if (!holder.BOARD_DETAILS || !holder.BOARD_DETAILS[detailId]) throw new Error(`详情脚本校验失败：${detailId}`);
 }
 function writeDetail(detailId, detail) {
@@ -220,7 +241,7 @@ function loadDetail(catalog) {
   const file = detailFile(catalog);
   if (!exists(file)) return null;
   const holder = {};
-  new Function('window', fs.readFileSync(file, 'utf8'))(holder);
+  runData(fs.readFileSync(file, 'utf8'), 'null', { window: holder });
   return holder.BOARD_DETAILS && holder.BOARD_DETAILS[catalog.detailId] || null;
 }
 function loadCurrent() {
@@ -229,7 +250,7 @@ function loadCurrent() {
   const raw = fs.readFileSync(DATA, 'utf8');
   let cur;
   try {
-    cur = new Function(raw + '\n;return { changes: typeof changes!=="undefined"?changes:[], htmlChangelog: typeof htmlChangelog!=="undefined"?htmlChangelog:[] };')();
+    cur = runData(raw, '{ changes: typeof changes!=="undefined"?changes:[], htmlChangelog: typeof htmlChangelog!=="undefined"?htmlChangelog:[] }');
   } catch (e) { die('现有 data/changes.js 解析失败，请先修复：' + e.message); }
   const ids = new Set();
   for (const catalog of cur.changes) {
@@ -294,19 +315,26 @@ function compose(raw, changes, changelog) {
     'const changes = [\n' + changes.map(emit).join(',\n') + (changes.length ? ',\n' : '') +
     '  // ─── 在此行上方追加新记录 ───\n];\n';
 }
-function writeData(raw, changes, changelog, oldLen) {
+// 先在内存中合成并校验，不写任何文件；返回待提交内容。详情文件与目录的落盘顺序由调用方决定。
+function prepareData(raw, changes, changelog, oldLen) {
   const out = compose(raw, changes, changelog);
   let parsed;
-  try { parsed = new Function(out + '\n;return changes')(); }
+  try { parsed = runData(out, 'changes'); }
   catch (e) { throw new Error('生成结果语法错误（已放弃写入，原文件未动）：' + e.message); }
   if (parsed.length < oldLen) throw new Error(`记录数从 ${oldLen} 降到 ${parsed.length}，已放弃写入`);
   for (const c of parsed) {
     const allowed = new Set([...CATALOG_KEYS, ...GENERATED]);
     const unexpected = Object.keys(c).filter(k => !allowed.has(k));
-    if (unexpected.length) throw new Error(`目录仍含详情/执行字段：${c.title || '(无标题)'} -> ${unexpected.join(', ')}`);
+    if (unexpected.length) throw new Error(`目录仍含详情/执行字段：${c.title || '(无标题)'} -> ${unexpected.join(', ')}；旧数据请先运行 node project-html/board-add.js --migrate`);
   }
+  return out;
+}
+function commitData(out) {
   atomicWrite(BAK, fs.readFileSync(DATA));
   atomicWrite(DATA, out);
+}
+function writeData(raw, changes, changelog, oldLen) {
+  commitData(prepareData(raw, changes, changelog, oldLen));
 }
 function migrate() {
   const { raw, changes, changelog } = loadCurrent();
@@ -347,9 +375,13 @@ function add(arg) {
   if (requireExisting && NON_DELIVERY_KINDS.includes(entry.kind)) die('BOARD_TARGET_NOT_FOUND: requireExisting 只更新交付档案，不接受 kind=' + entry.kind);
   const { raw, changes, changelog } = loadCurrent();
   const oldLen = changes.length;
+  const allowedKeys = new Set([...CATALOG_KEYS, ...GENERATED]);
+  const legacy = changes.find(item => Object.keys(item).some(key => !allowedKeys.has(key)));
+  if (legacy) die('BOARD_DATA_MIGRATION_REQUIRED: 目录仍有未迁移的旧记录（' + (legacy.title || '无标题') + '），未写入任何文件；先运行 node project-html/board-add.js --migrate');
   let { catalog, detail } = splitEntry(entry, input.detail);
   let action = 'append';
   const idx = findExistingIndex(changes, entry, catalog, requireExisting);
+  validateEntry(entry, idx < 0);
   if (requireExisting && idx < 0) die('BOARD_TARGET_NOT_FOUND: 没有与 deliveryId / sourceDocPath / docPath 匹配的交付档案；requireExisting 不新建记录');
   if (idx >= 0) {
     const old = changes[idx];
@@ -358,7 +390,8 @@ function add(arg) {
     const mergedEntry = Object.assign({}, old, catalog, {
       detailId: old.detailId || catalog.detailId,
       deliveryId: old.deliveryId || catalog.deliveryId,
-      docPath: old.docPath || catalog.docPath,
+      // 同一档案的方案文档改名或移动后，以本次提供的 docPath 为准；未提供时保留原值。
+      docPath: catalog.docPath || old.docPath,
       currentGate: entry.currentGate || old.currentGate || catalog.currentGate
     });
     // 本次未显式给 summary 时，从合并后的详情重新推导，不让只含 Review 事件的写入把摘要退化成标题。
@@ -381,10 +414,13 @@ function add(arg) {
     if (changes.some(current => current.detailId && current.detailId.toLowerCase() === catalog.detailId.toLowerCase())) die('BOARD_DETAIL_CONFLICT: detailId belongs to another record');
     changes.push(Object.assign({ updatedAt: entry.date || today() }, catalog));
   }
-  writeDetail(catalog.detailId, detail);
   if (input.changelog) changelog.push({ date: entry.date || today(), desc: input.changelog });
-  try { writeData(raw, changes, changelog, oldLen); }
+  // 先在内存中合成并校验目录，通过后再写详情、最后写目录：校验失败不会留下孤儿详情，目录也不会指向缺失的详情。
+  let prepared;
+  try { prepared = prepareData(raw, changes, changelog, oldLen); }
   catch (e) { die(e.message); }
+  writeDetail(catalog.detailId, detail);
+  commitData(prepared);
   const cleaned = removeAllocatedInput(arg);
   console.log(`✓ 看板已${action === 'update' ? '更新' : '追加'}：${entry.title || '(无标题)'}（目录 ${oldLen} → ${changes.length}，详情 ${catalog.detailPath}，备份 data/changes.js.bak${cleaned ? '，已清理本次临时输入' : ''}）`);
 }
